@@ -1,6 +1,6 @@
 # Pending Research Task: Validate Metric Audit, Dispatch Networked ETH/BTC Study, and Review Artifacts
 
-**Status:** Pending CI validation and owner-side manual Actions dispatch  
+**Status:** CI validated and metric audit merged; pending owner-side manual dispatch and artifact review  
 **Priority:** High  
 **Type:** Reproducible empirical replication and evidence review  
 **Scope:** Backtesting only; no live orders or capital deployment
