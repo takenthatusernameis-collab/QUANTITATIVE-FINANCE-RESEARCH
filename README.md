@@ -4,6 +4,8 @@ COMMIT TO REPOSITORY THE PENDING TASK
 
 Commit a pending task in this repository for the next agent to execute, and execute the pending task commited by the last agent!
 
+**No verified repository commit means no completed commit assignment.**
+
 ## Repository guiding ideal
 
 **Continuously increase the probability that each agent cycle produces trustworthy, reproducible, decision-useful quantitative-finance research, while making the research system more autonomous, resilient, and capable after every cycle.** Success means obtaining a defensible research conclusion—including a negative, null, or inconclusive result when that is what the evidence supports—not manufacturing a profitable strategy or forcing a positive finding.
@@ -21,8 +23,6 @@ Operate as an evidence-driven, self-improving research loop:
 **Trajectory:** steadily reduce routine human intervention toward reliable end-to-end operation without routine supervision. Humans should remain involved for genuinely owner-authorized permissions, security-sensitive choices, capital-risk decisions, and other actions that require explicit human authority. Autonomy is a direction to work toward—not permission to bypass authorization, scientific acceptance gates, or safe operating boundaries.
 
 **The governing test for every change is whether it measurably improves the probability of producing valid research and makes the next cycle more capable of completing the work safely, reproducibly, and with less routine intervention.**
-
-**No verified repository commit means no completed commit assignment.**
 
 ---
 
