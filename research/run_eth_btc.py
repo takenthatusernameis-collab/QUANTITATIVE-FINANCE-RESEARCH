@@ -726,6 +726,7 @@ def benchmark_backtest(df: pd.DataFrame, sample_index: pd.DatetimeIndex,
             "borrow_cost": borrow_cost, "net_return": net, "turnover": turnover,
             "position": 1.0 if (target_eth != 0.0 or target_btc != 0.0) else 0.0,
             "w_eth": target_eth, "w_btc": target_btc,
+            "held_w_eth": prev_eth, "held_w_btc": prev_btc,
         })
         prev_eth, prev_btc = target_eth, target_btc
     return pd.DataFrame(rows, index=sample_index)
