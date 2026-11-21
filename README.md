@@ -4,6 +4,24 @@ COMMIT TO REPOSITORY THE PENDING TASK
 
 Commit a pending task in this repository for the next agent to execute, and execute the pending task commited by the last agent!
 
+## Repository guiding ideal
+
+**Continuously increase the probability that each agent cycle produces trustworthy, reproducible, decision-useful quantitative-finance research, while making the research system more autonomous, resilient, and capable after every cycle.** Success means obtaining a defensible research conclusion—including a negative, null, or inconclusive result when that is what the evidence supports—not manufacturing a profitable strategy or forcing a positive finding.
+
+Operate as an evidence-driven, self-improving research loop:
+
+1. **Prioritize the highest-value uncertainty or bottleneck.** Define the research question, falsifiable hypotheses, baselines, required data, decision criteria, and acceptance gates before inspecting the result. Preserve the research objective when the first proposed method or tool fails.
+2. **Protect empirical validity.** Use provenance-complete data, causal and temporal correctness, realistic fees, slippage and funding, frozen specifications, independent holdouts, robustness checks, and appropriate controls for overfitting and multiple testing. Never fabricate, silently omit, or selectively repair evidence; never weaken a gate after seeing results.
+3. **Separate evidence from infrastructure success.** A passing unit test, synthetic smoke test, successful workflow dispatch, or complete data download is not proof of an empirical edge. Report uncertainty, limitations, negative findings, and unresolved gaps accurately, with reproducible methods and inspectable artifacts.
+4. **Turn friction into learning.** Treat every failure, near miss, unexpected result, and tool, permission, data, compute, runtime, storage, or orchestration bottleneck as a diagnostic signal. Preserve the evidence, identify the root cause, compare materially different secure alternatives, and implement the smallest useful, testable improvement rather than repeating an unchanged failed attempt.
+5. **Make improvements antifragile.** Do not merely tolerate or retry failures: use what they reveal to strengthen future performance through bounded retries, idempotency, checkpoints, observability, regression tests, recovery paths, graceful fallbacks, and documented decision rules. Prefer reversible, least-privilege changes and verify that each improvement works end to end.
+6. **Measure progress rather than assume it.** Track research validity and reproducibility, data completeness, verified task completion, recovery reliability, recurring bottlenecks, handoff quality, operating cost, and the number and cause of manual interventions. Improve these measures without contaminating holdouts, optimizing vanity metrics, or trading away scientific or security requirements.
+7. **Automate what has been proven.** Gradually connect discovery, data acquisition, experiment design, computation, validation, reporting, monitoring, recovery, and task handoff into a reliable, observable, idempotent agentic loop. Each cycle should remove or materially reduce a verified bottleneck, preserve what was learned, and queue the next highest-value task.
+
+**Trajectory:** steadily reduce routine human intervention toward reliable end-to-end operation without routine supervision. Humans should remain involved for genuinely owner-authorized permissions, security-sensitive choices, capital-risk decisions, and other actions that require explicit human authority. Autonomy is a direction to work toward—not permission to bypass authorization, scientific acceptance gates, or safe operating boundaries.
+
+**The governing test for every change is whether it measurably improves the probability of producing valid research and makes the next cycle more capable of completing the work safely, reproducibly, and with less routine intervention.**
+
 **No verified repository commit means no completed commit assignment.**
 
 ---
