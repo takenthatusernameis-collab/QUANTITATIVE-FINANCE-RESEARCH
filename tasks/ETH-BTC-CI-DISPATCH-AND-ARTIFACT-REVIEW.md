@@ -7,7 +7,7 @@
 
 ## Context
 
-The metric/reporting corrections were merged in `305bf5c70a14d8a8167dbbd4a22ec95f775402f7`. The latest test CI run [44929570103](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44929570103) (run 16) completed successfully on code commit `d7c3fc0b9ea75475a20b8d82c94aca6084073460`: its `test` job passed all 17 deterministic unit tests and the synthetic plumbing smoke test. Its zero artifacts are expected for the test workflow. The four commits from that code SHA to current `main` HEAD `02088237366f963a4ce58429839e9329d6041efa` changed documentation/task files only; no research source or workflow file changed.
+The metric/reporting corrections were merged in `305bf5c70a14d8a8167dbbd4a22ec95f775402f7`. The latest test CI run [44929570103](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44929570103) (run 16) completed successfully on code commit `d7c3fc0b9ea75475a20b8d82c94aca6084073460`: its `test` job passed all 17 deterministic unit tests and the synthetic plumbing smoke test. Its zero artifacts are expected for the test workflow. The eight commits from that code SHA to current `main` HEAD `6ced289e97c5bb7a6df430433e7cc241e2571895` changed README/task documentation only; no research source or workflow file changed.
 
 The complete repository Actions run collection returned `total_count=16` and 16 records. All 16 used `.github/workflows/research-tests.yml`; none used the manual full-data workflow `.github/workflows/eth-btc-research.yml`. Thus, no full-data run was present in the complete run listing at the time of this check.
 
