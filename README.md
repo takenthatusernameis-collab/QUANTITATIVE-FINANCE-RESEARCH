@@ -1,1 +1,1 @@
-Commit the mission for the subsequent session!
+Commit a pending task in this repository for the next agent to execute!
