@@ -3,6 +3,14 @@ name: ETH-BTC networked empirical research
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: Run mode
+        required: true
+        default: empirical
+        type: choice
+        options:
+          - empirical
+          - audit-only
       start:
         description: Inclusive UTC start date (YYYY-MM-DD)
         required: true
@@ -14,7 +22,7 @@ on:
         default: '2026-10-31'
         type: string
       market:
-        description: Market data to research
+        description: Market selection for empirical mode (audit-only always audits both)
         required: true
         default: both
         type: choice
@@ -22,17 +30,130 @@ on:
           - spot
           - um
           - both
+      reconcile_spot_gaps:
+        description: In audit-only mode, reconcile missing ETH Spot hours against official REST and daily archives
+        required: true
+        default: false
+        type: boolean
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
 
+concurrency:
+  group: eth-btc-research-main
+  cancel-in-progress: false
+
 jobs:
+  authorize:
+    name: Authorize requested operation
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'issue_comment' }}
+    runs-on: ubuntu-latest
+    outputs:
+      authorized: ${{ steps.gate.outputs.authorized }}
+      command: ${{ steps.gate.outputs.command }}
+      start: ${{ steps.gate.outputs.start }}
+      end: ${{ steps.gate.outputs.end }}
+      market: ${{ steps.gate.outputs.market }}
+      reconcile: ${{ steps.gate.outputs.reconcile }}
+    steps:
+      - name: Validate event, target, actor and exact command
+        id: gate
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_IS_PR: ${{ github.event.issue.pull_request != null }}
+          ISSUE_STATE: ${{ github.event.issue.state }}
+          COMMENT_USER: ${{ github.event.comment.user.login }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          DISPATCH_MODE: ${{ inputs.mode }}
+          DISPATCH_START: ${{ inputs.start }}
+          DISPATCH_END: ${{ inputs.end }}
+          DISPATCH_MARKET: ${{ inputs.market }}
+          DISPATCH_RECONCILE: ${{ inputs.reconcile_spot_gaps }}
+        run: |
+          set -euo pipefail
+          echo "authorized=false" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            MODE="${DISPATCH_MODE:-empirical}"
+            case "$MODE" in
+              empirical) COMMAND="empirical" ;;
+              audit-only) COMMAND="audit" ;;
+              *) echo "Rejected unsupported dispatch mode"; exit 0 ;;
+            esac
+            START="${DISPATCH_START:-2020-01-01}"
+            END="${DISPATCH_END:-2026-10-31}"
+            MARKET="${DISPATCH_MARKET:-both}"
+            RECONCILE="${DISPATCH_RECONCILE:-false}"
+            if [[ ! "$START" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || [[ ! "$END" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+              echo "Rejected malformed date input"; exit 0
+            fi
+            case "$MARKET" in spot|um|both) ;; *) echo "Rejected market input"; exit 0 ;; esac
+            case "$RECONCILE" in true|false) ;; *) RECONCILE="false" ;; esac
+          elif [ "$EVENT_NAME" = "issue_comment" ]; then
+            # This PR is only an event surface. GitHub executes the default-branch workflow;
+            # no PR-head source, files, or data are checked out or trusted.
+            if [ "$EVENT_ACTION" != "created" ] ||
+               [ "$ISSUE_NUMBER" != "2" ] ||
+               [ "$ISSUE_IS_PR" != "true" ] ||
+               [ "$ISSUE_STATE" != "open" ] ||
+               [ "$COMMENT_USER" != "takenthatusernameis-collab" ]; then
+              echo "Rejected event, target, state, or actor"; exit 0
+            fi
+            case "$COMMENT_BODY" in
+              "/qfr-control-smoke") COMMAND="smoke" ;;
+              "/qfr-run-eth-btc-data-audit") COMMAND="audit" ;;
+              *) echo "Rejected non-allowlisted command"; exit 0 ;;
+            esac
+            START="2020-01-01"
+            END="2026-10-31"
+            MARKET="both"
+            RECONCILE="true"
+          else
+            echo "Rejected unsupported event"; exit 0
+          fi
+          echo "authorized=true" >> "$GITHUB_OUTPUT"
+          echo "command=$COMMAND" >> "$GITHUB_OUTPUT"
+          echo "start=$START" >> "$GITHUB_OUTPUT"
+          echo "end=$END" >> "$GITHUB_OUTPUT"
+          echo "market=$MARKET" >> "$GITHUB_OUTPUT"
+          echo "reconcile=$RECONCILE" >> "$GITHUB_OUTPUT"
+          echo "Authorized command: $COMMAND"
+
+  control-smoke:
+    name: Harmless ChatGPT dispatch smoke test
+    needs: authorize
+    if: ${{ needs.authorize.outputs.authorized == 'true' && needs.authorize.outputs.command == 'smoke' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm authorization without executing repository or PR code
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          ACTOR: ${{ github.actor }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          COMMAND: ${{ needs.authorize.outputs.command }}
+        run: |
+          set -euo pipefail
+          echo "CONTROL SMOKE PASS"
+          echo "event=$EVENT_NAME"
+          echo "actor=$ACTOR"
+          echo "control_pr=$ISSUE_NUMBER"
+          echo "command=$COMMAND"
+          echo "No checkout, code execution, data retrieval, or research was performed."
+
   empirical-research:
+    name: Run authorized data audit or empirical study
+    needs: authorize
+    if: ${{ needs.authorize.outputs.authorized == 'true' && (needs.authorize.outputs.command == 'audit' || needs.authorize.outputs.command == 'empirical') }}
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
-      - name: Checkout repository
+      - name: Checkout repository default branch only
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -45,9 +166,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: data/cache/
-          key: binance-archives-${{ inputs.start }}-${{ inputs.end }}-${{ inputs.market }}
+          key: binance-archives-${{ needs.authorize.outputs.start }}-${{ needs.authorize.outputs.end }}-${{ needs.authorize.outputs.market }}
           restore-keys: |
-            binance-archives-${{ inputs.start }}-${{ inputs.end }}-
+            binance-archives-${{ needs.authorize.outputs.start }}-${{ needs.authorize.outputs.end }}-
 
       - name: Install dependencies
         run: python -m pip install -r research/requirements.txt
@@ -55,12 +176,35 @@ jobs:
       - name: Run synthetic plumbing test
         run: python research/run_eth_btc.py --self-test
 
-      - name: Run full empirical study
+      - name: Run non-fail-fast all-series data audit
+        if: ${{ needs.authorize.outputs.command == 'audit' }}
         env:
-          START_DATE: ${{ inputs.start }}
-          END_DATE: ${{ inputs.end }}
-          MARKET: ${{ inputs.market }}
+          START_DATE: ${{ needs.authorize.outputs.start }}
+          END_DATE: ${{ needs.authorize.outputs.end }}
+          RECONCILE: ${{ needs.authorize.outputs.reconcile }}
         run: |
+          set -euo pipefail
+          args=()
+          if [ "$RECONCILE" = "true" ]; then
+            args+=(--reconcile-spot-gaps)
+          fi
+          python research/run_eth_btc.py \
+            --start "$START_DATE" \
+            --end "$END_DATE" \
+            --market both \
+            --data-dir data \
+            --output-dir reports/generated \
+            --audit-only \
+            "${args[@]}"
+
+      - name: Run full empirical study (manual break-glass mode only)
+        if: ${{ needs.authorize.outputs.command == 'empirical' }}
+        env:
+          START_DATE: ${{ needs.authorize.outputs.start }}
+          END_DATE: ${{ needs.authorize.outputs.end }}
+          MARKET: ${{ needs.authorize.outputs.market }}
+        run: |
+          set -euo pipefail
           python research/run_eth_btc.py \
             --start "$START_DATE" \
             --end "$END_DATE" \
@@ -77,5 +221,6 @@ jobs:
             reports/generated/
             data/raw/*_archive_manifest.json
             data/raw/*_funding_manifest.json
+            data/raw/spot_*_gap_reconciliation.json
           if-no-files-found: warn
           retention-days: 30
