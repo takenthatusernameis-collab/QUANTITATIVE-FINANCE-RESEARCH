@@ -1,26 +1,38 @@
-# Pending Research Task: Validate Metric Audit, Dispatch Networked ETH/BTC Study, and Review Artifacts
+# Pending Research Task: Verify Dispatch Status and Review the Networked ETH/BTC Study
 
-**Status:** CI validated and metric audit merged; pending owner-side manual dispatch and artifact review  
+**Status:** Partially executed on 2026-11-21 — test CI verified; full-data run confirmed absent from the complete Actions run listing; blocked on owner-side manual dispatch  
 **Priority:** High  
 **Type:** Reproducible empirical replication and evidence review  
 **Scope:** Backtesting only; no live orders or capital deployment
 
-
 ## Context
 
-The metric/reporting corrections and six deterministic tests were merged in `305bf5c70a14d8a8167dbbd4a22ec95f775402f7`. GitHub Actions run `44929403565` (run 14) passed all 17 deterministic unit tests and the synthetic smoke test. The manual-only workflow `.github/workflows/eth-btc-research.yml` remains unchanged. The available GitHub integration cannot enumerate all Actions runs or dispatch `workflow_dispatch`; an empty commit-associated workflow-run response is not proof of no run.
+The metric/reporting corrections were merged in `305bf5c70a14d8a8167dbbd4a22ec95f775402f7`. The latest test CI run [44929570103](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44929570103) (run 16) completed successfully on code commit `d7c3fc0b9ea75475a20b8d82c94aca6084073460`: its `test` job passed all 17 deterministic unit tests and the synthetic plumbing smoke test. Its zero artifacts are expected for the test workflow. The four commits from that code SHA to current `main` HEAD `02088237366f963a4ce58429839e9329d6041efa` changed documentation/task files only; no research source or workflow file changed.
 
+The complete repository Actions run collection returned `total_count=16` and 16 records. All 16 used `.github/workflows/research-tests.yml`; none used the manual full-data workflow `.github/workflows/eth-btc-research.yml`. Thus, no full-data run was present in the complete run listing at the time of this check.
 
-## Required actions
+The available GitHub integration can enumerate workflow runs and inspect known runs, jobs, logs and artifacts. It exposes no action to invoke `workflow_dispatch`; therefore this agent cannot start the full-data run. This is an execution-permission/tooling limitation, not a research result.
 
-1. CI and merge are complete; no further PR action is needed unless a subsequent regression is discovered.
-2. Check **Actions → ETH-BTC networked empirical research** for a full-data run after the audit corrections. If none exists, the repository owner must manually dispatch with start `2020-01-01`, end `2026-10-31`, market `both`. Do not add push or scheduled triggers to bypass the manual gate.
-3. When a verified run ID is available, inspect all jobs, steps, logs and artifacts. Download and inspect generated reports, CSV summaries, charts, data-quality JSON, archive/checksum manifests, funding manifests and run manifest.
-4. Validate per-symbol hourly continuity, row counts, sample bounds, duplicate timestamps, skipped months, timestamp units, archive checksums, funding coverage and alignment. Keep raw market-data CSVs out of Git.
-5. Review out-of-sample folds/regimes, cost sensitivity, benchmark accounting, funding attribution, turnover, drawdowns, bootstrap uncertainty and stress scenarios. Distinguish statistical cointegration from durable net trading edge.
-6. Update the report and README with a reproducible evidence-based **GO / NO-GO / INCONCLUSIVE** conclusion. Disclose account-specific fees, borrow feasibility, historical execution costs and margin/liquidation gaps. Until real data and artifacts are inspected, keep the conclusion **INCONCLUSIVE**.
+## Execution record
 
+1. **CI verification:** run 44929570103 completed successfully. The job log records `Ran 17 tests`, `OK`, and `SELF-TEST PASS`. No artifacts were produced by the test workflow, as expected.
+2. **Full-data run enumeration:** all 16 Actions runs were returned; zero belonged to `.github/workflows/eth-btc-research.yml`.
+3. **Dispatch capability:** no GitHub connector action for `workflow_dispatch` is available. No dispatch was attempted through an unsupported endpoint, and no automatic trigger was added.
+4. **Empirical artifacts:** unavailable because the full-data workflow has not run. No raw market data were acquired or analyzed in this task.
+
+## Required owner action
+
+Open **Actions → ETH-BTC networked empirical research → Run workflow** on branch `main` and submit:
+- start: `2020-01-01`
+- end: `2026-10-31`
+- market: `both`
+
+Keep the workflow manual-only. Do not add push or scheduled triggers to bypass the owner action.
+
+## Next agent
+
+Continue with `tasks/ETH-BTC-POST-DISPATCH-ARTIFACT-REVIEW.md`. First enumerate the Actions run collection again. If the owner has not dispatched the full-data workflow, report the exact owner action and stop without inventing results. If a run exists, inspect every job, step, log and artifact; validate the data-quality manifests and review the out-of-sample, cost, funding, benchmark and risk outputs.
 
 ## Acceptance criteria
 
-CI validation is passed and the metric audit is merged; the full networked workflow has run successfully; artifacts and data-quality evidence have been inspected; and a reproducible conclusion is recorded. If owner dispatch or artifact access remains blocked, document the exact remaining step and keep the empirical conclusion **INCONCLUSIVE**.
+The dispatch-status check and CI verification are complete. The empirical task itself remains **INCONCLUSIVE** until the full networked workflow runs successfully and its artifacts are inspected. Do not issue a GO/NO-GO conclusion from synthetic tests or code-level checks, and do not deploy capital.
