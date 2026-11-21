@@ -33,7 +33,9 @@ Use `--market spot`, `--market um`, or `--market both`. `--self-test` runs a syn
 5. Hourly OHLCV is not a historical order book. The spread/slippage inputs are proxies, not measured historical bid/ask execution costs.
 6. Inspect data-quality JSON and CSV outputs before interpreting statistics. Do not treat a significant cointegration test as evidence of a profitable net trading edge.
 
-## Pre-dispatch metric/reporting audit
+## Pre-dispatch metric/reporting audit (CI validated)
+
+The metric audit corrections were merged in `305bf5c70a14d8a8167dbbd4a22ec95f775402f7`; CI run `44929403565` passed all 17 deterministic tests and the synthetic smoke test. The full-data study remains separate and unverified.
 
 - Sortino uses the root-mean-square downside deviation relative to the 0% minimum acceptable return, computed over all observations (including zero downside for non-negative returns).
 - Maximum drawdown includes initial NAV = 1.0 in the peak path, so a loss on the first realized bar is captured.
