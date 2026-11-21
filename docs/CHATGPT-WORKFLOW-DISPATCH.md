@@ -140,6 +140,21 @@ Preserve the current `workflow_dispatch` inputs so a maintainer can still select
 - If the comment is created by a workflow using the repository's `GITHUB_TOKEN`, GitHub suppresses most resulting workflow events to prevent recursion (except `workflow_dispatch` and `repository_dispatch`). In that case the comment bridge will not dispatch a run; use a GitHub App user/installation token or PAT not derived from the Actions job's `GITHUB_TOKEN`, or use the direct workflow-dispatch API.
 - Do not add a `push` or recurring `schedule` trigger as a workaround. A push trigger can run on unrelated documentation/code changes and may be suppressed when the push is made with `GITHUB_TOKEN`.
 
+## Mandatory acceptance criteria: end-to-end autonomous activation
+
+The implementation is **not complete** until every item below has been demonstrated with a real test. Documentation, workflow YAML, installed permissions, or a successful comment-creation response alone do not satisfy acceptance.
+
+- [ ] **Dedicated control issue created:** one ordinary GitHub issue exists, its number is recorded in the shared workflow configuration/documentation, and it is clearly identified as the command interface. It must not be a pull request.
+- [ ] **Actual ChatGPT comment identity established:** create a harmless test comment through the connected ChatGPT GitHub integration and record the exact GitHub actor/login shown by GitHub. Do not guess the identity from the App installation name.
+- [ ] **Ordinary-issue commenting capability verified:** prove that the connected ChatGPT action can create a comment on the dedicated ordinary issue, not merely on a pull request. If its exposed action cannot do this, identify and implement a supported alternative; do not claim the bridge is usable.
+- [ ] **Harmless test workflow implemented:** create a minimal, low-cost workflow with both manual `workflow_dispatch` fallback and a strictly gated `issue_comment: created` command. It should perform a harmless deterministic action and produce an inspectable output/artifact. Test the exact control-issue, non-PR, approved-author and full-command checks.
+- [ ] **ChatGPT successfully triggers the test workflow:** ChatGPT itself posts the exact command through the connected integration; GitHub records the expected `issue_comment` event and starts the intended workflow. A manual Run workflow click does not satisfy this criterion.
+- [ ] **Actions logs confirm successful execution:** inspect the resulting run and job logs; verify the event type, workflow path, actor, commit SHA, command gate and successful completion. Record the run URL/ID.
+- [ ] **ChatGPT retrieves and verifies the output:** use the connected GitHub integration to inspect the run's artifacts or other output, and confirm that the content matches the test workflow's expected result.
+- [ ] **Repository-wide workflow coverage:** apply the same verified activation pattern to every on-demand workflow that ChatGPT is expected to start—existing and future—with a distinct exact command per workflow, while retaining manual `workflow_dispatch` fallback. Native-event CI workflows are exempt unless ChatGPT also needs to start them independently.
+
+**Completion status:** Until all criteria are met, report the activation system as **NOT ENABLED / NOT END-TO-END VERIFIED**. List any failed or unavailable prerequisite explicitly and retain the manual fallback. Do not represent a documented design or partial test as autonomous execution.
+
 ## ChatGPT operating procedure once enabled
 
 1. Inspect the dedicated control issue and current Actions runs.
