@@ -51,7 +51,7 @@ class ResearchPipelineTests(unittest.TestCase):
         held_eth = pd.Series(w_eth, index=index).shift(1).fillna(0.0)
         held_btc = pd.Series(w_btc, index=index).shift(1).fillna(0.0)
         return pd.DataFrame({
-            "net_return": returns, "position": positions, "turnover": np.zeros(n),
+            "net_return": np.asarray(returns, dtype=float), "position": positions, "turnover": np.zeros(n),
             "w_eth": w_eth, "w_btc": w_btc,
             "held_w_eth": held_eth, "held_w_btc": held_btc,
         }, index=index)
