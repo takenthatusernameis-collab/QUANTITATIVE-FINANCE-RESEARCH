@@ -22,7 +22,7 @@ Use `--market spot`, `--market um`, or `--market both`. `--self-test` runs a syn
 - Walk-forward: 730 calendar days of trailing training data followed by non-overlapping 90-day test folds. No parameter optimization is performed; thresholds are pre-specified.
 - Position sizing: spread-hedge neutrality, not dollar neutrality. The two leg weights are normalized to 1x gross exposure using the estimated log-price hedge ratio. A close signal is shifted one bar and executed at the next bar open.
 - Costs: fees, slippage and spread are configurable per leg per side; 1.0x, 1.5x and 2.0x cost cases are reported. USDⓈ-M funding is charged at observed settlement timestamps. Spot borrow can be configured with `--spot-borrow-bps-per-day`.
-- Daily robustness resamples OHLC data and uses next-day-open execution. It is price-only: funding is not applied to the daily robustness run.
+- Daily robustness resamples OHLC data and uses next-day-open execution. It is price-only: funding is not applied to the daily robustness run. Sharpe and Sortino use a 0% risk-free hurdle; annualization is 8,760 hourly or 365 daily periods.
 
 ## Important caveats
 
