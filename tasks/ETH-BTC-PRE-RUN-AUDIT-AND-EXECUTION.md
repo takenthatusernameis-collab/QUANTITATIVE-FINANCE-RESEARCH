@@ -1,6 +1,6 @@
 # Pending Research Task: Audit, Harden, and Execute ETH/BTC Mean-Reversion Study
 
-**Status:** Ready for execution  
+**Status:** Blocked — audit reviewed; manual GitHub Actions dispatch required  
 **Priority:** High  
 **Type:** Pipeline correction + network-enabled empirical replication  
 **Scope:** Research only. Do not deploy capital, place live orders, or commit raw market-data CSVs.
@@ -43,3 +43,11 @@ The full-data execution task was attempted on 2026-11-21, but the current execut
 ## Acceptance criteria
 
 Task is complete only when code/test corrections are documented, the full empirical workflow has actually run successfully on real data, the output is reproducible, all performance is genuinely out of sample and net of stated costs, and the final conclusion is supported by diagnostics and sensitivity analysis. If any criterion cannot be met, leave the conclusion INCONCLUSIVE and record what remains.
+
+
+## Automation execution update — 2026-11-21
+
+- Confirmed the manual workflow `.github/workflows/eth-btc-research.yml` exists on the default branch and includes a hosted runner, Python setup, dependencies, a synthetic smoke-test command, a full-data research command, and artifact upload.
+- The current GitHub connector exposes repository/file and commit operations but no workflow-dispatch action. The web interface/API for Actions runs is inaccessible through the current research tools, so I could not launch or verify the workflow run or retrieve its artifacts.
+- Static review reconfirmed unresolved audit items: missing funding files and missing funding timestamps are silently treated as zero; monthly archives may be skipped without a completeness failure; downloads have no bounded retry/backoff; shared diagnostics are repeated under strategy labels; and the 50/50 benchmark is implicitly rebalanced each bar without charging rebalancing turnover. These must be corrected or explicitly modeled before interpreting results.
+- **No empirical market-data results were produced.** This is a tooling/dispatch blocker, not a strategy result. The next actionable step is to manually dispatch the workflow from GitHub Actions after the code-audit corrections, then inspect logs and artifacts.
