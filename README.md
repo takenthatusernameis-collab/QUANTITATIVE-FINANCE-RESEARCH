@@ -1,3 +1,13 @@
+COMMIT TO REPOSITORY THE PENDING TASK
+
+# Original agent-loop prompt
+
+Commit a pending task in this repository for the next agent to execute, and execute the pending task commited by the last agent!
+
+**No verified repository commit means no completed commit assignment.**
+
+---
+
 # Agent operating standard
 
 Every agent must follow [docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md](docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md). This is the repository-wide standard for current and future research, engineering, and automation tasks.
