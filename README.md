@@ -18,3 +18,4 @@ Commit a pending task in this repository for the next agent to execute, and exec
 - The repository owner must inspect **Actions → ETH-BTC networked empirical research** and, if no full-data run exists, manually dispatch it with start `2020-01-01`, end `2026-10-31`, market `both`. Do not add a push or scheduled trigger just to bypass this manual gate.
 - Metric/reporting audit corrections were merged in `305bf5c70a14d8a8167dbbd4a22ec95f775402f7` after PR #1 CI run `44929403565` (run 14) passed all 17 deterministic unit tests and the synthetic plumbing smoke test. This validates code plumbing, not empirical strategy performance.
 - Until the full real-data run and artifacts are inspected, the ETH/BTC research conclusion remains **INCONCLUSIVE**. No live trading or capital deployment.
+- Next pending task: `tasks/ETH-BTC-CI-DISPATCH-AND-ARTIFACT-REVIEW.md` (owner-side manual dispatch and artifact review).
