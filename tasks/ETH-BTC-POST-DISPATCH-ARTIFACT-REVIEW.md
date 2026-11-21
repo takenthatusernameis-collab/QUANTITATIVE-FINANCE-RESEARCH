@@ -1,51 +1,67 @@
-# Pending Research Task: Review the Owner-Dispatched ETH/BTC Empirical Run
+# Completed Task: Review the Owner-Dispatched ETH/BTC Empirical Runs
 
-**Status:** Pending owner-side manual dispatch; no full-data run was present in the complete Actions run listing on 2026-11-21  
+**Status:** Artifact review completed on 2026-11-21. The empirical study remains **INCONCLUSIVE** because both full-data runs failed the spot ETHUSDT hourly-completeness gate.  
 **Priority:** High  
 **Type:** Empirical artifact validation and evidence-based strategy review  
 **Scope:** Research/backtesting only. No live orders or capital deployment.
 
 ## Context
 
-The manual-only workflow is `.github/workflows/eth-btc-research.yml`. The complete Actions run listing returned 16 runs; all 16 used `.github/workflows/research-tests.yml`, and none used the full-data workflow. The latest test run, [44929570103](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44929570103), passed all 17 deterministic unit tests and the synthetic plumbing smoke test. Its zero artifacts are expected for the test workflow.
+The manual-only workflow is `.github/workflows/eth-btc-research.yml`. The complete Actions run collection returned `total_count=20` and all 20 records. Two runs used the full-data workflow; both were dispatched on `main` with start `2020-01-01`, end `2026-10-31`, and market `both`.
 
-The available GitHub integration can enumerate and inspect workflow runs but has no action to dispatch a new `workflow_dispatch` run. The repository owner must open **Actions → ETH-BTC networked empirical research → Run workflow** and submit:
-- branch: `main`
-- start: `2020-01-01`
-- end: `2026-10-31`
-- market: `both`
+The full execution and artifact inspection are documented in [reports/ETH-BTC-POST-DISPATCH-REVIEW-2026-11-21.md](../reports/ETH-BTC-POST-DISPATCH-REVIEW-2026-11-21.md).
 
-Do not add push or scheduled triggers to bypass this manual gate. Do not treat synthetic test output as empirical evidence.
+## Execution record
 
-## Network and execution-environment fallback
+### Full-data workflow runs
 
-If the agent's own network access is denied while obtaining research inputs or inspecting a required external source, distinguish explicit permission denial from transient timeouts. After two independent explicit network-permission denials, stop repeating the blocked request and use a suitably scoped GitHub Actions runner for the network-dependent work where feasible. Record the exact error, attempt count, workflow run ID, commit SHA, logs and artifacts. Keep secrets out of code and logs. The issue-comment dispatch bridge is not usable until its dedicated control issue, approved identity and trigger have been configured and tested; otherwise use the exact manual dispatch fallback in this task. If the Actions runner is also blocked, report that environment blocker and keep the conclusion **INCONCLUSIVE**.
+| Run | Workflow run ID | Commit | Conclusion |
+|---|---:|---|---|
+| 1 | [44943960222](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44943960222) | `fd93291e73693f6b1f9a534d2c1eb84804f7afeb` | Failure |
+| 2 | [44943965775](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44943965775) | `fd93291e73693f6b1f9a534d2c1eb84804f7afeb` | Failure |
 
-## Workflow activation policy
+Both runs completed checkout, Python 3.11 setup, dependency installation and the synthetic smoke test. The full-data command failed at `download_klines` with:
 
-The repository-wide workflow activation rule in [docs/CHATGPT-WORKFLOW-DISPATCH.md](../docs/CHATGPT-WORKFLOW-DISPATCH.md) applies to this task and to any auxiliary workflow created while completing it.
+```text
+Incomplete spot ETHUSDT data: missing archives=[], duplicates=0, missing hours=31
+```
 
-- The full ETH/BTC study should retain `workflow_dispatch` as the owner/manual fallback and, once the shared control issue and actual ChatGPT-connected GitHub identity have been verified, gain its own exact `issue_comment: created` command gate (reserved command: `/run-eth-btc-research`).
-- Any additional workflow created for network-permission failures, alternate data retrieval, diagnostics, dependency/runtime problems, validation, reporting, or another subtask must also have its own unique command on that same dedicated control issue, with the exact approved-author, issue-number, non-PR and full-command checks. Do not leave an on-demand agent workflow manual-only when the indirect route can be configured in the same change.
-- Do not assume the bridge is enabled merely because its design is documented. If the control issue or approved author identity is not yet verified, mark the indirect route **NOT ENABLED**, keep the manual fallback, and record the missing prerequisite.
-- Do not replace these guarded activation paths with broad `push` or recurring `schedule` triggers. Native-event CI workflows remain separate and need not receive comment commands unless ChatGPT also needs to start them on demand.
+The artifact-upload step succeeded. The same data manifest was produced in both runs.
 
-## Required work
+### Artifact and data-quality review
 
-1. Enumerate current Actions runs and identify a run whose workflow path is `.github/workflows/eth-btc-research.yml`. If none exists, report the exact owner-side dispatch step above and stop; do not invent a run ID or claim that data was tested.
-2. For a verified full-data run, inspect every job and step, fetch logs, and inspect the artifact inventory. Record the run ID, commit SHA, status, conclusion, artifact names, sizes and hashes where available.
-3. Download and inspect the generated report, CSV summaries, charts, data-quality JSON, archive/checksum manifests, funding manifests and run manifest. Keep raw market-data CSVs out of Git.
-4. Validate the 2020-01-01 through 2026-10-31 sample bounds, per-symbol hourly continuity, row counts, duplicate timestamps, missing hours, skipped archive months, timestamp units, archive checksum results, funding-event coverage, event alignment and missing funding intervals. Do not let missing data silently become zero observations.
-5. Review out-of-sample folds and volatility regimes, net returns after the stated cost scenarios, benchmark accounting, funding attribution, turnover, drawdowns, bootstrap uncertainty and stress scenarios. Separate statistical cointegration from a durable net trading edge.
-6. Disclose the limits of illustrative fees, spread/slippage proxies, spot borrow availability/costs and omitted liquidation, partial-fill, queue-position and outage mechanics.
-7. Update the dated research report, README and task status with reproducible evidence and a **GO / NO-GO / INCONCLUSIVE** conclusion. Keep the conclusion **INCONCLUSIVE** if the full-data run or required evidence is unavailable.
+- Run 1 artifact: ID `14722538907`, 4,711 bytes, ZIP SHA-256 `2c01d0c7800d89808a9e9113eb0824a2cf2613dc3c93d8be0268c3f9605e9b0d`.
+- Run 2 artifact: ID `14722548808`, 4,711 bytes, ZIP SHA-256 `06a03195503edbf4fdf5193f1c73e9738a80efa67698bdf31c72ebc881b7a4e3`.
+- Both artifacts contain only `data/raw/spot_ETHUSDT_archive_manifest.json`.
+- Manifest SHA-256 in both artifacts: `2201e259c23678b11f05725bbfa051ff0789742cf3aad108aea42703315abe5a`.
+- All 82 expected monthly spot ETH archives were downloaded; all 82 published checksums were verified; no archive months were missing.
+- Observed rows: 59,873; expected hourly bars: 59,904; missing hours: 31; duplicates: 0; longest gap: 6 hours.
+- Observed start/end matched the requested sample boundaries; manifest completeness was false.
+- Consolidated CSV SHA-256 recorded in the manifest: `10e9e037eef8c34ec2bd98964cc1b8be52cf5c741ca84e7f2925948fea1ac79b`.
+- The manifest records only the first 20 missing timestamps. The raw consolidated CSV was not uploaded, so the remaining 11 timestamps are not recoverable from the current artifacts.
 
-## Safety and research controls
+The hosted runner downloaded the archives and checksum sidecars successfully. This was not a network-permission denial. The blocker is source/data completeness.
 
-- Preserve the pre-registered entry/exit/stop thresholds and walk-forward design; do not optimize after seeing out-of-sample results.
-- Keep the manual `workflow_dispatch` trigger as a fallback; a strictly gated `issue_comment: created` trigger using the documented bridge is permitted once its control issue and approved identity are verified. Do not add unguarded `push` or recurring `schedule` triggers.
-- No live trading, capital deployment or raw market-data commits.
+### Scope not reached
 
-## Acceptance criteria
+The pipeline halted on the first series, spot ETHUSDT. It did not validate spot BTCUSDT, either USDⓈ-M series, funding histories, synchronized-pair quality or any strategy performance outputs. No empirical performance statistics exist from these runs.
 
-A verified full-data workflow run has completed successfully; all jobs, logs and artifacts have been inspected; data-quality checks and result tables are validated; hashes and run provenance are recorded; and the conclusion is evidence-based. If owner dispatch has not occurred, record the exact blocker and leave the empirical conclusion **INCONCLUSIVE**.
+### Test CI
+
+Test run [44943912907](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44943912907) (run 18) passed on current `main`: all 17 deterministic tests passed and the synthetic plumbing smoke test passed. This is code/test evidence only, not empirical market evidence.
+
+### Conclusion
+
+**INCONCLUSIVE.** Do not weaken the completeness gate, fabricate or forward-fill missing candles, or infer that a missing interval is a zero-return/no-trade interval without independent evidence. No GO/NO-GO decision is supported.
+
+## Next agent
+
+Continue with [tasks/ETH-BTC-DATA-GAP-RECONCILIATION.md](ETH-BTC-DATA-GAP-RECONCILIATION.md). Reconcile all 31 missing ETH spot intervals, preserve the complete gap inventory, and audit all four price series plus both funding histories before another full empirical run.
+
+## Workflow activation status
+
+The issue-comment bridge remains **NOT ENABLED / NOT END-TO-END VERIFIED**. No dedicated ordinary control issue exists, and the actual ChatGPT-connected comment identity and ordinary-issue commenting capability have not been verified. Keep the manual `workflow_dispatch` fallback. Do not add broad `push` or recurring `schedule` triggers.
+
+## Safety and acceptance
+
+This artifact-review task is complete. The full empirical study remains **INCONCLUSIVE** until all required data-quality checks pass and a full real-data run completes with inspectable reports, manifests and hashes. No live trading or capital deployment.
