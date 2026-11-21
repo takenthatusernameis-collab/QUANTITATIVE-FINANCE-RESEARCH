@@ -21,6 +21,15 @@ Do not add push or scheduled triggers to bypass this manual gate. Do not treat s
 
 If the agent's own network access is denied while obtaining research inputs or inspecting a required external source, distinguish explicit permission denial from transient timeouts. After two independent explicit network-permission denials, stop repeating the blocked request and use a suitably scoped GitHub Actions runner for the network-dependent work where feasible. Record the exact error, attempt count, workflow run ID, commit SHA, logs and artifacts. Keep secrets out of code and logs. The issue-comment dispatch bridge is not usable until its dedicated control issue, approved identity and trigger have been configured and tested; otherwise use the exact manual dispatch fallback in this task. If the Actions runner is also blocked, report that environment blocker and keep the conclusion **INCONCLUSIVE**.
 
+## Workflow activation policy
+
+The repository-wide workflow activation rule in [docs/CHATGPT-WORKFLOW-DISPATCH.md](../docs/CHATGPT-WORKFLOW-DISPATCH.md) applies to this task and to any auxiliary workflow created while completing it.
+
+- The full ETH/BTC study should retain `workflow_dispatch` as the owner/manual fallback and, once the shared control issue and actual ChatGPT-connected GitHub identity have been verified, gain its own exact `issue_comment: created` command gate (reserved command: `/run-eth-btc-research`).
+- Any additional workflow created for network-permission failures, alternate data retrieval, diagnostics, dependency/runtime problems, validation, reporting, or another subtask must also have its own unique command on that same dedicated control issue, with the exact approved-author, issue-number, non-PR and full-command checks. Do not leave an on-demand agent workflow manual-only when the indirect route can be configured in the same change.
+- Do not assume the bridge is enabled merely because its design is documented. If the control issue or approved author identity is not yet verified, mark the indirect route **NOT ENABLED**, keep the manual fallback, and record the missing prerequisite.
+- Do not replace these guarded activation paths with broad `push` or recurring `schedule` triggers. Native-event CI workflows remain separate and need not receive comment commands unless ChatGPT also needs to start them on demand.
+
 ## Required work
 
 1. Enumerate current Actions runs and identify a run whose workflow path is `.github/workflows/eth-btc-research.yml`. If none exists, report the exact owner-side dispatch step above and stop; do not invent a run ID or claim that data was tested.
@@ -34,7 +43,7 @@ If the agent's own network access is denied while obtaining research inputs or i
 ## Safety and research controls
 
 - Preserve the pre-registered entry/exit/stop thresholds and walk-forward design; do not optimize after seeing out-of-sample results.
-- Do not change the manual-only workflow trigger.
+- Keep the manual `workflow_dispatch` trigger as a fallback; a strictly gated `issue_comment: created` trigger using the documented bridge is permitted once its control issue and approved identity are verified. Do not add unguarded `push` or recurring `schedule` triggers.
 - No live trading, capital deployment or raw market-data commits.
 
 ## Acceptance criteria
