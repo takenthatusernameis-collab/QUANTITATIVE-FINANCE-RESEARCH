@@ -1,6 +1,6 @@
 # Pending Research Task: Reconcile ETHUSDT Hourly Data Gaps Before the Full ETH/BTC Study
 
-**Status:** Pending  
+**Status:** Implementation committed; real-data audit in progress  
 **Priority:** High  
 **Type:** Data provenance, completeness diagnostics and deterministic validation  
 **Scope:** Research/backtesting only. No live orders, capital deployment or raw market-data commits.
@@ -17,6 +17,17 @@ Both runs used `2020-01-01` through `2026-10-31`, `market=both`, and the same `m
 Both artifacts contain only `data/raw/spot_ETHUSDT_archive_manifest.json`; the manifest stores only the first 20 missing-hour samples. The raw consolidated CSV was deliberately not uploaded. See `reports/ETH-BTC-POST-DISPATCH-REVIEW-2026-11-21.md`.
 
 This is a data-completeness issue, not a network-permission failure. Do not repeat the same full-data run without changing or validating the data-quality outcome.
+
+## Implementation progress — 2026-11-22
+
+The following engineering work is committed on `main`:
+
+- Gap inventory, archive provenance and interval grouping: commit `e907535844db9c9996b7be731004fe99561131cf`.
+- Deterministic regression coverage: commit `875cd5f216a0a5ab653dd95d2098abde3ff965fb`.
+- Gated PR-comment dispatch and audit-only workflow: commit `96b93aeba313d9a083bb031a949955cb8e606509`.
+- Verified dispatch procedure: `docs/CHATGPT-WORKFLOW-DISPATCH.md`.
+
+**Important:** the audit-only execution is not yet complete at the time of this task update. No official-source conclusion about the 31 gaps and no completeness conclusion for the six input series has been made. Keep the empirical ETH/BTC study **INCONCLUSIVE** until the follow-up artifact review confirms every acceptance criterion.
 
 ## Objectives
 
@@ -63,8 +74,13 @@ This is a data-completeness issue, not a network-permission failure. Do not repe
 
 - Use the existing `.github/workflows/eth-btc-research.yml` where practical; do not create a second broad data workflow merely to avoid the current quality gate.
 - Follow the repository-wide [Adaptive Autonomous Research Execution Standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md) and its [adaptive dispatch implementation guide](../docs/CHATGPT-WORKFLOW-DISPATCH.md).
-- The repository does not yet have a verified autonomous ChatGPT dispatch route. Treat this as an engineering bottleneck to resolve, not as a reason to stop at a human UI action. Inspect the current connected integration's actual capabilities. The observed GitHub connector exposes PR-conversation commenting but not a clearly supported ordinary-issue-comment action or direct workflow-dispatch POST; revalidate before implementation.
-- First test whether the connected PR-comment action can initiate a harmless event. If ordinary-issue commenting is unsupported but PR commenting works, evaluate a dedicated, exact-number control PR with a strict actor/command gate. GitHub's `issue_comment` event runs from the default branch; never checkout or execute the control PR head. If this is not secure or supported, pursue an authorized GitHub App/API relay, `repository_dispatch`, or another demonstrably viable autonomous route.
+- Autonomous ChatGPT dispatch is now **end-to-end verified for a harmless smoke command** through a dedicated draft control PR, [PR #2](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/pull/2). The authenticated connected actor is `takenthatusernameis-collab`.
+- The existing `.github/workflows/eth-btc-research.yml` now gates `issue_comment: created` on exact PR number 2, open PR state, exact actor login, and exact full comment body. The allowlisted commands are `/qfr-control-smoke` and `/qfr-run-eth-btc-data-audit`. It runs only default-branch code, with `contents: read`; it never checks out PR-head code and does not use `pull_request_target`.
+- Smoke run [44963633770](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44963633770) completed successfully with event `issue_comment`, actor `takenthatusernameis-collab`, ref `main`, and the authorization gate verified in logs.
+- The full audit-only run [44963655383](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44963655383) was initiated by the exact allowlisted comment. It has passed authorization, default-branch checkout, dependency installation and synthetic smoke testing; the real data-audit step is **in progress**. Do not launch a duplicate audit while this run is active.
+- `research/run_eth_btc.py` now records every missing hour, contiguous gap intervals and archive provenance; it includes `--audit-only` to inspect all four price series and both funding series without running strategy backtests, and `--reconcile-spot-gaps` to compare every missing ETH Spot hour with Binance REST and daily archives without repairing data.
+- Regression tests cover complete gap inventory/provenance, reconciliation classification, no-repair behavior and continuation through all six data inputs after a failure. CI run [44963445206](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44963445206) passed on the test commit.
+- See [the verified dispatch guide](../docs/CHATGPT-WORKFLOW-DISPATCH.md) for command and verification details.
 - Keep execution on-demand, idempotent, observable and recoverable. Do not add unguarded `push` or recurring `schedule` triggers, broad permissions, or repeated identical failed dispatch attempts.
 - `workflow_dispatch` may remain as a human-owned break-glass recovery path where appropriate, but it is not the normal agent procedure and does not satisfy autonomous acceptance. Do not repeatedly route the human to the Actions UI; identify an owner-only permission/secret prerequisite only when no agent-executable alternative remains.
 - Never expose credentials in source or logs.
