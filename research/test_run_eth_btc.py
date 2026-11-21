@@ -142,6 +142,10 @@ class ResearchPipelineTests(unittest.TestCase):
         self.assertAlmostEqual(buy_hold.iloc[0]["cost"], 0.001)
         self.assertEqual(buy_hold.iloc[-1]["position"], 0.0)
         self.assertEqual(rebalanced.iloc[-1]["position"], 0.0)
+        self.assertAlmostEqual(buy_hold.iloc[0]["held_w_eth"], 0.0)
+        self.assertAlmostEqual(buy_hold.iloc[0]["held_w_btc"], 0.0)
+        self.assertAlmostEqual(buy_hold.iloc[1]["held_w_eth"], 0.5)
+        self.assertAlmostEqual(buy_hold.iloc[1]["held_w_btc"], 0.5)
 
     def test_flat_buy_hold_charges_one_entry_and_one_exit(self):
         flat = self.frame.copy()
