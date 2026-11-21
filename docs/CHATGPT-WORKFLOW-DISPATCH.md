@@ -11,6 +11,19 @@ There are two ways to remove the owner-side **Actions → Run workflow** click:
 
 GitHub documents `issue_comment` as an event for newly created comments on issues and pull requests. The workflow file must already exist on the repository's default branch. The current repository's empirical workflow is `workflow_dispatch`-only, so the bridge is **not active yet**. Do not describe the manual step as removed until the bridge has been implemented and an end-to-end test run has been observed.
 
+## Network-permission escalation: use Actions after repeated denials
+
+This repository should not spend repeated agent turns retrying an operation that the current ChatGPT/tool environment is explicitly forbidden to perform over the network.
+
+- For an ordinary transient timeout or rate limit, use a bounded retry/backoff and inspect whether the failure is transient.
+- If the same explicit network-permission denial occurs on **two independent attempts**, stop retrying that same blocked operation and move the network-dependent step to a GitHub Actions hosted runner with the required network access.
+- Reuse the existing `.github/workflows/eth-btc-research.yml` for the pre-registered ETH/BTC empirical run. For a different task, use or create a narrowly scoped workflow that checks out the required revision, installs pinned dependencies, performs the actual network-dependent operation, emits diagnostic logs, and uploads useful results/manifests as artifacts.
+- Do not create an empty workflow, add a broad push trigger, or schedule repeated full-data jobs as a workaround. Use the direct `workflow_dispatch` API when the connected agent has Actions: write; otherwise use the maintainer-only issue-comment bridge in this document once it has been configured and end-to-end tested. Until then, state the manual dispatch step precisely.
+- Record the blocked operation, exact permission error, attempt count, workflow path, run ID, commit SHA, and resulting logs/artifacts. A successful trigger or successful synthetic test is not proof that the required empirical/network operation succeeded.
+- Keep credentials in GitHub Actions secrets and avoid printing them. If the hosted runner also receives a network denial, inspect and report that actual failure; do not loop indefinitely or infer a research result.
+
+The purpose of this escalation rule is to distinguish **agent-environment network permissions** from **research/data limitations**. A permission failure is not a market-data result and must not silently terminate otherwise feasible empirical work.
+
 ## Recommended implementation
 
 Keep `.github/workflows/eth-btc-research.yml` as the single empirical workflow and retain its existing `workflow_dispatch` trigger as a manual fallback. Add this event:
