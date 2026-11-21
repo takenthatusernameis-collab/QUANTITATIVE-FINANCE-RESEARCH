@@ -1,0 +1,81 @@
+name: ETH-BTC networked empirical research
+
+on:
+  workflow_dispatch:
+    inputs:
+      start:
+        description: Inclusive UTC start date (YYYY-MM-DD)
+        required: true
+        default: '2020-01-01'
+        type: string
+      end:
+        description: Inclusive UTC end date (YYYY-MM-DD)
+        required: true
+        default: '2026-10-31'
+        type: string
+      market:
+        description: Market data to research
+        required: true
+        default: both
+        type: choice
+        options:
+          - spot
+          - um
+          - both
+
+permissions:
+  contents: read
+
+jobs:
+  empirical-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: research/requirements.txt
+
+      - name: Cache Binance archives
+        uses: actions/cache@v4
+        with:
+          path: data/cache/
+          key: binance-archives-${{ inputs.start }}-${{ inputs.end }}-${{ inputs.market }}
+          restore-keys: |
+            binance-archives-${{ inputs.start }}-${{ inputs.end }}-
+
+      - name: Install dependencies
+        run: python -m pip install -r research/requirements.txt
+
+      - name: Run synthetic plumbing test
+        run: python research/run_eth_btc.py --self-test
+
+      - name: Run full empirical study
+        env:
+          START_DATE: ${{ inputs.start }}
+          END_DATE: ${{ inputs.end }}
+          MARKET: ${{ inputs.market }}
+        run: |
+          python research/run_eth_btc.py \
+            --start "$START_DATE" \
+            --end "$END_DATE" \
+            --market "$MARKET" \
+            --data-dir data \
+            --output-dir reports/generated
+
+      - name: Upload research outputs and manifests (never raw CSV market data)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eth-btc-research-${{ github.run_number }}
+          path: |
+            reports/generated/
+            data/raw/*_archive_manifest.json
+            data/raw/*_funding_manifest.json
+          if-no-files-found: warn
+          retention-days: 30
