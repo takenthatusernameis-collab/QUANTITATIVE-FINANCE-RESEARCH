@@ -8,12 +8,12 @@
 
 ## Context
 
-The metric/reporting corrections and six deterministic tests are on branch `agent/eth-btc-metric-audit-20261121`. The pull request should be checked for passing `Research pipeline tests` before merge. The manual-only workflow `.github/workflows/eth-btc-research.yml` remains unchanged. The available GitHub integration cannot enumerate all Actions runs or dispatch `workflow_dispatch`; an empty commit-associated workflow-run response is not proof of no run.
+The metric/reporting corrections and six deterministic tests were merged in `305bf5c70a14d8a8167dbbd4a22ec95f775402f7`. GitHub Actions run `44929403565` (run 14) passed all 17 deterministic unit tests and the synthetic smoke test. The manual-only workflow `.github/workflows/eth-btc-research.yml` remains unchanged. The available GitHub integration cannot enumerate all Actions runs or dispatch `workflow_dispatch`; an empty commit-associated workflow-run response is not proof of no run.
 
 
 ## Required actions
 
-1. Inspect the pull request and verify CI has passed the complete test job, including all deterministic tests and synthetic smoke test. If CI cannot be verified through the integration, record it as **UNVERIFIED** and leave the PR unmerged.
+1. CI and merge are complete; no further PR action is needed unless a subsequent regression is discovered.
 2. Check **Actions → ETH-BTC networked empirical research** for a full-data run after the audit corrections. If none exists, the repository owner must manually dispatch with start `2020-01-01`, end `2026-10-31`, market `both`. Do not add push or scheduled triggers to bypass the manual gate.
 3. When a verified run ID is available, inspect all jobs, steps, logs and artifacts. Download and inspect generated reports, CSV summaries, charts, data-quality JSON, archive/checksum manifests, funding manifests and run manifest.
 4. Validate per-symbol hourly continuity, row counts, sample bounds, duplicate timestamps, skipped months, timestamp units, archive checksums, funding coverage and alignment. Keep raw market-data CSVs out of Git.
