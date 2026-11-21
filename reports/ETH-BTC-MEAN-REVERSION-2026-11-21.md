@@ -39,6 +39,11 @@ The added pipeline is `research/run_eth_btc.py`; dependencies are in `research/r
 - `python research/run_eth_btc.py --self-test` — passed. The self-test uses generated synthetic prices only to check feature generation, the position state machine, turnover/cost arithmetic and finite PnL outputs. It does not validate strategy performance or statistical hypotheses.
 - A synthetic daily integration run exercised the walk-forward loop, statistical diagnostics, CSV exports, charts and stress-scenario output. It produced the expected artifact set. Those synthetic outputs were kept outside the repository and are not research evidence.
 
+## Pre-dispatch metric/reporting audit
+
+The audit items identified for the full-data run have been implemented on the branch `agent/eth-btc-metric-audit-20261121`: Sortino downside deviation, initial-NAV drawdown, interval-aligned gross exposure, USDⓈ-M-only hypothetical funding stress, and explicit labeling of the 150-replication Sharpe bootstrap as exploratory. Six focused deterministic regression tests were added. CI verification is still pending; these changes must not be treated as validated until the test workflow passes. No market-data run or empirical conclusion has been produced.
+
+
 ## Material limitations still open
 
 1. No real market data were loaded, so none of the hypotheses has been empirically tested.

@@ -32,3 +32,11 @@ Use `--market spot`, `--market um`, or `--market both`. `--self-test` runs a syn
 4. The pipeline uses 1x gross exposure and does not simulate exchange liquidation engines, order-book queue position, partial fills or outages. It includes illustrative one-bar shock scenarios, not a full margin simulator.
 5. Hourly OHLCV is not a historical order book. The spread/slippage inputs are proxies, not measured historical bid/ask execution costs.
 6. Inspect data-quality JSON and CSV outputs before interpreting statistics. Do not treat a significant cointegration test as evidence of a profitable net trading edge.
+
+## Pre-dispatch metric/reporting audit
+
+- Sortino uses the root-mean-square downside deviation relative to the 0% minimum acceptable return, computed over all observations (including zero downside for non-negative returns).
+- Maximum drawdown includes initial NAV = 1.0 in the peak path, so a loss on the first realized bar is captured.
+- Average gross exposure is calculated from the weights held during the return interval, aligned with the lagged weights used for PnL.
+- Funding stress is reported only for USDⓈ-M results. The hypothetical scenario assumes both contracts receive a +10 bp funding rate at each of three settlements (+0.30% per leg in total); it is not observed funding data.
+- The Sharpe percentile bootstrap remains at 150 replications. Its 95% interval is explicitly marked **exploratory**, with limited quantile precision; this count was retained rather than silently treated as high-precision inference.
