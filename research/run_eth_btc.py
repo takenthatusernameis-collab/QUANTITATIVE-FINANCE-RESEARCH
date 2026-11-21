@@ -50,49 +50,119 @@ def last_completed_month_end() -> str:
     return (first - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
 
 
-def _download_archive(url: str, cache_file: Path, session: requests.Session) -> tuple[bytes, bool]:
+def request_with_retry(session: requests.Session, url: str, timeout: int = 60,
+                      max_attempts: int = 4, **kwargs) -> requests.Response:
+    """GET with bounded retries for transient network, 429 and 5xx failures."""
+    retryable_statuses = {429, 500, 502, 503, 504}
+    for attempt in range(max_attempts):
+        try:
+            response = session.get(url, timeout=timeout, **kwargs)
+            if response.status_code in retryable_statuses:
+                if attempt == max_attempts - 1:
+                    response.raise_for_status()
+                retry_after = response.headers.get("Retry-After")
+                try:
+                    delay = float(retry_after) if retry_after else float(2 ** attempt)
+                except (TypeError, ValueError):
+                    delay = float(2 ** attempt)
+                time.sleep(min(max(delay, 0.0), 30.0))
+                continue
+            response.raise_for_status()
+            return response
+        except requests.HTTPError as exc:
+            status = exc.response.status_code if exc.response is not None else None
+            if status not in retryable_statuses or attempt == max_attempts - 1:
+                raise
+            time.sleep(min(float(2 ** attempt), 30.0))
+        except requests.RequestException:
+            if attempt == max_attempts - 1:
+                raise
+            time.sleep(min(float(2 ** attempt), 30.0))
+    raise RuntimeError(f"Request failed after {max_attempts} attempts: {url}")
+
+
+def hourly_quality(index: pd.DatetimeIndex, start: str, end: str) -> dict:
+    """Measure hourly completeness before any ETH/BTC inner join."""
+    start_ts = pd.Timestamp(start, tz="UTC")
+    end_exclusive = pd.Timestamp(end, tz="UTC") + pd.Timedelta(days=1)
+    observed_all = pd.DatetimeIndex(index)
+    in_sample = observed_all[(observed_all >= start_ts) & (observed_all < end_exclusive)]
+    duplicate_count = int(in_sample.duplicated().sum())
+    observed = in_sample.drop_duplicates().sort_values()
+    expected = pd.date_range(start_ts, end_exclusive - pd.Timedelta(hours=1), freq="h")
+    missing = expected.difference(observed)
+    gaps = observed.to_series().diff().dropna()
+    max_gap = gaps.max() if len(gaps) else pd.NaT
+    return {
+        "requested_start": str(start_ts),
+        "requested_end_inclusive": str(end_exclusive - pd.Timedelta(hours=1)),
+        "observed_start": str(observed.min()) if len(observed) else None,
+        "observed_end": str(observed.max()) if len(observed) else None,
+        "rows": int(len(in_sample)),
+        "unique_rows": int(len(observed)),
+        "duplicate_timestamps": duplicate_count,
+        "expected_hourly_bars": int(len(expected)),
+        "missing_hourly_bars": int(len(missing)),
+        "missing_hour_samples": [str(x) for x in missing[:20]],
+        "max_gap": str(max_gap) if pd.notna(max_gap) else None,
+        "longest_gap_hours": float(max_gap.total_seconds() / 3600) if pd.notna(max_gap) else None,
+        "complete": bool(len(missing) == 0 and duplicate_count == 0 and len(observed) == len(expected)),
+    }
+
+
+def _download_archive(url: str, cache_file: Path, session: requests.Session) -> tuple[bytes, bool, str | None]:
     if cache_file.exists():
         payload = cache_file.read_bytes()
     else:
-        response = session.get(url, timeout=90)
-        if response.status_code == 404:
-            raise FileNotFoundError(url)
-        response.raise_for_status()
+        try:
+            response = request_with_retry(session, url, timeout=90)
+        except requests.HTTPError as exc:
+            if exc.response is not None and exc.response.status_code == 404:
+                raise FileNotFoundError(url) from exc
+            raise
         payload = response.content
         cache_file.parent.mkdir(parents=True, exist_ok=True)
         cache_file.write_bytes(payload)
 
-    # Binance publishes SHA-256 sidecars for archive integrity. If a sidecar is
-    # unavailable, retain the file but record that it was not checksum-verified.
     verified = False
+    checksum_error = None
     try:
-        check = session.get(url + ".CHECKSUM", timeout=30)
-        if check.ok:
-            expected = check.text.strip().split()[0].lower()
-            actual = hashlib.sha256(payload).hexdigest().lower()
-            if expected != actual:
-                raise ValueError(f"SHA-256 mismatch for {url}")
-            verified = True
-    except requests.RequestException:
-        pass
-    return payload, verified
+        check = request_with_retry(session, url + ".CHECKSUM", timeout=30)
+        tokens = check.text.strip().split()
+        if not tokens:
+            raise ValueError(f"Empty checksum sidecar for {url}")
+        expected = tokens[0].lower()
+        actual = hashlib.sha256(payload).hexdigest().lower()
+        if expected != actual:
+            raise ValueError(f"SHA-256 mismatch for {url}: expected {expected}, got {actual}")
+        verified = True
+    except requests.HTTPError as exc:
+        if exc.response is not None and exc.response.status_code == 404:
+            checksum_error = "checksum sidecar not published (HTTP 404)"
+        else:
+            raise
+    except requests.RequestException as exc:
+        checksum_error = f"checksum sidecar unavailable after retries: {exc}"
+    return payload, verified, checksum_error
 
 
 def download_klines(market: str, symbol: str, start: str, end: str, data_dir: Path) -> Path:
-    """Download monthly Binance 1h kline archives and consolidate to CSV."""
+    """Download monthly Binance 1h archives; never silently accept missing months."""
     session = requests.Session()
     base = "spot" if market == "spot" else "futures/um"
     frames = []
     archive_manifest = []
+    missing_months = []
     for month in month_starts(start, end):
         tag = month.strftime("%Y-%m")
         filename = f"{symbol}-1h-{tag}.zip"
         url = f"https://data.binance.vision/data/{base}/monthly/klines/{symbol}/1h/{filename}"
         cache = data_dir / "cache" / market / symbol / filename
         try:
-            payload, checksum_verified = _download_archive(url, cache, session)
+            payload, checksum_verified, checksum_error = _download_archive(url, cache, session)
         except FileNotFoundError:
-            print(f"WARN missing archive: {url}")
+            archive_manifest.append({"month": tag, "url": url, "status": "missing_http_404"})
+            missing_months.append(tag)
             continue
         with zipfile.ZipFile(io.BytesIO(payload)) as archive:
             csv_names = [n for n in archive.namelist() if n.lower().endswith(".csv")]
@@ -100,98 +170,183 @@ def download_klines(market: str, symbol: str, start: str, end: str, data_dir: Pa
                 raise ValueError(f"No CSV in {url}")
             raw = pd.read_csv(archive.open(csv_names[0]), header=None)
         if raw.empty:
+            archive_manifest.append({"month": tag, "url": url, "status": "empty_archive"})
+            missing_months.append(tag)
             continue
+        if raw.shape[1] < 6:
+            raise ValueError(f"Unexpected kline CSV schema in {url}: {raw.shape[1]} columns")
         raw = raw.iloc[:, :len(COLUMNS)]
         raw.columns = COLUMNS[:raw.shape[1]]
         raw["open_time"] = pd.to_numeric(raw["open_time"], errors="coerce")
+        if raw["open_time"].isna().any():
+            raise ValueError(f"Invalid open_time values in {url}")
         unit = "us" if raw["open_time"].median() > 10**14 else "ms"
         raw["timestamp"] = pd.to_datetime(raw["open_time"], unit=unit, utc=True)
-        archive_manifest.append({"month": tag, "url": url, "archive_sha256": hashlib.sha256(payload).hexdigest(),
-                                 "checksum_verified": checksum_verified, "rows": int(len(raw)), "timestamp_unit": unit})
+        archive_manifest.append({
+            "month": tag, "url": url, "status": "downloaded",
+            "archive_sha256": hashlib.sha256(payload).hexdigest(),
+            "checksum_verified": checksum_verified, "checksum_error": checksum_error,
+            "rows": int(len(raw)), "timestamp_unit": unit,
+        })
         for col in ("open", "high", "low", "close", "volume", "quote_volume"):
             if col in raw:
                 raw[col] = pd.to_numeric(raw[col], errors="coerce")
         frames.append(raw[["timestamp", "open", "high", "low", "close", "volume", "quote_volume"]])
         time.sleep(0.03)
+
     if not frames:
-        raise RuntimeError(f"No {market} data downloaded for {symbol}; check date range and symbol history")
-    out = pd.concat(frames, ignore_index=True).drop_duplicates("timestamp").sort_values("timestamp")
+        manifest = {
+            "market": market, "symbol": symbol, "requested_start": start,
+            "requested_end_inclusive": end, "archives": archive_manifest,
+            "missing_archive_months": missing_months, "data_quality": None,
+        }
+        out_path = data_dir / "raw" / f"{market}_{symbol}_1h.csv"
+        manifest_path = data_dir / "raw" / f"{market}_{symbol}_archive_manifest.json"
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest_path.write_text(json.dumps(manifest, indent=2))
+        raise RuntimeError(f"No {market} data downloaded for {symbol}; see {manifest_path}")
+
+    combined = pd.concat(frames, ignore_index=True).sort_values("timestamp")
+    quality = hourly_quality(pd.DatetimeIndex(combined["timestamp"]), start, end)
+    duplicate_count = quality["duplicate_timestamps"]
+    out = combined.drop_duplicates("timestamp", keep="first").sort_values("timestamp")
     out_path = data_dir / "raw" / f"{market}_{symbol}_1h.csv"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(out_path, index=False)
     manifest_path = data_dir / "raw" / f"{market}_{symbol}_archive_manifest.json"
-    manifest_path.write_text(json.dumps({"market": market, "symbol": symbol, "archives": archive_manifest,
-                                         "consolidated_csv_sha256": hashlib.sha256(out_path.read_bytes()).hexdigest()}, indent=2))
+    manifest = {
+        "market": market, "symbol": symbol, "requested_start": start,
+        "requested_end_inclusive": end, "archives": archive_manifest,
+        "missing_archive_months": missing_months,
+        "data_quality": quality,
+        "consolidated_csv_sha256": hashlib.sha256(out_path.read_bytes()).hexdigest(),
+    }
+    manifest_path.write_text(json.dumps(manifest, indent=2))
+    if missing_months or duplicate_count or not quality["complete"]:
+        raise RuntimeError(
+            f"Incomplete {market} {symbol} data: missing archives={missing_months}, "
+            f"duplicates={duplicate_count}, missing hours={quality['missing_hourly_bars']}; "
+            f"inspect {manifest_path}"
+        )
     return out_path
 
 
+def funding_quality(timestamps: pd.DatetimeIndex, start_ts: pd.Timestamp,
+                    end_exclusive: pd.Timestamp) -> dict:
+    stamps = pd.DatetimeIndex(timestamps).sort_values()
+    duplicate_count = int(stamps.duplicated().sum())
+    unique = stamps.drop_duplicates()
+    gaps = unique.to_series().diff().dropna()
+    median_gap = gaps.median() if len(gaps) else pd.NaT
+    max_gap = gaps.max() if len(gaps) else pd.NaT
+    max_allowed = max(pd.Timedelta(hours=24),
+                      median_gap * 3 if pd.notna(median_gap) else pd.Timedelta(hours=24))
+    start_ok = bool(len(unique) and unique.min() <= start_ts + pd.Timedelta(hours=24))
+    end_ok = bool(len(unique) and unique.max() >= end_exclusive - pd.Timedelta(hours=24))
+    max_gap_ok = bool(pd.isna(max_gap) or max_gap <= max_allowed)
+    return {
+        "rows": int(len(stamps)),
+        "duplicate_timestamps": duplicate_count,
+        "start": str(unique.min()) if len(unique) else None,
+        "end": str(unique.max()) if len(unique) else None,
+        "median_event_gap_hours": float(median_gap.total_seconds() / 3600) if pd.notna(median_gap) else None,
+        "max_event_gap_hours": float(max_gap.total_seconds() / 3600) if pd.notna(max_gap) else None,
+        "max_allowed_gap_hours": float(max_allowed.total_seconds() / 3600),
+        "start_coverage_ok": start_ok,
+        "end_coverage_ok": end_ok,
+        "max_gap_ok": max_gap_ok,
+        "complete": bool(len(unique) > 0 and duplicate_count == 0 and start_ok and end_ok and max_gap_ok),
+    }
+
+
 def download_funding(symbol: str, start: str, end: str, data_dir: Path) -> Path:
-    """Paginate Binance USD-M funding history (max 1,000 events per request)."""
+    """Paginate funding events and fail on duplicate, incomplete or gapped history."""
     session = requests.Session()
-    start_ms = int(pd.Timestamp(start, tz="UTC").timestamp() * 1000)
-    end_ts = pd.Timestamp(end, tz="UTC") + pd.Timedelta(days=1)
-    end_ms = int(end_ts.timestamp() * 1000) - 1
+    start_ts = pd.Timestamp(start, tz="UTC")
+    end_exclusive = pd.Timestamp(end, tz="UTC") + pd.Timedelta(days=1)
+    cursor_ms = int(start_ts.timestamp() * 1000)
+    end_ms = int(end_exclusive.timestamp() * 1000) - 1
     rows = []
-    while start_ms <= end_ms:
-        response = session.get(
-            "https://fapi.binance.com/fapi/v1/fundingRate",
-            params={"symbol": symbol, "startTime": start_ms, "endTime": end_ms, "limit": 1000},
-            timeout=45,
+    page_count = 0
+    last_seen = None
+    while cursor_ms <= end_ms:
+        response = request_with_retry(
+            session, "https://fapi.binance.com/fapi/v1/fundingRate", timeout=45,
+            params={"symbol": symbol, "startTime": cursor_ms, "endTime": end_ms, "limit": 1000},
         )
-        response.raise_for_status()
         batch = response.json()
-        if not batch:
-            break
         if not isinstance(batch, list):
             raise RuntimeError(f"Unexpected funding API response for {symbol}: {batch}")
-        rows.extend(batch)
-        last = int(batch[-1]["fundingTime"])
-        if len(batch) < 1000 or last < start_ms:
+        if not batch:
             break
-        start_ms = last + 1
+        times = [int(item["fundingTime"]) for item in batch]
+        if times != sorted(times) or len(times) != len(set(times)):
+            raise RuntimeError(f"Funding page is not strictly chronological for {symbol}")
+        if times[0] < cursor_ms or (last_seen is not None and times[0] <= last_seen):
+            raise RuntimeError(f"Funding pagination repeated or regressed for {symbol}")
+        if times[-1] > end_ms:
+            raise RuntimeError(f"Funding API returned an event outside requested bounds for {symbol}")
+        rows.extend(batch)
+        page_count += 1
+        last_seen = times[-1]
+        if len(batch) < 1000 or last_seen >= end_ms:
+            break
+        cursor_ms = last_seen + 1
         time.sleep(0.05)
+
     frame = pd.DataFrame(rows)
     if frame.empty:
         raise RuntimeError(f"No funding history returned for {symbol}")
     frame["timestamp"] = pd.to_datetime(frame["fundingTime"], unit="ms", utc=True)
     frame["fundingRate"] = pd.to_numeric(frame["fundingRate"], errors="coerce")
+    if frame["fundingRate"].isna().any() or not np.isfinite(frame["fundingRate"]).all():
+        raise RuntimeError(f"Invalid funding rates returned for {symbol}")
+    clean = frame[["timestamp", "fundingRate"]].sort_values("timestamp")
+    quality = funding_quality(pd.DatetimeIndex(clean["timestamp"]), start_ts, end_exclusive)
     out = data_dir / "raw" / f"um_{symbol}_funding.csv"
     out.parent.mkdir(parents=True, exist_ok=True)
-    clean = frame[["timestamp", "fundingRate"]].drop_duplicates("timestamp").sort_values("timestamp")
     clean.to_csv(out, index=False)
-    (data_dir / "raw" / f"um_{symbol}_funding_manifest.json").write_text(json.dumps({
+    manifest = {
         "symbol": symbol, "endpoint": "https://fapi.binance.com/fapi/v1/fundingRate",
-        "rows": int(len(clean)), "start": str(clean["timestamp"].min()), "end": str(clean["timestamp"].max()),
+        "requested_start": str(start_ts), "requested_end_exclusive": str(end_exclusive),
+        "pages": page_count, "data_quality": quality,
         "csv_sha256": hashlib.sha256(out.read_bytes()).hexdigest(),
-    }, indent=2))
+    }
+    manifest_path = data_dir / "raw" / f"um_{symbol}_funding_manifest.json"
+    manifest_path.write_text(json.dumps(manifest, indent=2))
+    if not quality["complete"]:
+        raise RuntimeError(f"Incomplete funding history for {symbol}; inspect {manifest_path}")
     return out
 
 
-def load_pair(market: str, data_dir: Path, start: str | None = None, end: str | None = None) -> pd.DataFrame:
-    parts = []
-    for symbol, prefix in (("ETHUSDT", "eth"), ("BTCUSDT", "btc")):
-        path = data_dir / "raw" / f"{market}_{symbol}_1h.csv"
-        if not path.exists():
-            raise FileNotFoundError(f"Missing {path}; run the downloader first")
-        x = pd.read_csv(path, parse_dates=["timestamp"]).set_index("timestamp").sort_index()
-        parts.append(x[["open", "high", "low", "close", "volume"]].rename(columns=lambda c: f"{prefix}_{c}"))
-    out = pd.concat(parts, axis=1, join="inner").dropna().sort_index()
-    if start is not None:
-        out = out.loc[out.index >= pd.Timestamp(start, tz="UTC")]
-    if end is not None:
-        end_exclusive = pd.Timestamp(end, tz="UTC") + pd.Timedelta(days=1)
-        out = out.loc[out.index < end_exclusive]
-    if out.empty:
-        raise RuntimeError(f"No synchronized ETH/BTC {market} observations")
-    return out
-
-
-def load_funding(symbol: str, index: pd.DatetimeIndex, data_dir: Path) -> pd.Series:
-    path = data_dir / "raw" / f"um_{symbol}_funding.csv"
-    if not path.exists():
-        return pd.Series(0.0, index=index)
-    f = pd.read_csv(path, parse_dates=["timestamp"]).set_index("timestamp")["fundingRate"]
-    return f.reindex(index).fillna(0.0)
+def align_funding_events(events: pd.Series, index: pd.DatetimeIndex, symbol: str = "unknown") -> tuple[pd.Series, dict]:
+    """Map each settlement to the first hourly open at/after its event timestamp."""
+    if events.empty:
+        raise RuntimeError(f"Missing funding events for {symbol}")
+    events = events.sort_index()
+    if events.index.has_duplicates:
+        raise RuntimeError(f"Duplicate funding timestamps for {symbol}")
+    if events.isna().any() or not np.isfinite(events.to_numpy(dtype=float)).all():
+        raise RuntimeError(f"Invalid funding rates for {symbol}")
+    index = pd.DatetimeIndex(index).sort_values()
+    if index.empty or index.has_duplicates:
+        raise RuntimeError("Price index must be non-empty, unique and sorted")
+    quality = funding_quality(
+        pd.DatetimeIndex(events.index), index[0], index[-1] + pd.Timedelta(hours=1)
+    )
+    if not quality["complete"]:
+        raise RuntimeError(f"Incomplete funding coverage for {symbol}: {quality}")
+    target_positions = index.searchsorted(events.index, side="left")
+    if (target_positions >= len(index)).any():
+        raise RuntimeError(f"Funding event for {symbol} falls after the final price bar")
+    lags = index[target_positions] - events.index
+    if (lags > pd.Timedelta(hours=1)).any():
+        raise RuntimeError(f"Funding event for {symbol} cannot be aligned within one hour")
+    aligned = pd.Series(0.0, index=index)
+    np.add.at(aligned.values, target_positions, events.to_numpy(dtype=float))
+    quality["off_grid_events"] = int((lags != pd.Timedelta(0)).sum())
+    quality["max_alignment_lag_minutes"] = float(lags.max().total_seconds() / 60) if len(lags) else 0.0
+    return aligned, quality
 
 
 def add_features(df: pd.DataFrame, lookback: int) -> dict[str, pd.Series]:
@@ -248,6 +403,11 @@ def make_position(z: pd.Series, beta: pd.Series, start: pd.Timestamp, end: pd.Ti
     if len(locs):
         pos.iat[locs[-1]] = 0.0
     return pos
+
+
+def shift_signal_to_next_open(signal_position: pd.Series) -> pd.Series:
+    """Convert a completed-close signal into exposure established at the next open."""
+    return signal_position.shift(1).fillna(0.0)
 
 
 def backtest(df: pd.DataFrame, position: pd.Series, beta: pd.Series,
@@ -355,10 +515,16 @@ def metrics(bt: pd.DataFrame, periods_per_year: int) -> dict:
     }
 
 
-def diagnostics(train: pd.DataFrame, features: dict[str, pd.Series], label: str) -> dict:
+def diagnostics(train: pd.DataFrame) -> dict:
+    """Shared static log-price relationship diagnostics for each training fold."""
     y = np.log(train["eth_close"]).dropna()
     x = np.log(train["btc_close"]).reindex(y.index)
-    out = {"variant": label, "train_start": str(train.index.min()), "train_end": str(train.index.max()), "n": int(len(train))}
+    out = {
+        "diagnostic_scope": "shared_static_ols_relationship",
+        "train_start": str(train.index.min()),
+        "train_end": str(train.index.max()),
+        "n": int(len(train)),
+    }
     try:
         stat, pvalue, _ = coint(y, x)
         out.update({"engle_granger_stat": float(stat), "engle_granger_p": float(pvalue)})
@@ -383,11 +549,21 @@ def diagnostics(train: pd.DataFrame, features: dict[str, pd.Series], label: str)
     lagged = residual.shift(1).dropna()
     delta = residual.diff().dropna().reindex(lagged.index)
     if len(lagged) > 10:
-        slope = float(np.polyfit(lagged, delta, 1)[0])
-        out["ar1_slope"] = slope
-        out["half_life_bars"] = float(-math.log(2) / slope) if slope < 0 else np.inf
+        gamma = float(np.polyfit(lagged, delta, 1)[0])
+        phi = 1.0 + gamma
+        out["ar1_gamma"] = gamma
+        out["ar1_phi"] = phi
+        out["half_life_ou_approx_bars"] = float(-math.log(2) / gamma) if gamma < 0 else np.nan
+        out["half_life_exact_ar1_bars"] = (
+            float(-math.log(2) / math.log(phi)) if 0 < phi < 1 else np.nan
+        )
+        out["half_life_exact_valid"] = bool(0 < phi < 1)
     else:
-        out["half_life_bars"] = np.nan
+        out.update({
+            "ar1_gamma": np.nan, "ar1_phi": np.nan,
+            "half_life_ou_approx_bars": np.nan,
+            "half_life_exact_ar1_bars": np.nan, "half_life_exact_valid": False,
+        })
     try:
         out["zivot_andrews_p"] = float(zivot_andrews(residual.dropna(), maxlag=12, regression="c", autolag="AIC")[1])
     except Exception as exc:
@@ -413,6 +589,64 @@ def regime_labels(df: pd.DataFrame, train: pd.DataFrame, periods_per_day: int) -
     return pd.Series(np.where(rv <= q1, "low", np.where(rv <= q2, "mid", "high")), index=df.index).where(rv.notna())
 
 
+def benchmark_backtest(df: pd.DataFrame, sample_index: pd.DatetimeIndex,
+                      initial_weights: tuple[float, float], rebalanced: bool,
+                      fee_bps: float, slippage_bps: float, spread_bps: float,
+                      funding_eth: pd.Series | None = None,
+                      funding_btc: pd.Series | None = None,
+                      borrow_bps_per_day: float = 0.0,
+                      periods_per_day: int = 24) -> pd.DataFrame:
+    """Backtest a benchmark with explicit entry, drift/rebalance and exit turnover."""
+    sample_index = pd.DatetimeIndex(sample_index)
+    if sample_index.empty:
+        return pd.DataFrame(index=sample_index)
+    one_way_cost = (fee_bps + slippage_bps + spread_bps) / 10000.0
+    r_eth_all = df["eth_open"].pct_change().fillna(0.0)
+    r_btc_all = df["btc_open"].pct_change().fillna(0.0)
+    fe_all = funding_eth if funding_eth is not None else pd.Series(0.0, index=df.index)
+    fb_all = funding_btc if funding_btc is not None else pd.Series(0.0, index=df.index)
+    prev_eth = prev_btc = 0.0
+    rows = []
+    for i, timestamp in enumerate(sample_index):
+        gross = funding_pnl = borrow_cost = 0.0
+        if i == 0:
+            drift_eth = drift_btc = 0.0
+            target_eth, target_btc = initial_weights
+            turnover = abs(target_eth) + abs(target_btc)
+        else:
+            re = float(r_eth_all.loc[timestamp])
+            rb = float(r_btc_all.loc[timestamp])
+            gross = prev_eth * re + prev_btc * rb
+            fe = float(fe_all.loc[timestamp]) if timestamp in fe_all.index else 0.0
+            fb = float(fb_all.loc[timestamp]) if timestamp in fb_all.index else 0.0
+            funding_pnl = -(prev_eth * fe + prev_btc * fb)
+            short_notional = max(-prev_eth, 0.0) + max(-prev_btc, 0.0)
+            borrow_cost = short_notional * borrow_bps_per_day / 10000.0 / periods_per_day
+            pretrade_nav = 1.0 + gross + funding_pnl - borrow_cost
+            if pretrade_nav <= 0:
+                raise RuntimeError("Benchmark NAV became non-positive; benchmark is not margin-realistic")
+            drift_eth = prev_eth * (1.0 + re) / pretrade_nav
+            drift_btc = prev_btc * (1.0 + rb) / pretrade_nav
+            if rebalanced:
+                target_eth, target_btc = initial_weights
+            else:
+                target_eth, target_btc = drift_eth, drift_btc
+            turnover = abs(target_eth - drift_eth) + abs(target_btc - drift_btc)
+        if i == len(sample_index) - 1:
+            turnover += abs(target_eth) + abs(target_btc)
+            target_eth = target_btc = 0.0
+        cost = turnover * one_way_cost
+        net = gross + funding_pnl - borrow_cost - cost
+        rows.append({
+            "gross_return": gross, "cost": cost, "funding_pnl": funding_pnl,
+            "borrow_cost": borrow_cost, "net_return": net, "turnover": turnover,
+            "position": 1.0 if (target_eth != 0.0 or target_btc != 0.0) else 0.0,
+            "w_eth": target_eth, "w_btc": target_btc,
+        })
+        prev_eth, prev_btc = target_eth, target_btc
+    return pd.DataFrame(rows, index=sample_index)
+
+
 def walk_forward(df: pd.DataFrame, market: str, interval: str, out_dir: Path,
                  fee_bps: float, slippage_bps: float, spread_bps: float,
                  funding_eth: pd.Series | None = None, funding_btc: pd.Series | None = None,
@@ -434,16 +668,15 @@ def walk_forward(df: pd.DataFrame, market: str, interval: str, out_dir: Path,
         if len(train) < int(train_days * ppd * 0.95) or not test_mask.any():
             continue
         regimes = regime_labels(df, train, ppd)
+        diag_rows.append({"market": market, "interval": interval, "fold": fold_no, **diagnostics(train)})
         for variant, zkey, bkey in (("fixed_1x1", "fixed_z", None), ("rolling_hedge", "dynamic_z", "beta")):
             beta = pd.Series(1.0, index=df.index) if bkey is None else feats[bkey]
             signal_pos = make_position(feats[zkey], beta, test_start, test_end, 2.0, 0.5, 4.0, max_hold)
-            # Signal at bar close t is executed at bar t+1 open. Close the
-            # position at the final OOS open so the exit cost is in the fold.
-            pos = signal_pos.shift(1).fillna(0.0)
+            # A close signal at t becomes a position at the next bar's open.
+            pos = shift_signal_to_next_open(signal_pos)
             test_locs = np.flatnonzero(test_mask)
             if len(test_locs):
                 pos.iat[test_locs[-1]] = 0.0
-            diag_rows.append({"market": market, "interval": interval, "fold": fold_no, **diagnostics(train, feats, variant)})
             for mult in (1.0, 1.5, 2.0):
                 bt = backtest(df, pos, beta, fee_bps, slippage_bps, spread_bps, mult, funding_eth, funding_btc, borrow_bps_per_day, ppd)
                 sample = bt.loc[test_mask].copy()
@@ -459,45 +692,28 @@ def walk_forward(df: pd.DataFrame, market: str, interval: str, out_dir: Path,
                 if mult == 1.0:
                     for t in sample.index:
                         oos_rows.append({"timestamp": t, "market": market, "interval": interval, "fold": fold_no, "variant": variant, "net_return": sample.at[t, "net_return"], "gross_return": sample.at[t, "gross_return"], "cost": sample.at[t, "cost"], "funding_pnl": sample.at[t, "funding_pnl"], "borrow_cost": sample.at[t, "borrow_cost"], "position": sample.at[t, "position"], "beta": beta.at[t] if pd.notna(beta.at[t]) else np.nan, "regime": regimes.at[t]})
-        # Same-capital, 1x benchmarks on the same test window. Apply entry
-        # and exit costs; on USD-M data also deduct observed funding cash flows.
-        r_e = df["eth_open"].pct_change().fillna(0.0).loc[test_mask]
-        r_b = df["btc_open"].pct_change().fillna(0.0).loc[test_mask]
-        fe = funding_eth.loc[test_mask] if funding_eth is not None else pd.Series(0.0, index=r_e.index)
-        fb = funding_btc.loc[test_mask] if funding_btc is not None else pd.Series(0.0, index=r_e.index)
-        bench_cost = (fee_bps + slippage_bps + spread_bps) / 10000.0
-        bench_defs = [
-            ("BTC_buy_hold", r_b - fb, 1.0, 0.0),
-            ("ETH_buy_hold", r_e - fe, 0.0, 1.0),
-            ("50_50_ETH_BTC", 0.5*r_e + 0.5*r_b - 0.5*(fe + fb), 0.5, 0.5),
-            ("long_ETH_short_BTC", 0.5*r_e - 0.5*r_b - 0.5*fe + 0.5*fb, 0.5, -0.5),
-            ("no_trade", r_e*0.0, 0.0, 0.0),
+
+        test_index = df.index[test_mask]
+        benchmark_defs = [
+            ("BTC_buy_hold", (0.0, 1.0), False),
+            ("ETH_buy_hold", (1.0, 0.0), False),
+            ("50_50_ETH_BTC_buy_hold", (0.5, 0.5), False),
+            ("50_50_ETH_BTC_rebalanced", (0.5, 0.5), True),
+            ("long_ETH_short_BTC_buy_hold", (0.5, -0.5), False),
+            ("no_trade", (0.0, 0.0), False),
         ]
-        for name, returns, w_eth_bench, w_btc_bench in bench_defs:
-            returns = returns.copy()
-            entry_turnover = abs(w_eth_bench) + abs(w_btc_bench)
-            if len(returns) and entry_turnover:
-                # The benchmark enters at the first test open; do not credit
-                # the pre-entry open-to-open return on that first timestamp.
-                returns.iloc[0] = -bench_cost * entry_turnover
-            if name == "long_ETH_short_BTC" and market == "spot" and borrow_bps_per_day:
-                returns.iloc[1:] -= 0.5 * borrow_bps_per_day / 10000.0 / ppd
-            bench = pd.DataFrame({
-                "net_return": returns,
-                "turnover": 0.0,
-                "position": 1.0 if entry_turnover else 0.0,
-                "w_eth": w_eth_bench,
-                "w_btc": w_btc_bench,
+        for name, weights, rebalance in benchmark_defs:
+            bench = benchmark_backtest(
+                df, test_index, weights, rebalance, fee_bps, slippage_bps,
+                spread_bps, funding_eth, funding_btc,
+                borrow_bps_per_day if name == "long_ETH_short_BTC_buy_hold" and market == "spot" else 0.0,
+                ppd,
+            )
+            fold_rows.append({
+                "market": market, "interval": interval, "fold": fold_no,
+                "test_start": str(test_start), "test_end": str(test_end),
+                "variant": name, "cost_multiplier": 1.0, **metrics(bench, ppy),
             })
-            if len(bench) and entry_turnover:
-                returns.iloc[-1] -= bench_cost * entry_turnover
-                bench["net_return"] = returns
-                bench.iloc[0, bench.columns.get_loc("turnover")] += entry_turnover
-                bench.iloc[-1, bench.columns.get_loc("turnover")] += entry_turnover
-                bench.iloc[-1, bench.columns.get_loc("position")] = 0.0
-                bench.iloc[-1, bench.columns.get_loc("w_eth")] = 0.0
-                bench.iloc[-1, bench.columns.get_loc("w_btc")] = 0.0
-            fold_rows.append({"market": market, "interval": interval, "fold": fold_no, "test_start": str(test_start), "test_end": str(test_end), "variant": name, "cost_multiplier": 1.0, **metrics(bench, ppy)})
 
     out_dir.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(fold_rows).to_csv(out_dir / f"{market}_{interval}_oos_summary.csv", index=False)
@@ -620,26 +836,40 @@ def main() -> None:
         if market == "um":
             for symbol in SYMBOLS:
                 download_funding(symbol, args.start, args.end, args.data_dir)
-            f_eth = load_funding("ETHUSDT", pair.index, args.data_dir)
-            f_btc = load_funding("BTCUSDT", pair.index, args.data_dir)
+            f_eth, f_eth_quality = load_funding("ETHUSDT", pair.index, args.data_dir)
+            f_btc, f_btc_quality = load_funding("BTCUSDT", pair.index, args.data_dir)
             fee = args.um_fee_bps
         else:
             f_eth = f_btc = None
+            f_eth_quality = f_btc_quality = None
             fee = args.spot_fee_bps
+        pair_gaps = pair.index.to_series().diff().dropna()
+        pair_expected = pd.date_range(
+            pd.Timestamp(args.start, tz="UTC"),
+            pd.Timestamp(args.end, tz="UTC") + pd.Timedelta(days=1) - pd.Timedelta(hours=1),
+            freq="h",
+        )
         quality = {
-            "market": market, "rows": int(len(pair)), "start": str(pair.index.min()), "end": str(pair.index.max()),
-            "expected_frequency": "1h", "gap_count": int((pair.index.to_series().diff().dropna() != pd.Timedelta(hours=1)).sum()),
-            "max_gap": str(pair.index.to_series().diff().max()),
+            "market": market,
+            "synchronized_pair": {
+                "rows": int(len(pair)),
+                "start": str(pair.index.min()),
+                "end": str(pair.index.max()),
+                "expected_hourly_bars": int(len(pair_expected)),
+                "missing_hourly_bars": int(len(pair_expected.difference(pair.index))),
+                "max_gap": str(pair_gaps.max()) if len(pair_gaps) else None,
+                "longest_gap_hours": float(pair_gaps.max().total_seconds() / 3600) if len(pair_gaps) else None,
+            },
             "symbols": {},
         }
         for symbol in SYMBOLS:
             manifest_file = args.data_dir / "raw" / f"{market}_{symbol}_archive_manifest.json"
             quality["symbols"][symbol] = json.loads(manifest_file.read_text()) if manifest_file.exists() else {"manifest_missing": True}
         if market == "um":
-            quality["funding"] = {}
-            for symbol in SYMBOLS:
-                funding_manifest = args.data_dir / "raw" / f"um_{symbol}_funding_manifest.json"
-                quality["funding"][symbol] = json.loads(funding_manifest.read_text()) if funding_manifest.exists() else {"manifest_missing": True}
+            quality["funding"] = {
+                "ETHUSDT": f_eth_quality,
+                "BTCUSDT": f_btc_quality,
+            }
         args.output_dir.mkdir(parents=True, exist_ok=True)
         (args.output_dir / f"{market}_data_quality.json").write_text(json.dumps(quality, indent=2))
         borrow = args.spot_borrow_bps_per_day if market == "spot" else 0.0
