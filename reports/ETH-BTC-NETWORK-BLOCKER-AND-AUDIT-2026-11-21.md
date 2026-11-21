@@ -47,3 +47,16 @@ The strategy signal/execution path was inspected: the close-derived signal is sh
 ## Conclusion
 
 **INCONCLUSIVE.** No real-data performance can be reported. The next agent should address the audit items, run the manual workflow in GitHub Actions, inspect all outputs/data-quality manifests, and only then issue a supported GO/NO-GO/INCONCLUSIVE conclusion. Do not deploy capital based on the current synthetic tests or static review.
+
+
+## Follow-up — CI audit corrections and verification (2026-11-21)
+
+A lightweight GitHub Actions CI workflow was added and its first run exposed a real funding-quality bug. The test used event intervals of 8 hours and 32 hours; the original median (20 hours) inflated the permitted gap to 60 hours, incorrectly accepting the 32-hour gap.
+
+The implementation now estimates normal funding cadence from intervals no longer than 24 hours and records that reference cadence in the funding manifest. This prevents a missing-event outlier from making the completeness threshold more permissive.
+
+The code also now contains explicit buy-and-hold and rebalanced benchmark modes with drift/rebalance turnover costs; both OU-approximate and exact discrete AR(1) half-life estimates; strict missing/duplicate funding checks and timestamp alignment; per-symbol hourly completeness and missing-archive checks; explicit shared-diagnostic labeling; and bounded retries for transient HTTP/network failures.
+
+Verification: [GitHub Actions run 44906070305](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44906070305) completed successfully on 2026-11-21. All 11 deterministic unit tests passed, and the synthetic plumbing smoke test passed. This does not establish market-data validity or strategy performance.
+
+**Remaining blocker:** the full empirical workflow is manual-only and the available GitHub integration cannot call the Actions `workflow_dispatch` endpoint. It has not been run. Account-specific fees, historical spread/slippage and spot-borrow costs also remain unverified; default cost inputs must remain labeled scenarios. The research conclusion therefore remains **INCONCLUSIVE**.
