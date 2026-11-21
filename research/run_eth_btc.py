@@ -349,6 +349,54 @@ def align_funding_events(events: pd.Series, index: pd.DatetimeIndex, symbol: str
     return aligned, quality
 
 
+def load_pair(market: str, data_dir: Path, start: str | None = None, end: str | None = None) -> pd.DataFrame:
+    parts = []
+    for symbol, prefix in (("ETHUSDT", "eth"), ("BTCUSDT", "btc")):
+        path = data_dir / "raw" / f"{market}_{symbol}_1h.csv"
+        if not path.exists():
+            raise FileNotFoundError(f"Missing {path}; run the downloader first")
+        x = pd.read_csv(path, parse_dates=["timestamp"])
+        x["timestamp"] = pd.to_datetime(x["timestamp"], utc=True)
+        if x["timestamp"].duplicated().any():
+            raise RuntimeError(f"Duplicate timestamps remain in {path}")
+        x = x.set_index("timestamp").sort_index()
+        parts.append(x[["open", "high", "low", "close", "volume"]].rename(columns=lambda c: f"{prefix}_{c}"))
+    out = pd.concat(parts, axis=1, join="inner").dropna().sort_index()
+    if start is not None:
+        out = out.loc[out.index >= pd.Timestamp(start, tz="UTC")]
+    if end is not None:
+        end_exclusive = pd.Timestamp(end, tz="UTC") + pd.Timedelta(days=1)
+        out = out.loc[out.index < end_exclusive]
+    if out.empty:
+        raise RuntimeError(f"No synchronized ETH/BTC {market} observations")
+    expected = pd.date_range(
+        pd.Timestamp(start, tz="UTC") if start is not None else out.index.min(),
+        (pd.Timestamp(end, tz="UTC") + pd.Timedelta(days=1) - pd.Timedelta(hours=1))
+        if end is not None else out.index.max(),
+        freq="h",
+    )
+    missing = expected.difference(out.index)
+    if len(missing):
+        raise RuntimeError(
+            f"Synchronized ETH/BTC {market} series has {len(missing)} missing hourly bars; "
+            f"first missing timestamps: {[str(x) for x in missing[:10]]}"
+        )
+    return out
+
+
+def load_funding(symbol: str, index: pd.DatetimeIndex, data_dir: Path) -> tuple[pd.Series, dict]:
+    path = data_dir / "raw" / f"um_{symbol}_funding.csv"
+    if not path.exists():
+        raise FileNotFoundError(f"Missing funding history for {symbol}: {path}")
+    frame = pd.read_csv(path, parse_dates=["timestamp"])
+    if frame.empty or not {"timestamp", "fundingRate"}.issubset(frame.columns):
+        raise RuntimeError(f"Invalid or empty funding file for {symbol}: {path}")
+    frame["timestamp"] = pd.to_datetime(frame["timestamp"], utc=True)
+    frame["fundingRate"] = pd.to_numeric(frame["fundingRate"], errors="coerce")
+    events = frame.set_index("timestamp")["fundingRate"].sort_index()
+    return align_funding_events(events, index, symbol)
+
+
 def add_features(df: pd.DataFrame, lookback: int) -> dict[str, pd.Series]:
     y = np.log(df["eth_close"])
     x = np.log(df["btc_close"])
@@ -609,10 +657,15 @@ def benchmark_backtest(df: pd.DataFrame, sample_index: pd.DatetimeIndex,
     rows = []
     for i, timestamp in enumerate(sample_index):
         gross = funding_pnl = borrow_cost = 0.0
+        is_last = i == len(sample_index) - 1
         if i == 0:
             drift_eth = drift_btc = 0.0
-            target_eth, target_btc = initial_weights
-            turnover = abs(target_eth) + abs(target_btc)
+            if is_last:
+                target_eth = target_btc = 0.0
+                turnover = 2.0 * (abs(initial_weights[0]) + abs(initial_weights[1]))
+            else:
+                target_eth, target_btc = initial_weights
+                turnover = abs(target_eth) + abs(target_btc)
         else:
             re = float(r_eth_all.loc[timestamp])
             rb = float(r_btc_all.loc[timestamp])
@@ -627,14 +680,15 @@ def benchmark_backtest(df: pd.DataFrame, sample_index: pd.DatetimeIndex,
                 raise RuntimeError("Benchmark NAV became non-positive; benchmark is not margin-realistic")
             drift_eth = prev_eth * (1.0 + re) / pretrade_nav
             drift_btc = prev_btc * (1.0 + rb) / pretrade_nav
-            if rebalanced:
+            if is_last:
+                target_eth = target_btc = 0.0
+                turnover = abs(drift_eth) + abs(drift_btc)
+            elif rebalanced:
                 target_eth, target_btc = initial_weights
+                turnover = abs(target_eth - drift_eth) + abs(target_btc - drift_btc)
             else:
                 target_eth, target_btc = drift_eth, drift_btc
-            turnover = abs(target_eth - drift_eth) + abs(target_btc - drift_btc)
-        if i == len(sample_index) - 1:
-            turnover += abs(target_eth) + abs(target_btc)
-            target_eth = target_btc = 0.0
+                turnover = 0.0
         cost = turnover * one_way_cost
         net = gross + funding_pnl - borrow_cost - cost
         rows.append({
