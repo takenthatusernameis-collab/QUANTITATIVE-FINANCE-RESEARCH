@@ -509,7 +509,7 @@ def backtest(df: pd.DataFrame, position: pd.Series, beta: pd.Series,
 
 
 def block_bootstrap_sharpe_ci(r: pd.Series, periods_per_year: int, reps: int = BOOTSTRAP_REPS) -> tuple[float, float]:
-    """Exploratory percentile 95% CI; 150 replications have limited quantile precision.""""
+    """Exploratory percentile 95% CI; 150 replications have limited quantile precision."""
     values = r.dropna().to_numpy(dtype=float)
     if len(values) < 100:
         return np.nan, np.nan
