@@ -1,1 +1,1 @@
-Prepare the mission for the subsequent session!
+Commit the mission for the subsequent session!
