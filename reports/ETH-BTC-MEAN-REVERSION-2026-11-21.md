@@ -29,7 +29,7 @@ The added pipeline is `research/run_eth_btc.py`; dependencies are in `research/r
 - **Hedge construction:** spread-hedge neutrality, not dollar neutrality. Leg weights are normalized to 1x gross exposure using the estimated log-price hedge ratio. The dynamic-beta strategy can therefore carry non-zero net dollar exposure.
 - **Costs:** configurable per-leg, per-side fees, slippage and spread assumptions, with 1.0x / 1.5x / 2.0x sensitivities. USDⓈ-M funding is charged at observed settlement timestamps. Optional spot borrow cost is configurable; the default is zero and must not be mistaken for a borrow quote.
 - **Benchmarks:** BTC buy-and-hold, ETH buy-and-hold, 50/50 ETH-BTC, passive long ETH/short BTC, and no-trade, on a 1x gross-exposure basis with entry and exit costs.
-- **Risk outputs:** CAGR, annualized volatility, Sharpe, block-bootstrap Sharpe interval, Sortino, maximum drawdown, Calmar, turnover, exposure, time in market, trade count, win rate, profit factor, holding period and 1% hourly/daily tail return.
+- **Risk outputs:** CAGR, annualized volatility, Sharpe, block-bootstrap Sharpe interval, Sortino, maximum drawdown, Calmar, turnover, exposure, time in market, trade count, win rate, profit factor, holding period and 1% hourly/daily tail return. The risk-free hurdle is 0%; annualization is 8,760 hourly or 365 daily periods. Entry and exit costs are included in trade-level PnL.
 - **Regimes and stress:** trailing 30-day relative-volatility terciles, 1.0x / 1.5x / 2.0x cost sensitivity and illustrative instantaneous spread-divergence/funding shocks.
 - **Daily robustness:** daily resampling is included, but the daily run is price-only and does not apply funding. It must not replace the hourly funding-aware perpetual result.
 
