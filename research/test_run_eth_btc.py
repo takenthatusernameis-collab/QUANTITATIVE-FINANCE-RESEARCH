@@ -1,6 +1,9 @@
+import io
+import json
 import sys
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -63,12 +66,111 @@ class ResearchPipelineTests(unittest.TestCase):
         self.assertEqual(result.status_code, 200)
         self.assertEqual(session.calls, 2)
 
-    def test_hourly_quality_reports_missing_bar_and_gap(self):
+    def test_hourly_quality_reports_all_missing_hours_intervals_and_archive_provenance(self):
         observed = self.index.delete(2)
-        result = research.hourly_quality(observed, "2024-01-01", "2024-01-01")
+        archive_manifest = [{
+            "month": "2024-01", "url": "https://data.binance.vision/month.zip",
+            "archive_sha256": "abc123", "checksum_verified": True, "status": "downloaded",
+        }]
+        result = research.hourly_quality(
+            observed, "2024-01-01", "2024-01-01", archive_manifest
+        )
         self.assertEqual(result["missing_hourly_bars"], 21)
         self.assertEqual(result["longest_gap_hours"], 2.0)
+        self.assertEqual(len(result["missing_hour_timestamps"]), 21)
+        self.assertEqual(len(result["missing_hour_details"]), 21)
+        self.assertEqual([item["hours"] for item in result["missing_hour_intervals"]], [1, 20])
+        self.assertEqual(result["missing_hour_details"][0]["archive_sha256"], "abc123")
+        self.assertTrue(result["missing_hour_details"][0]["archive_checksum_verified"])
         self.assertFalse(result["complete"])
+
+    def test_gap_reconciliation_classifies_only_one_source_as_unresolved(self):
+        self.assertEqual(
+            research.classify_gap_reconciliation(True, True, True),
+            "confirmed_monthly_archive_omission",
+        )
+        self.assertEqual(
+            research.classify_gap_reconciliation(True, True, False),
+            "official_source_value_mismatch",
+        )
+        self.assertEqual(
+            research.classify_gap_reconciliation(True, False),
+            "single_official_representation_only",
+        )
+        self.assertEqual(
+            research.classify_gap_reconciliation(False, False),
+            "absent_from_both_official_representations_unresolved",
+        )
+
+    def test_all_series_audit_continues_after_first_price_series_fails(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with patch.object(
+                research, "download_klines",
+                side_effect=[RuntimeError("spot ETH gap"), None, None, None],
+            ) as prices, patch.object(
+                research, "download_funding", return_value=root / "funding.csv"
+            ) as funding:
+                summary = research.audit_all_inputs(
+                    "2024-01-01", "2024-01-01", root / "data", root / "out"
+                )
+            self.assertEqual(prices.call_count, 4)
+            self.assertEqual(funding.call_count, 2)
+            self.assertEqual(summary["price_series"]["spot_ETHUSDT"]["status"], "failed")
+            self.assertEqual(summary["price_series"]["spot_BTCUSDT"]["status"], "complete")
+            self.assertEqual(summary["price_series"]["um_ETHUSDT"]["status"], "complete")
+            self.assertEqual(summary["price_series"]["um_BTCUSDT"]["status"], "complete")
+            self.assertFalse(summary["complete"])
+            self.assertTrue((root / "out" / "data_audit_summary.json").exists())
+
+    def test_gap_reconciliation_matches_rest_and_daily_archive_without_repairing_csv(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            raw_dir = root / "raw"
+            raw_dir.mkdir()
+            all_hours = pd.date_range("2024-01-01", periods=24, freq="h", tz="UTC")
+            missing = all_hours[2]
+            source_csv = raw_dir / "spot_ETHUSDT_1h.csv"
+            pd.DataFrame({
+                "timestamp": [str(ts) for ts in all_hours if ts != missing]
+            }).to_csv(source_csv, index=False)
+
+            daily_rows = []
+            for ts in all_hours:
+                open_time = int(ts.timestamp() * 1000)
+                daily_rows.append([
+                    open_time, "100", "101", "99", "100.5", "10",
+                    open_time + 3599999, "1000", "1", "5", "500", "0",
+                ])
+            daily_csv = pd.DataFrame(daily_rows).to_csv(index=False, header=False)
+            archive_buffer = io.BytesIO()
+            with zipfile.ZipFile(archive_buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+                archive.writestr("ETHUSDT-1h-2024-01-01.csv", daily_csv)
+
+            api_response = requests.Response()
+            api_response.status_code = 200
+            api_response.url = "https://api.binance.com/api/v3/klines"
+            api_response._content = json.dumps([daily_rows[2]]).encode("utf-8")
+            api_response.encoding = "utf-8"
+
+            with patch.object(
+                research, "_download_archive",
+                return_value=(archive_buffer.getvalue(), True, None),
+            ), patch.object(
+                research.requests, "Session",
+                return_value=FakeSession([api_response]),
+            ):
+                result = research.reconcile_spot_gaps(
+                    "ETHUSDT", "2024-01-01", "2024-01-01", root
+                )
+
+            self.assertEqual(result["gap_count"], 1)
+            self.assertEqual(
+                result["gaps"][0]["classification"],
+                "confirmed_monthly_archive_omission",
+            )
+            self.assertTrue(result["reconciliation_complete"])
+            self.assertEqual(len(pd.read_csv(source_csv)), 23)
 
     def test_close_signal_executes_next_open_and_pnl_starts_after_that_open(self):
         close_signal = pd.Series([1.0, 0.0, 0.0, 0.0], index=self.index)
