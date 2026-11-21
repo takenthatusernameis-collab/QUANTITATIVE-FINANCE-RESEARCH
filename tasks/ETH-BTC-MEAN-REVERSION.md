@@ -1,6 +1,6 @@
 # Pending Research Task: ETH/BTC Market-Neutral Mean Reversion
 
-**Status:** Ready for execution  
+**Status:** Executed — INCONCLUSIVE (2026-11-21)  
 **Priority:** High  
 **Type:** Empirical quantitative research  
 **Scope:** Research and backtesting only; do not deploy capital or place live orders.
@@ -97,3 +97,11 @@ The task is complete only when:
 - the final conclusion is supported by the reported diagnostics and sensitivity tests.
 
 Do not declare success solely because a full-sample backtest is profitable, a cointegration test is significant, or a single Sharpe ratio is high. If the data are insufficient to support a reliable conclusion, classify the result as **INCONCLUSIVE** rather than filling gaps with assumptions.
+
+## Execution record — 2026-11-21
+
+- Outcome: **INCONCLUSIVE**. No empirical market statistics are claimed because raw historical data and funding history could not be retrieved in this execution environment.
+- Added: `research/run_eth_btc.py`, `research/requirements.txt`, and `research/README.md`.
+- Report: `reports/ETH-BTC-MEAN-REVERSION-2026-11-21.md`.
+- Validation: syntax check, synthetic self-test and synthetic daily integration run passed. These checks validate plumbing only, not strategy performance.
+- Follow-up: `tasks/ETH-BTC-FULL-DATA-EXECUTION.md` requests the network-enabled empirical run and final conclusion.
