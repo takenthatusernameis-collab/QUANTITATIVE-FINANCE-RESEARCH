@@ -82,8 +82,9 @@ def request_with_retry(session: requests.Session, url: str, timeout: int = 60,
     raise RuntimeError(f"Request failed after {max_attempts} attempts: {url}")
 
 
-def hourly_quality(index: pd.DatetimeIndex, start: str, end: str) -> dict:
-    """Measure hourly completeness before any ETH/BTC inner join."""
+def hourly_quality(index: pd.DatetimeIndex, start: str, end: str,
+                   archive_manifest: list[dict] | None = None) -> dict:
+    """Measure hourly completeness and preserve every gap with archive provenance."""
     start_ts = pd.Timestamp(start, tz="UTC")
     end_exclusive = pd.Timestamp(end, tz="UTC") + pd.Timedelta(days=1)
     observed_all = pd.DatetimeIndex(index)
@@ -94,6 +95,55 @@ def hourly_quality(index: pd.DatetimeIndex, start: str, end: str) -> dict:
     missing = expected.difference(observed)
     gaps = observed.to_series().diff().dropna()
     max_gap = gaps.max() if len(gaps) else pd.NaT
+
+    archive_by_month = {
+        str(item.get("month")): item
+        for item in (archive_manifest or [])
+        if item.get("month")
+    }
+    missing_details = []
+    for timestamp in missing:
+        month = timestamp.strftime("%Y-%m")
+        source = archive_by_month.get(month, {})
+        missing_details.append({
+            "timestamp": str(timestamp),
+            "archive_month": month,
+            "archive_url": source.get("url"),
+            "archive_sha256": source.get("archive_sha256"),
+            "archive_checksum_verified": source.get("checksum_verified"),
+            "archive_status": source.get("status"),
+        })
+
+    missing_intervals = []
+    if len(missing):
+        group_start = previous = missing[0]
+        groups = []
+        for timestamp in missing[1:]:
+            if timestamp - previous != pd.Timedelta(hours=1):
+                groups.append((group_start, previous))
+                group_start = timestamp
+            previous = timestamp
+        groups.append((group_start, previous))
+        for first, last in groups:
+            months = sorted({x.strftime("%Y-%m") for x in pd.date_range(first, last, freq="h")})
+            sources = []
+            for month in months:
+                source = archive_by_month.get(month, {})
+                sources.append({
+                    "month": month,
+                    "url": source.get("url"),
+                    "archive_sha256": source.get("archive_sha256"),
+                    "checksum_verified": source.get("checksum_verified"),
+                    "status": source.get("status"),
+                })
+            missing_intervals.append({
+                "start": str(first),
+                "end": str(last),
+                "hours": int((last - first) / pd.Timedelta(hours=1)) + 1,
+                "archive_months": months,
+                "archive_sources": sources,
+            })
+
     return {
         "requested_start": str(start_ts),
         "requested_end_inclusive": str(end_exclusive - pd.Timedelta(hours=1)),
@@ -105,10 +155,40 @@ def hourly_quality(index: pd.DatetimeIndex, start: str, end: str) -> dict:
         "expected_hourly_bars": int(len(expected)),
         "missing_hourly_bars": int(len(missing)),
         "missing_hour_samples": [str(x) for x in missing[:20]],
+        "missing_hour_timestamps": [str(x) for x in missing],
+        "missing_hour_details": missing_details,
+        "missing_hour_intervals": missing_intervals,
         "max_gap": str(max_gap) if pd.notna(max_gap) else None,
         "longest_gap_hours": float(max_gap.total_seconds() / 3600) if pd.notna(max_gap) else None,
         "complete": bool(len(missing) == 0 and duplicate_count == 0 and len(observed) == len(expected)),
     }
+
+
+def parse_kline_archive(payload: bytes, url: str) -> pd.DataFrame:
+    """Parse a Binance Vision kline ZIP and normalize timestamp units."""
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        csv_names = [name for name in archive.namelist() if name.lower().endswith(".csv")]
+        if not csv_names:
+            raise ValueError(f"No CSV in {url}")
+        raw = pd.read_csv(archive.open(csv_names[0]), header=None)
+    if raw.empty:
+        result = pd.DataFrame(columns=["timestamp", "open", "high", "low", "close", "volume", "quote_volume"])
+        result.attrs["timestamp_unit"] = None
+        return result
+    if raw.shape[1] < 8:
+        raise ValueError(f"Unexpected kline CSV schema in {url}: {raw.shape[1]} columns")
+    raw = raw.iloc[:, :len(COLUMNS)]
+    raw.columns = COLUMNS[:raw.shape[1]]
+    raw["open_time"] = pd.to_numeric(raw["open_time"], errors="coerce")
+    if raw["open_time"].isna().any():
+        raise ValueError(f"Invalid open_time values in {url}")
+    unit = "us" if raw["open_time"].median() > 10**14 else "ms"
+    raw["timestamp"] = pd.to_datetime(raw["open_time"], unit=unit, utc=True)
+    for column in ("open", "high", "low", "close", "volume", "quote_volume"):
+        raw[column] = pd.to_numeric(raw[column], errors="coerce")
+    result = raw[["timestamp", "open", "high", "low", "close", "volume", "quote_volume"]].copy()
+    result.attrs["timestamp_unit"] = unit
+    return result
 
 
 def _download_archive(url: str, cache_file: Path, session: requests.Session) -> tuple[bytes, bool, str | None]:
@@ -165,24 +245,12 @@ def download_klines(market: str, symbol: str, start: str, end: str, data_dir: Pa
             archive_manifest.append({"month": tag, "url": url, "status": "missing_http_404"})
             missing_months.append(tag)
             continue
-        with zipfile.ZipFile(io.BytesIO(payload)) as archive:
-            csv_names = [n for n in archive.namelist() if n.lower().endswith(".csv")]
-            if not csv_names:
-                raise ValueError(f"No CSV in {url}")
-            raw = pd.read_csv(archive.open(csv_names[0]), header=None)
+        raw = parse_kline_archive(payload, url)
         if raw.empty:
             archive_manifest.append({"month": tag, "url": url, "status": "empty_archive"})
             missing_months.append(tag)
             continue
-        if raw.shape[1] < 6:
-            raise ValueError(f"Unexpected kline CSV schema in {url}: {raw.shape[1]} columns")
-        raw = raw.iloc[:, :len(COLUMNS)]
-        raw.columns = COLUMNS[:raw.shape[1]]
-        raw["open_time"] = pd.to_numeric(raw["open_time"], errors="coerce")
-        if raw["open_time"].isna().any():
-            raise ValueError(f"Invalid open_time values in {url}")
-        unit = "us" if raw["open_time"].median() > 10**14 else "ms"
-        raw["timestamp"] = pd.to_datetime(raw["open_time"], unit=unit, utc=True)
+        unit = raw.attrs.get("timestamp_unit")
         archive_manifest.append({
             "month": tag, "url": url, "status": "downloaded",
             "archive_sha256": hashlib.sha256(payload).hexdigest(),
@@ -208,7 +276,7 @@ def download_klines(market: str, symbol: str, start: str, end: str, data_dir: Pa
         raise RuntimeError(f"No {market} data downloaded for {symbol}; see {manifest_path}")
 
     combined = pd.concat(frames, ignore_index=True).sort_values("timestamp")
-    quality = hourly_quality(pd.DatetimeIndex(combined["timestamp"]), start, end)
+    quality = hourly_quality(pd.DatetimeIndex(combined["timestamp"]), start, end, archive_manifest)
     duplicate_count = quality["duplicate_timestamps"]
     out = combined.drop_duplicates("timestamp", keep="first").sort_values("timestamp")
     out_path = data_dir / "raw" / f"{market}_{symbol}_1h.csv"
@@ -889,6 +957,264 @@ def make_plots(df: pd.DataFrame, feats: dict, oos: pd.DataFrame, out_dir: Path, 
     plt.savefig(out_dir / f"{market}_{interval}_drawdowns.png", dpi=150); plt.close()
 
 
+
+def classify_gap_reconciliation(api_found: bool, daily_archive_found: bool,
+                                values_match: bool | None = None) -> str:
+    """Classify whether independent official representations corroborate a missing bar."""
+    if api_found and daily_archive_found:
+        return "confirmed_monthly_archive_omission" if values_match else "official_source_value_mismatch"
+    if api_found or daily_archive_found:
+        return "single_official_representation_only"
+    return "absent_from_both_official_representations_unresolved"
+
+
+def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> dict:
+    """Cross-check every missing Spot hour against Binance REST and daily archives.
+
+    This function only records evidence. It never fabricates or inserts candles.
+    """
+    csv_path = data_dir / "raw" / f"spot_{symbol}_1h.csv"
+    manifest_path = data_dir / "raw" / f"spot_{symbol}_archive_manifest.json"
+    if not csv_path.exists():
+        raise FileNotFoundError(f"Missing consolidated Spot CSV required for reconciliation: {csv_path}")
+    source_manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
+    frame = pd.read_csv(csv_path, usecols=["timestamp"])
+    frame["timestamp"] = pd.to_datetime(frame["timestamp"], utc=True)
+    quality = hourly_quality(
+        pd.DatetimeIndex(frame["timestamp"]), start, end, source_manifest.get("archives", [])
+    )
+    missing = pd.to_datetime(quality["missing_hour_timestamps"], utc=True)
+    result = {
+        "market": "spot",
+        "symbol": symbol,
+        "requested_start": start,
+        "requested_end_inclusive": end,
+        "rest_endpoint": "https://api.binance.com/api/v3/klines",
+        "daily_archive_base": "https://data.binance.vision/data/spot/daily/klines",
+        "source_csv": str(csv_path),
+        "source_csv_sha256": hashlib.sha256(csv_path.read_bytes()).hexdigest(),
+        "monthly_archive_quality": quality,
+        "daily_archives": {},
+        "gaps": [],
+        "classification_counts": {},
+        "reconciliation_complete": True,
+    }
+    if not len(missing):
+        out_path = data_dir / "raw" / f"spot_{symbol}_gap_reconciliation.json"
+        out_path.write_text(json.dumps(result, indent=2))
+        result["manifest_path"] = str(out_path)
+        return result
+
+    session = requests.Session()
+    daily_frames: dict[str, pd.DataFrame] = {}
+    daily_info: dict[str, dict] = {}
+    for day in sorted({timestamp.strftime("%Y-%m-%d") for timestamp in missing}):
+        filename = f"{symbol}-1h-{day}.zip"
+        url = f"https://data.binance.vision/data/spot/daily/klines/{symbol}/1h/{filename}"
+        cache = data_dir / "cache" / "spot_daily" / symbol / filename
+        try:
+            payload, verified, checksum_error = _download_archive(url, cache, session)
+            daily_frames[day] = parse_kline_archive(payload, url)
+            daily_info[day] = {
+                "url": url,
+                "status": "downloaded",
+                "archive_sha256": hashlib.sha256(payload).hexdigest(),
+                "checksum_verified": verified,
+                "checksum_error": checksum_error,
+                "rows": int(len(daily_frames[day])),
+                "timestamp_unit": daily_frames[day].attrs.get("timestamp_unit"),
+            }
+        except FileNotFoundError:
+            daily_frames[day] = pd.DataFrame(columns=["timestamp", "open", "high", "low", "close", "volume"])
+            daily_info[day] = {"url": url, "status": "missing_http_404"}
+        except Exception as exc:
+            daily_frames[day] = pd.DataFrame(columns=["timestamp", "open", "high", "low", "close", "volume"])
+            daily_info[day] = {"url": url, "status": "error", "error": f"{type(exc).__name__}: {exc}"}
+        time.sleep(0.03)
+
+    for timestamp in missing:
+        hour_start_ms = int(timestamp.timestamp() * 1000)
+        hour_end_ms = hour_start_ms + 60 * 60 * 1000 - 1
+        params = {
+            "symbol": symbol,
+            "interval": "1h",
+            "startTime": hour_start_ms,
+            "endTime": hour_end_ms,
+            "limit": 10,
+        }
+        gap_day = timestamp.strftime("%Y-%m-%d")
+        entry = {
+            "timestamp": str(timestamp),
+            "archive_month": timestamp.strftime("%Y-%m"),
+            "daily_archive": daily_info.get(gap_day, {}),
+            "api_request": params,
+            "api_status": None,
+            "api_rows_returned": 0,
+            "api_candle_found": False,
+            "daily_candle_found": False,
+            "values_match": None,
+        }
+        try:
+            response = request_with_retry(
+                session, result["rest_endpoint"], timeout=45, params=params
+            )
+            payload = response.json()
+            if not isinstance(payload, list):
+                raise RuntimeError(f"Unexpected klines API response: {payload}")
+            entry["api_status"] = response.status_code
+            entry["api_rows_returned"] = len(payload)
+            api_rows = [row for row in payload if int(row[0]) == hour_start_ms]
+            if api_rows:
+                row = api_rows[0]
+                entry["api_candle_found"] = True
+                entry["api_candle"] = {
+                    "open": float(row[1]), "high": float(row[2]),
+                    "low": float(row[3]), "close": float(row[4]),
+                    "volume": float(row[5]),
+                    "quote_volume": float(row[7]) if len(row) > 7 else None,
+                }
+                entry["api_candle_sha256"] = hashlib.sha256(
+                    json.dumps(row, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+                ).hexdigest()
+        except Exception as exc:
+            entry["api_error"] = f"{type(exc).__name__}: {exc}"
+
+        daily_frame = daily_frames.get(gap_day)
+        if daily_frame is not None and not daily_frame.empty:
+            matches = daily_frame.loc[daily_frame["timestamp"] == timestamp]
+            if not matches.empty:
+                row = matches.iloc[0]
+                entry["daily_candle_found"] = True
+                entry["daily_candle"] = {
+                    column: float(row[column])
+                    for column in ("open", "high", "low", "close", "volume")
+                }
+                entry["daily_candle_sha256"] = hashlib.sha256(
+                    json.dumps(entry["daily_candle"], sort_keys=True, separators=(",", ":")).encode("utf-8")
+                ).hexdigest()
+
+        if entry["api_candle_found"] and entry["daily_candle_found"]:
+            fields = ("open", "high", "low", "close", "volume")
+            entry["values_match"] = all(
+                math.isclose(
+                    entry["api_candle"][field], entry["daily_candle"][field],
+                    rel_tol=1e-12, abs_tol=1e-12,
+                )
+                for field in fields
+            )
+        entry["classification"] = classify_gap_reconciliation(
+            entry["api_candle_found"], entry["daily_candle_found"], entry["values_match"]
+        )
+        result["gaps"].append(entry)
+        time.sleep(0.05)
+
+    for entry in result["gaps"]:
+        label = entry["classification"]
+        result["classification_counts"][label] = result["classification_counts"].get(label, 0) + 1
+    result["reconciliation_complete"] = (
+        len(result["gaps"]) == len(missing)
+        and all(entry["classification"] == "confirmed_monthly_archive_omission" for entry in result["gaps"])
+        and all("api_error" not in entry for entry in result["gaps"])
+    )
+    result["gap_count"] = len(result["gaps"])
+    out_path = data_dir / "raw" / f"spot_{symbol}_gap_reconciliation.json"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(result, indent=2))
+    result["manifest_path"] = str(out_path)
+    return result
+
+
+def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
+                     reconcile_gaps: bool = False) -> dict:
+    """Audit all four price series and both funding histories without fail-fast behavior."""
+    summary = {
+        "start": start,
+        "end": end,
+        "price_series": {},
+        "funding_series": {},
+        "gap_reconciliation": None,
+        "complete": False,
+    }
+    for market in ("spot", "um"):
+        for symbol in SYMBOLS:
+            key = f"{market}_{symbol}"
+            csv_path = data_dir / "raw" / f"{market}_{symbol}_1h.csv"
+            manifest_path = data_dir / "raw" / f"{market}_{symbol}_archive_manifest.json"
+            record = {
+                "market": market,
+                "symbol": symbol,
+                "status": "not_run",
+                "csv_path": str(csv_path),
+                "manifest_path": str(manifest_path),
+            }
+            try:
+                download_klines(market, symbol, start, end, data_dir)
+                record["status"] = "complete"
+            except Exception as exc:
+                record["status"] = "failed"
+                record["error"] = f"{type(exc).__name__}: {exc}"
+            if manifest_path.exists():
+                manifest = json.loads(manifest_path.read_text())
+                record["data_quality"] = manifest.get("data_quality")
+                record["missing_archive_months"] = manifest.get("missing_archive_months", [])
+                record["manifest_sha256"] = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+                if record["data_quality"] and not record["data_quality"].get("complete", False):
+                    record["status"] = "incomplete"
+            summary["price_series"][key] = record
+
+    for symbol in SYMBOLS:
+        key = f"um_{symbol}_funding"
+        csv_path = data_dir / "raw" / f"um_{symbol}_funding.csv"
+        manifest_path = data_dir / "raw" / f"um_{symbol}_funding_manifest.json"
+        record = {
+            "symbol": symbol,
+            "status": "not_run",
+            "csv_path": str(csv_path),
+            "manifest_path": str(manifest_path),
+        }
+        try:
+            download_funding(symbol, start, end, data_dir)
+            record["status"] = "complete"
+        except Exception as exc:
+            record["status"] = "failed"
+            record["error"] = f"{type(exc).__name__}: {exc}"
+        if manifest_path.exists():
+            manifest = json.loads(manifest_path.read_text())
+            record["data_quality"] = manifest.get("data_quality")
+            record["manifest_sha256"] = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+            if record["data_quality"] and not record["data_quality"].get("complete", False):
+                record["status"] = "incomplete"
+        summary["funding_series"][key] = record
+
+    if reconcile_gaps:
+        try:
+            summary["gap_reconciliation"] = reconcile_spot_gaps(
+                "ETHUSDT", start, end, data_dir
+            )
+        except Exception as exc:
+            summary["gap_reconciliation"] = {
+                "status": "failed",
+                "error": f"{type(exc).__name__}: {exc}",
+            }
+
+    price_ok = all(record["status"] == "complete" for record in summary["price_series"].values())
+    funding_ok = all(record["status"] == "complete" for record in summary["funding_series"].values())
+    reconciliation_ok = (
+        not reconcile_gaps
+        or bool(summary["gap_reconciliation"] and summary["gap_reconciliation"].get("reconciliation_complete"))
+    )
+    summary["complete"] = bool(price_ok and funding_ok and reconciliation_ok)
+    summary["status"] = "COMPLETE" if summary["complete"] else "INCOMPLETE"
+    summary["price_series_complete"] = price_ok
+    summary["funding_series_complete"] = funding_ok
+    summary["reconciliation_complete"] = reconciliation_ok
+    output_dir.mkdir(parents=True, exist_ok=True)
+    summary_path = output_dir / "data_audit_summary.json"
+    summary_path.write_text(json.dumps(summary, indent=2))
+    summary["summary_path"] = str(summary_path)
+    summary["summary_sha256"] = hashlib.sha256(summary_path.read_bytes()).hexdigest()
+    return summary
+
 def self_test() -> None:
     rng = np.random.default_rng(7)
     idx = pd.date_range("2022-01-01", periods=24*100, freq="h", tz="UTC")
@@ -919,10 +1245,23 @@ def main() -> None:
     parser.add_argument("--slippage-bps", type=float, default=2.0)
     parser.add_argument("--spread-bps", type=float, default=1.0)
     parser.add_argument("--spot-borrow-bps-per-day", type=float, default=0.0, help="Optional short-borrow charge for theoretical spot backtests")
+    parser.add_argument("--audit-only", action="store_true", help="Audit all four price series and both funding histories; do not run strategy backtests")
+    parser.add_argument("--reconcile-spot-gaps", action="store_true", help="During --audit-only, cross-check missing ETH Spot hours against Binance REST and daily archives")
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
     if args.self_test:
         self_test(); return
+    if args.reconcile_spot_gaps and not args.audit_only:
+        parser.error("--reconcile-spot-gaps requires --audit-only")
+    if args.audit_only:
+        summary = audit_all_inputs(
+            args.start, args.end, args.data_dir, args.output_dir,
+            reconcile_gaps=args.reconcile_spot_gaps,
+        )
+        print(json.dumps(summary, indent=2))
+        if not summary["complete"]:
+            raise SystemExit(2)
+        return
     markets = ("spot", "um") if args.market == "both" else (args.market,)
     for market in markets:
         for symbol in SYMBOLS:
