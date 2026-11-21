@@ -62,11 +62,12 @@ This is a data-completeness issue, not a network-permission failure. Do not repe
 ## Execution and workflow constraints
 
 - Use the existing `.github/workflows/eth-btc-research.yml` where practical; do not create a second broad data workflow merely to avoid the current quality gate.
-- Keep the full-data workflow on-demand and retain `workflow_dispatch` as the manual fallback.
-- The repository's issue-comment dispatch bridge is **NOT ENABLED / NOT END-TO-END VERIFIED**. There is no dedicated control issue and the exact ChatGPT-connected comment identity has not been verified. Do not assume the bridge can trigger this task.
-- If a new on-demand workflow is genuinely necessary, follow `docs/CHATGPT-WORKFLOW-DISPATCH.md`: unique exact command, dedicated ordinary control issue, exact allowlisted login, non-PR check, full-command equality, and manual `workflow_dispatch` fallback. If those prerequisites are not verified, mark the indirect path **NOT ENABLED**.
-- Do not add unguarded `push` or recurring `schedule` triggers.
-- Do not expose credentials in source or logs.
+- Follow the repository-wide [Adaptive Autonomous Research Execution Standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md) and its [adaptive dispatch implementation guide](../docs/CHATGPT-WORKFLOW-DISPATCH.md).
+- The repository does not yet have a verified autonomous ChatGPT dispatch route. Treat this as an engineering bottleneck to resolve, not as a reason to stop at a human UI action. Inspect the current connected integration's actual capabilities. The observed GitHub connector exposes PR-conversation commenting but not a clearly supported ordinary-issue-comment action or direct workflow-dispatch POST; revalidate before implementation.
+- First test whether the connected PR-comment action can initiate a harmless event. If ordinary-issue commenting is unsupported but PR commenting works, evaluate a dedicated, exact-number control PR with a strict actor/command gate. GitHub's `issue_comment` event runs from the default branch; never checkout or execute the control PR head. If this is not secure or supported, pursue an authorized GitHub App/API relay, `repository_dispatch`, or another demonstrably viable autonomous route.
+- Keep execution on-demand, idempotent, observable and recoverable. Do not add unguarded `push` or recurring `schedule` triggers, broad permissions, or repeated identical failed dispatch attempts.
+- `workflow_dispatch` may remain as a human-owned break-glass recovery path where appropriate, but it is not the normal agent procedure and does not satisfy autonomous acceptance. Do not repeatedly route the human to the Actions UI; identify an owner-only permission/secret prerequisite only when no agent-executable alternative remains.
+- Never expose credentials in source or logs.
 - No live trading, capital deployment or automatic strategy promotion.
 
 ## Deliverables
