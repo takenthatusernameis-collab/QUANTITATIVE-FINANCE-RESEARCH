@@ -41,7 +41,7 @@ The added pipeline is `research/run_eth_btc.py`; dependencies are in `research/r
 
 ## Pre-dispatch metric/reporting audit
 
-The audit items identified for the full-data run have been implemented on the branch `agent/eth-btc-metric-audit-20261121`: Sortino downside deviation, initial-NAV drawdown, interval-aligned gross exposure, USDⓈ-M-only hypothetical funding stress, and explicit labeling of the 150-replication Sharpe bootstrap as exploratory. Six focused deterministic regression tests were added. CI verification is still pending; these changes must not be treated as validated until the test workflow passes. No market-data run or empirical conclusion has been produced.
+The audit items identified for the full-data run were implemented and merged in `305bf5c70a14d8a8167dbbd4a22ec95f775402f7`. GitHub Actions run `44929403565` (run 14) passed all 17 deterministic unit tests and the synthetic plumbing smoke test. This validates implementation plumbing only. No market-data run or empirical conclusion has been produced.
 
 
 ## Material limitations still open
