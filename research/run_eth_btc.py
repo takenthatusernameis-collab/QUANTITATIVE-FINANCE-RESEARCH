@@ -852,7 +852,7 @@ def walk_forward(df: pd.DataFrame, market: str, interval: str, out_dir: Path,
             pos_last = float(last["position"])
             we = pos_last / (1.0 + abs(beta_last))
             wb = -pos_last * beta_last / (1.0 + abs(beta_last))
-            for scenario, (re, rb, common_funding, assumption) in in stress_scenarios_for_market(market).items():
+            for scenario, (re, rb, common_funding, assumption) in stress_scenarios_for_market(market).items():
                 pnl = we * re + wb * rb - (we + wb) * common_funding
                 stress_rows.append({"market": market, "interval": interval, "variant": variant,
                                     "reference_timestamp": str(last["timestamp"]), "position": pos_last,
