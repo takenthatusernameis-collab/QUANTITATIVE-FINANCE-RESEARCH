@@ -1,6 +1,6 @@
 # Pending Research Task: Dispatch and Review the Full ETH/BTC Empirical Study
 
-**Status:** Metric corrections implemented; pending CI validation and owner-side Actions check  
+**Status:** Metric corrections merged and CI passed; pending owner-side Actions dispatch and empirical artifact review  
 **Priority:** High  
 **Type:** Network-enabled empirical replication and results review  
 **Scope:** Research/backtesting only. Do not deploy capital or place live orders.
@@ -30,11 +30,11 @@ Keep the research specification pre-registered: do not optimize thresholds after
 - Implemented Sortino downside RMS over all observations, initial-NAV drawdown, interval-aligned average gross exposure, and market-specific funding stress reporting.
 - Added six deterministic tests covering mixed/all-negative downside samples, Sortino integration, initial drawdown, exposure alignment, funding-stress gating/assumptions, and bootstrap labeling.
 - Kept the 150-replication Sharpe bootstrap but labeled the interval exploratory with limited quantile precision.
-- Code is on `agent/eth-btc-metric-audit-20261121`; CI validation and merge are pending. The full empirical run remains unverified and requires owner-side Actions dispatch.
+- PR #1 was merged as `305bf5c70a14d8a8167dbbd4a22ec95f775402f7`; CI run `44929403565` (run 14) passed all 17 deterministic tests and the synthetic plumbing smoke test. The full empirical run remains unverified and requires owner-side Actions dispatch.
 
 ## Required execution
 
-1. Review the metric/reporting audit above, validate the added focused tests in CI, and merge only after passing validation.
+1. Metric audit corrections are merged and CI passed; this step is complete. No additional code changes are required unless the later artifact review finds a new defect.
 2. Check GitHub Actions manually for a run of **ETH-BTC networked empirical research** created after commit `5fa0fa4f86a6f3cff4618a799fdd1d2325851dd1`. Because the current integration cannot enumerate all workflow runs, do not infer absence from an empty commit-associated workflow-run response. If a run ID is supplied or otherwise verified, inspect its status, every job/step, logs and artifacts.
 3. If no full-data run exists, do not modify the workflow merely to add an automatic push or scheduled trigger. The repository owner must open **Actions → ETH-BTC networked empirical research → Run workflow** and dispatch:
    - start: `2020-01-01`
