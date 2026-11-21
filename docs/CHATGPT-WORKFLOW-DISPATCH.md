@@ -4,6 +4,14 @@
 
 ## Decision
 
+**Dispatch priority for ChatGPT-initiated runs:**
+
+1. **Preferred: the dedicated, gated issue-comment bridge.** Once it has passed the end-to-end acceptance criteria below, ChatGPT should post the workflow's exact command to the dedicated ordinary control issue. The `issue_comment: created` event then starts the matching workflow. This is the preferred ChatGPT-to-GitHub Actions route and takes priority over asking the repository owner to click **Actions → Run workflow**.
+2. **Alternative: direct workflow-dispatch API, if the connected ChatGPT integration exposes it.** The GitHub REST endpoint `POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches` starts a workflow configured with `workflow_dispatch`; the caller needs repository **Actions: write** permission. The currently connected ChatGPT/GitHub toolset does not expose this POST action.
+3. **Fallback: manual `workflow_dispatch` from the GitHub Actions UI.** Keep this trigger and its validated inputs for owner-side recovery, and use it while the issue-comment bridge is not enabled, fails verification, or is unavailable. A manual UI dispatch is not an autonomous ChatGPT-triggered run.
+
+This priority defines the intended operating path; it does **not** mean the bridge is active today. Until all mandatory acceptance criteria pass, report the bridge as **NOT ENABLED / NOT END-TO-END VERIFIED** and use the manual fallback when execution is required.
+
 ## Repository-wide rule for newly created workflows
 
 The indirect activation pattern is a **repository-wide default for every newly created workflow that a ChatGPT-connected agent is expected to start on demand**—not just the ETH/BTC empirical workflow and not just workflows created after network-permission failures.
@@ -55,12 +63,11 @@ jobs:
 
 A trigger declaration alone is not a security gate. Validate all conditions at the job (or a mandatory first gate job that every privileged job depends on) so an unrelated issue comment cannot run the task.
 
-There are two ways to remove the owner-side **Actions → Run workflow** click:
+The **preferred ChatGPT-to-GitHub Actions route** is the dedicated issue-comment bridge described above. ChatGPT posts a new comment containing the workflow's exact, allowlisted command to the dedicated ordinary control issue. If the connected account has **Issues: write** permission and can comment on ordinary issues, GitHub emits `issue_comment` with activity type `created`; the workflow's strict job-level gate then starts the task. This is a separate event trigger, not a call to the `workflow_dispatch` API.
 
-1. **Preferred when available: direct workflow dispatch.** The GitHub REST endpoint `POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches` starts a workflow configured with `workflow_dispatch`. The caller needs repository **Actions: write** permission. The currently connected ChatGPT/GitHub toolset can inspect and comment on repository threads, but it does not expose this workflow-dispatch POST action.
-2. **Available indirect bridge: a dedicated issue-comment command.** ChatGPT can post a comment to a dedicated control issue through the GitHub issue-comment API (provided the connection has **Issues: write** permission and the action supports ordinary issues). GitHub emits `issue_comment` with activity type `created`; a workflow that subscribes to that event can run the research job. This does not call the `workflow_dispatch` API; it uses a separate event trigger.
+A direct workflow-dispatch API call is an alternative ChatGPT automation route only if the connected integration exposes the required POST operation and **Actions: write** permission. The current connected ChatGPT/GitHub toolset does not expose that action.
 
-GitHub documents `issue_comment` as an event for newly created comments on issues and pull requests. The workflow file must already exist on the repository's default branch. The current repository's empirical workflow is `workflow_dispatch`-only, so the bridge is **not active yet**. Do not describe the manual step as removed until the bridge has been implemented and an end-to-end test run has been observed.
+The manual **Actions → Run workflow** UI remains the owner-side recovery path. Preserve the `workflow_dispatch` trigger and its validated inputs in each applicable workflow, but do not describe manual UI dispatch as the preferred ChatGPT path. GitHub documents `issue_comment` as an event for newly created comments on issues and pull requests; the workflow file must already exist on the repository's default branch. The current repository's empirical workflow is `workflow_dispatch`-only, so the bridge is **not active yet**. Do not claim autonomous dispatch until the bridge has been implemented and an end-to-end test run has been observed.
 
 ## Network-permission escalation: use Actions after repeated denials
 
@@ -69,7 +76,7 @@ This repository should not spend repeated agent turns retrying an operation that
 - For an ordinary transient timeout or rate limit, use a bounded retry/backoff and inspect whether the failure is transient.
 - If the same explicit network-permission denial occurs on **two independent attempts**, stop retrying that same blocked operation and move the network-dependent step to a GitHub Actions hosted runner with the required network access.
 - Reuse the existing `.github/workflows/eth-btc-research.yml` for the pre-registered ETH/BTC empirical run. For a different task, use or create a narrowly scoped workflow that checks out the required revision, installs pinned dependencies, performs the actual network-dependent operation, emits diagnostic logs, and uploads useful results/manifests as artifacts.
-- Do not create an empty workflow, add a broad push trigger, or schedule repeated full-data jobs as a workaround. Use the direct `workflow_dispatch` API when the connected agent has Actions: write; otherwise use the maintainer-only issue-comment bridge in this document once it has been configured and end-to-end tested. Until then, state the manual dispatch step precisely.
+- Do not create an empty workflow, add a broad push trigger, or schedule repeated full-data jobs as a workaround. For ChatGPT-initiated execution, use the configured and end-to-end verified issue-comment bridge first. A direct `workflow_dispatch` API call is an alternative only when the connected agent actually exposes it with Actions: write permission. Keep the manual Actions UI `workflow_dispatch` path as the owner-side fallback. Until the bridge passes acceptance, state that it is **NOT ENABLED** and give the precise manual dispatch step.
 - Record the blocked operation, exact permission error, attempt count, workflow path, run ID, commit SHA, and resulting logs/artifacts. A successful trigger or successful synthetic test is not proof that the required empirical/network operation succeeded.
 - Keep credentials in GitHub Actions secrets and avoid printing them. If the hosted runner also receives a network denial, inspect and report that actual failure; do not loop indefinitely or infer a research result.
 
