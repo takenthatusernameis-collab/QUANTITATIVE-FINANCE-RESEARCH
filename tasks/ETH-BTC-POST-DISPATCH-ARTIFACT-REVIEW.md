@@ -17,6 +17,10 @@ The available GitHub integration can enumerate and inspect workflow runs but has
 
 Do not add push or scheduled triggers to bypass this manual gate. Do not treat synthetic test output as empirical evidence.
 
+## Network and execution-environment fallback
+
+If the agent's own network access is denied while obtaining research inputs or inspecting a required external source, distinguish explicit permission denial from transient timeouts. After two independent explicit network-permission denials, stop repeating the blocked request and use a suitably scoped GitHub Actions runner for the network-dependent work where feasible. Record the exact error, attempt count, workflow run ID, commit SHA, logs and artifacts. Keep secrets out of code and logs. The issue-comment dispatch bridge is not usable until its dedicated control issue, approved identity and trigger have been configured and tested; otherwise use the exact manual dispatch fallback in this task. If the Actions runner is also blocked, report that environment blocker and keep the conclusion **INCONCLUSIVE**.
+
 ## Required work
 
 1. Enumerate current Actions runs and identify a run whose workflow path is `.github/workflows/eth-btc-research.yml`. If none exists, report the exact owner-side dispatch step above and stop; do not invent a run ID or claim that data was tested.
