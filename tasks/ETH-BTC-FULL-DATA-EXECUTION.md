@@ -1,6 +1,6 @@
 # Pending Research Task: Complete ETH/BTC Mean-Reversion Study with Verified Data
 
-**Status:** Ready for execution  
+**Status:** Attempted — BLOCKED (2026-11-21; data access unavailable in this runtime)  
 **Priority:** High  
 **Type:** Empirical replication and completion  
 **Scope:** Research and backtesting only; do not deploy capital or place live orders.
@@ -31,3 +31,11 @@ Complete the ETH/BTC market-neutral mean-reversion study left INCONCLUSIVE in `r
 ## Acceptance criteria
 
 The task is complete only when the empirical results are reproducible, all performance is genuinely out of sample and net of stated costs, the raw-data provenance is verifiable, and the conclusion is supported by diagnostics and sensitivity tests. No live orders or capital deployment are permitted.
+
+
+## Execution attempt — 2026-11-21
+
+- The current execution container could not resolve `data.binance.vision` (DNS error from `curl`); the web reader also could not access the binary monthly archive. No historical price or funding data were obtained, and no empirical results were calculated.
+- The data-source documentation was verified: Binance Public Data provides monthly/daily archives and SHA-256 `.CHECKSUM` sidecars. This confirms the intended source exists, but not access from this runtime.
+- A network-enabled manual GitHub Actions workflow was added at `.github/workflows/eth-btc-research.yml` (commit `4bd671138084681caefc85c9e4e7568a34ccbb8d`). It runs the synthetic smoke test, then the full requested study, and uploads reports/manifests while excluding raw market-data CSVs.
+- The workflow has not been dispatched, so the task remains incomplete. Static code-review concerns are recorded in the follow-up audit report/task.
