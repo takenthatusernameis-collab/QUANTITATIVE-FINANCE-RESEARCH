@@ -31,6 +31,7 @@ Keep the research specification pre-registered: do not optimize thresholds after
 - Added six deterministic tests covering mixed/all-negative downside samples, Sortino integration, initial drawdown, exposure alignment, funding-stress gating/assumptions, and bootstrap labeling.
 - Kept the 150-replication Sharpe bootstrap but labeled the interval exploratory with limited quantile precision.
 - PR #1 was merged as `305bf5c70a14d8a8167dbbd4a22ec95f775402f7`; CI run `44929403565` (run 14) passed all 17 deterministic tests and the synthetic plumbing smoke test. The full empirical run remains unverified and requires owner-side Actions dispatch.
+- Earlier CI attempts caught a docstring syntax error and a test-fixture index-alignment issue; both were corrected before the successful run.
 
 ## Required execution
 
