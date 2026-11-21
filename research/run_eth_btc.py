@@ -35,6 +35,7 @@ COLUMNS = [
     "quote_volume", "trade_count", "taker_buy_base", "taker_buy_quote", "ignore",
 ]
 SYMBOLS = ("ETHUSDT", "BTCUSDT")
+BOOTSTRAP_REPS = 150  # Exploratory CI; quantile precision is limited at this count.
 
 
 def month_starts(start: str, end: str) -> Iterable[pd.Timestamp]:
@@ -502,11 +503,13 @@ def backtest(df: pd.DataFrame, position: pd.Series, beta: pd.Series,
         "position": position,
         "w_eth": w_eth,
         "w_btc": w_btc,
+        "held_w_eth": prev_eth,
+        "held_w_btc": prev_btc,
     }, index=df.index)
 
 
-def block_bootstrap_sharpe_ci(r: pd.Series, periods_per_year: int, reps: int = 150) -> tuple[float, float]:
-    """Approximate 95% CI using a moving-block bootstrap (7-day blocks)."""
+def block_bootstrap_sharpe_ci(r: pd.Series, periods_per_year: int, reps: int = BOOTSTRAP_REPS) -> tuple[float, float]:
+    """Exploratory percentile 95% CI; 150 replications have limited quantile precision.""""
     values = r.dropna().to_numpy(dtype=float)
     if len(values) < 100:
         return np.nan, np.nan
@@ -527,19 +530,34 @@ def block_bootstrap_sharpe_ci(r: pd.Series, periods_per_year: int, reps: int = 1
     return tuple(np.quantile(estimates, [0.025, 0.975]).astype(float))
 
 
+def downside_deviation(returns: pd.Series, minimum_acceptable_return: float = 0.0) -> float:
+    """Root-mean-square downside relative to the MAR, using all observations."""
+    values = returns.dropna().to_numpy(dtype=float)
+    if len(values) == 0:
+        return np.nan
+    downside = np.minimum(values - minimum_acceptable_return, 0.0)
+    return float(np.sqrt(np.mean(np.square(downside))))
+
+
+
 def metrics(bt: pd.DataFrame, periods_per_year: int) -> dict:
     r = bt["net_return"].replace([np.inf, -np.inf], np.nan).dropna()
     if len(r) < 2:
-        return {k: np.nan for k in ("CAGR", "volatility", "Sharpe", "Sortino", "max_drawdown", "Calmar", "turnover_per_year", "avg_gross_exposure", "time_in_market", "trade_count", "win_rate", "profit_factor", "avg_holding_period", "tail_1pct")}
+        empty = {k: np.nan for k in ("CAGR", "volatility", "Sharpe", "Sortino", "max_drawdown", "Calmar", "turnover_per_year", "avg_gross_exposure", "time_in_market", "trade_count", "win_rate", "profit_factor", "avg_holding_period", "tail_1pct")}
+        empty["Sharpe_CI_replications"] = BOOTSTRAP_REPS
+        empty["Sharpe_CI_interpretation"] = "exploratory; limited percentile precision"
+        return empty
     equity = (1.0 + r).cumprod()
     years = len(r) / periods_per_year
     cagr = float(equity.iloc[-1] ** (1.0 / years) - 1.0) if equity.iloc[-1] > 0 and years > 0 else np.nan
     vol = float(r.std(ddof=1) * math.sqrt(periods_per_year))
     sharpe = float(r.mean() / r.std(ddof=1) * math.sqrt(periods_per_year)) if r.std(ddof=1) > 0 else np.nan
     sharpe_ci_low, sharpe_ci_high = block_bootstrap_sharpe_ci(r, periods_per_year)
-    downside = r[r < 0].std(ddof=1)
+    downside = downside_deviation(r, minimum_acceptable_return=0.0)
     sortino = float(r.mean() / downside * math.sqrt(periods_per_year)) if pd.notna(downside) and downside > 0 else np.nan
-    dd = equity / equity.cummax() - 1.0
+    equity_with_initial = np.concatenate(([1.0], equity.to_numpy(dtype=float)))
+    running_peak = np.maximum.accumulate(equity_with_initial)
+    dd = equity_with_initial / running_peak - 1.0
     mdd = float(dd.min())
     executed_position = bt.loc[r.index, "position"].fillna(0.0)
     held = executed_position.shift(1).fillna(0.0)
@@ -559,11 +577,13 @@ def metrics(bt: pd.DataFrame, periods_per_year: int) -> dict:
         "Sharpe": sharpe,
         "Sharpe_CI_low": sharpe_ci_low,
         "Sharpe_CI_high": sharpe_ci_high,
+        "Sharpe_CI_replications": BOOTSTRAP_REPS,
+        "Sharpe_CI_interpretation": "exploratory; limited percentile precision",
         "Sortino": sortino,
         "max_drawdown": mdd,
         "Calmar": cagr / abs(mdd) if mdd < 0 and pd.notna(cagr) else np.nan,
         "turnover_per_year": float(bt.loc[r.index, "turnover"].sum() / years),
-        "avg_gross_exposure": float((bt.loc[r.index, "w_eth"].abs() + bt.loc[r.index, "w_btc"].abs()).mean()),
+        "avg_gross_exposure": float((bt.loc[r.index, "held_w_eth"].abs() + bt.loc[r.index, "held_w_btc"].abs()).mean()),
         "time_in_market": float(active.mean()),
         "trade_count": int(len(trade_returns)),
         "win_rate": float((trade_returns > 0).mean()) if len(trade_returns) else np.nan,
@@ -711,6 +731,24 @@ def benchmark_backtest(df: pd.DataFrame, sample_index: pd.DatetimeIndex,
     return pd.DataFrame(rows, index=sample_index)
 
 
+def stress_scenarios_for_market(market: str) -> dict[str, tuple[float, float, float, str]]:
+    """Return price shocks for both markets and a funding shock only for USDⓈ-M."""
+    scenarios = {
+        "ETH -20%, BTC -10%": (-0.20, -0.10, 0.0, "Illustrative instantaneous price shock; not a forecast."),
+        "ETH -35%, BTC -15%": (-0.35, -0.15, 0.0, "Illustrative instantaneous price shock; not a forecast."),
+        "ETH +20%, BTC -10%": (0.20, -0.10, 0.0, "Illustrative instantaneous price shock; not a forecast."),
+        "ETH -10%, BTC +10%": (-0.10, 0.10, 0.0, "Illustrative instantaneous price shock; not a forecast."),
+        "ETH -5%, BTC -5%": (-0.05, -0.05, 0.0, "Illustrative instantaneous price shock; not a forecast."),
+    }
+    if market == "um":
+        scenarios["UM funding: +10bp per leg for 3 settlements"] = (
+            0.0, 0.0, 3 * 0.001,
+            "Assumes +0.10% (10 bp) funding per settlement on both ETHUSDT and BTCUSDT USDⓈ-M legs for three events (0.30% per leg total); rates are hypothetical, not observed.",
+        )
+    return scenarios
+
+
+
 def walk_forward(df: pd.DataFrame, market: str, interval: str, out_dir: Path,
                  fee_bps: float, slippage_bps: float, spread_bps: float,
                  funding_eth: pd.Series | None = None, funding_btc: pd.Series | None = None,
@@ -814,20 +852,12 @@ def walk_forward(df: pd.DataFrame, market: str, interval: str, out_dir: Path,
             pos_last = float(last["position"])
             we = pos_last / (1.0 + abs(beta_last))
             wb = -pos_last * beta_last / (1.0 + abs(beta_last))
-            scenarios = {
-                "ETH -20%, BTC -10%": (-0.20, -0.10, 0.0),
-                "ETH -35%, BTC -15%": (-0.35, -0.15, 0.0),
-                "ETH +20%, BTC -10%": (0.20, -0.10, 0.0),
-                "ETH -10%, BTC +10%": (-0.10, 0.10, 0.0),
-                "ETH -5%, BTC -5%": (-0.05, -0.05, 0.0),
-                "three funding events at +10bp each": (0.0, 0.0, 3 * 0.001),
-            }
-            for scenario, (re, rb, common_funding) in scenarios.items():
+            for scenario, (re, rb, common_funding, assumption) in in stress_scenarios_for_market(market).items():
                 pnl = we * re + wb * rb - (we + wb) * common_funding
                 stress_rows.append({"market": market, "interval": interval, "variant": variant,
                                     "reference_timestamp": str(last["timestamp"]), "position": pos_last,
                                     "beta": beta_last, "scenario": scenario, "one_shot_pnl_on_nav": pnl,
-                                    "assumption": "Illustrative instantaneous shock; not a forecast"})
+                                    "assumption": assumption})
         if stress_rows:
             pd.DataFrame(stress_rows).to_csv(out_dir / f"{market}_{interval}_stress_scenarios.csv", index=False)
 
