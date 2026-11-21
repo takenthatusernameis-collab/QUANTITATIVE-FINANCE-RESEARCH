@@ -323,11 +323,14 @@ def metrics(bt: pd.DataFrame, periods_per_year: int) -> dict:
     sortino = float(r.mean() / downside * math.sqrt(periods_per_year)) if pd.notna(downside) and downside > 0 else np.nan
     dd = equity / equity.cummax() - 1.0
     mdd = float(dd.min())
-    held = bt.loc[r.index, "position"].shift(1).fillna(0.0)
-    entries = (held.ne(0) & held.shift(1).fillna(0).eq(0))
+    executed_position = bt.loc[r.index, "position"].fillna(0.0)
+    held = executed_position.shift(1).fillna(0.0)
+    entries = executed_position.ne(0) & held.eq(0)
     trade_id = entries.cumsum()
     active = held.ne(0)
-    trade_returns = (1.0 + r[active]).groupby(trade_id[active]).prod() - 1.0
+    # Include the entry-cost bar and exit-cost bar in each trade's net PnL.
+    trade_active = executed_position.ne(0) | held.ne(0)
+    trade_returns = (1.0 + r[trade_active]).groupby(trade_id[trade_active]).prod() - 1.0
     wins = trade_returns[trade_returns > 0]
     losses = trade_returns[trade_returns < 0]
     pf = float(wins.sum() / abs(losses.sum())) if len(losses) and losses.sum() != 0 else (np.inf if len(wins) else np.nan)
@@ -654,6 +657,7 @@ def main() -> None:
         "hourly_lookback_bars": 720, "daily_lookback_bars": 30,
         "train_days": 730, "test_days": 90, "max_hold_days": 7,
         "annualization": {"1h": 8760, "1d": 365},
+        "risk_free_rate_annual": 0.0,
         "note": "Default trading costs are scenario assumptions; verify actual account fees and borrow costs.",
     }
     args.output_dir.mkdir(parents=True, exist_ok=True)
