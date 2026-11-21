@@ -4,6 +4,57 @@
 
 ## Decision
 
+## Repository-wide rule for newly created workflows
+
+The indirect activation pattern is a **repository-wide default for every newly created workflow that a ChatGPT-connected agent is expected to start on demand**—not just the ETH/BTC empirical workflow and not just workflows created after network-permission failures.
+
+This includes workflows created for network access, dependency/runtime limitations, data collection, diagnostics, validation, report generation, artifact processing, or other explicitly delegated tasks.
+
+For each such workflow:
+
+1. Keep `workflow_dispatch` with well-defined inputs as the owner/manual fallback.
+2. Also subscribe to `issue_comment` with activity type `created`, unless a direct ChatGPT-to-GitHub workflow-dispatch action with the necessary Actions: write permission has been verified end-to-end. Even when direct dispatch is available, retaining the issue-comment route is a useful fallback where practical.
+3. Assign that workflow one unique, documented command (for example, `/run-network-diagnostic` or `/run-data-validation`). Do not reuse one command across workflows.
+4. Route commands through the repository's dedicated ordinary control issue. Use the same control issue and exact approved account, but give each workflow its own command and strict job-level gate.
+5. Make the job run only for either the explicit `workflow_dispatch` event or an `issue_comment: created` event matching **all** of: the exact control issue number, non-PR issue, exact allowlisted author login, and the entire exact command body.
+6. Give issue-comment invocations fixed, reviewed defaults or strictly allowlisted parameter profiles. Never turn arbitrary comment text into shell input or workflow code.
+7. Record the workflow path, command, purpose, required permissions, expected artifacts, and manual fallback in the workflow file's comments or its task/documentation entry.
+
+This requirement applies to **on-demand agent-executed workflows**. Ordinary CI workflows that are intentionally started by `push`, `pull_request`, or other native events do not need an issue-comment command unless ChatGPT must also be able to start them independently. Do not add issue-comment triggers indiscriminately to every CI workflow.
+
+Do not leave a newly created agent-invoked workflow manual-only merely because it was created for a one-off network or environment workaround. Implement its gated indirect trigger in the same change whenever feasible. If activation cannot be completed (for example, the control issue or approved account identity is not yet verified), document the exact missing prerequisite, keep the workflow's manual fallback, and mark indirect activation **NOT ENABLED**—never imply it is callable by ChatGPT yet.
+
+### Reusable workflow trigger shape
+
+A new agent-invoked workflow should generally have both event declarations:
+
+```yaml
+on:
+  workflow_dispatch:
+    # Declare typed, validated manual inputs for maintainers.
+  issue_comment:
+    types: [created]
+```
+
+Its job-level condition must use that workflow's own unique command. Adapt this illustrative gate with the actual control issue number, approved login, and unique command before enabling it:
+
+```yaml
+jobs:
+  task:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.action == 'created' &&
+        github.event.issue.number == <CONTROL_ISSUE_NUMBER> &&
+        github.event.issue.pull_request == null &&
+        github.event.comment.user.login == '<APPROVED_GITHUB_LOGIN>' &&
+        github.event.comment.body == '/run-unique-workflow-command'
+      )
+```
+
+A trigger declaration alone is not a security gate. Validate all conditions at the job (or a mandatory first gate job that every privileged job depends on) so an unrelated issue comment cannot run the task.
+
 There are two ways to remove the owner-side **Actions → Run workflow** click:
 
 1. **Preferred when available: direct workflow dispatch.** The GitHub REST endpoint `POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches` starts a workflow configured with `workflow_dispatch`. The caller needs repository **Actions: write** permission. The currently connected ChatGPT/GitHub toolset can inspect and comment on repository threads, but it does not expose this workflow-dispatch POST action.
