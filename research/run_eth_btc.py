@@ -239,8 +239,17 @@ def funding_quality(timestamps: pd.DatetimeIndex, start_ts: pd.Timestamp,
     gaps = unique.to_series().diff().dropna()
     median_gap = gaps.median() if len(gaps) else pd.NaT
     max_gap = gaps.max() if len(gaps) else pd.NaT
-    max_allowed = max(pd.Timedelta(hours=24),
-                      median_gap * 3 if pd.notna(median_gap) else pd.Timedelta(hours=24))
+    # Do not let a missing-event outlier inflate the estimated normal cadence.
+    # Binance funding intervals can vary, but a >24h gap is already a material
+    # coverage warning unless shorter observed intervals establish a wider
+    # legitimate cadence. Estimate cadence only from intervals <=24h.
+    normal_gaps = gaps[gaps <= pd.Timedelta(hours=24)]
+    cadence_reference_gap = normal_gaps.median() if len(normal_gaps) else pd.NaT
+    max_allowed = (
+        max(pd.Timedelta(hours=24), cadence_reference_gap * 3)
+        if pd.notna(cadence_reference_gap)
+        else pd.Timedelta(hours=24)
+    )
     start_ok = bool(len(unique) and unique.min() <= start_ts + pd.Timedelta(hours=24))
     end_ok = bool(len(unique) and unique.max() >= end_exclusive - pd.Timedelta(hours=24))
     max_gap_ok = bool(pd.isna(max_gap) or max_gap <= max_allowed)
@@ -250,6 +259,7 @@ def funding_quality(timestamps: pd.DatetimeIndex, start_ts: pd.Timestamp,
         "start": str(unique.min()) if len(unique) else None,
         "end": str(unique.max()) if len(unique) else None,
         "median_event_gap_hours": float(median_gap.total_seconds() / 3600) if pd.notna(median_gap) else None,
+        "cadence_reference_gap_hours": float(cadence_reference_gap.total_seconds() / 3600) if pd.notna(cadence_reference_gap) else None,
         "max_event_gap_hours": float(max_gap.total_seconds() / 3600) if pd.notna(max_gap) else None,
         "max_allowed_gap_hours": float(max_allowed.total_seconds() / 3600),
         "start_coverage_ok": start_ok,
