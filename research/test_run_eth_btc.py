@@ -41,6 +41,21 @@ class ResearchPipelineTests(unittest.TestCase):
             "btc_close": [100.0, 100.0, 100.0, 100.0],
         }, index=self.index)
 
+
+    def metric_frame(self, returns, positions=None, w_eth=None, w_btc=None):
+        n = len(returns)
+        index = pd.date_range("2024-01-01", periods=n, freq="h", tz="UTC")
+        positions = np.zeros(n) if positions is None else np.asarray(positions, dtype=float)
+        w_eth = positions / 2.0 if w_eth is None else np.asarray(w_eth, dtype=float)
+        w_btc = -positions / 2.0 if w_btc is None else np.asarray(w_btc, dtype=float)
+        held_eth = pd.Series(w_eth, index=index).shift(1).fillna(0.0)
+        held_btc = pd.Series(w_btc, index=index).shift(1).fillna(0.0)
+        return pd.DataFrame({
+            "net_return": returns, "position": positions, "turnover": np.zeros(n),
+            "w_eth": w_eth, "w_btc": w_btc,
+            "held_w_eth": held_eth, "held_w_btc": held_btc,
+        }, index=index)
+
     def test_bounded_retry_recovers_from_transient_503(self):
         session = FakeSession([response(503), response(200)])
         with patch.object(research.time, "sleep"):
@@ -157,6 +172,46 @@ class ResearchPipelineTests(unittest.TestCase):
             self.assertAlmostEqual(result["half_life_exact_ar1_bars"], expected)
             self.assertTrue(result["half_life_exact_valid"])
         self.assertEqual(result["diagnostic_scope"], "shared_static_ols_relationship")
+
+
+    def test_sortino_downside_deviation_uses_all_observations_mixed(self):
+        returns = pd.Series([0.10, -0.10, -0.10])
+        expected = np.sqrt((0.0 + 0.01 + 0.01) / 3.0)
+        self.assertAlmostEqual(research.downside_deviation(returns), expected)
+        bt = self.metric_frame(returns)
+        result = research.metrics(bt, 1)
+        self.assertAlmostEqual(result["Sortino"], returns.mean() / expected)
+
+    def test_sortino_downside_deviation_all_negative(self):
+        returns = pd.Series([-0.10, -0.20])
+        expected = np.sqrt((0.01 + 0.04) / 2.0)
+        self.assertAlmostEqual(research.downside_deviation(returns), expected)
+
+    def test_max_drawdown_includes_initial_nav(self):
+        result = research.metrics(self.metric_frame([-0.10, 0.05]), 1)
+        self.assertAlmostEqual(result["max_drawdown"], -0.10)
+
+    def test_average_gross_exposure_aligns_with_returns(self):
+        bt = self.metric_frame(
+            [0.0, 0.0, 0.0], positions=[1.0, 1.0, 2.0],
+            w_eth=[0.5, 0.5, 1.0], w_btc=[-0.5, -0.5, -1.0],
+        )
+        result = research.metrics(bt, 1)
+        self.assertAlmostEqual(result["avg_gross_exposure"], 2.0 / 3.0)
+
+    def test_funding_stress_is_um_only_and_rates_are_explicit(self):
+        spot = research.stress_scenarios_for_market("spot")
+        um = research.stress_scenarios_for_market("um")
+        self.assertFalse(any("funding" in name.lower() for name in spot))
+        funding_name = "UM funding: +10bp per leg for 3 settlements"
+        self.assertIn(funding_name, um)
+        self.assertIn("hypothetical, not observed", um[funding_name][3])
+        self.assertAlmostEqual(um[funding_name][2], 0.003)
+
+    def test_sharpe_interval_is_explicitly_exploratory_at_150_reps(self):
+        result = research.metrics(self.metric_frame([0.01, -0.01, 0.0]), 1)
+        self.assertEqual(result["Sharpe_CI_replications"], 150)
+        self.assertIn("exploratory", result["Sharpe_CI_interpretation"])
 
 
 if __name__ == "__main__":
