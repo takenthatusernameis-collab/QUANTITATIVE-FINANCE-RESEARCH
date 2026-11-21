@@ -1,6 +1,6 @@
 # Pending Research Task: Audit, Harden, and Execute ETH/BTC Mean-Reversion Study
 
-**Status:** Blocked — audit reviewed; manual GitHub Actions dispatch required  
+**Status:** Code audit and CI validation complete; full empirical execution awaiting manual GitHub Actions dispatch  
 **Priority:** High  
 **Type:** Pipeline correction + network-enabled empirical replication  
 **Scope:** Research only. Do not deploy capital, place live orders, or commit raw market-data CSVs.
@@ -51,3 +51,13 @@ Task is complete only when code/test corrections are documented, the full empiri
 - The current GitHub connector exposes repository/file and commit operations but no workflow-dispatch action. The web interface/API for Actions runs is inaccessible through the current research tools, so I could not launch or verify the workflow run or retrieve its artifacts.
 - Static review reconfirmed unresolved audit items: missing funding files and missing funding timestamps are silently treated as zero; monthly archives may be skipped without a completeness failure; downloads have no bounded retry/backoff; shared diagnostics are repeated under strategy labels; and the 50/50 benchmark is implicitly rebalanced each bar without charging rebalancing turnover. These must be corrected or explicitly modeled before interpreting results.
 - **No empirical market-data results were produced.** This is a tooling/dispatch blocker, not a strategy result. The next actionable step is to manually dispatch the workflow from GitHub Actions after the code-audit corrections, then inspect logs and artifacts.
+
+
+## Follow-up execution update — 2026-11-21
+
+- Reviewed the latest CI run. The first run exposed one genuine defect in `funding_quality`: a 32-hour funding gap was allowed because the missing-event outlier inflated the median cadence estimate (8h and 32h gaps produced a 20h median and a 60h threshold).
+- Corrected the cadence estimator to use observed intervals no longer than 24 hours as its reference, preventing long gaps from inflating the threshold. The manifest now records `cadence_reference_gap_hours`.
+- Commit: `5fa0fa4f86a6f3cff4618a799fdd1d2325851dd1`.
+- Verification: GitHub Actions run [44906070305](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44906070305) completed successfully on 2026-11-21. All 11 deterministic unit tests passed, followed by the synthetic plumbing smoke test. This verifies code/test plumbing only; it is not empirical market evidence.
+- The previously identified code-audit items are now represented in the implementation: explicit buy-and-hold versus rebalanced benchmark accounting and turnover; exact discrete AR(1) half-life alongside the OU approximation; strict missing/duplicate funding validation and event alignment; per-symbol archive quality, missing-month failure and checksum manifests; explicitly shared static relationship diagnostics; and bounded transient-request retries.
+- The full-data workflow remains manual-only. The available GitHub integration can inspect workflow runs and logs but cannot invoke `workflow_dispatch`. No empirical ETH/BTC results have been generated. The next task is to dispatch the existing workflow manually and review its artifacts.
