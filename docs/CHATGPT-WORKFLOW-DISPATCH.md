@@ -153,3 +153,36 @@ The `workflow_dispatch` event may remain available as a human-owned break-glass 
 - [Create a workflow dispatch event: Actions write permission](https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event)
 - [Create a repository dispatch event: Contents write permission](https://docs.github.com/en/rest/repos/repos#create-a-repository-dispatch-event)
 - [GITHUB_TOKEN event suppression and dispatch exceptions](https://docs.github.com/en/actions/concepts/security/github_token)
+
+
+## Verified repository-specific dispatch route — 2026-11-21
+
+**Status: the PR-comment route is now end-to-end verified for a harmless smoke command.** The connected GitHub integration's authenticated login was read directly as `takenthatusernameis-collab`. A dedicated draft control PR is open at [PR #2](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/pull/2). Do not merge or close this PR; it is the stable control surface.
+
+The default-branch workflow `.github/workflows/eth-btc-research.yml` now accepts `issue_comment: created` and authorizes only when all conditions match:
+
+- PR number is exactly `2`, the comment target is a pull request, and the PR state is open;
+- authenticated comment author is exactly `takenthatusernameis-collab`;
+- comment body equals the entire allowlisted command, with no extra text:
+  - `/qfr-control-smoke` — harmless smoke test;
+  - `/qfr-run-eth-btc-data-audit` — audit all four price series and both funding histories, and reconcile missing ETH Spot hours against Binance REST and daily archives.
+
+The workflow uses repository-level `contents: read` permissions only. The issue-comment event executes the workflow from `main`; the research job explicitly checks out `github.event.repository.default_branch`. It never checks out, imports, executes, or trusts the control PR head or its contents. No `pull_request_target` trigger is used. The smoke job performs no checkout and no data access.
+
+### Verification evidence
+
+- Control PR: [#2](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/pull/2), created as a draft and left open.
+- Smoke comment ID: `7071125644`.
+- Smoke workflow run: [44963633770](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44963633770), run number 3, event `issue_comment`, actor `takenthatusernameis-collab`, ref `main`, commit `96b93aeba313d9a083bb031a949955cb8e606509`, conclusion **success**.
+- The authorization logs confirm exact target PR #2, open PR state, exact actor, `issue_comment` created event, and whole-body command equality. The audit job was skipped for the smoke command as intended.
+- Audit comment ID: `7071128780`. The corresponding data-audit workflow run is [44963655383](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44963655383). At the time of this documentation update, authorization, checkout of `main`, dependency installation and the synthetic smoke test have passed; the real data audit is still running. Its result must be recorded before claiming the underlying research task complete.
+
+### Operating procedure
+
+1. Confirm the control PR remains open and the workflow file on `main` still contains the expected PR number and verified actor.
+2. Confirm no conflicting full-data/audit run is queued or in progress (workflow concurrency group serializes this workflow).
+3. Use the connected PR-comment action to post one exact command to PR #2.
+4. Verify the new run's event, actor, `main` ref, SHA, authorization job outputs/logs, research job logs, and uploaded artifact.
+5. Never treat a successful trigger or smoke test as a successful data audit or empirical finding. Keep the research status **INCONCLUSIVE** until all input manifests and reconciliation evidence pass the declared acceptance rules.
+
+The manual `workflow_dispatch` route remains a break-glass owner control. The comment route's `/qfr-run-eth-btc-data-audit` command always invokes `--audit-only --reconcile-spot-gaps`; it cannot launch a strategy backtest. Full empirical execution remains a separate manual owner action and is still gated by data completeness.
