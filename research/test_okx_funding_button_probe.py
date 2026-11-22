@@ -1,12 +1,56 @@
 from pathlib import Path
 import unittest
 
+from okx_funding_button_probe import collect_visible_option_texts
+
+
+class FakeItem:
+    def __init__(self, text, visible=True):
+        self.text = text
+        self.visible = visible
+
+    def is_visible(self):
+        return self.visible
+
+    def inner_text(self, timeout=1000):
+        return self.text
+
+
+class FakeLocator:
+    def __init__(self, items):
+        self.items = items
+
+    def count(self):
+        return len(self.items)
+
+    def nth(self, index):
+        return self.items[index]
+
+
+class FakeModal:
+    def __init__(self, selectors):
+        self.selectors = selectors
+
+    def locator(self, selector):
+        return FakeLocator(self.selectors.get(selector, []))
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "research" / "okx_funding_button_probe.py"
 
 
 class OKXFundingButtonProbeTests(unittest.TestCase):
+    def test_option_text_collection_filters_hidden_and_deduplicates(self):
+        modal = FakeModal({
+            "[role=option]": [FakeItem("ETHUSDT")],
+            "li": [FakeItem("hidden", visible=False), FakeItem("BTCUSDT"), FakeItem("ETHUSDT")],
+            "[class*=option]": [FakeItem("ETHUSDT"), FakeItem("Select All")],
+            "[class*=Option]": [FakeItem("All")],
+        })
+        result = collect_visible_option_texts(modal)
+        self.assertEqual(result["unique_option_texts"], ["ETHUSDT", "BTCUSDT", "Select All", "All"])
+        self.assertEqual(result["selector_counts"]["li"], 3)
+
     def test_probe_script_compiles(self):
         source = SCRIPT.read_text(encoding="utf-8")
         compile(source, str(SCRIPT), "exec")
@@ -40,8 +84,11 @@ class OKXFundingButtonProbeTests(unittest.TestCase):
         self.assertIn("--inspect-symbol-options", source)
         self.assertIn('get_by_text("Select", exact=True)', source)
         self.assertIn("symbol_select.first.click(timeout=5000)", source)
+        self.assertIn("collect_visible_option_texts(modal)", source)
         self.assertIn("symbol_options_opened_inspected_no_selection", source)
-        self.assertNotIn("symbol_select.first.select_option", source)
+        self.assertNotIn('[class*="option" i]', source)
+        self.assertNotIn("symbol_options = page.evaluate", source)
+        self.assertNotIn("select_option", source)
 
     def test_probe_never_accepts_cookies_or_submits_forms(self):
         source = SCRIPT.read_text(encoding="utf-8")
