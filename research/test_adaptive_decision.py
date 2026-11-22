@@ -86,11 +86,13 @@ class AdaptiveDecisionTests(unittest.TestCase):
         ranked = rank_provider_options([
             self.provider("kraken"),
             self.provider("coinbase_exchange"),
-            self.provider("binance_official_recovery"),
+            self.provider("bitget"),
+            self.provider("mexc"),
+            self.provider("okx"),
         ])
         self.assertEqual(
             [item.provider for item in ranked],
-            ["binance_official_recovery", "coinbase_exchange", "kraken"],
+            ["mexc", "bitget", "coinbase_exchange", "kraken", "okx"],
         )
 
     def test_provider_ranking_uses_evidence_score_and_excludes_unauthorized(self):
@@ -102,7 +104,7 @@ class AdaptiveDecisionTests(unittest.TestCase):
         ranked = rank_provider_options(options)
         self.assertEqual(ranked[0].provider, "coinbase_exchange")
         self.assertNotIn("kraken", [item.provider for item in ranked])
-        self.assertEqual(DEFAULT_PROVIDER_ORDER[0], "binance_official_recovery")
+        self.assertEqual(DEFAULT_PROVIDER_ORDER[:2], ("mexc", "bitget"))
 
     def test_provider_is_rejected_when_any_required_evidence_is_unknown(self):
         evidence = self.complete_evidence()
