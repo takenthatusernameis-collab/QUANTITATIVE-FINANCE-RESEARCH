@@ -21,11 +21,21 @@ PRIORITY_HIERARCHY = {
     6: "local_optimization_and_cosmetic_polish",
 }
 
+# Open-ended discovery order for independent alternatives (P4). This is a
+# tie-breaker only: evidence scores still dominate, and every candidate must
+# independently pass authorization, provenance, coverage and quality gates.
+# Keep this list extensible; never interpret it as an exhaustive provider set.
 DEFAULT_PROVIDER_ORDER = (
-    "binance_official_recovery",
+    "mexc",
+    "bitget",
     "coinbase_exchange",
     "kraken",
+    "okx",
+    "bybit",
+    "gate_io",
+    "kucoin",
     "additional_authorized_exchange",
+    "additional_historical_data_provider",
     "raw_trade_reconstruction",
     "cross_provider_comparison",
 )
