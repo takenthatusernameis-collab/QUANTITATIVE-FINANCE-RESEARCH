@@ -12,10 +12,12 @@ QUEUE_TIMEOUT_SECONDS = 900
 WORKFLOW_GROUPS = {
     ".github/workflows/eth-btc-research.yml": "eth-btc-research-main",
     ".github/workflows/research-tests.yml": "research-tests-main",
+    ".github/workflows/eth-btc-cache-warm.yml": "binance-archive-cache-warm",
 }
 OBSERVABILITY_WORKFLOWS = {
     ".github/workflows/eth-btc-research.yml": "ETH/BTC research",
     ".github/workflows/research-tests.yml": "Research pipeline tests",
+    ".github/workflows/eth-btc-cache-warm.yml": "Trusted Binance archive cache warmer",
 }
 STATUS_ISSUE_NUMBER = 2
 STATUS_MARKER = "<!-- qfr-queue-status -->"

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from queue_guardian import (
     GitHubAPI,
     build_execution_context,
+    build_run_inventory,
     QUEUE_TIMEOUT_SECONDS,
     STATUS_MARKER,
     format_status_comment,
@@ -122,6 +123,30 @@ class QueueDecisionTests(unittest.TestCase):
         item["path"] = ".github/workflows/eth-btc-research.yml"
         self.assertEqual(group_for(item), "eth-btc-research-main")
         self.assertEqual(queue_decision(item, [item], NOW)["action"], "cancel_overdue")
+
+    def test_cache_warm_workflow_has_isolated_queue_group_and_is_observable(self):
+        queued = make_run(
+            24, "eth-btc-cache-warm", "queued",
+            NOW - timedelta(minutes=16),
+        )
+        active = make_run(
+            23, "eth-btc-cache-warm", "in_progress",
+            NOW - timedelta(hours=1),
+        )
+        self.assertEqual(group_for(queued), "binance-archive-cache-warm")
+        self.assertEqual(
+            queue_decision(queued, [queued], NOW)["action"],
+            "cancel_overdue",
+        )
+        self.assertEqual(
+            queue_decision(queued, [active, queued], NOW)["action"],
+            "preserve_same_group_wait",
+        )
+        inventory = build_run_inventory([queued])
+        self.assertEqual(
+            inventory[0]["workflow_name"],
+            "Trusted Binance archive cache warmer",
+        )
 
     def test_timestamp_must_include_timezone(self):
         with self.assertRaises(ValueError):

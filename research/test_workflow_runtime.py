@@ -128,6 +128,7 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         self.assertIn("branches: [main]", warm)
         self.assertIn("if: ${{ github.ref == 'refs/heads/main' }}", warm)
         self.assertIn("ref: main", warm)
+        self.assertIn("group: binance-archive-cache-warm", warm)
         self.assertNotIn("issue_comment:", warm)
         self.assertNotIn("workflow_run:", warm)
         self.assertIn("actions/cache/restore@v6.1.0", warm)
@@ -142,6 +143,9 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         self.assertIn("steps.validate.outcome == 'success'", warm)
         self.assertIn("data/raw/spot_ETHUSDT_archive_manifest.json", warm)
         self.assertIn("data/raw/um_BTCUSDT_funding_manifest.json", warm)
+        guardian = (WORKFLOW_DIR / "queue-guardian.yml").read_text(encoding="utf-8")
+        self.assertIn("Trusted Binance archive cache warmer", guardian)
+        self.assertIn("github.event.workflow_run.name == 'Trusted Binance archive cache warmer'", guardian)
         artifact = warm.split("      - name: Upload manifests and diagnostics only", 1)[1]
         self.assertNotIn("data/cache/", artifact)
         self.assertNotIn(".csv", artifact)
