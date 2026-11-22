@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 import unittest
 
 
@@ -18,12 +17,15 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         observed = {}
         for workflow in sorted(WORKFLOW_DIR.glob("*.yml")):
             for line in workflow.read_text(encoding="utf-8").splitlines():
-                match = re.search(
-                    r"^\\s*uses:\\s*(actions/(?:checkout|setup-python|cache|upload-artifact))@([^\\s]+)",
-                    line,
-                )
-                if match:
-                    observed.setdefault(match.group(1), set()).add(match.group(2))
+                stripped = line.strip()
+                if not stripped.startswith("uses:"):
+                    continue
+                reference = stripped.split("uses:", 1)[1].strip()
+                if "@" not in reference:
+                    continue
+                action, version = reference.rsplit("@", 1)
+                if action in EXPECTED_NODE24_ACTIONS:
+                    observed.setdefault(action, set()).add(version)
 
         self.assertEqual(
             observed,
