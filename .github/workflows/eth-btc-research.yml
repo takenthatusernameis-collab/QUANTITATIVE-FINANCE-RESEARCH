@@ -140,6 +140,8 @@ jobs:
                 RECONCILE="false"
                 ;;
               "/qfr-run-eth-btc-empirical") COMMAND="empirical" ;;
+              "/qfr-run-eth-btc-spot-empirical") COMMAND="empirical"; MARKET="spot" ;;
+              "/qfr-run-eth-btc-um-empirical") COMMAND="empirical"; MARKET="um" ;;
               *) echo "Rejected non-allowlisted command"; exit 0 ;;
             esac
           else
@@ -233,15 +235,21 @@ jobs:
         env:
           START_DATE: ${{ needs.authorize.outputs.start }}
           END_DATE: ${{ needs.authorize.outputs.end }}
+          MARKET: ${{ needs.authorize.outputs.market }}
         run: |
           set -euo pipefail
+          args=()
+          if [ "$MARKET" != "um" ]; then
+            args+=(--reconcile-spot-gaps)
+          fi
           python research/run_eth_btc.py \
             --start "$START_DATE" \
             --end "$END_DATE" \
-            --market both \
+            --market "$MARKET" \
             --data-dir data \
             --output-dir reports/generated \
-            --audit-only
+            --audit-only \
+            "${args[@]}"
 
       - name: Run full historical empirical study (agent-triggered when authorized)
         if: ${{ needs.authorize.outputs.command == 'empirical' }}
