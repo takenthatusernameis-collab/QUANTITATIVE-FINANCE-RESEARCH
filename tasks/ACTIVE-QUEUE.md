@@ -1,18 +1,19 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-22 13:42 UTC  
+**Updated:** 2026-11-22 13:48 UTC  
 **Canonical active-task pointer:** [ETH/BTC ingestion and no-trade validation](ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md).
 
 ## Governing priority
 
 Apply the single authoritative [seven-level adaptive decision hierarchy](../docs/GENERAL-ANTIFRAGILE-AUTONOMOUS-OPERATING-MINDSET.md): P0 hard invariants; P1 compounding meta-process improvements; P2 resolve existing work/highest-value bottlenecks; P3 original research recovery; P4 independent providers/data architectures; P5 formally preregistered hypothesis/model replacement; P6 local polish. The [adaptive execution standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md) implements the hierarchy. Do not create duplicate policy documents or task plans.
 
-## Current follow-up — OKX metadata probe repair (2026-11-22)
-- **Field information verified:** `instrument_name` (full instrument name), `funding_rate` (realized rate at most recent settlement), and `funding_time` (Unix milliseconds). Rate scale, timestamp timezone beyond Unix epoch, and row/event completeness are not specified; no data downloaded or accepted.
-- **Symbol selector:** previous probe [45027919591](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45027919591) captured a search combobox and “Select All” but option extraction failed with a Page.evaluate syntax error; no symbol selected or file downloaded.
-- **Replacement:** locator-based collection scoped to the dialog now filters visible text, deduplicates and caps at 100; regression tests cover the helper and prohibit JavaScript evaluation/selection in this path. Commits [5e3654f](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/5e3654f5d23707bb0fb8ce7c5a956f8aba58413a) and [4b31103](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/4b3110335bbf31cf4c2b65b8eeb33ca5d9242757). CI [45028705707](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45028705707) passed unit tests + synthetic smoke; corrected probe [45028848038](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45028848038) is in progress.
-- **Next:** inspect the corrected probe's artifact. Keep OKX separate from Binance and the funding acceptance gate closed; no paid key, download, backtest or live action.
-- **Dispatch safeguard:** check recent PR #2 comments/runs for an identical command before dispatch. One duplicate read-only field-info probe was posted during this cycle; it completed safely.
+## Current follow-up — OKX funding metadata and symbol search (2026-11-22)
+
+- **Field schema:** `instrument_name`, `funding_rate` (realized rate at most recent settlement), `funding_time` (Unix ms); rate scale, timezone beyond Unix ms and row/event completeness remain unspecified.
+- **Final anonymous search:** the corrected selector input was uniquely identified; searches `ETH` and `BTC` both returned “No result found,” and the modal table remained “No records found.” No selection, confirmation, date change or download. Successful probe [45029337953](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45029337953), artifact [14757585237](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45029337953/artifacts/14757585237).
+- **Code/tests:** locator-based option collection and exact `input[type="search"]` search; CI [45029278204](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45029278204) passed unit tests and synthetic smoke. Full evidence: [OKX metadata/search report](../reports/ETH-BTC-OKX-FUNDING-METADATA-AND-SYMBOL-PROBE-2026-11-22.md).
+- **Decision:** OKX anonymous UI route is **UNACCEPTED / NO SAMPLE**; not proof of global unavailability. Stop repeating probes and do not change regions, accept cookies or bypass restrictions. Funding acceptance remains closed; no perpetual backtest.
+- **Next focus:** trusted default-branch archive-cache warm-up design (P1), while funding-event completeness research remains blocked. One redundant field-info command was posted earlier in this cycle; check comment history before any future dispatch.
 
 
 ## Current cycle — 2026-11-22 Spot event-time production validation and pooled OOS inference
