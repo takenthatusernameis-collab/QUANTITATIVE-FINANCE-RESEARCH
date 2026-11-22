@@ -1,9 +1,12 @@
 # Completed Review: ETH/BTC Input Audit and Missing-Bar Data Policy
 
-**Status:** Artifact review completed 2026-11-22; full acceptance criteria not met; research remains **INCONCLUSIVE**.  
+**Status:** Artifact review completed 2026-11-22; original data acceptance remains **INCONCLUSIVE**; execution follow-up is `tasks/ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md`.
 **Priority:** High  
 **Type:** Research artifact verification, data provenance and pre-registration  
 **Scope:** Historical research/backtesting only. No live orders, capital deployment, live credentials or strategy promotion.
+
+
+> **Historical / superseded execution note:** The audit-review work is complete as a historical evidence record; the research-data problem is not complete. Use the current ingestion task for all remaining work. Future agents must progress independent inputs, use provider/model failover, and apply the 15-minute queue and orphaned-run alternative-attempt policies.
 
 ## Context
 
