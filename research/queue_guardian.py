@@ -244,8 +244,20 @@ def process_queue(api: GitHubAPI, now: datetime, dry_run: bool = False) -> dict[
                 action["latest_status"] = fresh.get("status")
                 report["actions"].append(action)
                 continue
-            api.cancel_run(run_id)
-            cancelled, latest = verify_cancellation(api, run_id)
+            cancellation_error = None
+            try:
+                api.cancel_run(run_id)
+            except Exception as exc:
+                cancellation_error = str(exc)[:1500]
+
+            if cancellation_error is None:
+                cancelled, latest = verify_cancellation(api, run_id)
+            else:
+                # Cancellation failure must still become a durable incident and
+                # must trigger the independent-alternative handoff.
+                latest = api.get_run(run_id)
+                cancelled = False
+
             action["latest_status"] = latest.get("status")
             action["latest_conclusion"] = latest.get("conclusion")
             if cancelled:
@@ -258,10 +270,12 @@ def process_queue(api: GitHubAPI, now: datetime, dry_run: bool = False) -> dict[
             else:
                 action["result"] = "CANCELLATION_BLOCKED_OR_UNCONFIRMED"
                 incident_state = "CANCELLATION_BLOCKED"
-            action.update(persist_issue(api, fresh, age, group, incident_state))
+            action.update(persist_issue(api, fresh, age, group, incident_state,
+                                        cancellation_error))
         except Exception as exc:
             action["result"] = "CANCELLATION_OR_RECORDING_ERROR"
             action["error"] = str(exc)[:1500]
+            action["durable_issue_recorded"] = False
             report["errors"].append({"run_id": run_id, "error": str(exc)[:1500]})
         report["actions"].append(action)
     return report
