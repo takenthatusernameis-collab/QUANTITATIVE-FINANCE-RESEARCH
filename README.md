@@ -226,3 +226,28 @@ A read-only anonymous Playwright probe confirmed that OKX's official [Historical
 Bitget's official funding page returned HTTP 200 but displayed a **Restricted IP** dialog because the GitHub runner was geolocated in the United States. No self-declaration, click-through, or regional workaround was attempted. The route remains blocked from that runner; see the same report.
 
 The probe workflow and deterministic tests passed. No raw funding files were downloaded, no source was accepted, and the Binance perpetual funding gate remains **PROVISIONAL_NOT_ACCEPTED**.
+
+
+## OKX funding metadata and symbol-options probe recovery — 2026-11-22
+
+### Field-information evidence
+
+The anonymous, read-only OKX field-information probe succeeded twice (the second was an unnecessary duplicate): [run 45027332926](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45027332926), artifact [14756192431](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45027332926/artifacts/14756192431) (454,504 bytes; ZIP SHA-256 `34955d35ae6e02a01acb87ce9fab4f09364af0dd58c53ebce0f0855458e352af); duplicate [run 45028315196](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45028315196), artifact [14757030788](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45028315196/artifacts/14757030788) (454,508 bytes; SHA-256 `11d9b4577780e22c066dc181669a6c8e4b8a8b30ab2ee200f43e905986781eb1). Both manifest results say `field_information_clicked_inspected_no_submission`; no login, cookies, form submission or file download.
+
+Visible field definitions:
+- `instrument_name`: full trading-instrument name.
+- `funding_rate`: realized funding rate at the most recent settlement.
+- `funding_time`: Unix timestamp, milliseconds, when that rate was last settled.
+
+The field-information table does not specify funding-rate numeric scale, timestamp timezone beyond Unix milliseconds, or whether each export row represents every settlement event. Therefore this metadata alone cannot establish event-population completeness or accept OKX as a funding source.
+
+### Symbol-options probe and repair
+
+The symbol-options probe [run 45027919591](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45027919591), artifact [14756208624](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45027919591/artifacts/14756208624) (386,248 bytes; ZIP SHA-256 `12bcc2e5a240e08e1872fc2549af3e4eb108cd6fe6047793320a56073104313a), opened the symbol selector but failed during option-text extraction with a `Page.evaluate` syntax error. The captured snapshot shows a search combobox and “Select All”; no symbols were enumerated, and no selection or download occurred. The exact parser/selector incompatibility is not conclusively isolated.
+
+The probe was repaired by replacing the JavaScript-evaluation option collector with bounded Playwright locators scoped to the modal, visible-text filtering, deduplication and a 100-text cap. Regression coverage now exercises visible/hidden option filtering and deduplication, and asserts the symbol probe does not invoke `page.evaluate` or select any option. Commits: [5e3654f](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/5e3654f5d23707bb0fb8ce7c5a956f8aba58413a) and [4b31103](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/4b3110335bbf31cf4c2b65b8eeb33ca5d9242757). CI [45028705707](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45028705707) passed deterministic unit tests and the synthetic smoke test on the final code/test commit. The corrected bounded symbol-options re-probe [45028848038](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45028848038) is running; inspect its artifact before claiming the selector extraction is resolved.
+
+
+### Dispatch hygiene
+
+Before posting an allowlisted command, inspect recent control-PR comments and matching workflow runs for the same command. This cycle posted a redundant field-information command [7079922513] after the prior successful probe had not yet been identified in the comment-history check. It was read-only and completed safely; future cycles should avoid duplicate dispatches.
