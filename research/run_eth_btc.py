@@ -500,7 +500,8 @@ def download_funding(symbol: str, start: str, end: str, data_dir: Path) -> Path:
             (combined["timestamp"] >= start_ts) & (combined["timestamp"] < end_exclusive)
         ].copy()
         duplicate_count = int(in_sample["timestamp"].duplicated().sum())
-        in_sample.to_csv(out, index=False)
+        output_frame = in_sample.rename(columns={"last_funding_rate": "fundingRate"})
+        output_frame.to_csv(out, index=False)
         stamps = pd.DatetimeIndex(in_sample["timestamp"])
         quality = funding_quality(stamps, start_ts, end_exclusive) if len(stamps) else None
         csv_sha256 = hashlib.sha256(out.read_bytes()).hexdigest()
