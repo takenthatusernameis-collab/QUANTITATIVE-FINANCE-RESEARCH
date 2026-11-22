@@ -89,9 +89,10 @@ class QueueDecisionTests(unittest.TestCase):
 
 
 class FakeAPI:
-    def __init__(self, runs, cancel_state=None):
+    def __init__(self, runs, cancel_state=None, cancel_error=None):
         self.runs = list(runs)
         self.cancel_state = cancel_state or {"status": "completed", "conclusion": "cancelled"}
+        self.cancel_error = cancel_error
         self.cancelled = []
         self.issues = []
 
@@ -103,6 +104,8 @@ class FakeAPI:
 
     def cancel_run(self, run_id):
         self.cancelled.append(run_id)
+        if self.cancel_error:
+            raise self.cancel_error
         self.get_run(run_id).update(self.cancel_state)
 
     def find_incident_issue(self, run_id):
@@ -143,6 +146,29 @@ class QueueProcessingTests(unittest.TestCase):
         report = process_queue(api, NOW)
         self.assertEqual(api.cancelled, [])
         self.assertEqual(report["actions"][0]["action"], "preserve_same_group_wait")
+
+
+    def test_cancellation_api_error_still_creates_orphan_issue(self):
+        item = make_run(24, "research-tests", "queued", NOW - timedelta(minutes=25))
+        api = FakeAPI([item], cancel_error=RuntimeError("HTTP 403 cancellation forbidden"))
+        report = process_queue(api, NOW)
+        self.assertEqual(report["actions"][0]["result"],
+                         "CANCELLATION_BLOCKED_OR_UNCONFIRMED")
+        self.assertIn("CANCELLATION_BLOCKED / ORPHANED_POSSIBLE_EXECUTION",
+                      api.issues[0]["body"])
+        self.assertIn("HTTP 403", api.issues[0]["body"])
+
+    def test_existing_incident_prevents_repeat_cancellation_attempt(self):
+        item = make_run(25, "research-tests", "queued", NOW - timedelta(minutes=25))
+        api = FakeAPI([item], cancel_state={"status": "queued", "conclusion": None})
+        # First pass records the blocked cancellation incident.
+        process_queue(api, NOW)
+        self.assertEqual(api.cancelled, [25])
+        # An unchanged orphaned run is not cancelled repeatedly on later scans.
+        report = process_queue(api, NOW + timedelta(minutes=5))
+        self.assertEqual(api.cancelled, [25])
+        self.assertEqual(report["actions"][0]["result"],
+                         "EXISTING_INCIDENT_NO_REPEAT_CANCELLATION")
 
     def test_dry_run_never_cancels_or_creates_issue(self):
         item = make_run(23, "research-tests", "queued", NOW - timedelta(minutes=25))
