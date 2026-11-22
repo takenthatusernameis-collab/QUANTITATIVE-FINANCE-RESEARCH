@@ -1534,7 +1534,7 @@ def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
         key = f"um_{symbol}_funding"
         csv_path = data_dir / "raw" / f"um_{symbol}_funding.csv"
         manifest_path = data_dir / "raw" / f"um_{symbol}_funding_manifest.json"
-        source = "https://fapi.binance.com/fapi/v1/fundingRate"
+        source = "https://data.binance.vision/data/futures/um/monthly/fundingRate/{SYMBOL}/{SYMBOL}-fundingRate-YYYY-MM.zip"
         record = {
             "symbol": symbol,
             "status": "not_run",
