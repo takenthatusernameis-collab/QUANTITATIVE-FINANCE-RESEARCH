@@ -382,4 +382,4 @@ def evaluate_research_scope_gate(
         "spot_time_policy_accepted": bool(spot_time_policy_accepted),
         "blockers": blockers,
     }
-\n
+
