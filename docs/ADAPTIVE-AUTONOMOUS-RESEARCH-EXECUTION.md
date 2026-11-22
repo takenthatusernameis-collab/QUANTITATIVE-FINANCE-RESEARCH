@@ -343,6 +343,12 @@ A route is not autonomous until a real ChatGPT-connected operation triggers a ha
 
 Keep `workflow_dispatch` available as a break-glass owner recovery path where appropriate, but do not make it the agent's default route, repeatedly instruct the human to use it, or count it as satisfying autonomous execution.
 
+
+
+### Decision-to-execution invariant: same-session replacement
+
+When evidence supports the conclusion that a component must be replaced, that conclusion immediately becomes the current session's implementation task. Do not defer it to a later cycle or leave it as a recommendation. Implement a materially different, authorized replacement now; add regression tests; execute the relevant bounded validation; inspect logs/artifacts; and update the single canonical queue and handoff before ending the session. If an external fact or owner-only permission prevents final acceptance, still implement all independent safe work and a fail-closed probe/manifest path in the same session, then identify the exact remaining prerequisite. Distinguish replacement implemented, replacement technically validated, and research/data completeness accepted. Never claim a stronger status than the evidence supports.
+
 ## Research execution contingencies
 
 Apply the same adaptive reasoning to the research pipeline itself.
