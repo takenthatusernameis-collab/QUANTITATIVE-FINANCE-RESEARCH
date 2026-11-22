@@ -5,6 +5,7 @@ on:
     paths:
       - "research/**"
       - ".github/workflows/research-tests.yml"
+      - ".github/workflows/eth-btc-research.yml"
       - ".github/workflows/queue-guardian.yml"
   pull_request:
     paths:
