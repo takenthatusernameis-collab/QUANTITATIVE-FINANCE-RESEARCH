@@ -41,6 +41,10 @@ Queue or infrastructure failures are not empirical strategy failures. Never fabr
 
 The allowlisted control-PR command `/qfr-probe-bybit-funding-history` runs a read-only public API availability check for exactly `BTCUSDT` and `ETHUSDT`. It samples 2020-01-01, 2022-01-01 and run-time UTC, at most 200 rows per request (six requests total, three bounded attempts per request). Raw response caches stay on the ephemeral runner; only hashed compact manifests are uploaded. This is an independent Bybit venue pilot, not Binance evidence, full-history acceptance, or a backtest. The official endpoint documents endTime-only sampling and a 200-record maximum: [Bybit funding history](https://bybit-exchange.github.io/docs/v5/market/history-fund-rate).
 
+### Bybit pilot result — 2026-11-22
+
+All six public API requests (BTCUSDT and ETHUSDT × 2020-01-01, 2022-01-01, run-time UTC) returned **HTTP 403 Forbidden** from the hosted GitHub runner. Because 403 is treated as a permanent failure, the probe made no retries. Artifact [14750381483](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45012785615/artifacts/14750381483) contains compact per-symbol manifests only; raw response caches were not uploaded. This proves the route is blocked in this runner context, not that Bybit data is universally inaccessible or retention is known. No funding data accepted and no backtest performed. Do not repeat the same probe; move to a distinct provider route.
+
 ## Research design
 
 - Signal: completed-bar close; execution: next bar open; PnL: open-to-open.
