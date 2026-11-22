@@ -41,6 +41,8 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         self.assertIn("python research/bitget_funding_download_probe.py", workflow)
         self.assertIn("anonymous", workflow.lower())
         self.assertIn("playwright", workflow.lower())
+        self.assertIn("playwright==1.65.0", workflow)
+        self.assertNotIn("playwright==1.56.0", workflow)
         probe = (ROOT / "research" / "bitget_funding_download_probe.py").read_text(encoding="utf-8")
         self.assertIn("download_click_skipped_reason", probe)
         self.assertIn("download_button_clicked", probe)
