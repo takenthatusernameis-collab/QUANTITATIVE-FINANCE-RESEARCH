@@ -112,3 +112,6 @@ A blocker diagnosed as requiring replacement must be acted on in the same agent 
 4. Continue the ETH/BTC ingestion task only after each independent source gate passes. Do not run the full empirical backtest, declare a no-trade interval, or infer strategy performance while any required input or missing-bar policy remains unresolved.
 
 **Research conclusion:** original Binance ETH/BTC study remains **INCONCLUSIVE**. No new market-performance metrics were produced in this cycle.
+
+
+**Funding-semantics cross-check:** public Binance issue [#517](https://github.com/binance/binance-public-data/issues/517) remains open, last updated 2026-11-19, with four public comments and no Binance-team clarification visible in the current thread. The monthly archive route must remain provisional and fail-closed.
