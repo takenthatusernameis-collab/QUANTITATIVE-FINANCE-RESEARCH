@@ -49,6 +49,20 @@ A successful, fully paginated REST capture establishes what the endpoint returne
 
 [Binance Public Data issue #517](https://github.com/binance/binance-public-data/issues/517) remains open with no official response visible through 2026-11-22. It requests contract-incarnation/retention coverage, event semantics, and either a complete settlement enumeration or a historical effective schedule for the requested symbols and intervals. The November 19 follow-up specifically asks whether historical schedule changes were publicly knowable at decision time.
 
+## Existing Tardis sample cross-check (verified artifacts)
+
+Three first-of-month Tardis `derivative_ticker` samples were independently checked against checksum-verified Binance monthly archives. The artifacts were downloaded and their SHA-256 values matched the GitHub artifact digests.
+
+| Sample | Binance rows/symbol | BTC/ETH next-event timestamps matched | Maximum offset | |
+|---|---:|---:|---:|
+| 2020-06-01 | 90 | 3/3 and 3/3 | 1 ms |
+| 2024-01-01 | 93 | 4/4 and 4/4 | 5 ms |
+| 2026-03-01 | 93 | 4/4 and 4/4 | 5 ms |
+
+Runs/artifacts: [2020-06](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44983958409) / [14739152083](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44983958409/artifacts/14739152083); [2024-01](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44983540393) / [14739051517](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44983540393/artifacts/14739051517); [2026-03](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44984500046) / [14739431671](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44984500046/artifacts/14739431671).
+
+The samples support **partial event-time semantics**: Tardis's next-funding timestamp aligns with Binance archive `calc_time` for the sampled events. They do not establish complete settlement population or contract-incarnation coverage. Tardis `funding_rate` is a pre-event estimate, not the final settled rate: in 2024 and 2026 only 1/3 pre-event rate samples per symbol matched the archive exactly, and 2020 none of 3 did. These samples therefore strengthen timestamp interpretation while leaving the funding gate blocked.
+
 ## Next actions
 
 1. Do a **bounded direct REST-vs-archive comparison** for BTCUSDT and ETHUSDT around 2025-05-02, 2025-09-01, 2026-01-02 and the 2026-10 capture. Paginate `fundingRate` correctly, retain `Regular` and `Special` separately, and reconcile timestamps/counts against monthly archives. This can reveal discrepancies; it still cannot certify completeness without a retention/population statement.
