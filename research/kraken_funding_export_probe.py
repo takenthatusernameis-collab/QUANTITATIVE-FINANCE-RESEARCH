@@ -30,6 +30,7 @@ API_BASE = "https://futures.kraken.com/derivatives/api/v3"
 MAX_DOWNLOAD_BYTES = 512 * 1024 * 1024
 MAX_CSV_UNCOMPRESSED_BYTES = 128 * 1024 * 1024
 MAX_ARCHIVE_MEMBERS_REPORTED = 500
+MAX_TOTAL_UNCOMPRESSED_BYTES = 2 * 1024 * 1024 * 1024
 MAX_CANDIDATE_CSVS = 30
 MAX_API_SYMBOLS = 8
 TIME_KEYS = {"timestamp", "time", "fundingtime", "fundingtimestamp", "datetime", "date"}
@@ -105,9 +106,12 @@ def analyze_csv_stream(stream: Any) -> dict[str, Any]:
     time_col = _find_column(headers, TIME_KEYS)
     rate_cols = [
         header for header in headers
-        if norm_key(header) in {"fundingrate", "relat ivefundingrate".replace(" ", "")}
+        if norm_key(header) in {"fundingrate", "relativefundingrate"}
     ]
     row_count = 0
+    valid_timestamp_count = 0
+    first_timestamp_raw: str | None = None
+    last_timestamp_raw: str | None = None
     null_counts = Counter()
     duplicate_count = 0
     out_of_order_count = 0
@@ -134,15 +138,16 @@ def analyze_csv_stream(stream: Any) -> dict[str, Any]:
             if stamp_ms is None:
                 invalid_timestamp_count += 1
             else:
+                valid_timestamp_count += 1
+                if first_timestamp_raw is None:
+                    first_timestamp_raw = raw_time
+                last_timestamp_raw = raw_time
                 if stamp_ms in seen:
                     duplicate_count += 1
                 seen.add(stamp_ms)
                 if previous_ms is not None and stamp_ms < previous_ms:
                     out_of_order_count += 1
-                if previous_ms is not None and stamp_ms > previous_ms:
-                    timestamps.append((stamp_ms, raw_time, compact_rates))
-                elif not timestamps:
-                    timestamps.append((stamp_ms, raw_time, compact_rates))
+                timestamps.append((stamp_ms, raw_time, compact_rates))
                 previous_ms = stamp_ms
         for column in rate_cols:
             raw_rate = str(row.get(column, "") or "").strip()
@@ -177,10 +182,10 @@ def analyze_csv_stream(stream: Any) -> dict[str, Any]:
         "headers": headers,
         "row_count": row_count,
         "timestamp_column": time_col,
-        "valid_timestamp_count": len(timestamps),
+        "valid_timestamp_count": valid_timestamp_count,
         "invalid_timestamp_count": invalid_timestamp_count if time_col else None,
-        "first_timestamp": timestamps[0][1] if timestamps else None,
-        "last_timestamp": timestamps[-1][1] if timestamps else None,
+        "first_timestamp": first_timestamp_raw,
+        "last_timestamp": last_timestamp_raw,
         "duplicate_timestamp_count": duplicate_count if time_col else None,
         "out_of_order_timestamp_count": out_of_order_count if time_col else None,
         "cadence_hours_top": [
@@ -221,10 +226,12 @@ def analyze_archive(path: Path, instruments: list[dict[str, Any]]) -> dict[str, 
         "perpetual_csv_summaries": [],
     }
     with zipfile.ZipFile(path) as archive:
-        bad_member = archive.testzip()
-        summary["zip_valid"] = bad_member is None
-        summary["zip_first_bad_member"] = bad_member
         files = [item for item in archive.infolist() if not item.is_dir()]
+        total_uncompressed = sum(item.file_size for item in files)
+        summary["total_uncompressed_bytes"] = total_uncompressed
+        summary["zip_valid"] = True
+        summary["zip_crc_scope"] = "candidate CSV members are CRC-checked when read; other members are listed but not decompressed"
+        summary["archive_uncompressed_size_limit_exceeded"] = total_uncompressed > MAX_TOTAL_UNCOMPRESSED_BYTES
         summary["archive_member_count"] = len(files)
         summary["archive_members"] = [
             {"name": item.filename, "compressed_size": item.compress_size,
@@ -260,6 +267,11 @@ def analyze_archive(path: Path, instruments: list[dict[str, Any]]) -> dict[str, 
             summary["asset_csv_candidates"].append(candidate)
             if perpetual:
                 candidate_files.append((item, asset, stem, matched))
+
+        if total_uncompressed > MAX_TOTAL_UNCOMPRESSED_BYTES:
+            summary["perpetual_csv_summaries"] = []
+            summary["candidate_csvs_truncated"] = len(candidate_files) > MAX_CANDIDATE_CSVS
+            return summary
 
         for item, asset, symbol, matched in candidate_files[:MAX_CANDIDATE_CSVS]:
             record = {
