@@ -76,6 +76,17 @@ Consider a poller only after direct API dispatch, issue/PR comment events, and a
 
 Any poller must have a justified interval, low API/compute cost, strict identity/command validation, idempotency, deduplication, concurrency controls, rate-limit monitoring, and a clear stop condition. Do not add recurring full-data jobs or continuous polling just to avoid diagnosing the actual blocker.
 
+
+### Agent-triggered historical backtest command
+
+The connected agent must not wait for a human to activate an ordinary historical backtest. The default-branch workflow now includes the exact allowlisted control-PR command:
+
+- `/qfr-run-eth-btc-empirical` — run the full historical ETH/BTC empirical workflow on the preconfigured date range and both market types. The existing downloader, completeness gates, funding checks, and frozen strategy specification remain in force. If a required source is incomplete, the workflow fails safely before producing strategy metrics; it does not ask for manual approval or relax the data-quality checks.
+
+The command is authorized by the same exact PR #2, open-state, verified-actor, `issue_comment: created`, and whole-body allowlist as the smoke and audit commands. It runs only code from the default branch. The agent should first inspect existing active runs and current preflight evidence to avoid duplicate expensive work; this is machine verification, not a request for user confirmation.
+
+After the original data path is fixed and machine-checkable prerequisites pass, the agent should trigger this command itself. If the original data path remains infeasible, create a separate task and a separate allowlisted research workflow/model using a valid alternative provider or data construction. Do not mislabel an alternative experiment as the original ETH/BTC study.
+
 ## Step 3 — Implement the selected route securely
 
 Every agent-invoked on-demand workflow must have a working autonomous activation method. Do not require every workflow to use the same GitHub event: implement the route proven viable by the integration and document its exact command/payload, actor, permissions, workflow path, inputs, expected artifacts, and verification procedure.
@@ -166,6 +177,7 @@ The default-branch workflow `.github/workflows/eth-btc-research.yml` now accepts
 - comment body equals the entire allowlisted command, with no extra text:
   - `/qfr-control-smoke` — harmless smoke test;
   - `/qfr-run-eth-btc-data-audit` — audit all four price series and both funding histories, and reconcile missing ETH Spot hours against Binance REST and daily archives.
+  - `/qfr-run-eth-btc-empirical` — agent-triggered historical backtest, preserving all code/data/methodology gates; no routine human confirmation.
 
 The workflow uses repository-level `contents: read` permissions only. The issue-comment event executes the workflow from `main`; the research job explicitly checks out `github.event.repository.default_branch`. It never checks out, imports, executes, or trusts the control PR head or its contents. No `pull_request_target` trigger is used. The smoke job performs no checkout and no data access.
 
@@ -185,7 +197,7 @@ The workflow uses repository-level `contents: read` permissions only. The issue-
 4. Verify the new run's event, actor, `main` ref, SHA, authorization job outputs/logs, research job logs, and uploaded artifact.
 5. Never treat a successful trigger or smoke test as a successful data audit or empirical finding. Keep the research status **INCONCLUSIVE** until all input manifests and reconciliation evidence pass the declared acceptance rules.
 
-The manual `workflow_dispatch` route remains a break-glass owner control. The comment route's `/qfr-run-eth-btc-data-audit` command always invokes `--audit-only --reconcile-spot-gaps`; it cannot launch a strategy backtest. Full empirical execution remains a separate manual owner action and is still gated by data completeness.
+The manual `workflow_dispatch` route remains a break-glass recovery control, not the normal route. The comment route's `/qfr-run-eth-btc-data-audit` command invokes `--audit-only --reconcile-spot-gaps`. The separate `/qfr-run-eth-btc-empirical` command launches historical backtesting through the agent without routine human confirmation; the existing data, funding, cost and methodology gates remain mandatory. A blocked data gate triggers a new provider/data/model approach, not a manual-approval request.
 
 
 ## Audit-only dispatch verification — 2026-11-22
