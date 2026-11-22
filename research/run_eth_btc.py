@@ -32,7 +32,17 @@ import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import adfuller, coint, kpss, zivot_andrews
 from statsmodels.tsa.vector_ar.vecm import coint_johansen
 from adaptive_decision import evaluate_research_scope_gate, evaluate_six_input_gate
-from event_time import event_time_backtest, event_time_metrics
+from event_time import (
+    EVENT_TIME_POLICY_VERSION,
+    SECONDS_PER_YEAR,
+    add_event_time_features,
+    elapsed_seconds,
+    event_time_backtest,
+    event_time_benchmark_backtest,
+    event_time_metrics,
+    make_event_time_positions,
+    validate_event_time_frame,
+)
 
 COLUMNS = [
     "open_time", "open", "high", "low", "close", "volume", "close_time",
@@ -285,8 +295,11 @@ def _download_archive(url: str, cache_file: Path, session: requests.Session) -> 
     return payload, verified, checksum_error
 
 
-def download_klines(market: str, symbol: str, start: str, end: str, data_dir: Path) -> Path:
-    """Download monthly Binance 1h archives; never silently accept missing months."""
+def download_klines(
+    market: str, symbol: str, start: str, end: str, data_dir: Path,
+    allow_confirmed_no_trade_gaps: bool = False,
+) -> Path:
+    """Download monthly archives; optionally retain only provenance-proven Spot no-trade gaps."""
     session = requests.Session()
     base = "spot" if market == "spot" else "futures/um"
     frames = []
@@ -357,6 +370,19 @@ def download_klines(market: str, symbol: str, start: str, end: str, data_dir: Pa
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(out_path, index=False)
     manifest_path = data_dir / "raw" / f"{market}_{symbol}_archive_manifest.json"
+    event_time_candidate = bool(
+        allow_confirmed_no_trade_gaps
+        and market == "spot"
+        and not missing_months
+        and not parse_errors
+        and duplicate_count == 0
+        and quality["missing_hourly_bars"] > 0
+        and archive_manifest
+        and all(
+            item.get("status") == "downloaded" and item.get("checksum_verified") is True
+            for item in archive_manifest
+        )
+    )
     manifest = {
         "market": market, "symbol": symbol, "requested_start": start,
         "requested_end_inclusive": end, "archives": archive_manifest,
@@ -364,10 +390,14 @@ def download_klines(market: str, symbol: str, start: str, end: str, data_dir: Pa
         "parse_errors": parse_errors,
         "data_quality": quality,
         "consolidated_csv_sha256": hashlib.sha256(out_path.read_bytes()).hexdigest(),
+        "event_time_candidate": event_time_candidate,
+        "event_time_policy_version": EVENT_TIME_POLICY_VERSION if event_time_candidate else None,
         "status": "complete" if not missing_months and not parse_errors and not duplicate_count and quality["complete"] else "incomplete",
     }
     manifest_path.write_text(json.dumps(manifest, indent=2))
-    if missing_months or parse_errors or duplicate_count or not quality["complete"]:
+    if (
+        missing_months or parse_errors or duplicate_count or not quality["complete"]
+    ) and not event_time_candidate:
         raise RuntimeError(
             f"Incomplete {market} {symbol} data: missing archives={missing_months}, "
             f"parse errors={len(parse_errors)}, duplicates={duplicate_count}, "
@@ -576,7 +606,170 @@ def align_funding_events(events: pd.Series, index: pd.DatetimeIndex, symbol: str
     return aligned, quality
 
 
-def load_pair(market: str, data_dir: Path, start: str | None = None, end: str | None = None) -> pd.DataFrame:
+
+def validate_spot_event_time_evidence(data_dir: Path, start: str, end: str) -> dict:
+    """Accept only synchronized Spot gaps proven to be no-trade intervals.
+
+    The decision binds the exact CSV bytes, requested window, monthly archive
+    checksums, gap inventory, checksum-verified daily aggTrades archives and
+    same-day positive controls. It never repairs or fills a missing observation.
+    """
+    start_ts = pd.Timestamp(start, tz="UTC")
+    end_exclusive = pd.Timestamp(end, tz="UTC") + pd.Timedelta(days=1)
+    expected = pd.date_range(start_ts, end_exclusive - pd.Timedelta(hours=1), freq="h")
+    blockers: list[str] = []
+    missing_by_symbol: dict[str, pd.DatetimeIndex] = {}
+    details: dict[str, dict] = {}
+
+    def parse_timestamps(values) -> pd.DatetimeIndex:
+        if values is None:
+            return pd.DatetimeIndex([], tz="UTC")
+        return pd.DatetimeIndex(pd.to_datetime(values, utc=True)).sort_values()
+
+    for symbol in SYMBOLS:
+        csv_path = data_dir / "raw" / f"spot_{symbol}_1h.csv"
+        archive_path = data_dir / "raw" / f"spot_{symbol}_archive_manifest.json"
+        gap_path = data_dir / "raw" / f"spot_{symbol}_gap_reconciliation.json"
+        if not csv_path.is_file() or not archive_path.is_file() or not gap_path.is_file():
+            blockers.append(f"{symbol}: price CSV, archive manifest or gap manifest is missing")
+            continue
+        try:
+            csv_sha256 = hashlib.sha256(csv_path.read_bytes()).hexdigest()
+            frame = pd.read_csv(csv_path)
+            required = {"timestamp", "open", "high", "low", "close", "volume"}
+            if not required.issubset(frame.columns):
+                raise ValueError(f"missing columns {sorted(required - set(frame.columns))}")
+            timestamps = pd.to_datetime(frame["timestamp"], utc=True)
+            index = pd.DatetimeIndex(timestamps)
+            if index.has_duplicates or not index.is_monotonic_increasing:
+                raise ValueError("timestamps must be unique and strictly increasing")
+            if not index.equals(index.floor("h")):
+                raise ValueError("timestamps must align to UTC hour boundaries")
+            if not index.isin(expected).all():
+                raise ValueError("price CSV contains timestamps outside the requested window")
+            numeric = frame[["open", "high", "low", "close", "volume"]].apply(
+                pd.to_numeric, errors="coerce"
+            )
+            values = numeric.to_numpy(dtype=float)
+            if not np.isfinite(values).all():
+                raise ValueError("OHLCV contains non-finite values")
+            if (
+                (numeric[["open", "high", "low", "close"]] <= 0).any().any()
+                or (numeric["volume"] < 0).any()
+                or (numeric["high"] < numeric[["open", "close"]].max(axis=1)).any()
+                or (numeric["low"] > numeric[["open", "close"]].min(axis=1)).any()
+                or (numeric["high"] < numeric["low"]).any()
+            ):
+                raise ValueError("OHLCV invariants failed")
+
+            missing = expected.difference(index)
+            missing_by_symbol[symbol] = missing
+            archive_manifest = json.loads(archive_path.read_text())
+            gap_manifest = json.loads(gap_path.read_text())
+            if (
+                archive_manifest.get("market") != "spot"
+                or archive_manifest.get("symbol") != symbol
+                or archive_manifest.get("requested_start") != start
+                or archive_manifest.get("requested_end_inclusive") != end
+            ):
+                raise ValueError("monthly archive manifest identity/window mismatch")
+            if archive_manifest.get("consolidated_csv_sha256") != csv_sha256:
+                raise ValueError("monthly archive manifest CSV checksum mismatch")
+            if archive_manifest.get("missing_archive_months") or archive_manifest.get("parse_errors"):
+                raise ValueError("monthly archive acquisition has missing months or parse errors")
+            archive_items = archive_manifest.get("archives", [])
+            expected_months = {month.strftime("%Y-%m") for month in month_starts(start, end)}
+            observed_months = {str(item.get("month")) for item in archive_items}
+            if observed_months != expected_months or not all(
+                item.get("status") == "downloaded" and item.get("checksum_verified") is True
+                for item in archive_items
+            ):
+                raise ValueError("monthly archive coverage or checksum verification failed")
+            quality = archive_manifest.get("data_quality") or {}
+            if int(quality.get("duplicate_timestamps", -1)) != 0:
+                raise ValueError("monthly archive quality reports duplicate timestamps")
+            if not parse_timestamps(quality.get("missing_hour_timestamps", [])).equals(missing):
+                raise ValueError("monthly archive missing-hour inventory differs from the CSV")
+
+            if (
+                gap_manifest.get("market") != "spot"
+                or gap_manifest.get("symbol") != symbol
+                or gap_manifest.get("requested_start") != start
+                or gap_manifest.get("requested_end_inclusive") != end
+            ):
+                raise ValueError("gap reconciliation identity/window mismatch")
+            if gap_manifest.get("source_csv_sha256") != csv_sha256:
+                raise ValueError("gap reconciliation is not bound to the current CSV checksum")
+            if not gap_manifest.get("reconciliation_complete", False):
+                raise ValueError("gap reconciliation is incomplete")
+            if not parse_timestamps(
+                (gap_manifest.get("monthly_archive_quality") or {}).get(
+                    "missing_hour_timestamps", []
+                )
+            ).equals(missing):
+                raise ValueError("gap reconciliation inventory differs from the current CSV")
+            gap_entries = gap_manifest.get("gaps", [])
+            if int(gap_manifest.get("gap_count", -1)) != len(missing) or len(gap_entries) != len(missing):
+                raise ValueError("gap reconciliation count does not match missing observations")
+
+            entries_by_time = {
+                str(pd.Timestamp(item.get("timestamp"))): item for item in gap_entries
+            }
+            for timestamp in missing:
+                key = str(timestamp)
+                entry = entries_by_time.get(key)
+                if entry is None:
+                    raise ValueError(f"missing gap evidence for {key}")
+                if entry.get("classification") != "confirmed_no_trade_interval":
+                    raise ValueError(f"{key} is not classified as a confirmed no-trade interval")
+                if entry.get("agg_trades_found") is not False:
+                    raise ValueError(f"{key} has unresolved or positive aggregate-trade evidence")
+                if entry.get("agg_trades_request_succeeded") is not True:
+                    raise ValueError(f"{key} lacks a successful aggregate-trade evidence path")
+                day = timestamp.strftime("%Y-%m-%d")
+                daily = (gap_manifest.get("daily_aggtrades_archives") or {}).get(day) or {}
+                control = (gap_manifest.get("aggregate_trade_positive_controls") or {}).get(day) or {}
+                trade_evidence = entry.get("aggregate_trade_archive") or {}
+                if (
+                    daily.get("status") != "PARSED"
+                    or daily.get("checksum_verified") is not True
+                    or int(daily.get("positive_control_trade_count") or 0) <= 0
+                    or control.get("archive_positive_control_passed") is not True
+                    or trade_evidence.get("checksum_verified") is not True
+                    or trade_evidence.get("positive_control_passed") is not True
+                    or int(trade_evidence.get("trade_count", -1)) != 0
+                    or trade_evidence.get("archive_sha256") != daily.get("archive_sha256")
+                ):
+                    raise ValueError(f"{key} lacks checksum-verified no-trade archive and positive-control evidence")
+
+            details[symbol] = {
+                "observed_rows": int(len(index)),
+                "expected_rows": int(len(expected)),
+                "confirmed_no_trade_gaps": int(len(missing)),
+                "csv_sha256": csv_sha256,
+                "gap_manifest_sha256": hashlib.sha256(gap_path.read_bytes()).hexdigest(),
+            }
+        except Exception as exc:
+            blockers.append(f"{symbol}: {type(exc).__name__}: {exc}")
+
+    if set(missing_by_symbol) == set(SYMBOLS):
+        if not missing_by_symbol["ETHUSDT"].equals(missing_by_symbol["BTCUSDT"]):
+            blockers.append("ETHUSDT and BTCUSDT no-trade gap timestamps are not synchronized")
+
+    return {
+        "accepted": not blockers and set(details) == set(SYMBOLS),
+        "policy_version": EVENT_TIME_POLICY_VERSION,
+        "requested_start": start,
+        "requested_end_inclusive": end,
+        "symbols": details,
+        "blockers": blockers,
+    }
+
+
+def load_pair(
+    market: str, data_dir: Path, start: str | None = None, end: str | None = None,
+    allow_irregular: bool = False,
+) -> pd.DataFrame:
     parts = []
     for symbol, prefix in (("ETHUSDT", "eth"), ("BTCUSDT", "btc")):
         path = data_dir / "raw" / f"{market}_{symbol}_1h.csv"
@@ -604,10 +797,19 @@ def load_pair(market: str, data_dir: Path, start: str | None = None, end: str | 
     )
     missing = expected.difference(out.index)
     if len(missing):
-        raise RuntimeError(
-            f"Synchronized ETH/BTC {market} series has {len(missing)} missing hourly bars; "
-            f"first missing timestamps: {[str(x) for x in missing[:10]]}"
-        )
+        if market != "spot" or not allow_irregular:
+            raise RuntimeError(
+                f"Synchronized ETH/BTC {market} series has {len(missing)} missing hourly bars; "
+                f"first missing timestamps: {[str(x) for x in missing[:10]]}"
+            )
+        if start is None or end is None:
+            raise ValueError("Explicit start/end are required for Spot irregular-time acceptance")
+        evidence = validate_spot_event_time_evidence(data_dir, start, end)
+        if not evidence["accepted"]:
+            raise RuntimeError(
+                "Spot irregular-time series rejected by provenance/no-trade evidence gate: "
+                + "; ".join(evidence["blockers"])
+            )
     return out
 
 
@@ -883,6 +1085,46 @@ def regime_labels(df: pd.DataFrame, train: pd.DataFrame, periods_per_day: int) -
     return pd.Series(np.where(rv <= q1, "low", np.where(rv <= q2, "mid", "high")), index=df.index).where(rv.notna())
 
 
+
+def event_time_regime_labels(
+    df: pd.DataFrame,
+    train: pd.DataFrame,
+    lookback_days: int = 30,
+    observations_per_day: int = 24,
+) -> pd.Series:
+    """Label volatility regimes from trailing calendar-time realized spread variance."""
+    validate_event_time_frame(df)
+    min_observations = max(2, math.ceil(lookback_days * observations_per_day * 0.95))
+    relative_log_return = (
+        np.log(df["eth_open"].astype(float)).diff()
+        - np.log(df["btc_open"].astype(float)).diff()
+    )
+    squared_return = relative_log_return.pow(2)
+    elapsed = elapsed_seconds(df.index)
+    window = f"{lookback_days}D"
+    variance_sum = squared_return.rolling(
+        window, min_periods=min_observations
+    ).sum().shift(1)
+    elapsed_sum = elapsed.rolling(
+        window, min_periods=min_observations
+    ).sum().shift(1)
+    annualized_volatility = np.sqrt(
+        variance_sum / (elapsed_sum / SECONDS_PER_YEAR).replace(0, np.nan)
+    )
+    training_values = annualized_volatility.reindex(train.index).dropna()
+    if len(training_values) < 3:
+        return pd.Series(np.nan, index=df.index, dtype=object)
+    q1, q2 = training_values.quantile([1 / 3, 2 / 3]).to_numpy(dtype=float)
+    labels = np.where(
+        annualized_volatility <= q1,
+        "low",
+        np.where(annualized_volatility <= q2, "mid", "high"),
+    )
+    return pd.Series(labels, index=df.index, dtype=object).where(
+        annualized_volatility.notna()
+    )
+
+
 def benchmark_backtest(df: pd.DataFrame, sample_index: pd.DatetimeIndex,
                       initial_weights: tuple[float, float], rebalanced: bool,
                       fee_bps: float, slippage_bps: float, spread_bps: float,
@@ -1077,6 +1319,319 @@ def walk_forward(df: pd.DataFrame, market: str, interval: str, out_dir: Path,
                                     "assumption": assumption})
         if stress_rows:
             pd.DataFrame(stress_rows).to_csv(out_dir / f"{market}_{interval}_stress_scenarios.csv", index=False)
+
+
+
+def walk_forward_event_time(
+    df: pd.DataFrame,
+    market: str,
+    interval: str,
+    out_dir: Path,
+    fee_bps: float,
+    slippage_bps: float,
+    spread_bps: float,
+    borrow_bps_per_day: float = 0.0,
+    train_days: int = 730,
+    test_days: int = 90,
+    lookback_days: int = 30,
+    observations_per_day: int = 24,
+) -> dict:
+    """Run causal walk-forward strategy and benchmark tests on observed timestamps.
+
+    Each fold is liquidated at its final in-fold observed open. No price or candle
+    is inferred for a no-trade interval. Time-series unit-root diagnostics that
+    require equal spacing are explicitly skipped and labelled in the output.
+    """
+    validate_event_time_frame(df)
+    if interval not in {"1h", "1d"}:
+        raise ValueError("Event-time interval must be 1h or 1d")
+    if observations_per_day not in {1, 24}:
+        raise ValueError("observations_per_day must be 1 or 24")
+    if len(df) < 2:
+        raise ValueError("Event-time walk-forward requires at least two observations")
+
+    features = add_event_time_features(
+        df, lookback_days=lookback_days, observations_per_day=observations_per_day
+    )
+    fold_rows: list[dict] = []
+    regime_rows: list[dict] = []
+    diagnostic_rows: list[dict] = []
+    cost_rows: list[dict] = []
+    oos_rows: list[dict] = []
+    trade_rows: list[dict] = []
+    first_test = df.index.min() + pd.Timedelta(days=train_days)
+    min_train_observations = math.ceil(train_days * observations_per_day * 0.95)
+    test_frequency = f"{test_days}D"
+
+    for fold_no, test_start in enumerate(
+        pd.date_range(first_test, df.index.max(), freq=test_frequency), 1
+    ):
+        test_end = min(
+            test_start + pd.Timedelta(days=test_days),
+            df.index.max() + pd.Timedelta(hours=1),
+        )
+        train_start = test_start - pd.Timedelta(days=train_days)
+        train_mask = (df.index >= train_start) & (df.index < test_start)
+        test_mask = (df.index >= test_start) & (df.index < test_end)
+        train = df.loc[train_mask]
+        test_index = df.index[test_mask]
+        if len(train) < min_train_observations or len(test_index) < 2:
+            continue
+
+        train_elapsed = elapsed_seconds(train.index)
+        diagnostic_rows.append({
+            "market": market,
+            "interval": interval,
+            "fold": fold_no,
+            "diagnostic_status": "skipped_irregular_elapsed_time",
+            "train_start": str(train.index.min()),
+            "train_end": str(train.index.max()),
+            "train_observations": int(len(train)),
+            "minimum_train_observations": int(min_train_observations),
+            "train_max_elapsed_hours": float(train_elapsed.max() / 3600.0),
+            "reason": "ADF/KPSS/cointegration lag tests assume equally spaced observations",
+        })
+        regimes = event_time_regime_labels(
+            df, train, lookback_days=lookback_days,
+            observations_per_day=observations_per_day,
+        )
+
+        for variant, zkey, beta_key in (
+            ("fixed_1x1", "fixed_z", None),
+            ("rolling_hedge", "dynamic_z", "beta"),
+        ):
+            beta = (
+                pd.Series(1.0, index=df.index, dtype=float)
+                if beta_key is None else features[beta_key]
+            )
+            positions, trades = make_event_time_positions(
+                features[zkey],
+                beta,
+                test_start,
+                test_end,
+                entry=2.0,
+                exit_z=0.5,
+                stop=4.0,
+                max_hold=pd.Timedelta(days=7),
+            )
+            for multiplier in (1.0, 1.5, 2.0):
+                backtest = event_time_backtest(
+                    df, positions, beta, fee_bps, slippage_bps, spread_bps,
+                    multiplier, borrow_bps_per_day=borrow_bps_per_day,
+                )
+                sample = backtest.loc[test_mask].copy()
+                sample.iloc[0, sample.columns.get_loc("elapsed_seconds")] = max(
+                    0.0, (sample.index[0] - test_start).total_seconds()
+                )
+                stats = event_time_metrics(sample)
+                row = {
+                    "market": market,
+                    "interval": interval,
+                    "fold": fold_no,
+                    "test_start": str(test_start),
+                    "test_end": str(test_end),
+                    "last_observed_test_timestamp": str(test_index[-1]),
+                    "variant": variant,
+                    "cost_multiplier": multiplier,
+                    "metric_method": "continuous_time_elapsed",
+                    "event_time_policy_version": EVENT_TIME_POLICY_VERSION,
+                    "trade_count": int(len(trades)),
+                    "avg_holding_days": (
+                        float(np.mean([item["hold_days"] for item in trades]))
+                        if trades else np.nan
+                    ),
+                    **stats,
+                }
+                fold_rows.append(row)
+                cost_rows.append({
+                    key: row.get(key)
+                    for key in (
+                        "market", "interval", "fold", "variant", "cost_multiplier",
+                        "CAGR", "continuous_time_sharpe", "max_drawdown",
+                        "turnover_per_year", "metric_method",
+                    )
+                })
+
+                labels = regimes.reindex(sample.index)
+                for regime in ("low", "mid", "high"):
+                    selected = sample.loc[labels == regime]
+                    if selected.empty:
+                        continue
+                    try:
+                        regime_stats = event_time_metrics(selected)
+                    except ValueError:
+                        continue
+                    regime_rows.append({
+                        "market": market,
+                        "interval": interval,
+                        "fold": fold_no,
+                        "variant": variant,
+                        "cost_multiplier": multiplier,
+                        "regime": regime,
+                        "metric_method": "continuous_time_elapsed",
+                        **regime_stats,
+                    })
+
+                if multiplier == 1.0:
+                    for timestamp in sample.index:
+                        oos_rows.append({
+                            "timestamp": timestamp,
+                            "market": market,
+                            "interval": interval,
+                            "fold": fold_no,
+                            "variant": variant,
+                            "elapsed_seconds": sample.at[timestamp, "elapsed_seconds"],
+                            "net_return": sample.at[timestamp, "net_return"],
+                            "gross_return": sample.at[timestamp, "gross_return"],
+                            "cost": sample.at[timestamp, "cost"],
+                            "funding_pnl": sample.at[timestamp, "funding_pnl"],
+                            "borrow_cost": sample.at[timestamp, "borrow_cost"],
+                            "turnover": sample.at[timestamp, "turnover"],
+                            "position": sample.at[timestamp, "position"],
+                            "beta": beta.at[timestamp] if pd.notna(beta.at[timestamp]) else np.nan,
+                            "regime": labels.at[timestamp],
+                        })
+
+            for trade in trades:
+                trade_rows.append({
+                    "market": market,
+                    "interval": interval,
+                    "fold": fold_no,
+                    "variant": variant,
+                    "event_time_policy_version": EVENT_TIME_POLICY_VERSION,
+                    **trade,
+                })
+
+        benchmark_definitions = [
+            ("BTC_buy_hold", (0.0, 1.0), False),
+            ("ETH_buy_hold", (1.0, 0.0), False),
+            ("50_50_ETH_BTC_buy_hold", (0.5, 0.5), False),
+            ("50_50_ETH_BTC_rebalanced", (0.5, 0.5), True),
+            ("long_ETH_short_BTC_buy_hold", (0.5, -0.5), False),
+            ("no_trade", (0.0, 0.0), False),
+        ]
+        for name, weights, rebalanced in benchmark_definitions:
+            benchmark = event_time_benchmark_backtest(
+                df,
+                test_index,
+                weights,
+                rebalanced,
+                fee_bps,
+                slippage_bps,
+                spread_bps,
+                borrow_bps_per_day=(
+                    borrow_bps_per_day
+                    if name == "long_ETH_short_BTC_buy_hold" and market == "spot"
+                    else 0.0
+                ),
+            )
+            benchmark.iloc[0, benchmark.columns.get_loc("elapsed_seconds")] = max(
+                0.0, (test_index[0] - test_start).total_seconds()
+            )
+            fold_rows.append({
+                "market": market,
+                "interval": interval,
+                "fold": fold_no,
+                "test_start": str(test_start),
+                "test_end": str(test_end),
+                "last_observed_test_timestamp": str(test_index[-1]),
+                "variant": name,
+                "cost_multiplier": 1.0,
+                "metric_method": "continuous_time_elapsed",
+                "event_time_policy_version": EVENT_TIME_POLICY_VERSION,
+                **event_time_metrics(benchmark),
+            })
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    summary_frame = pd.DataFrame(fold_rows)
+    regime_frame = pd.DataFrame(regime_rows)
+    cost_frame = pd.DataFrame(cost_rows)
+    summary_frame.to_csv(out_dir / f"{market}_{interval}_oos_summary.csv", index=False)
+    regime_frame.to_csv(out_dir / f"{market}_{interval}_regime_summary.csv", index=False)
+    pd.DataFrame(diagnostic_rows).to_csv(
+        out_dir / f"{market}_{interval}_diagnostics.csv", index=False
+    )
+    cost_frame.to_csv(out_dir / f"{market}_{interval}_cost_sensitivity.csv", index=False)
+    pd.DataFrame(trade_rows).to_csv(
+        out_dir / f"{market}_{interval}_event_time_trades.csv", index=False
+    )
+
+    if not regime_frame.empty:
+        base = regime_frame[regime_frame["cost_multiplier"] == 1.0]
+        if not base.empty:
+            pivot = base.pivot_table(
+                index="regime", columns="variant",
+                values="continuous_time_sharpe", aggfunc="mean",
+            )
+            plt.figure(figsize=(9, 4))
+            pivot.plot(kind="bar", ax=plt.gca())
+            plt.title("Continuous-time Sharpe by trailing calendar-time volatility regime")
+            plt.tight_layout()
+            plt.savefig(out_dir / f"{market}_{interval}_volatility_regimes.png", dpi=150)
+            plt.close()
+    if not cost_frame.empty:
+        strategy_rows = cost_frame[
+            cost_frame["variant"].isin(["fixed_1x1", "rolling_hedge"])
+        ]
+        if not strategy_rows.empty:
+            pivot = strategy_rows.pivot_table(
+                index="cost_multiplier", columns="variant",
+                values="CAGR", aggfunc="mean",
+            )
+            plt.figure(figsize=(8, 4))
+            pivot.plot(marker="o", ax=plt.gca())
+            plt.title("Event-time CAGR versus transaction-cost multiplier")
+            plt.tight_layout()
+            plt.savefig(out_dir / f"{market}_{interval}_cost_sensitivity.png", dpi=150)
+            plt.close()
+
+    oos = pd.DataFrame(oos_rows)
+    if not oos.empty:
+        oos.to_csv(out_dir / f"{market}_{interval}_oos_returns.csv", index=False)
+        make_plots(df, features, oos, out_dir, market, interval)
+        stress_rows = []
+        for variant in ("fixed_1x1", "rolling_hedge"):
+            candidates = oos[
+                (oos["variant"] == variant) & (oos["position"] != 0)
+            ].sort_values("timestamp")
+            if candidates.empty:
+                continue
+            last = candidates.iloc[-1]
+            beta_last = float(last["beta"]) if pd.notna(last["beta"]) else 1.0
+            position_last = float(last["position"])
+            weight_eth = position_last / (1.0 + abs(beta_last))
+            weight_btc = -position_last * beta_last / (1.0 + abs(beta_last))
+            for scenario, (return_eth, return_btc, common_funding, assumption) in (
+                stress_scenarios_for_market(market).items()
+            ):
+                pnl = (
+                    weight_eth * return_eth + weight_btc * return_btc
+                    - (abs(weight_eth) + abs(weight_btc)) * common_funding
+                )
+                stress_rows.append({
+                    "market": market,
+                    "interval": interval,
+                    "variant": variant,
+                    "reference_timestamp": str(last["timestamp"]),
+                    "position": position_last,
+                    "beta": beta_last,
+                    "scenario": scenario,
+                    "one_shot_pnl_on_nav": pnl,
+                    "assumption": assumption,
+                })
+        if stress_rows:
+            pd.DataFrame(stress_rows).to_csv(
+                out_dir / f"{market}_{interval}_stress_scenarios.csv", index=False
+            )
+
+    return {
+        "market": market,
+        "interval": interval,
+        "event_time_policy_version": EVENT_TIME_POLICY_VERSION,
+        "folds": int(summary_frame["fold"].nunique()) if not summary_frame.empty else 0,
+        "summary_rows": int(len(summary_frame)),
+        "trade_rows": int(len(trade_rows)),
+    }
 
 
 def make_plots(df: pd.DataFrame, feats: dict, oos: pd.DataFrame, out_dir: Path, market: str, interval: str) -> None:
@@ -1920,6 +2475,19 @@ def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
             reconciliation_ok if reconcile_gaps else None
         ),
     )
+    spot_event_time_evidence = (
+        validate_spot_event_time_evidence(data_dir, start, end)
+        if reconcile_gaps else {
+            "accepted": False,
+            "policy_version": EVENT_TIME_POLICY_VERSION,
+            "blockers": ["Spot gap reconciliation was not requested"],
+        }
+    )
+    for spot_name in ("spot_ETHUSDT", "spot_BTCUSDT"):
+        input_states[spot_name] = bool(
+            input_states.get(spot_name, False)
+            and spot_event_time_evidence.get("accepted", False)
+        )
     research_scope_gate = evaluate_research_scope_gate(
         input_states,
         manifest_states,
@@ -1927,11 +2495,11 @@ def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
         spot_gap_reconciliation_complete=(
             reconciliation_ok if reconcile_gaps else None
         ),
-        # Confirmed no-trade intervals still require a separately implemented
-        # event-time/elapsed-time PnL and execution policy before Spot acceptance.
-        spot_time_policy_accepted=False,
+        spot_time_policy_accepted=bool(spot_event_time_evidence.get("accepted", False)),
     )
     summary["six_input_audit_gate"] = six_input_audit
+    summary["spot_event_time_evidence"] = spot_event_time_evidence
+    summary["spot_event_time_policy_version"] = EVENT_TIME_POLICY_VERSION
     summary["research_scope_gate"] = research_scope_gate
     summary["empirical_gate"] = research_scope_gate
     summary["complete"] = bool(research_scope_gate["allowed"])
@@ -2019,8 +2587,30 @@ def main() -> None:
     markets = ("spot", "um") if args.market == "both" else (args.market,)
     for market in markets:
         for symbol in SYMBOLS:
-            download_klines(market, symbol, args.start, args.end, args.data_dir)
-        pair = load_pair(market, args.data_dir, args.start, args.end)
+            download_klines(
+                market, symbol, args.start, args.end, args.data_dir,
+                allow_confirmed_no_trade_gaps=(market == "spot"),
+            )
+        pair = load_pair(
+            market, args.data_dir, args.start, args.end,
+            allow_irregular=(market == "spot"),
+        )
+        spot_event_time_evidence = None
+        if market == "spot":
+            expected_spot = pd.date_range(
+                pd.Timestamp(args.start, tz="UTC"),
+                pd.Timestamp(args.end, tz="UTC") + pd.Timedelta(days=1) - pd.Timedelta(hours=1),
+                freq="h",
+            )
+            if not pair.index.equals(expected_spot):
+                spot_event_time_evidence = validate_spot_event_time_evidence(
+                    args.data_dir, args.start, args.end
+                )
+                if not spot_event_time_evidence["accepted"]:
+                    raise RuntimeError(
+                        "Spot event-time evidence rejected: "
+                        + "; ".join(spot_event_time_evidence["blockers"])
+                    )
         if market == "um":
             for symbol in SYMBOLS:
                 download_funding(symbol, args.start, args.end, args.data_dir)
@@ -2061,9 +2651,35 @@ def main() -> None:
         args.output_dir.mkdir(parents=True, exist_ok=True)
         (args.output_dir / f"{market}_data_quality.json").write_text(json.dumps(quality, indent=2))
         borrow = args.spot_borrow_bps_per_day if market == "spot" else 0.0
-        walk_forward(pair, market, "1h", args.output_dir, fee, args.slippage_bps, args.spread_bps, f_eth, f_btc, borrow)
-        daily = pair[["eth_open", "btc_open", "eth_close", "btc_close"]].resample("1D").agg({"eth_open": "first", "btc_open": "first", "eth_close": "last", "btc_close": "last"}).dropna()
-        walk_forward(daily, market, "1d", args.output_dir, fee, args.slippage_bps, args.spread_bps, None, None, borrow)
+        hourly_irregular = not pair.index.equals(pair_expected)
+        if market == "spot" and hourly_irregular:
+            walk_forward_event_time(
+                pair, market, "1h", args.output_dir, fee, args.slippage_bps,
+                args.spread_bps, borrow_bps_per_day=borrow,
+                observations_per_day=24,
+            )
+        else:
+            walk_forward(
+                pair, market, "1h", args.output_dir, fee, args.slippage_bps,
+                args.spread_bps, f_eth, f_btc, borrow,
+            )
+        daily = pair[["eth_open", "btc_open", "eth_close", "btc_close"]].resample("1D").agg({
+            "eth_open": "first", "btc_open": "first",
+            "eth_close": "last", "btc_close": "last",
+        }).dropna()
+        daily_expected = pd.date_range(daily.index.min().normalize(), daily.index.max().normalize(), freq="D")
+        daily_irregular = not daily.index.equals(daily_expected)
+        if market == "spot" and daily_irregular:
+            walk_forward_event_time(
+                daily, market, "1d", args.output_dir, fee, args.slippage_bps,
+                args.spread_bps, borrow_bps_per_day=borrow,
+                observations_per_day=1,
+            )
+        else:
+            walk_forward(
+                daily, market, "1d", args.output_dir, fee, args.slippage_bps,
+                args.spread_bps, None, None, borrow,
+            )
     manifest = {
         "start": args.start, "end": args.end, "markets": markets,
         "spot_fee_bps_per_leg_per_side": args.spot_fee_bps,
@@ -2071,10 +2687,17 @@ def main() -> None:
         "slippage_bps_per_leg_per_side": args.slippage_bps,
         "spread_bps_per_leg_per_side": args.spread_bps,
         "spot_borrow_bps_per_day": args.spot_borrow_bps_per_day,
+        "spot_event_time_policy_version": EVENT_TIME_POLICY_VERSION,
+        "spot_event_time_evidence": (
+            spot_event_time_evidence if "spot_event_time_evidence" in locals() else None
+        ),
         "entry_z": 2.0, "exit_z": 0.5, "stop_z": 4.0,
         "hourly_lookback_bars": 720, "daily_lookback_bars": 30,
         "train_days": 730, "test_days": 90, "max_hold_days": 7,
-        "annualization": {"1h": 8760, "1d": 365},
+        "annualization": {
+            "1h": 8760, "1d": 365,
+            "event_time": "continuous-time elapsed-seconds estimator",
+        },
         "risk_free_rate_annual": 0.0,
         "note": "Default trading costs are scenario assumptions; verify actual account fees and borrow costs.",
     }

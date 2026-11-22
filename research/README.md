@@ -72,3 +72,12 @@ The metric audit corrections were merged in `305bf5c70a14d8a8167dbbd4a22ec95f775
 - Average gross exposure is calculated from the weights held during the return interval, aligned with the lagged weights used for PnL.
 - Funding stress is reported only for USDⓈ-M results. The hypothetical scenario assumes both contracts receive a +10 bp funding rate at each of three settlements (+0.30% per leg in total); it is not observed funding data.
 - The Sharpe percentile bootstrap remains at 150 replications. Its 95% interval is explicitly marked **exploratory**, with limited quantile precision; this count was retained rather than silently treated as high-precision inference.
+
+
+## Irregular Spot observations and event-time backtests
+
+The Spot pipeline may contain missing hourly candles only when both ETHUSDT and BTCUSDT have synchronized, provenance-complete gap inventories and every missing hour is classified as confirmed_no_trade_interval using checksum-verified daily aggregate-trade archives plus same-day positive controls. validate_spot_event_time_evidence binds the exact price CSV checksum to both manifests and fails closed on any mismatch, trade evidence, unverified archive, unsynchronized gap or missing manifest. It never creates candles or forward-fills prices.
+
+When the validated Spot hourly grid is irregular, walk_forward_event_time uses calendar-time rolling features, next-observed-open execution, actual elapsed holding and borrow costs, event-time benchmarks, and continuous-time annualization. Daily Spot bars also use this engine if an entire UTC day is absent. Equal-spacing ADF/KPSS/cointegration lag diagnostics are skipped and labelled for irregular samples. The output metric columns continuous_time_sharpe and continuous_time_sortino are intentionally distinct from the regular-period Sharpe/Sortino fields; do not compare them as if they were calculated by the same estimator.
+
+This event-time acceptance applies only to Spot price observations. It does not establish USD-M funding completeness or permit a combined/perpetual backtest. The default Spot short-borrow charge remains an illustrative assumption unless a feasible historical borrow source is independently verified.

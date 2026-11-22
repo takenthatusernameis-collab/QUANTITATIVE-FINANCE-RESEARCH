@@ -1,9 +1,8 @@
-"""Elapsed-time accounting for synchronized, irregularly observed hourly bars.
+"""Elapsed-time accounting for synchronized, irregularly observed UTC observations.
 
-This module deliberately does not manufacture missing candles. Positions can
-change only at observed timestamps; returns and carrying costs use the actual
-elapsed time between those observations. The engine is a research primitive,
-not an acceptance flag for the production walk-forward study.
+No missing candle is manufactured. Signals and executions occur only at observed
+timestamps; returns, funding, borrow and annualization use actual elapsed time.
+The production pipeline separately requires provenance-complete no-trade evidence.
 """
 from __future__ import annotations
 
@@ -15,7 +14,7 @@ import pandas as pd
 
 SECONDS_PER_DAY = 86_400.0
 SECONDS_PER_YEAR = 365.25 * SECONDS_PER_DAY
-EVENT_TIME_POLICY_VERSION = "observed-hourly-elapsed-v1"
+EVENT_TIME_POLICY_VERSION = "observed-utc-elapsed-v2"
 
 
 def _validate_datetime_index(index: pd.Index, *, require_hourly: bool = False) -> None:
@@ -59,6 +58,7 @@ def add_event_time_features(
     frame: pd.DataFrame,
     lookback_days: int = 30,
     min_observation_fraction: float = 0.95,
+    observations_per_day: int = 24,
 ) -> dict[str, pd.Series]:
     """Create causal, calendar-time rolling spread features on observed bars only."""
     validate_event_time_frame(frame)
@@ -66,7 +66,11 @@ def add_event_time_features(
         raise ValueError("lookback_days must be positive")
     if not 0 < min_observation_fraction <= 1:
         raise ValueError("min_observation_fraction must be in (0, 1]")
-    min_observations = max(2, math.ceil(lookback_days * 24 * min_observation_fraction))
+    if observations_per_day < 1:
+        raise ValueError("observations_per_day must be positive")
+    min_observations = max(
+        2, math.ceil(lookback_days * observations_per_day * min_observation_fraction)
+    )
     window = f"{lookback_days}D"
 
     y = np.log(frame["eth_close"].astype(float))
@@ -323,43 +327,173 @@ def event_time_backtest(
     }, index=index)
 
 
+def event_time_benchmark_backtest(
+    frame: pd.DataFrame,
+    sample_index: pd.DatetimeIndex,
+    initial_weights: tuple[float, float],
+    rebalanced: bool,
+    fee_bps: float,
+    slippage_bps: float,
+    spread_bps: float,
+    funding_eth: pd.Series | None = None,
+    funding_btc: pd.Series | None = None,
+    borrow_bps_per_day: float = 0.0,
+) -> pd.DataFrame:
+    """Backtest a benchmark on observed timestamps with elapsed-time carrying costs."""
+    validate_event_time_frame(frame)
+    index = pd.DatetimeIndex(sample_index)
+    if index.empty:
+        return pd.DataFrame(index=index)
+    _validate_datetime_index(index, require_hourly=True)
+    if index.has_duplicates or not index.is_monotonic_increasing:
+        raise ValueError("Benchmark sample timestamps must be unique and sorted")
+    if not index.isin(frame.index).all():
+        raise ValueError("Benchmark sample timestamps must be present in the price frame")
+    weights = tuple(float(value) for value in initial_weights)
+    if len(weights) != 2 or not all(np.isfinite(value) for value in weights):
+        raise ValueError("Benchmark weights must be two finite values")
+    parameters = (fee_bps, slippage_bps, spread_bps, borrow_bps_per_day)
+    if not all(np.isfinite(value) and value >= 0 for value in parameters):
+        raise ValueError("Benchmark cost and borrow parameters must be finite and non-negative")
+
+    def events_in_sample(events: pd.Series | None) -> pd.Series | None:
+        if events is None or events.empty:
+            return None
+        if not isinstance(events.index, pd.DatetimeIndex):
+            raise TypeError("Funding events must use a DatetimeIndex")
+        if events.index.tz is None or str(events.index.tz) != "UTC":
+            raise ValueError("Funding event timestamps must be timezone-aware UTC")
+        if events.index.has_duplicates or not events.index.is_monotonic_increasing:
+            raise ValueError("Funding events must be unique and sorted")
+        values = pd.to_numeric(events, errors="coerce").to_numpy(dtype=float)
+        if not np.isfinite(values).all():
+            raise ValueError("Funding rates must be finite")
+        return events.loc[(events.index >= index[0]) & (events.index <= index[-1])]
+
+    eth_funding = _funding_rates_at_observations(events_in_sample(funding_eth), index)
+    btc_funding = _funding_rates_at_observations(events_in_sample(funding_btc), index)
+    prices = frame.loc[index]
+    eth_returns = prices["eth_open"].astype(float).pct_change().fillna(0.0)
+    btc_returns = prices["btc_open"].astype(float).pct_change().fillna(0.0)
+    elapsed = elapsed_seconds(index)
+    one_way_cost = (fee_bps + slippage_bps + spread_bps) / 10_000.0
+    previous_eth = previous_btc = 0.0
+    rows = []
+
+    for ordinal, timestamp in enumerate(index):
+        gross = funding_pnl = borrow_cost = 0.0
+        is_last = ordinal == len(index) - 1
+        if ordinal == 0:
+            if is_last:
+                target_eth = target_btc = 0.0
+                turnover = 2.0 * (abs(weights[0]) + abs(weights[1]))
+            else:
+                target_eth, target_btc = weights
+                turnover = abs(target_eth) + abs(target_btc)
+        else:
+            re = float(eth_returns.loc[timestamp])
+            rb = float(btc_returns.loc[timestamp])
+            gross = previous_eth * re + previous_btc * rb
+            fe = float(eth_funding.loc[timestamp])
+            fb = float(btc_funding.loc[timestamp])
+            funding_pnl = -(previous_eth * fe + previous_btc * fb)
+            short_notional = max(-previous_eth, 0.0) + max(-previous_btc, 0.0)
+            borrow_cost = (
+                short_notional * borrow_bps_per_day / 10_000.0
+                * float(elapsed.loc[timestamp]) / SECONDS_PER_DAY
+            )
+            pretrade_nav = 1.0 + gross + funding_pnl - borrow_cost
+            if pretrade_nav <= 0:
+                raise RuntimeError(
+                    "Event-time benchmark NAV became non-positive; benchmark is not margin-realistic"
+                )
+            drift_eth = previous_eth * (1.0 + re) / pretrade_nav
+            drift_btc = previous_btc * (1.0 + rb) / pretrade_nav
+            if is_last:
+                target_eth = target_btc = 0.0
+                turnover = abs(drift_eth) + abs(drift_btc)
+            elif rebalanced:
+                target_eth, target_btc = weights
+                turnover = abs(target_eth - drift_eth) + abs(target_btc - drift_btc)
+            else:
+                target_eth, target_btc = drift_eth, drift_btc
+                turnover = 0.0
+
+        cost = turnover * one_way_cost
+        net = gross + funding_pnl - borrow_cost - cost
+        rows.append({
+            "elapsed_seconds": float(elapsed.loc[timestamp]),
+            "gross_return": gross,
+            "cost": cost,
+            "funding_pnl": funding_pnl,
+            "borrow_cost": borrow_cost,
+            "net_return": net,
+            "turnover": turnover,
+            "position": 1.0 if target_eth != 0.0 or target_btc != 0.0 else 0.0,
+            "w_eth": target_eth,
+            "w_btc": target_btc,
+            "held_w_eth": previous_eth,
+            "held_w_btc": previous_btc,
+        })
+        previous_eth, previous_btc = target_eth, target_btc
+
+    return pd.DataFrame(rows, index=index)
+
+
 def event_time_metrics(backtest: pd.DataFrame) -> dict[str, float | int]:
     """Annualize log-return drift and variance by elapsed calendar time.
 
-    This is a continuous-time estimator, not the fixed-period Sharpe formula
-    used by the regular hourly pipeline. The first zero-duration row is
-    excluded from drift/variance estimation.
+    Zero-duration entry/exit costs affect compounded return, CAGR, drawdown and
+    turnover, but are excluded from elapsed-time volatility estimation.
     """
     required = {"elapsed_seconds", "net_return", "turnover"}
     if not required.issubset(backtest.columns):
-        raise ValueError(f"Missing event-time metric columns: {sorted(required - set(backtest.columns))}")
+        raise ValueError(
+            f"Missing event-time metric columns: {sorted(required - set(backtest.columns))}"
+        )
     elapsed = pd.to_numeric(backtest["elapsed_seconds"], errors="coerce").to_numpy(dtype=float)
     returns = pd.to_numeric(backtest["net_return"], errors="coerce").to_numpy(dtype=float)
     turnover = pd.to_numeric(backtest["turnover"], errors="coerce").to_numpy(dtype=float)
-    mask = np.isfinite(elapsed) & np.isfinite(returns) & np.isfinite(turnover) & (elapsed > 0)
-    if not mask.any():
-        raise ValueError("At least one positive-duration observed return interval is required")
-    dt_years = elapsed[mask] / SECONDS_PER_YEAR
-    interval_returns = returns[mask]
-    if (interval_returns <= -1.0).any():
+    if not (
+        np.isfinite(elapsed).all()
+        and np.isfinite(returns).all()
+        and np.isfinite(turnover).all()
+    ):
+        raise ValueError("Event-time metrics require finite elapsed time, returns and turnover")
+    if (elapsed < 0).any():
+        raise ValueError("Elapsed durations cannot be negative")
+    if (returns <= -1.0).any():
         raise ValueError("Net return at or below -100% is not admissible")
-    log_returns = np.log1p(interval_returns)
+
+    positive_duration = elapsed > 0
+    if not positive_duration.any():
+        raise ValueError("At least one positive-duration observed return interval is required")
+    dt_years = elapsed[positive_duration] / SECONDS_PER_YEAR
+    positive_log_returns = np.log1p(returns[positive_duration])
+    all_log_returns = np.log1p(returns)
     total_years = float(dt_years.sum())
     if total_years <= 0:
         raise ValueError("Total elapsed time must be positive")
-    annual_log_return = float(log_returns.sum() / total_years)
-    residuals = log_returns - annual_log_return * dt_years
+
+    annual_log_return = float(all_log_returns.sum() / total_years)
+    residuals = positive_log_returns - annual_log_return * dt_years
     variance_rate = float(np.square(residuals).sum() / total_years)
     annualized_volatility = math.sqrt(max(variance_rate, 0.0))
-    downside_rate = float(np.square(np.minimum(log_returns, 0.0)).sum() / total_years)
+    downside_rate = float(
+        np.square(np.minimum(positive_log_returns, 0.0)).sum() / total_years
+    )
     downside_volatility = math.sqrt(max(downside_rate, 0.0))
-    nav = np.concatenate(([1.0], np.cumprod(1.0 + interval_returns)))
+
+    nav = np.concatenate(([1.0], np.cumprod(1.0 + returns)))
     drawdown = nav / np.maximum.accumulate(nav) - 1.0
-    return {
-        "observations": int(mask.sum()),
+    total_return = float(np.expm1(all_log_returns.sum()))
+    cagr = float(np.expm1(annual_log_return))
+    result: dict[str, float | int] = {
+        "observations": int(positive_duration.sum()),
         "elapsed_years": total_years,
-        "total_return": float(np.expm1(log_returns.sum())),
-        "CAGR": float(np.expm1(annual_log_return)),
+        "elapsed_days": float(total_years * 365.25),
+        "total_return": total_return,
+        "CAGR": cagr,
         "annual_log_return": annual_log_return,
         "annualized_volatility": annualized_volatility,
         "continuous_time_sharpe": (
@@ -371,5 +505,22 @@ def event_time_metrics(backtest: pd.DataFrame) -> dict[str, float | int]:
             if downside_volatility > 0 else float("nan")
         ),
         "max_drawdown": float(drawdown.min()),
-        "turnover_per_year": float(turnover[mask].sum() / total_years),
+        "Calmar": (
+            float(cagr / abs(drawdown.min()))
+            if drawdown.min() < 0 else float("nan")
+        ),
+        "turnover_per_year": float(turnover.sum() / total_years),
     }
+    if {"held_w_eth", "held_w_btc"}.issubset(backtest.columns):
+        eth_weights = pd.to_numeric(backtest["held_w_eth"], errors="coerce").to_numpy(dtype=float)
+        btc_weights = pd.to_numeric(backtest["held_w_btc"], errors="coerce").to_numpy(dtype=float)
+        gross_exposure = np.abs(eth_weights) + np.abs(btc_weights)
+        if np.isfinite(gross_exposure).all():
+            duration = elapsed[positive_duration]
+            result["avg_gross_exposure"] = float(
+                np.sum(gross_exposure[positive_duration] * duration) / duration.sum()
+            )
+            result["time_in_market"] = float(
+                duration[gross_exposure[positive_duration] > 0].sum() / duration.sum()
+            )
+    return result

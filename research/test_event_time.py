@@ -10,6 +10,7 @@ from event_time import (
     add_event_time_features,
     elapsed_seconds,
     event_time_backtest,
+    event_time_benchmark_backtest,
     event_time_metrics,
     make_event_time_positions,
     validate_event_time_frame,
@@ -185,6 +186,46 @@ class EventTimeAccountingTests(unittest.TestCase):
         naive = pd.date_range("2026-01-01", periods=2, freq="h")
         with self.assertRaisesRegex(ValueError, "timezone-aware UTC"):
             elapsed_seconds(naive)
+
+
+    def test_event_time_benchmark_uses_elapsed_borrow_and_funding(self):
+        index = pd.to_datetime([
+            "2026-01-01T00:00:00Z",
+            "2026-01-01T06:00:00Z",
+            "2026-01-01T12:00:00Z",
+        ])
+        frame = make_frame(index)
+        funding_eth = pd.Series([0.001], index=pd.to_datetime(["2026-01-01T09:00:00Z"]))
+        funding_btc = pd.Series([0.002], index=pd.to_datetime(["2026-01-01T09:00:00Z"]))
+        result = event_time_benchmark_backtest(
+            frame, index, (0.5, -0.5), False,
+            fee_bps=10, slippage_bps=0, spread_bps=0,
+            funding_eth=funding_eth, funding_btc=funding_btc,
+            borrow_bps_per_day=100,
+        )
+        self.assertEqual(result["elapsed_seconds"].tolist(), [0.0, 21600.0, 21600.0])
+        self.assertAlmostEqual(result.loc[index[1], "borrow_cost"], 0.00125)
+        self.assertAlmostEqual(result.loc[index[2], "borrow_cost"], 0.00125)
+        self.assertAlmostEqual(result.loc[index[2], "funding_pnl"], 0.0005)
+        self.assertAlmostEqual(result.loc[index[0], "cost"], 0.001)
+        stats = event_time_metrics(result)
+        expected = np.prod(1.0 + result["net_return"].to_numpy()) - 1.0
+        self.assertAlmostEqual(stats["total_return"], expected)
+        self.assertLess(stats["total_return"], 0.0)
+
+    def test_event_time_metrics_include_zero_duration_entry_cost(self):
+        sample = pd.DataFrame({
+            "elapsed_seconds": [0.0, 3600.0],
+            "net_return": [-0.01, 0.0],
+            "turnover": [1.0, 0.0],
+        })
+        stats = event_time_metrics(sample)
+        elapsed_years = 3600.0 / SECONDS_PER_YEAR
+        self.assertAlmostEqual(stats["total_return"], -0.01)
+        self.assertAlmostEqual(
+            stats["CAGR"], np.expm1(np.log(0.99) / elapsed_years)
+        )
+        self.assertAlmostEqual(stats["turnover_per_year"], 1.0 / elapsed_years)
 
 
 if __name__ == "__main__":

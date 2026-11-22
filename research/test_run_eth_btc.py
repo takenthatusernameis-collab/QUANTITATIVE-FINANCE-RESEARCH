@@ -1,3 +1,4 @@
+import hashlib
 import io
 import json
 import sys
@@ -39,6 +40,94 @@ def zip_csv(csv_text, filename="sample.csv"):
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
         archive.writestr(filename, csv_text)
     return buffer.getvalue()
+
+
+def write_spot_event_time_fixture(root: Path, start: str = "2024-01-01", end: str = "2024-01-01"):
+    expected = pd.date_range(
+        pd.Timestamp(start, tz="UTC"),
+        pd.Timestamp(end, tz="UTC") + pd.Timedelta(days=1) - pd.Timedelta(hours=1),
+        freq="h",
+    )
+    missing = expected[5]
+    archive_sha = hashlib.sha256(b"checksum-verified daily aggregate trades").hexdigest()
+    for symbol in ("ETHUSDT", "BTCUSDT"):
+        index = expected.delete(5)
+        frame = pd.DataFrame({
+            "timestamp": index,
+            "open": 100.0,
+            "high": 101.0,
+            "low": 99.0,
+            "close": 100.5,
+            "volume": 10.0,
+        })
+        csv_path = root / "raw" / f"spot_{symbol}_1h.csv"
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        frame.to_csv(csv_path, index=False)
+        csv_sha = hashlib.sha256(csv_path.read_bytes()).hexdigest()
+        monthly_archive = [{
+            "month": "2024-01",
+            "url": "https://data.binance.vision/test.zip",
+            "status": "downloaded",
+            "checksum_verified": True,
+        }]
+        quality = research.hourly_quality(index, start, end, monthly_archive)
+        archive_manifest = {
+            "market": "spot",
+            "symbol": symbol,
+            "requested_start": start,
+            "requested_end_inclusive": end,
+            "archives": monthly_archive,
+            "missing_archive_months": [],
+            "parse_errors": [],
+            "data_quality": quality,
+            "consolidated_csv_sha256": csv_sha,
+            "status": "incomplete",
+        }
+        archive_path = root / "raw" / f"spot_{symbol}_archive_manifest.json"
+        archive_path.write_text(json.dumps(archive_manifest, indent=2))
+        gap_entry = {
+            "timestamp": str(missing),
+            "gap_day": missing.strftime("%Y-%m-%d"),
+            "classification": "confirmed_no_trade_interval",
+            "agg_trades_found": False,
+            "agg_trades_request_succeeded": True,
+            "positive_control_passed": True,
+            "aggregate_trade_archive": {
+                "archive_sha256": archive_sha,
+                "checksum_verified": True,
+                "positive_control_passed": True,
+                "trade_count": 0,
+            },
+        }
+        gap_manifest = {
+            "market": "spot",
+            "symbol": symbol,
+            "requested_start": start,
+            "requested_end_inclusive": end,
+            "source_csv_sha256": csv_sha,
+            "monthly_archive_quality": quality,
+            "daily_aggtrades_archives": {
+                missing.strftime("%Y-%m-%d"): {
+                    "status": "PARSED",
+                    "archive_sha256": archive_sha,
+                    "checksum_verified": True,
+                    "positive_control_trade_count": 1,
+                }
+            },
+            "aggregate_trade_positive_controls": {
+                missing.strftime("%Y-%m-%d"): {
+                    "archive_positive_control_passed": True,
+                }
+            },
+            "gaps": [gap_entry],
+            "gap_count": 1,
+            "reconciliation_complete": True,
+        }
+        gap_path = root / "raw" / f"spot_{symbol}_gap_reconciliation.json"
+        gap_path.write_text(json.dumps(gap_manifest, indent=2))
+    return missing
+
+
 
 
 class ResearchPipelineTests(unittest.TestCase):
@@ -742,6 +831,80 @@ class ResearchPipelineTests(unittest.TestCase):
         result = research.metrics(self.metric_frame([0.01, -0.01, 0.0]), 1)
         self.assertEqual(result["Sharpe_CI_replications"], 150)
         self.assertIn("exploratory", result["Sharpe_CI_interpretation"])
+
+
+    def test_spot_pair_accepts_only_synchronized_checksum_proven_no_trade_gaps(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            missing = write_spot_event_time_fixture(root)
+            with self.assertRaisesRegex(RuntimeError, "missing hourly bars"):
+                research.load_pair("spot", root, "2024-01-01", "2024-01-01")
+            pair = research.load_pair(
+                "spot", root, "2024-01-01", "2024-01-01", allow_irregular=True
+            )
+            self.assertEqual(len(pair), 23)
+            self.assertNotIn(missing, pair.index)
+            self.assertEqual(
+                pair.index.to_series().diff().dropna().max(),
+                pd.Timedelta(hours=2),
+            )
+            evidence = research.validate_spot_event_time_evidence(
+                root, "2024-01-01", "2024-01-01"
+            )
+            self.assertTrue(evidence["accepted"])
+            self.assertEqual(evidence["symbols"]["ETHUSDT"]["confirmed_no_trade_gaps"], 1)
+
+    def test_spot_event_time_gate_rejects_positive_trade_count_or_checksum_mismatch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_spot_event_time_fixture(root)
+            gap_path = root / "raw" / "spot_ETHUSDT_gap_reconciliation.json"
+            gap = json.loads(gap_path.read_text())
+            gap["gaps"][0]["aggregate_trade_archive"]["trade_count"] = 1
+            gap_path.write_text(json.dumps(gap, indent=2))
+            result = research.validate_spot_event_time_evidence(
+                root, "2024-01-01", "2024-01-01"
+            )
+            self.assertFalse(result["accepted"])
+            self.assertTrue(any("no-trade archive" in item for item in result["blockers"]))
+
+    def test_event_time_walk_forward_integrates_strategy_benchmarks_and_elapsed_metrics(self):
+        rng = np.random.default_rng(41)
+        index = pd.date_range("2024-01-01", periods=24 * 45, freq="h", tz="UTC")
+        index = index.delete([100, 101])
+        btc_log = np.log(50_000.0) + np.cumsum(rng.normal(0.0, 0.001, len(index)))
+        spread = np.zeros(len(index))
+        noise = rng.normal(0.0, 0.002, len(index))
+        for i in range(1, len(index)):
+            spread[i] = 0.97 * spread[i - 1] + noise[i]
+        btc = np.exp(btc_log)
+        eth = np.exp(btc_log + np.log(0.07) + spread)
+        frame = pd.DataFrame({
+            "eth_open": eth, "btc_open": btc,
+            "eth_close": eth, "btc_close": btc,
+        }, index=index)
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+            research, "make_plots"
+        ), patch.object(research.plt, "savefig"):
+            result = research.walk_forward_event_time(
+                frame, "spot", "1h", Path(directory),
+                fee_bps=1, slippage_bps=0, spread_bps=0,
+                train_days=20, test_days=10, lookback_days=5,
+                observations_per_day=24,
+            )
+            summary = pd.read_csv(Path(directory) / "spot_1h_oos_summary.csv")
+            diagnostics = pd.read_csv(Path(directory) / "spot_1h_diagnostics.csv")
+            self.assertGreater(result["folds"], 0)
+            self.assertIn("BTC_buy_hold", set(summary["variant"]))
+            self.assertIn("rolling_hedge", set(summary["variant"]))
+            self.assertIn("continuous_time_sharpe", summary.columns)
+            self.assertTrue((summary["metric_method"] == "continuous_time_elapsed").all())
+            self.assertTrue(
+                (diagnostics["diagnostic_status"] == "skipped_irregular_elapsed_time").all()
+            )
+            self.assertTrue(
+                (Path(directory) / "spot_1h_event_time_trades.csv").is_file()
+            )
 
 
 if __name__ == "__main__":
