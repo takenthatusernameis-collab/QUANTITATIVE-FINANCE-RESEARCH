@@ -465,10 +465,10 @@ class ResearchPipelineTests(unittest.TestCase):
     def test_funding_ingestion_uses_checksum_verified_archive_and_fails_closed_on_semantics(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            csv_text = (
-                "calc_time,funding_interval_hours,last_funding_rate\\n"
-                "1704067200000,8,0.0001\\n"
-            )
+            csv_text = "\n".join([
+                "calc_time,funding_interval_hours,last_funding_rate",
+                "1704067200000,8,0.0001",
+            ]) + "\n"
             payload = zip_csv(csv_text, "ETHUSDT-fundingRate-2024-01.csv")
             with patch.object(
                 research, "_download_archive",
