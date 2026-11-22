@@ -1,6 +1,6 @@
 # Active Task: Repair ETH/BTC Data Ingestion and Validate No-Trade Intervals
 
-**Status:** In progress — Spot NO-GO complete; funding gate unaccepted; Binance REST blocked; MEXC history limited to ~540 days; Bitget web download under investigation  
+**Status:** In progress — P1 cache save/restore verified; Spot NO-GO complete; funding gate unaccepted; Binance REST blocked; MEXC history limited to ~540 days; independent funding-source work continues  
 **Updated:** 2026-11-22
 **Priority:** High  
 **Type:** Data-source resilience, parser correctness, missing-observation policy, and reproducible audit  
@@ -126,19 +126,33 @@ Design/acceptance requirements:
 8. The current GitHub connector lacks direct workflow-dispatch capability. The warm workflow can run autonomously via its trusted schedule and retain `workflow_dispatch` as owner fallback; do not claim ChatGPT can activate it on demand until a direct or separately security-reviewed indirect route is verified end to end.
 
 
-## P1 trusted archive-cache warm-up implementation — 2026-11-22
+## P1 trusted archive-cache warm-up implementation — verified 2026-11-22
 
-Implementation is in [`.github/workflows/eth-btc-cache-warm.yml`](../.github/workflows/eth-btc-cache-warm.yml), with cache-key compatibility and security regression tests in `research/test_workflow_runtime.py`.
+Implementation is in [`.github/workflows/eth-btc-cache-warm.yml`](../.github/workflows/eth-btc-cache-warm.yml), merged to `main` by [PR #4](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/pull/4), commit [289be6e](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/289be6e6f4a229b209cea41b3101756f5a1b88f5).
 
-- Triggers: weekly trusted schedule, `workflow_dispatch`, and a narrow `main`-only `push` path for the warmer, research ingestion code and pinned requirements. The push path is justified to verify the first cache save immediately after the workflow reaches the default branch; it does not run for PR branches.
-- The job is explicitly restricted to `refs/heads/main`, checks out `main` with persisted credentials disabled, uses no secrets, and has no `issue_comment` or `workflow_run` trigger.
+### Implementation and CI
+
+- Triggers: weekly trusted schedule, `workflow_dispatch`, and a narrow `main`-only `push` path for the warmer, ingestion code and pinned requirements. The push path provides immediate post-merge validation; it does not run for PR branches.
+- The job is restricted to `refs/heads/main`, checks out `main` with persisted credentials disabled, uses no secrets, and has no `issue_comment` or `workflow_run` cache-write trigger.
 - The pilot is fixed to 2024-01-01 through 2024-01-31 and invokes only `--market both --audit-only`, without `--reconcile-spot-gaps`. Exit code 2 is recorded as the expected fail-closed research-gate result for this no-reconciliation audit; it is not treated as empirical success.
-- It restores the shared `data/cache/` path, requires exactly six January archive manifests with verified SHA-256 checksums, then saves a unique run/attempt cache key only after that validation. It uses the dedicated cache restore/save actions so an incomplete pilot cannot publish a partial cache snapshot.
-- Research jobs now use unique per-run primary keys and restore trusted warm-cache prefixes before older research/legacy prefixes. This prevents a stale immutable date/market exact-key cache from shadowing a newer warm cache. Low-trust issue-comment runs retain GitHub's read-only cache default; no `cache-mode: write` or `write-only` override is used.
+- It restores the shared `data/cache/` path, requires exactly six January archive manifests with verified SHA-256 checksums, then saves a unique run/attempt cache key only after validation. Dedicated restore/save actions prevent an incomplete pilot from publishing a partial cache snapshot.
+- Research jobs use unique per-run primary keys and restore trusted warm-cache prefixes before older research/legacy prefixes. This prevents a stale immutable date/market exact-key cache from shadowing a newer warm cache. Low-trust issue-comment runs retain GitHub's read-only cache default; no `cache-mode: write` or `write-only` override is used.
+- The queue guardian maps the warmer to its own `binance-archive-cache-warm` concurrency group, includes it in the run inventory, and runs after its completion.
 - Only the audit summary, six JSON manifests and diagnostics are uploaded. Raw CSVs and archive ZIPs are neither uploaded nor committed.
-- The queue guardian maps `.github/workflows/eth-btc-cache-warm.yml` to the matching `binance-archive-cache-warm` concurrency group, includes it in the run inventory, and is triggered after its trusted completion event.
 
-The corrected PR-head CI runs [45035621948](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45035621948) and [45035627706](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45035627706) passed. The default-branch cache-save and subsequent low-trust cache-restore checks remain pending; inspect the push run, then perform one bounded 2024-01 audit through the existing control-PR command. Do not expand the warm range until cache size, runtime and hash-preserving restore are measured.
+### End-to-end evidence
+
+1. Main CI [45058189909](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45058189909) passed **153 deterministic tests** and the synthetic plumbing smoke test.
+2. Trusted warm run [45058189936](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45058189936) completed successfully in about 35 seconds. It started with no prior warm cache, downloaded six January archives, and verified all six checksums. The cache contained six ZIPs totaling **163,915 bytes on disk** and was saved with key `binance-archives-warm-45058189936-1`. Artifact [14768500986](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45058189936/artifacts/14768500986) contains eight JSON files: six manifests, the audit summary and cache diagnostics.
+3. Low-trust issue-comment audit [45058324331](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45058324331) logged `Cache mode: read`, restored the exact key `binance-archives-warm-45058189936-1`, and skipped the post-job cache save. Artifact [14768023864](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45058324331/artifacts/14768023864) contains the six manifests and audit summary.
+4. The two artifact ZIPs were downloaded and inspected. All six source archive SHA-256 hashes and all six manifest-file SHA-256 hashes matched exactly between the trusted warm run and the subsequent low-trust audit. Neither artifact contains raw CSVs or ZIP archives.
+5. Queue guardian [45058258362](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45058258362) ran after warm completion, enumerated 293/293 repository runs, included the warmer in its inventory, and recorded no queue actions or errors.
+
+### Research boundary and remaining measurement
+
+The low-trust audit ended with exit code 2 and status `INCOMPLETE`: all six manifests are present; the pilot's price inputs are complete; funding inputs remain `PROVISIONAL_NOT_ACCEPTED` with settlement-event semantics unverified. No preflight acceptance or backtest occurred. The cache pilot proves secure save/restore and byte-identical provenance, not funding completeness or strategy profitability.
+
+The first push-triggered run is verified. Weekly schedule reliability, longer-term cache retention/eviction, and exact network-byte savings over repeated warm cycles remain unmeasured. Keep the pilot bounded; do not warm the full 2020–2026 range until those measurements justify it. Full hashes and file-level evidence are in [the cache-warm verification report](../reports/ETH-BTC-TRUSTED-CACHE-WARM-2026-11-22.md).
 
 ## Acceptance criteria
 
