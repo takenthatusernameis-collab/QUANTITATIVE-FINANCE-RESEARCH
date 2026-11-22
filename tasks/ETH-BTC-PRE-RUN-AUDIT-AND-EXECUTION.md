@@ -1,9 +1,12 @@
 # Pending Research Task: Audit, Harden, and Execute ETH/BTC Mean-Reversion Study
 
-**Status:** Code audit and CI validation complete; full empirical execution awaiting manual GitHub Actions dispatch  
+**Status:** Historical code audit and CI correction record; manual-dispatch instructions are obsolete; current work is `tasks/ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md`.
 **Priority:** High  
 **Type:** Pipeline correction + network-enabled empirical replication  
 **Scope:** Research only. Do not deploy capital, place live orders, or commit raw market-data CSVs.
+
+
+> **Historical / superseded execution note:** Historical audit record. Do not restart the old plan or ask the owner to activate a workflow. The agent must use the current authorized dispatch path, inspect all run states and artifacts, and switch to a materially different safe approach after a meaningful blocker.
 
 ## Context
 
