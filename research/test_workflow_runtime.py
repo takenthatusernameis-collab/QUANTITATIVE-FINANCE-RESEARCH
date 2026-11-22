@@ -32,6 +32,16 @@ class GitHubActionRuntimeTests(unittest.TestCase):
             {name: {version} for name, version in EXPECTED_NODE24_ACTIONS.items()},
         )
 
+    def test_bitget_public_download_probe_is_exactly_allowlisted(self):
+        workflow = (WORKFLOW_DIR / "eth-btc-research.yml").read_text(encoding="utf-8")
+        command = "/qfr-probe-bitget-funding-download"
+        self.assertIn(f'"{command}"', workflow)
+        self.assertIn(f'"{command}")', workflow)
+        self.assertIn("command == 'bitget-probe'", workflow)
+        self.assertIn("python research/bitget_funding_download_probe.py", workflow)
+        self.assertIn("anonymous", workflow.lower())
+        self.assertIn("playwright", workflow.lower())
+
     def test_deprecated_node20_action_refs_are_absent(self):
         for workflow in WORKFLOW_DIR.glob("*.yml"):
             text = workflow.read_text(encoding="utf-8")
