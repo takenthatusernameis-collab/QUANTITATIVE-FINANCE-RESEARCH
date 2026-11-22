@@ -15,7 +15,16 @@ An agent's responsibility is not merely to execute the initially proposed method
 
 This standard is governed by the [General Antifragile Autonomous Operating Mindset](GENERAL-ANTIFRAGILE-AUTONOMOUS-OPERATING-MINDSET.md). It applies across every safe repository activity, not only the ETH/BTC research pipeline.
 
-Priority order: (0) preserve security, legal, authorization, financial and scientific invariants; (1) optimize the higher-order process that produces all future work, especially recurring bottlenecks and routine manual dependencies; (2) execute the highest-value current research/engineering objective; (3) perform local polish. Process improvements must have a causal rationale, measurable verification, bounded cost and a stop condition. Do not self-modify endlessly or trade away research quality.
+**Mandatory priority order (governed by the General Antifragile Autonomous Operating Mindset):**
+0. Hard invariants — security, legality, privacy, authorization, financial safety, scientific validity, data integrity, provenance, reproducibility and causal correctness. These are veto conditions.
+1. Higher-order meta-process optimization — eliminate recurring failures and routine human intervention; improve autonomous orchestration, acquisition, observability, recovery, reproducibility and hygiene.
+2. Resolve existing work and highest-value bottlenecks — inspect active runs, incidents, artifacts and dependencies first; do not duplicate work; progress independent workstreams.
+3. Original research implementation and recovery — preserve the frozen hypothesis while changing materially failing implementation details.
+4. Independent providers and replacement data architectures — use bounded evidence-led pilots and the fallback hierarchy below.
+5. Hypothesis/model replacement — only after reasonable distinct alternatives are exhausted; create a separately preregistered experiment.
+6. Local optimization and cosmetic polish — last.
+
+The general mindset is authoritative. This document implements it; project tasks may add stricter gates but cannot reorder priorities or contradict hard invariants. Process improvements require a causal rationale, measurable verification, bounded cost, reversibility where practical and a stop condition.
 
 Before any substantive action, brainstorm a compact adaptive antifragile plan from the live context: current tasks, run/incident state, recent failures, available tools and permissions, costs, independent work and long-term impact. Generate at least three materially different approaches for a significant blocker where applicable; rank them and define success criteria. Record the plan in the existing task handoff, not a new per-session document.
 
@@ -66,6 +75,42 @@ For every material bottleneck:
 **Positive example — redesign the evidence path:** independently acquire synchronized ETH/USD and BTC/USD OHLCV series from an authorized provider, validate each series and compute the synthetic cross rate as (P_{ETH/BTC,t}=P_{ETH/USD,t}/P_{BTC/USD,t}). For log-spread models, use (log(P_{ETH/USD,t})-log(P_{BTC/USD,t})). Verify both series use the same quote currency, compatible venue/market conventions, UTC bar boundaries and timestamps; align only on genuinely observed common intervals; retain each source's provenance; do not forward-fill missing bars or assume USDT/USD equals one. If quote currencies differ, acquire and validate the conversion series explicitly. Compare the derived ratio against a direct ETHBTC market series when available.
 
 Other valid alternatives include a different authorized exchange/provider, raw trade-level aggregation, official daily archives instead of an inaccessible REST host, a shorter independently validated sample, a different bar frequency, or a model that does not require the failed data representation. A new sample or model is a distinct experiment: pre-specify its hypothesis, scope, costs, controls and acceptance criteria before evaluating its performance.
+
+### Provider and architecture failover hierarchy
+
+The initial ETH/BTC provider sequence is:
+1. Resolve existing Binance official archive, public market-data host, parser and aggregate-trade evidence first. Respect HTTP 451 and any other access restriction; never route around it.
+2. Pilot Coinbase Exchange 1-hour ETH-USD and BTC-USD candles from the same venue, with bounded pagination, product-inception checks and common-timestamp validation.
+3. Pilot Kraken full-history ETH/USD and BTC/USD OHLCVT archives, verifying pair identity, archive/build manifests, timestamps and extraction feasibility.
+4. Identify additional lawful exchanges or historical-data providers whose source provenance and retention can be independently checked.
+5. Test raw-trade reconstruction or independently verifiable aggregate-trade datasets when candle sources omit or corrupt observations.
+6. Compare independent sources on common historical windows to quantify discrepancies; comparison is a quality diagnostic, not permission to splice venues.
+
+This is a default exploration order, not a fixed ranking. Rank bounded pilots by expected information gain, probability of success, data quality, historical coverage, reproducibility and cost. Authorization and scientific acceptance are hard filters, not score components that can be traded off.
+
+For every provider, define before scaling: (a) one known-active positive control; (b) a meaningful negative/missing-data control; (c) product inception and requested coverage; (d) UTC timestamps, units, schema, OHLCV invariants and duplicates; (e) source URL/parameters, checksums or immutable content hashes and manifest; (f) full-history transfer/storage feasibility; (g) explicit acceptance and rejection rules; and (h) the next independent fallback. A successful download or HTTP 200 is never sufficient for acceptance.
+
+When direct ETH/BTC is unavailable, test materially different constructions in separate experiment identities. Preferred example: ETHBTC = ETHUSD / BTCUSD using synchronized same-venue prices and consistent bar conventions. If quote currencies differ, obtain and validate the required USDT/USD or USDC/USD conversion rather than assuming parity. Other architecture alternatives include raw-trade aggregation, alternative archive formats, event-time/irregular-time data and a separately justified observation frequency. Preserve elapsed time and missing observations; never forward-fill or infer zero returns. Do not combine venue datasets without an explicit, tested reconciliation methodology.
+
+After two distinct providers fail on the original construction, advance to a different data architecture instead of trying endless provider variants. If the architecture search is exhausted and the original hypothesis is infeasible, formally classify it INCONCLUSIVE/INFEASIBLE and use a new preregistered hypothesis/model with independent acceptance criteria and provenance. A timeframe, market construction or model change that alters the inference creates a distinct experiment.
+
+### Separate funding-data hierarchy
+
+Spot price validation and perpetual funding acceptance are independent. Evaluate Binance Vision final-rate archives, Tardis and other credible settlement sources separately. Record final settled rates, predicted/pre-event estimates, next-event timestamps, effective funding intervals, contract incarnation/retention and the completeness of the payable settlement population as separate fields. Never substitute pre-event estimates for final settlements. A spot-only experiment may proceed under its own gates but cannot establish perpetual-strategy profitability.
+
+### Machine-enforced decision rules
+
+Use research/adaptive_decision.py as the tested policy implementation:
+- provider candidates are scored on expected information gain, success probability, data quality, coverage, reproducibility and cost, but unauthorized candidates are excluded;
+- provider evidence fails closed when any required provenance, coverage, controls, schema, timestamp, OHLCV, duplicate or checksum gate is missing/false; funding additionally requires final-settlement semantics, complete settlement population and contract-incarnation coverage;
+- transient failures may receive bounded retry; restricted routes stop immediately; the second identical non-transient failure stops that route; two distinct provider failures escalate to a different architecture;
+- independent workstreams continue when their dependencies do not intersect the blocked inputs;
+- experiment identities encode the hypothesis, provider, venue, market construction, quote currency, timeframe, sample, strategy, cost model and source version;
+- spot and perpetual claims are separated; duplicate active dispatches are reused, not duplicated;
+- hypothesis replacement requires exhausted alternatives, formal original INCONCLUSIVE/INFEASIBLE status, a different identity, frozen preregistration, independent acceptance criteria and its own provenance;
+- the six-input empirical gate rejects missing, unknown, incomplete or unmanifested inputs and incomplete Spot reconciliation.
+
+When the relevant evidence is not machine-readable, record the missing evidence as unresolved; do not infer acceptance. Unit tests exercise policy logic, not live provider quality or empirical market performance.
 
 **Backtest activation rule:** once a historical research run meets its machine-checkable data, code, and pre-registered methodology gates, the agent must launch it through an authorized agent-triggered workflow without routine human confirmation. Add and verify an allowlisted command for every required research workflow. A failing data gate should fail the run clearly and automatically; it must never silently bypass validation. A workflow trigger being agent-controlled and a dataset being empirically valid are separate requirements.
 
