@@ -35,6 +35,14 @@ class OKXFundingButtonProbeTests(unittest.TestCase):
         self.assertIn("field_information_clicked_inspected_no_submission", source)
         self.assertNotIn('get_by_role("button", name="Confirm"', source)
 
+    def test_symbol_options_mode_opens_dropdown_without_selecting(self):
+        source = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("--inspect-symbol-options", source)
+        self.assertIn('get_by_text("Select", exact=True)', source)
+        self.assertIn("symbol_select.first.click(timeout=5000)", source)
+        self.assertIn("symbol_options_opened_inspected_no_selection", source)
+        self.assertNotIn("symbol_select.first.select_option", source)
+
     def test_probe_never_accepts_cookies_or_submits_forms(self):
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertIn('"cookie_consent_clicked": False', source)
