@@ -57,6 +57,7 @@ class OKXFundingButtonProbeTests(unittest.TestCase):
         self.assertIn("search_input.first.fill(term, timeout=5000)", source)
         self.assertIn("search_input.first.fill(\"\", timeout=5000)", source)
         self.assertIn("symbol_search_results", source)
+        self.assertIn('input[type="search"]', source)
         self.assertNotIn("select_option", source)
 
     def test_probe_script_compiles(self):
