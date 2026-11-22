@@ -59,6 +59,23 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         self.assertIn("download_button_clicked", probe)
         self.assertNotIn("candidates[0][\"locator\"].click", probe)
 
+    def test_kraken_funding_export_probe_is_exactly_allowlisted_and_ephemeral(self):
+        workflow = (WORKFLOW_DIR / "eth-btc-research.yml").read_text(encoding="utf-8")
+        command = "/qfr-probe-kraken-funding-export"
+        self.assertIn(f'"{command}"', workflow)
+        self.assertIn(f'"{command}")', workflow)
+        self.assertIn('COMMAND="kraken-export-probe"', workflow)
+        self.assertIn("command == 'kraken-export-probe'", workflow)
+        self.assertIn("kraken-funding-export-probe:", workflow)
+        self.assertIn("python research/kraken_funding_export_probe.py", workflow)
+        self.assertIn("never raw ZIP or CSV", workflow)
+        probe = (ROOT / "research" / "kraken_funding_export_probe.py").read_text(encoding="utf-8")
+        self.assertIn("raw_download_uploaded", probe)
+        self.assertIn("raw_download_committed", probe)
+        self.assertIn("historical-funding-rates", probe)
+        self.assertIn("relativeFundingRate", probe)
+        self.assertIn("TemporaryDirectory", probe)
+
     def test_okx_funding_button_probe_is_exactly_allowlisted(self):
         workflow = (WORKFLOW_DIR / "eth-btc-research.yml").read_text(encoding="utf-8")
         command = "/qfr-probe-okx-funding-button"
