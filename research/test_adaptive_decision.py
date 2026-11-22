@@ -78,7 +78,7 @@ class AdaptiveDecisionTests(unittest.TestCase):
                 "original_research_implementation_and_recovery",
                 "independent_alternatives_and_replacement_architectures",
                 "hypothesis_or_model_replacement",
-                "local_optimization_and_cosmetic_improvements",
+                "local_optimization_and_cosmetic_polish",
             ],
         )
 
