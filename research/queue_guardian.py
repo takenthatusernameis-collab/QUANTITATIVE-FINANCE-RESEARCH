@@ -75,6 +75,17 @@ def format_status_comment(report: dict[str, Any]) -> str:
             f"latest {len(runs)} retained in the machine-readable guardian report."
         ),
     ]
+    context = report.get("execution_context") or {}
+    if context:
+        run_id = context.get("run_id") or "unavailable"
+        event_name = context.get("event_name") or "unknown"
+        mode = context.get("mode") or ("DRY_RUN" if context.get("dry_run") else "LIVE_ENFORCEMENT")
+        sha = str(context.get("sha") or "")[:8] or "unavailable"
+        lines.extend([
+            "",
+            "### Guardian execution",
+            f"- Run: {run_id}; event: {event_name}; mode: **{mode}**; commit: {sha}",
+        ])
     if report.get("run_inventory_truncated"):
         lines.append("The displayed inventory is truncated to the latest retained runs.")
     lines.extend(["", "### Active runs"])
@@ -341,6 +352,20 @@ def verify_cancellation(api: GitHubAPI, run_id: int, sleep=time.sleep) -> tuple[
     return latest.get("status") == "completed" and latest.get("conclusion") == "cancelled", latest
 
 
+def build_execution_context(dry_run: bool, env: dict[str, str] | None = None) -> dict[str, Any]:
+    source = os.environ if env is None else env
+    return {
+        "event_name": source.get("GITHUB_EVENT_NAME", "unknown"),
+        "run_id": source.get("GITHUB_RUN_ID"),
+        "run_attempt": source.get("GITHUB_RUN_ATTEMPT"),
+        "workflow": source.get("GITHUB_WORKFLOW"),
+        "ref": source.get("GITHUB_REF"),
+        "sha": source.get("GITHUB_SHA"),
+        "dry_run": bool(dry_run),
+        "mode": "DRY_RUN" if dry_run else "LIVE_ENFORCEMENT",
+    }
+
+
 def process_queue(api: GitHubAPI, now: datetime, dry_run: bool = False) -> dict[str, Any]:
     runs = api.list_all_runs()
     inventory = build_run_inventory(runs)
@@ -460,8 +485,9 @@ def main() -> int:
         return 2
     api = GitHubAPI(repository, token, os.environ.get("GITHUB_API_URL", "https://api.github.com"))
     try:
-        report = process_queue(api, datetime.now(timezone.utc),
-                               dry_run=os.environ.get("DRY_RUN", "false").lower() == "true")
+        dry_run = os.environ.get("DRY_RUN", "false").lower() == "true"
+        report = process_queue(api, datetime.now(timezone.utc), dry_run=dry_run)
+        report["execution_context"] = build_execution_context(dry_run)
         try:
             report["status_comment"] = api.upsert_status_comment(format_status_comment(report))
         except Exception as exc:
