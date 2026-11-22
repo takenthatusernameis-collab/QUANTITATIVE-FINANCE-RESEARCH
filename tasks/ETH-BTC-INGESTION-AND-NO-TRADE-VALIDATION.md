@@ -274,6 +274,15 @@ Implementation commits:
 - Policy tests: [5576fc0](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/5576fc048fffaf0c4080788750f52b4f55f1fc2c)
 - Six-input gate integration: [8625d40](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/8625d40b8684ee975d7664ca8b01a17247dd659e)
 
+### Independent Spot/perpetual acceptance and dispatch scopes
+
+The machine-checkable research gate now has three explicit scopes:
+- **Spot:** only `spot_ETHUSDT` and `spot_BTCUSDT` plus their provenance manifests are required. Perpetual funding is not a dependency. If the hourly series has missing bars, Spot acceptance additionally requires complete independent no-trade reconciliation and a separately accepted event-time/elapsed-time PnL, signal, execution and annualization policy. The event-time policy is not yet implemented; the current pipeline leaves its acceptance flag false and therefore fails closed.
+- **Perpetual / USD-M:** requires `um_ETHUSDT`, `um_BTCUSDT`, `funding_ETHUSDT`, and `funding_BTCUSDT`, with their manifests. Spot gaps do not block this independent scope. Both funding series remain provisional, so the gate is currently closed.
+- **Both:** requires all six inputs and both market-specific conditions.
+
+The workflow now allowlists `/qfr-run-eth-btc-spot-empirical`, `/qfr-run-eth-btc-um-empirical`, and existing combined `/qfr-run-eth-btc-empirical`. Preflight receives the same market scope as the empirical run. The audit still gathers all six manifests to preserve independent information. A Spot-only outcome must never be represented as evidence of perpetual-strategy profitability.
+
 ### Next executable research actions
 
 1. **Spot-only event-time/irregular-time research:** build a separate data representation for the confirmed no-trade intervals. Preserve actual timestamps and elapsed duration in returns, signal windows, holding periods, annualization, execution opportunity and cost models. Test this against synthetic fixtures and the checksum-backed gap evidence. Do not reuse the strict hourly strategy code without validating its time semantics.
