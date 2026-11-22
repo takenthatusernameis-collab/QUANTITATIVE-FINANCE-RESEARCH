@@ -13,6 +13,27 @@ The script downloads monthly 1-hour Binance Spot and USDⓈ-M perpetual klines f
 
 Use `--market spot`, `--market um`, or `--market both`. `--self-test` runs a synthetic plumbing test only; it is not evidence of strategy performance.
 
+## Autonomous execution, failover and incident handling
+
+Routine safe research work is agent-initiated: deterministic tests, synthetic checks, historical data audits, lawful data retrieval, parser repair, provider comparison, research code, historical backtests after their acceptance gates pass, artifact inspection, reporting and task handoff. Do not wait for a routine user click or confirmation. Genuine security, legal, permission and live-financial boundaries remain enforced.
+
+Treat the first implementation route as replaceable. Diagnose the exact failure, preserve the request/error/source/schema/timestamps and hashes, test at least three materially different options where applicable, and stop an unchanged non-transient route after two independent identical failures. Use positive controls and provenance. A new data source, time resolution or model is a separate experiment with its own frozen hypothesis and acceptance criteria; never combine its outputs as if they belonged to the original study.
+
+### GitHub Actions queue enforcement
+
+- The scheduled workflow [queue-guardian.yml](../.github/workflows/queue-guardian.yml) scans the repository's explicitly allowlisted safe workflows every five minutes. The deterministic policy cancels workflow-run-level queued/pending runs older than 15 minutes unless an earlier run in the exact same concurrency group is currently in progress.
+- The exception is only for an earlier active same-group predecessor. A merely queued predecessor, a different workflow/group, an individual queued job within an in-progress workflow, or an environment approval wait does not qualify.
+- Each cancelled run receives a durable queue-incident issue with status `QUEUE_CANCELLED / RETRY_REQUIRED`. If cancellation cannot be confirmed, the original is recorded `CANCELLATION_BLOCKED / ORPHANED_POSSIBLE_EXECUTION` and the next agent must launch exactly one materially different, independently isolated alternative as `ALTERNATIVE_ATTEMPT_ACTIVE`.
+- Check open issues with the title prefix `[QFR queue guardian]` at the start of each agent cycle. Handle cancellation-blocked issues before creating new overlapping work. Keep run IDs and attempt lineage in the task record.
+- The harmless command `/qfr-queue-guardian-dry-run` on control PR #2 executes the scanner without cancellation or issue creation. The scheduled workflow is the live enforcement path; it requires only `actions: write`, `contents: read` and `issues: write` for the repository.
+- Research-test CI is serialized with a bounded queue. The queue guardian only handles the two paths explicitly mapped in `research/queue_guardian.py`; unknown workflows are never cancelled until deliberately reviewed and allowlisted.
+
+### Alternative-attempt isolation
+
+An alternative attempt must have its own attempt key, execution route, worktree/branch where appropriate, cache key, manifests, artifact namespace and output paths. Keep all attempts read-only with respect to trading venues/accounts and prevent shared mutable writes. If a full alternative run cannot be isolated safely, immediately advance an independent non-mutating slice such as a provider positive-control probe, parser fixture, deterministic test or separately specified model audit. Do not spawn endless retries: diagnose each new failure before selecting the next distinct approach.
+
+Queue or infrastructure failures are not empirical strategy failures. Never fabricate market observations, forward-fill missing prices, substitute zero funding, weaken data gates, or use synthetic smoke results as evidence of a trading edge. No live orders, capital deployment, live credentials or strategy promotion.
+
 ## Research design
 
 - Signal: completed-bar close; execution: next bar open; PnL: open-to-open.
