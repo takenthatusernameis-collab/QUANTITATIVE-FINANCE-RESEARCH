@@ -4,6 +4,9 @@
 **Status:** INCONCLUSIVE — no raw market data could be retrieved  
 **Scope:** Research/backtesting only; no trading or capital deployment
 
+
+> **Historical evidence snapshot:** Preserve the findings and timestamps below as the record of the execution period. Any operational instructions referring to manual workflow activation, unavailable dispatch, or repeating the same blocked route are superseded by the current [autonomous execution standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md), [dispatch runbook](../docs/CHATGPT-WORKFLOW-DISPATCH.md), and active [ingestion task](../tasks/ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md). Do not rewrite historical results; use current controls for new work.
+
 ## Run attempt
 
 The pending `ETH-BTC-FULL-DATA-EXECUTION.md` task was attempted. This execution environment cannot resolve `data.binance.vision` (DNS failure from `curl`); the web reader also could not open the binary archive. Therefore, no historical candles or funding records were acquired, and no empirical strategy statistics were calculated.
