@@ -10,6 +10,17 @@ An agent's responsibility is not merely to execute the initially proposed method
 
 **Do not confuse the requested outcome with the first implementation idea.** A blocked route is a reason to diagnose and adapt—not a reason to stop, repeat the same attempt, or make the human perform routine agent work.
 
+
+## General mindset and higher-order optimization priority
+
+This standard is governed by the [General Antifragile Autonomous Operating Mindset](GENERAL-ANTIFRAGILE-AUTONOMOUS-OPERATING-MINDSET.md). It applies across every safe repository activity, not only the ETH/BTC research pipeline.
+
+Priority order: (0) preserve security, legal, authorization, financial and scientific invariants; (1) optimize the higher-order process that produces all future work, especially recurring bottlenecks and routine manual dependencies; (2) execute the highest-value current research/engineering objective; (3) perform local polish. Process improvements must have a causal rationale, measurable verification, bounded cost and a stop condition. Do not self-modify endlessly or trade away research quality.
+
+Before any substantive action, brainstorm a compact adaptive antifragile plan from the live context: current tasks, run/incident state, recent failures, available tools and permissions, costs, independent work and long-term impact. Generate at least three materially different approaches for a significant blocker where applicable; rank them and define success criteria. Record the plan in the existing task handoff, not a new per-session document.
+
+Then perform the mandatory conservative repository cleanup in [Repository Hygiene and Context Compaction](REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md), before the primary meta-improvement or research task. Keep one canonical active task pointer. Remove disposable scratch/build clutter and stale active instructions, but preserve historical evidence, source data needed for reproducibility, checksums, manifests, run logs, incident records and research conclusions. Never delete active work or force a clean tree at the expense of provenance.
+
 ## Non-negotiable principles
 
 1. **Outcome over prescribed mechanism.** Preserve the research objective and acceptance criteria while changing tools, APIs, event triggers, execution environments, data sources, orchestration, or implementation details when evidence justifies it.
