@@ -42,7 +42,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.event_name == 'issue_comment' && (github.event.action != 'created' || github.event.issue.number != 2 || github.event.issue.pull_request == null || github.event.issue.state != 'open' || github.event.comment.user.login != 'takenthatusernameis-collab' || !contains(fromJSON('["/qfr-control-smoke","/qfr-run-eth-btc-data-audit","/qfr-probe-eth-btc-funding-2024-01","/qfr-probe-tardis-funding-2024-01-01","/qfr-probe-tardis-funding-2020-06-01","/qfr-probe-tardis-funding-2025-06-01","/qfr-probe-tardis-funding-2025-10-01","/qfr-probe-tardis-funding-2026-02-01","/qfr-probe-tardis-funding-2026-03-01","/qfr-run-eth-btc-empirical","/qfr-run-eth-btc-spot-empirical","/qfr-run-eth-btc-um-empirical"]'), github.event.comment.body)) && format('eth-btc-research-ignored-{0}', github.event.comment.id) || 'eth-btc-research-main' }}
+  group: ${{ github.event_name == 'issue_comment' && (github.event.action != 'created' || github.event.issue.number != 2 || github.event.issue.pull_request == null || github.event.issue.state != 'open' || github.event.comment.user.login != 'takenthatusernameis-collab' || !contains(fromJSON('["/qfr-control-smoke","/qfr-run-eth-btc-data-audit","/qfr-probe-eth-btc-funding-2024-01","/qfr-probe-tardis-funding-2024-01-01","/qfr-probe-tardis-funding-2020-06-01","/qfr-probe-tardis-funding-2025-06-01","/qfr-probe-tardis-funding-2025-10-01","/qfr-probe-tardis-funding-2026-02-01","/qfr-probe-tardis-funding-2026-03-01","/qfr-probe-mexc-funding-history","/qfr-run-eth-btc-empirical","/qfr-run-eth-btc-spot-empirical","/qfr-run-eth-btc-um-empirical"]'), github.event.comment.body)) && format('eth-btc-research-ignored-{0}', github.event.comment.id) || 'eth-btc-research-main' }}
   queue: max
   cancel-in-progress: false
 
@@ -157,6 +157,14 @@ jobs:
                 COMMAND="tardis-probe"
                 START="2026-03-01"
                 END="2026-03-01"
+                MARKET="both"
+                RECONCILE="false"
+                ;;
+              "/qfr-probe-mexc-funding-history")
+                # Independent public-provider funding pagination pilot; never Binance evidence or a backtest.
+                COMMAND="mexc-probe"
+                START="2020-01-01"
+                END="2026-10-31"
                 MARKET="both"
                 RECONCILE="false"
                 ;;
@@ -333,5 +341,47 @@ jobs:
         with:
           name: tardis-funding-probe-${{ github.run_id }}
           path: reports/generated/tardis-funding-probe-${{ needs.authorize.outputs.start }}/*.json
+          if-no-files-found: warn
+          retention-days: 30
+  mexc-funding-probe:
+    name: Probe MEXC public funding-history pagination
+    needs: authorize
+    if: ${{ needs.authorize.outputs.authorized == 'true' && needs.authorize.outputs.command == 'mexc-probe' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository default branch only
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.11'
+
+      - name: Download and audit MEXC funding history
+        env:
+          MEXC_SYMBOLS: BTC_USDT,ETH_USDT
+          PAGE_SIZE: '1000'
+          MAX_PAGES: '200'
+          MAX_RECORDS: '200000'
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          python research/mexc_funding_probe.py \
+            --symbols "$MEXC_SYMBOLS" \
+            --page-size "$PAGE_SIZE" \
+            --max-pages "$MAX_PAGES" \
+            --max-records "$MAX_RECORDS" \
+            --output-dir "reports/generated/mexc-funding-probe-$RUN_ID" \
+            --cache-dir "data/cache/mexc-funding-probe-$RUN_ID"
+
+      - name: Upload MEXC manifests (never raw pages)
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: mexc-funding-probe-${{ github.run_id }}
+          path: reports/generated/mexc-funding-probe-${{ github.run_id }}/*.json
           if-no-files-found: warn
           retention-days: 30
