@@ -53,7 +53,12 @@ Operate as an evidence-driven, self-improving research loop:
 
 ### 10. **Keep the research loop moving.**
 
-**Agent-triggered backtest command:** `/qfr-run-eth-btc-empirical` is allowlisted on control PR #2. It automatically runs an all-six-input preflight and only runs the historical strategy backtest if the preflight passes. The agent, not the user, initiates the command. No manual confirmation is a prerequisite for historical backtesting within the existing authorized scope.
+**Agent-triggered empirical commands** are allowlisted on control PR #2:
+- `/qfr-run-eth-btc-empirical` — combined Spot + perpetual study, requiring all six input gates.
+- `/qfr-run-eth-btc-spot-empirical` — Spot-only study, independent of funding, but blocked while confirmed no-trade gaps lack an accepted event-time/elapsed-time execution policy.
+- `/qfr-run-eth-btc-um-empirical` — perpetual-only study, independent of Spot gaps, but requiring complete USD-M prices and accepted final settled funding histories.
+
+Each command performs a non-fail-fast audit/preflight for its requested scope. The audit preserves all six manifests; the research scope gate allows independent progress without conflating Spot and perpetual claims. The agent, not the user, initiates these commands. No routine manual confirmation is required.
  If the original model cannot be implemented with valid accessible data after distinct alternatives, mark that specific experiment INCONCLUSIVE/INFEASIBLE and move to a separately specified, feasible research question. Do not let one provider, one data pair, or one strategy block all quantitative research. Count routine manual interventions as autonomy failures and remove their causes.
 
 
