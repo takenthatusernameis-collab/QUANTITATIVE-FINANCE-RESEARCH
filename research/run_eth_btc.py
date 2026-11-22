@@ -1119,8 +1119,13 @@ def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> di
     if not csv_path.exists():
         raise FileNotFoundError(f"Missing consolidated Spot CSV required for reconciliation: {csv_path}")
     source_manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
-    frame = pd.read_csv(csv_path, usecols=["timestamp"])
+    frame = pd.read_csv(
+        csv_path, usecols=lambda column: column in {"timestamp", "volume"}
+    )
+    if "volume" not in frame.columns:
+        frame["volume"] = np.nan
     frame["timestamp"] = pd.to_datetime(frame["timestamp"], utc=True)
+    frame["volume"] = pd.to_numeric(frame["volume"], errors="coerce")
     quality = hourly_quality(
         pd.DatetimeIndex(frame["timestamp"]), start, end, source_manifest.get("archives", [])
     )
@@ -1271,16 +1276,31 @@ def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> di
         if not entry["api_candle_found"] and not entry["daily_candle_found"]:
             unresolved_by_day.setdefault(entry["gap_day"], []).append(entry)
 
-    observed_by_day: dict[str, list[pd.Timestamp]] = {}
-    for observed_ts in pd.DatetimeIndex(frame["timestamp"]):
-        observed_by_day.setdefault(observed_ts.strftime("%Y-%m-%d"), []).append(observed_ts)
+    observed_by_day: dict[str, list[tuple[pd.Timestamp, float]]] = {}
+    active_monthly = frame.loc[
+        np.isfinite(frame["volume"].to_numpy(dtype=float)) & (frame["volume"] > 0)
+    ]
+    for row in active_monthly.itertuples(index=False):
+        observed_by_day.setdefault(row.timestamp.strftime("%Y-%m-%d"), []).append(
+            (pd.Timestamp(row.timestamp), float(row.volume))
+        )
 
     for day, day_gaps in unresolved_by_day.items():
         daily_frame = daily_frames.get(day)
-        candidates = (
-            list(pd.DatetimeIndex(daily_frame["timestamp"]))
-            if daily_frame is not None and not daily_frame.empty
-            else observed_by_day.get(day, [])
+        daily_candidates: list[tuple[pd.Timestamp, float]] = []
+        if daily_frame is not None and not daily_frame.empty and "volume" in daily_frame:
+            daily_volume = pd.to_numeric(daily_frame["volume"], errors="coerce")
+            active_daily = daily_frame.loc[
+                np.isfinite(daily_volume.to_numpy(dtype=float)) & (daily_volume > 0)
+            ]
+            daily_candidates = [
+                (pd.Timestamp(row.timestamp), float(row.volume))
+                for row in active_daily.itertuples(index=False)
+            ]
+        candidates = daily_candidates or observed_by_day.get(day, [])
+        candidate_source = (
+            "daily_archive" if daily_candidates
+            else ("monthly_archive" if candidates else None)
         )
         control_info = {
             "status": "unavailable",
@@ -1289,11 +1309,15 @@ def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> di
         }
         if candidates:
             first_gap = day_gaps[0]["timestamp"]
-            control_ts = min(
+            control_ts, control_volume = min(
                 candidates,
-                key=lambda candidate: abs((candidate - pd.Timestamp(first_gap)).total_seconds()),
+                key=lambda candidate: abs(
+                    (candidate[0] - pd.Timestamp(first_gap)).total_seconds()
+                ),
             )
             control_info["control_timestamp"] = str(control_ts)
+            control_info["control_volume"] = control_volume
+            control_info["candidate_source"] = candidate_source
             try:
                 control_probe = query_aggregate_trades(session, symbol, control_ts)
                 control_info.update(control_probe)
