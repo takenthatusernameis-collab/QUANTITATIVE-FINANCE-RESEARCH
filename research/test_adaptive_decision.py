@@ -7,6 +7,7 @@ from adaptive_decision import (
     DEFAULT_PROVIDER_ORDER,
     FailureKind,
     ProviderOption,
+    PRIORITY_HIERARCHY,
     RecoveryAction,
     build_experiment_id,
     decide_after_failure,
@@ -66,6 +67,31 @@ class AdaptiveDecisionTests(unittest.TestCase):
             "cost_model_version": "fees-slippage-v1",
             "source_version": "manifest-sha256:abc",
         }
+
+    def test_canonical_priority_hierarchy_is_complete_and_ordered(self):
+        self.assertEqual(
+            list(PRIORITY_HIERARCHY.values()),
+            [
+                "hard_invariants",
+                "meta_process_optimization",
+                "resolve_existing_work_and_highest_value_bottlenecks",
+                "original_research_implementation_and_recovery",
+                "independent_alternatives_and_replacement_architectures",
+                "hypothesis_or_model_replacement",
+                "local_optimization_and_cosmetic_improvements",
+            ],
+        )
+
+    def test_provider_priority_breaks_equal_score_ties_in_declared_order(self):
+        ranked = rank_provider_options([
+            self.provider("kraken"),
+            self.provider("coinbase_exchange"),
+            self.provider("binance_official_recovery"),
+        ])
+        self.assertEqual(
+            [item.provider for item in ranked],
+            ["binance_official_recovery", "coinbase_exchange", "kraken"],
+        )
 
     def test_provider_ranking_uses_evidence_score_and_excludes_unauthorized(self):
         options = [
