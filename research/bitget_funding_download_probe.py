@@ -160,14 +160,22 @@ def snapshot_page(page) -> dict[str, Any]:
 
 def is_geographically_restricted(snapshot: dict[str, Any]) -> bool:
     body = (snapshot.get("bodyText") or "").lower()
-    return "restricted ip" in body and "attempting to access our services from" in body
+    bitget_notice = "restricted ip" in body and "attempting to access our services from" in body
+    generic_notices = (
+        "not available in your region",
+        "not available in your country",
+        "restricted in your location",
+        "access restricted in your region",
+        "service is unavailable in your country",
+    )
+    return bitget_notice or any(phrase in body for phrase in generic_notices)
 
 
-def run_probe(output_dir: Path) -> dict[str, Any]:
+def run_probe(output_dir: Path, url: str = URL) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest: dict[str, Any] = {
         "probe": "bitget_public_funding_rate_history_ui",
-        "target_url": URL,
+        "target_url": url,
         "started_utc": datetime.now(timezone.utc).isoformat(),
         "access_mode": "anonymous_browser",
         "auth_used": False,
@@ -185,7 +193,7 @@ def run_probe(output_dir: Path) -> dict[str, Any]:
             page = context.new_page()
             errors: list[str] = []
             page.on("pageerror", lambda e: errors.append(str(e)[:300]))
-            response = page.goto(URL, wait_until="domcontentloaded", timeout=60000)
+            response = page.goto(url, wait_until="domcontentloaded", timeout=60000)
             manifest["http_status"] = response.status if response else None
             try:
                 page.wait_for_load_state("networkidle", timeout=15000)
@@ -271,8 +279,9 @@ def run_probe(output_dir: Path) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--url", default=URL, help="Public page to inspect (no download clicks).")
     args = parser.parse_args()
-    manifest = run_probe(args.output_dir)
+    manifest = run_probe(args.output_dir, args.url)
     print(json.dumps({
         "status": manifest.get("status"),
         "http_status": manifest.get("http_status"),
