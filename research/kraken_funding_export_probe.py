@@ -33,7 +33,8 @@ MAX_ARCHIVE_MEMBERS_REPORTED = 500
 MAX_TOTAL_UNCOMPRESSED_BYTES = 2 * 1024 * 1024 * 1024
 MAX_CANDIDATE_CSVS = 30
 MAX_API_SYMBOLS = 8
-RATE_FIELD_NAMES = ("fundingRate", "relativeFundingRate")
+RATE_FIELD_NAMES = ("fundingRate", "relativeFundingRate", "absolute_rate", "relative_rate")
+# CSV absolute_rate and relative_rate are kept separate; only overlap comparison tests their API-field correspondence.
 TIME_KEYS = {"timestamp", "time", "fundingtime", "fundingtimestamp", "datetime", "date"}
 PERPETUAL_PREFIXES = {"PI", "PF"}
 
@@ -68,12 +69,11 @@ def parse_timestamp_ms(value: Any) -> int | None:
 
 def asset_from_instrument(instrument: dict[str, Any]) -> str | None:
     base = str(instrument.get("base") or "").upper()
-    symbol = str(instrument.get("symbol") or "").upper()
-    pair = str(instrument.get("pair") or "").upper()
-    haystack = " ".join((base, symbol, pair))
-    if "XBT" in haystack or "BTC" in haystack:
+    pair_base = str(instrument.get("pair") or "").upper().split(":", 1)[0]
+    exact_base = base or pair_base
+    if exact_base in {"XBT", "BTC"}:
         return "BTC"
-    if "ETH" in haystack:
+    if exact_base == "ETH":
         return "ETH"
     return None
 
@@ -124,6 +124,7 @@ def analyze_csv_stream(stream: Any) -> dict[str, Any]:
         column: {"min": None, "max": None, "invalid_count": 0}
         for column in rate_cols
     }
+    categorical_counts: dict[str, Counter] = {}
     for row in reader:
         if not row or all(value is None or not str(value).strip() for value in row.values()):
             continue
@@ -133,6 +134,11 @@ def analyze_csv_stream(stream: Any) -> dict[str, Any]:
             if value is None or not str(value).strip():
                 null_counts[header] += 1
         compact_rates = {column: str(row.get(column, "") or "").strip() for column in rate_cols}
+        if "tradeable" in {norm_key(header) for header in headers}:
+            tradeable_col = next(header for header in headers if norm_key(header) == "tradeable")
+            categorical_counts.setdefault(tradeable_col, Counter())[
+                str(row.get(tradeable_col, "") or "").strip()
+            ] += 1
         if time_col:
             raw_time = str(row.get(time_col, "") or "").strip()
             stamp_ms = parse_timestamp_ms(raw_time)
@@ -163,10 +169,18 @@ def analyze_csv_stream(stream: Any) -> dict[str, Any]:
                 rate_stats[column]["invalid_count"] += 1
 
     gaps = Counter()
+    gap_samples = []
     for left, right in zip(timestamps, timestamps[1:]):
         delta = right[0] - left[0]
         if delta > 0:
-            gaps[round(delta / 3_600_000, 6)] += 1
+            hours = round(delta / 3_600_000, 6)
+            gaps[hours] += 1
+            if hours > 4 and len(gap_samples) < 20:
+                gap_samples.append({
+                    "from": left[1],
+                    "to": right[1],
+                    "hours": hours,
+                })
     samples: list[dict[str, Any]] = []
     if timestamps:
         positions = sorted({0, len(timestamps) // 4, len(timestamps) // 2,
@@ -178,33 +192,50 @@ def analyze_csv_stream(stream: Any) -> dict[str, Any]:
                 "timestamp_ms": stamp_ms,
                 "rates": rates,
             })
+    ordered_ms = [item[0] for item in timestamps]
+    internal_rows = [
+        {"timestamp": raw_time, "timestamp_ms": stamp_ms, "rates": rates}
+        for stamp_ms, raw_time, rates in timestamps
+    ]
     return {
         "format": "csv",
         "headers": headers,
         "row_count": row_count,
         "timestamp_column": time_col,
+        "timestamp_timezone_note": "CSV timestamps are timezone-naive; UTC is assumed only for comparison with Kraken's UTC API timestamps.",
         "valid_timestamp_count": valid_timestamp_count,
         "invalid_timestamp_count": invalid_timestamp_count if time_col else None,
         "first_timestamp": first_timestamp_raw,
         "last_timestamp": last_timestamp_raw,
+        "min_timestamp": min((item[1] for item in timestamps), key=lambda x: parse_timestamp_ms(x)) if timestamps else None,
+        "max_timestamp": max((item[1] for item in timestamps), key=lambda x: parse_timestamp_ms(x)) if timestamps else None,
         "duplicate_timestamp_count": duplicate_count if time_col else None,
         "out_of_order_timestamp_count": out_of_order_count if time_col else None,
         "cadence_hours_top": [
             {"hours": hours, "count": count}
             for hours, count in gaps.most_common(20)
         ],
+        "gaps_over_4h_count": sum(count for hours, count in gaps.items() if hours > 4),
+        "gaps_over_4h_samples": gap_samples,
         "rate_fields": rate_stats,
-        "null_counts": dict(null_counts),
+        "null_counts": {header: null_counts[header] for header in headers},
+        "categorical_value_counts": {
+            column: dict(counts) for column, counts in categorical_counts.items()
+        },
         "crosscheck_samples": samples,
+        "_api_crosscheck_rows": internal_rows,
     }
 
 
 def _asset_from_filename(name: str) -> str | None:
-    token = Path(name).stem.upper()
-    if "XBT" in token or "BTC" in token:
-        return "BTC"
-    if "ETH" in token:
-        return "ETH"
+    stem = Path(name).stem.upper()
+    if "_" in stem:
+        stem = stem.split("_", 1)[1]
+    for token, asset in (("XBT", "BTC"), ("BTC", "BTC"), ("ETH", "ETH")):
+        if stem.startswith(token):
+            quote = stem[len(token):]
+            if quote.startswith(("USD", "USDT", "USDC", "EUR", "GBP", "JPY", "CHF")):
+                return asset
     return None
 
 
@@ -240,16 +271,22 @@ def analyze_archive(path: Path, instruments: list[dict[str, Any]]) -> dict[str, 
             for item in files[:MAX_ARCHIVE_MEMBERS_REPORTED]
         ]
         summary["archive_members_truncated"] = len(files) > MAX_ARCHIVE_MEMBERS_REPORTED
+        summary["ignored_macos_metadata_members"] = sum(
+            1 for item in files
+            if "__MACOSX" in Path(item.filename).parts or Path(item.filename).name.startswith("._")
+        )
 
         candidate_files = []
         for item in files:
             if not item.filename.lower().endswith(".csv"):
                 continue
-            asset = _asset_from_filename(item.filename)
-            if asset not in {"BTC", "ETH"}:
+            if "__MACOSX" in Path(item.filename).parts or Path(item.filename).name.startswith("._"):
                 continue
             stem = _symbol_from_filename(item.filename)
             matched = specs_by_symbol.get(norm_key(stem))
+            asset = asset_from_instrument(matched) if matched else _asset_from_filename(item.filename)
+            if asset not in {"BTC", "ETH"}:
+                continue
             prefix = stem.split("_", 1)[0]
             perpetual = bool(matched and is_perpetual_instrument(matched)) or prefix in PERPETUAL_PREFIXES
             candidate = {
@@ -259,9 +296,8 @@ def analyze_archive(path: Path, instruments: list[dict[str, Any]]) -> dict[str, 
                 "matched_instrument": compact_instrument(matched) if matched else None,
                 "perpetual_candidate": perpetual,
                 "classification_basis": (
-                    "instrument_metadata" if matched and is_perpetual_instrument(matched)
-                    else "Kraken PI_/PF_ symbol prefix" if prefix in PERPETUAL_PREFIXES
-                    else "asset token only; perpetual status unverified"
+                    "exact instrument base plus instrument metadata" if matched
+                    else "exact base token plus Kraken PI_/PF_ symbol prefix"
                 ),
                 "uncompressed_size_bytes": item.file_size,
             }
@@ -427,52 +463,132 @@ def fetch_historical_funding(symbol: str) -> dict[str, Any]:
 def crosscheck_archive_api(archive_record: dict[str, Any],
                            api_record: dict[str, Any]) -> dict[str, Any]:
     summary = archive_record.get("data_summary") or {}
-    archive_samples = summary.get("crosscheck_samples") or []
+    archive_rows = summary.get("_api_crosscheck_rows") or summary.get("crosscheck_samples") or []
     api_rows = api_record.get("rates") or []
     api_by_time: dict[int, dict[str, Any]] = {}
+    api_duplicate_count = 0
     for row in api_rows:
         stamp = parse_timestamp_ms(row.get("timestamp"))
         if stamp is not None:
+            if stamp in api_by_time:
+                api_duplicate_count += 1
             api_by_time[stamp] = row
-    comparisons = []
-    for sample in archive_samples:
-        stamp = sample.get("timestamp_ms")
-        match = api_by_time.get(stamp)
-        if match is None and stamp is not None:
-            near = [key for key in api_by_time if abs(key - stamp) <= 1]
-            match = api_by_time[near[0]] if near else None
-        fields = {}
-        if match:
-            for archive_name, archive_value in (sample.get("rates") or {}).items():
-                api_name = next((key for key in match if norm_key(key) == norm_key(archive_name)), None)
-                if not api_name:
+
+    archive_by_time: dict[int, dict[str, Any]] = {}
+    for row in archive_rows:
+        stamp = row.get("timestamp_ms")
+        if stamp is not None:
+            archive_by_time[stamp] = row
+
+    api_times = sorted(api_by_time)
+    archive_times = sorted(archive_by_time)
+    overlap_start = max(api_times[0], archive_times[0]) if api_times and archive_times else None
+    overlap_end = min(api_times[-1], archive_times[-1]) if api_times and archive_times else None
+    if overlap_start is not None and overlap_end is not None and overlap_start <= overlap_end:
+        archive_overlap = {
+            stamp: row for stamp, row in archive_by_time.items()
+            if overlap_start <= stamp <= overlap_end
+        }
+        api_overlap = {
+            stamp: row for stamp, row in api_by_time.items()
+            if overlap_start <= stamp <= overlap_end
+        }
+    else:
+        archive_overlap, api_overlap = {}, {}
+    matched_times = sorted(set(archive_overlap) & set(api_overlap))
+    archive_only = sorted(set(archive_overlap) - set(api_overlap))
+    api_only = sorted(set(api_overlap) - set(archive_overlap))
+
+    field_pairs = (
+        ("absolute_rate", "fundingRate"),
+        ("relative_rate", "relativeFundingRate"),
+        ("fundingRate", "fundingRate"),
+        ("relativeFundingRate", "relativeFundingRate"),
+    )
+    field_results: dict[str, Any] = {}
+    archive_field_names = set()
+    for row in archive_rows:
+        archive_field_names.update((row.get("rates") or {}).keys())
+    for archive_name, api_name in field_pairs:
+        if archive_name not in archive_field_names:
+            continue
+        compared = 0
+        mismatch = 0
+        max_abs = 0.0
+        for stamp in matched_times:
+            archive_value = (archive_overlap[stamp].get("rates") or {}).get(archive_name)
+            api_value = api_overlap[stamp].get(api_name)
+            try:
+                left, right = float(archive_value), float(api_value)
+                if not math.isfinite(left) or not math.isfinite(right):
+                    raise ValueError("nonfinite")
+                difference = abs(left - right)
+                max_abs = max(max_abs, difference)
+                compared += 1
+                if not math.isclose(left, right, rel_tol=1e-8, abs_tol=1e-12):
+                    mismatch += 1
+            except (ValueError, TypeError):
+                mismatch += 1
+        field_results[f"{archive_name} -> {api_name}"] = {
+            "compared_values": compared,
+            "mismatches": mismatch,
+            "max_absolute_difference": max_abs if compared else None,
+            "all_compared_values_equal_with_tolerance": compared > 0 and mismatch == 0,
+        }
+
+    sample_comparisons = []
+    if matched_times:
+        positions = sorted({0, len(matched_times) // 4, len(matched_times) // 2,
+                            (3 * len(matched_times)) // 4, len(matched_times) - 1})
+        for index in positions:
+            stamp = matched_times[index]
+            archive_row = archive_overlap[stamp]
+            api_row = api_overlap[stamp]
+            fields = {}
+            for archive_name, api_name in field_pairs:
+                if archive_name not in (archive_row.get("rates") or {}):
                     continue
                 try:
-                    left, right = float(archive_value), float(match[api_name])
+                    left = float(archive_row["rates"][archive_name])
+                    right = float(api_row[api_name])
                     fields[archive_name] = {
+                        "api_field": api_name,
                         "archive": left,
                         "api": right,
                         "absolute_difference": abs(left - right),
                         "equal_with_tolerance": math.isclose(left, right, rel_tol=1e-8, abs_tol=1e-12),
                     }
-                except (ValueError, TypeError):
-                    fields[archive_name] = {"comparison": "non_numeric"}
-        comparisons.append({
-            "archive_timestamp": sample.get("timestamp"),
-            "api_timestamp": match.get("timestamp") if match else None,
-            "timestamp_matched": match is not None,
-            "fields": fields,
-        })
-    rates = api_record.get("rates") or []
+                except (KeyError, ValueError, TypeError):
+                    fields[archive_name] = {"api_field": api_name, "comparison": "unavailable"}
+            sample_comparisons.append({
+                "timestamp": archive_row.get("timestamp"),
+                "fields": fields,
+            })
+
+    overlap_denominator = max(len(archive_overlap), len(api_overlap))
     return {
         "symbol": archive_record.get("symbol"),
         "api_status": api_record.get("status"),
+        "api_result": api_record.get("result"),
         "api_rate_count": api_record.get("rate_count"),
         "api_first_timestamp": api_record.get("first_timestamp"),
         "api_last_timestamp": api_record.get("last_timestamp"),
-        "timestamp_matches": sum(1 for item in comparisons if item["timestamp_matched"]),
-        "sample_count": len(comparisons),
-        "comparisons": comparisons,
+        "archive_first_timestamp": summary.get("first_timestamp"),
+        "archive_last_timestamp": summary.get("last_timestamp"),
+        "overlap_start_utc": datetime.fromtimestamp(overlap_start / 1000, tz=timezone.utc).isoformat() if overlap_start is not None and overlap_start <= overlap_end else None,
+        "overlap_end_utc": datetime.fromtimestamp(overlap_end / 1000, tz=timezone.utc).isoformat() if overlap_start is not None and overlap_start <= overlap_end else None,
+        "archive_rows_in_overlap": len(archive_overlap),
+        "api_rows_in_overlap": len(api_overlap),
+        "matched_timestamps": len(matched_times),
+        "archive_only_timestamps": len(archive_only),
+        "api_only_timestamps": len(api_only),
+        "timestamp_sets_equal": bool(archive_overlap) and not archive_only and not api_only,
+        "timestamp_match_rate_against_larger_overlap_set": (
+            len(matched_times) / overlap_denominator if overlap_denominator else None
+        ),
+        "api_duplicate_timestamp_count": api_duplicate_count,
+        "rate_field_comparisons": field_results,
+        "representative_overlap_samples": sample_comparisons,
         "api_history_completeness_claim": "not_established_by_endpoint_response",
     }
 
@@ -609,6 +725,7 @@ def run_probe(output_dir: Path) -> dict[str, Any]:
                                             manifest["public_api_crosschecks"].append(
                                                 crosscheck_archive_api(item, api_record)
                                             )
+                                        (item.get("data_summary") or {}).pop("_api_crosscheck_rows", None)
                                     manifest["public_api_responses"] = [
                                         {key: value for key, value in item.items() if key != "rates"}
                                         for item in api_records
