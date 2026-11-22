@@ -226,5 +226,79 @@ class AdaptiveDecisionTests(unittest.TestCase):
         )["allowed"])
 
 
+    def test_spot_scope_does_not_depend_on_perpetual_funding(self):
+        states = {
+            "spot_ETHUSDT": True, "spot_BTCUSDT": True,
+            "um_ETHUSDT": False, "um_BTCUSDT": False,
+            "funding_ETHUSDT": False, "funding_BTCUSDT": False,
+        }
+        manifests = {
+            "spot_ETHUSDT": True, "spot_BTCUSDT": True,
+            "um_ETHUSDT": False, "um_BTCUSDT": False,
+            "funding_ETHUSDT": False, "funding_BTCUSDT": False,
+        }
+        result = evaluate_research_scope_gate(
+            states, manifests, market_scope="spot",
+            spot_gap_reconciliation_complete=True,
+            spot_time_policy_accepted=True,
+        )
+        self.assertTrue(result["allowed"])
+        self.assertEqual(result["required_inputs"], ["spot_ETHUSDT", "spot_BTCUSDT"])
+
+    def test_perpetual_scope_does_not_depend_on_spot_inputs(self):
+        states = {
+            "spot_ETHUSDT": False, "spot_BTCUSDT": False,
+            "um_ETHUSDT": True, "um_BTCUSDT": True,
+            "funding_ETHUSDT": True, "funding_BTCUSDT": True,
+        }
+        manifests = {
+            "spot_ETHUSDT": False, "spot_BTCUSDT": False,
+            "um_ETHUSDT": True, "um_BTCUSDT": True,
+            "funding_ETHUSDT": True, "funding_BTCUSDT": True,
+        }
+        result = evaluate_research_scope_gate(
+            states, manifests, market_scope="perpetual"
+        )
+        self.assertTrue(result["allowed"])
+
+    def test_spot_gaps_require_both_reconciliation_and_elapsed_time_policy(self):
+        states = {"spot_ETHUSDT": False, "spot_BTCUSDT": False}
+        manifests = {"spot_ETHUSDT": True, "spot_BTCUSDT": True}
+        reconciled_but_no_time_policy = evaluate_research_scope_gate(
+            states, manifests, market_scope="spot",
+            spot_gap_reconciliation_complete=True,
+        )
+        self.assertFalse(reconciled_but_no_time_policy["allowed"])
+        self.assertIn(
+            "Spot event-time/elapsed-time policy is not accepted",
+            reconciled_but_no_time_policy["blockers"],
+        )
+        accepted = evaluate_research_scope_gate(
+            states, manifests, market_scope="spot",
+            spot_gap_reconciliation_complete=True,
+            spot_time_policy_accepted=True,
+        )
+        self.assertTrue(accepted["allowed"])
+        self.assertFalse(evaluate_research_scope_gate(
+            states, manifests, market_scope="spot",
+            spot_gap_reconciliation_complete=False,
+            spot_time_policy_accepted=True,
+        )["allowed"])
+
+    def test_combined_scope_requires_all_six_independently(self):
+        states = {
+            "spot_ETHUSDT": True, "spot_BTCUSDT": True,
+            "um_ETHUSDT": True, "um_BTCUSDT": True,
+            "funding_ETHUSDT": False, "funding_BTCUSDT": True,
+        }
+        manifests = {key: True for key in states}
+        result = evaluate_research_scope_gate(
+            states, manifests, market_scope="both",
+            spot_gap_reconciliation_complete=True,
+            spot_time_policy_accepted=True,
+        )
+        self.assertFalse(result["allowed"])
+        self.assertTrue(any("funding_ETHUSDT" in item for item in result["blockers"]))
+
 if __name__ == "__main__":
     unittest.main()
