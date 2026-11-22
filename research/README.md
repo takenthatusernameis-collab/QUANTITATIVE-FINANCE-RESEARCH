@@ -1,5 +1,8 @@
 # ETH/BTC mean-reversion research pipeline
 
+
+**Repository-wide operating rules:** follow the [General Antifragile Autonomous Operating Mindset](../docs/GENERAL-ANTIFRAGILE-AUTONOMOUS-OPERATING-MINDSET.md), [Adaptive Execution Standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md), and [Repository Hygiene preflight](../docs/REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md). The single current task pointer is [tasks/ACTIVE-QUEUE.md](../tasks/ACTIVE-QUEUE.md).
+
 ## Run
 
 From the repository root, install the dependencies and run:
