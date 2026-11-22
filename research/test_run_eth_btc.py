@@ -247,7 +247,8 @@ class ResearchPipelineTests(unittest.TestCase):
             missing = all_hours[2]
             source_csv = raw_dir / "spot_ETHUSDT_1h.csv"
             pd.DataFrame({
-                "timestamp": [str(ts) for ts in all_hours if ts != missing]
+                "timestamp": [str(ts) for ts in all_hours if ts != missing],
+                "volume": [10.0 for ts in all_hours if ts != missing],
             }).to_csv(source_csv, index=False)
 
             daily_rows = []
@@ -298,7 +299,8 @@ class ResearchPipelineTests(unittest.TestCase):
             missing = all_hours[2]
             source_csv = raw_dir / "spot_ETHUSDT_1h.csv"
             pd.DataFrame({
-                "timestamp": [str(ts) for ts in all_hours if ts != missing]
+                "timestamp": [str(ts) for ts in all_hours if ts != missing],
+                "volume": [10.0 for ts in all_hours if ts != missing],
             }).to_csv(source_csv, index=False)
 
             daily_rows = []
@@ -340,6 +342,59 @@ class ResearchPipelineTests(unittest.TestCase):
             self.assertTrue(result["reconciliation_complete"])
             self.assertEqual(len(pd.read_csv(source_csv)), 23)
 
+    def test_reconcile_spot_gaps_ignores_zero_volume_nearest_candle_for_positive_control(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            raw_dir = root / "raw"
+            raw_dir.mkdir()
+            all_hours = pd.date_range("2024-01-01", periods=24, freq="h", tz="UTC")
+            missing = all_hours[2]
+            source_csv = raw_dir / "spot_ETHUSDT_1h.csv"
+            pd.DataFrame({
+                "timestamp": [str(ts) for ts in all_hours if ts != missing],
+                "volume": [10.0 for ts in all_hours if ts != missing],
+            }).to_csv(source_csv, index=False)
+
+            daily_rows = []
+            for ts in all_hours.delete(2):
+                open_time = int(ts.timestamp() * 1000)
+                volume = "10" if ts == all_hours[20] else "0"
+                daily_rows.append([
+                    open_time, "100", "101", "99", "100.5", volume,
+                    open_time + 3599999, "1000", "1", "5", "500", "0",
+                ])
+            daily_csv = pd.DataFrame(daily_rows).to_csv(index=False, header=False)
+            archive_buffer = zip_csv(daily_csv, "ETHUSDT-1h-2024-01-01.csv")
+
+            control_time = int(all_hours[20].timestamp() * 1000) + 1000
+            control_trade = {
+                "a": 456, "p": "100.0", "q": "0.5", "f": 456, "l": 456,
+                "T": control_time, "m": True, "M": True,
+            }
+            with patch.object(
+                research, "_download_archive",
+                return_value=(archive_buffer, True, None),
+            ), patch.object(
+                research.requests, "Session",
+                return_value=FakeSession([
+                    response(200, b"[]"),
+                    response(200, json.dumps([control_trade]).encode("utf-8")),
+                    response(200, b"[]"),
+                ]),
+            ):
+                result = research.reconcile_spot_gaps(
+                    "ETHUSDT", "2024-01-01", "2024-01-01", root
+                )
+
+            control = result["aggregate_trade_positive_controls"]["2024-01-01"]
+            self.assertEqual(control["control_timestamp"], str(all_hours[20]))
+            self.assertEqual(control["control_volume"], 10.0)
+            self.assertEqual(control["candidate_source"], "daily_archive")
+            self.assertTrue(control["positive_control_passed"])
+            self.assertEqual(
+                result["gaps"][0]["classification"], "confirmed_no_trade_interval"
+            )
+
     def test_reconcile_spot_gaps_keeps_empty_trade_response_unresolved_when_control_fails(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -349,7 +404,8 @@ class ResearchPipelineTests(unittest.TestCase):
             missing = all_hours[2]
             source_csv = raw_dir / "spot_ETHUSDT_1h.csv"
             pd.DataFrame({
-                "timestamp": [str(ts) for ts in all_hours if ts != missing]
+                "timestamp": [str(ts) for ts in all_hours if ts != missing],
+                "volume": [10.0 for ts in all_hours if ts != missing],
             }).to_csv(source_csv, index=False)
 
             daily_rows = []
