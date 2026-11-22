@@ -11,6 +11,21 @@ Remove the verified ingestion bottlenecks without weakening the ETH/BTC research
 
 Start from [the 2026-11-22 audit report](../reports/ETH-BTC-AUDIT-ARTIFACT-REVIEW-2026-11-22.md), the current pipeline `research/run_eth_btc.py`, and [the adaptive execution standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md).
 
+
+## Autonomous execution and adaptive recovery requirements
+
+This is the current controlling task for the unresolved ETH/BTC input and gap problem. Execute all safe steps agent-initiated within existing permissions; never wait for routine user activation, approval, or a workflow UI click. Follow the repository-wide [Adaptive Autonomous Research Execution Standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md) and [dispatch runbook](../docs/CHATGPT-WORKFLOW-DISPATCH.md).
+
+- Audit every independent input even when another fails. Continue useful parser, schema, test, provider and methodology work while any one source is blocked.
+- After the first meaningful source/parser/runner/dispatch failure, diagnose it and test materially different alternatives. After two independent identical non-transient failures on the same route, stop that route. Use positive controls, negative controls, provenance and immutable hashes.
+- If the Binance route remains inaccessible, compare official archive/trade-level construction, an authorized alternative provider, and a separately specified synchronized ETH/USD divided by BTC/USD series. A distinct source or model is a distinct experiment with its own acceptance criteria; do not merge its results into the original Binance study.
+- Preserve unresolved gaps and the original experiment's **INCONCLUSIVE** status. Never fabricate, forward-fill, silently drop observations, infer zero funding, or weaken a gate to force execution.
+- For any supported safe workflow, cancel run-level `queued`/`pending` status older than 15 minutes unless an earlier run in the exact same concurrency group is actively `in_progress`. A queued dependent job inside an already running workflow is not covered.
+- If cancellation is unavailable or fails, record `CANCELLATION_BLOCKED / ORPHANED_POSSIBLE_EXECUTION` and initiate one materially different alternative attempt independently. Give it a separate attempt ID, execution route, working state, cache, manifests, artifacts and output paths. Keep it read-only and prevent shared writes.
+- If a workflow is merely waiting for a verified earlier same-group predecessor, preserve it and record that predecessor ID. Never cancel an in-progress run just to clear the queue.
+- If an independent alternative also fails, diagnose its new cause; do not repeat it unchanged or create a duplicate attempt storm. Continue to the next materially different safe research slice.
+- No live orders, capital deployment, live credentials, custody changes or automatic strategy promotion.
+
 ## Verified starting evidence
 
 - Audit run [44963655383](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44963655383) successfully passed the exact-actor PR-comment authorization gate, default-branch checkout, dependency installation, and synthetic smoke test. The real-data audit ended with exit code 2; the empirical step was skipped.
