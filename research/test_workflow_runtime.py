@@ -90,13 +90,13 @@ class GitHubActionRuntimeTests(unittest.TestCase):
     def test_research_cache_does_not_override_low_trust_read_only_default(self):
         workflow = (WORKFLOW_DIR / "eth-btc-research.yml").read_text(encoding="utf-8")
         match = re.search(
-            r"(?ms)^  empirical-research:\\n(?P<job>.*?)(?=^  [a-z0-9_-]+:\\n|\\Z)",
+            r"(?ms)^  empirical-research:\n(?P<job>.*?)(?=^  [a-z0-9_-]+:\n|\Z)",
             workflow,
         )
         self.assertIsNotNone(match, "empirical-research job must be present")
         job = match.group("job")
         cache_match = re.search(
-            r"(?ms)^      - name: Cache Binance archives\\n(?P<step>.*?)(?=^      - name:|\\Z)",
+            r"(?ms)^      - name: Cache Binance archives\n(?P<step>.*?)(?=^      - name:|\Z)",
             job,
         )
         self.assertIsNotNone(cache_match, "archive cache step must be present")
@@ -110,7 +110,7 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         # Protect this research workflow from an accidental cache-write bypass.
         self.assertNotRegex(
             workflow,
-            r"(?m)^\\s*cache-mode:\\s*(?:write|write-only)\\s*$",
+            r"(?m)^\s*cache-mode:\s*(?:write|write-only)\s*$",
         )
 
     def test_deprecated_node20_action_refs_are_absent(self):
