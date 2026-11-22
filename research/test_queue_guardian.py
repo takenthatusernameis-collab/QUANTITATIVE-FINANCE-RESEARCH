@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 from queue_guardian import (
     GitHubAPI,
+    build_execution_context,
     QUEUE_TIMEOUT_SECONDS,
     STATUS_MARKER,
     format_status_comment,
@@ -123,6 +124,37 @@ class FakeAPI:
 
 
 class StatusCommentTests(unittest.TestCase):
+    def test_execution_context_and_status_comment_distinguish_dry_run_from_live(self):
+        dry = build_execution_context(True, {
+            "GITHUB_EVENT_NAME": "issue_comment",
+            "GITHUB_RUN_ID": "12345",
+            "GITHUB_RUN_ATTEMPT": "2",
+            "GITHUB_WORKFLOW": "QFR Actions queue guardian",
+            "GITHUB_REF": "refs/heads/main",
+            "GITHUB_SHA": "abcdef0123456789",
+        })
+        live = build_execution_context(False, {
+            "GITHUB_EVENT_NAME": "schedule",
+            "GITHUB_RUN_ID": "12346",
+            "GITHUB_SHA": "fedcba9876543210",
+        })
+
+        self.assertEqual(dry["mode"], "DRY_RUN")
+        self.assertTrue(dry["dry_run"])
+        self.assertEqual(dry["run_id"], "12345")
+        self.assertEqual(live["mode"], "LIVE_ENFORCEMENT")
+        self.assertFalse(live["dry_run"])
+        self.assertEqual(live["event_name"], "schedule")
+
+        body = format_status_comment({
+            "run_inventory": [],
+            "run_inventory_total": 0,
+            "execution_context": dry,
+        })
+        self.assertIn("event: issue_comment", body)
+        self.assertIn("mode: **DRY_RUN**", body)
+        self.assertIn("commit: abcdef01", body)
+
     def test_status_comment_upsert_is_idempotent_and_only_updates_bot_comment(self):
         api = GitHubAPI("example/repo", "token")
         comments = [{
