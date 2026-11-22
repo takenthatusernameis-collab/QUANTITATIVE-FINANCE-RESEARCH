@@ -128,6 +128,7 @@ _COMMON_PROVIDER_GATES = (
     "legal_authorized",
     "product_inception_verified",
     "historical_coverage_verified",
+    "full_history_feasibility_verified",
     "positive_control_passed",
     "negative_control_passed",
     "timestamps_valid",
