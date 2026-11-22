@@ -366,7 +366,10 @@ def evaluate_research_scope_gate(
                 blockers.append("Spot hourly gaps are not fully reconciled")
             if not spot_time_policy_accepted:
                 blockers.append("Spot event-time/elapsed-time policy is not accepted")
-        if spot_complete:
+        spot_data_accepted = spot_complete or (
+            spot_gap_reconciliation_complete is True and spot_time_policy_accepted
+        )
+        if spot_data_accepted:
             rejected = [name for name in rejected if name not in spot_inputs]
 
     if rejected:
