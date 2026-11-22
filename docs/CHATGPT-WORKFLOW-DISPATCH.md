@@ -1,6 +1,6 @@
 # Adaptive ChatGPT-to-GitHub Actions Dispatch
 
-**Current status:** Autonomous ChatGPT dispatch is **NOT ENABLED / NOT END-TO-END VERIFIED**. The objective is to remove this bottleneck through an adaptive, secure implementation—not to make a human UI dispatch the normal operating process.
+**Current status:** Autonomous ChatGPT dispatch is **END-TO-END VERIFIED for the harmless smoke and audit-only commands** through the exact-actor PR-comment bridge on PR #2. The audit-only workflow was triggered and its artifact retrieved; its data-quality step failed on incomplete inputs, so research readiness remains **INCONCLUSIVE**. The objective remains to remove the data/engineering bottlenecks—not to bypass scientific gates or make a human UI dispatch the normal operating process.
 
 This guide is subordinate to and implements the repository-wide [Adaptive Autonomous Research Execution Standard](ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md).
 
@@ -140,10 +140,10 @@ The `workflow_dispatch` event may remain available as a human-owned break-glass 
 ## Repository-specific state
 
 - Current empirical workflow: `.github/workflows/eth-btc-research.yml`.
-- Its current trigger is `workflow_dispatch` only.
-- The repository has no verified autonomous ChatGPT dispatch route yet.
-- The next agent should first test the connected PR-comment capability, because the currently observed integration exposes a PR-comment action but not a clearly supported ordinary-issue-comment action or direct workflow-dispatch POST.
-- If the PR-comment route is viable, implement and prove the tightly gated control-PR path. Otherwise proceed to an authenticated GitHub App/API relay or the next secure alternative. Do not simply tell the human to click Run workflow.
+- Its triggers are `issue_comment: created` with the exact PR #2 / actor / whole-command gate, plus `workflow_dispatch` as a break-glass owner path.
+- The PR-comment route is verified for `/qfr-control-smoke` and `/qfr-run-eth-btc-data-audit`; control PR #2 remains open and draft.
+- Preserve the verified PR-comment route. Before each run, inspect the control PR, workflow gate, and active runs; do not duplicate an in-progress audit.
+- Do not build a second dispatch bridge unless the existing route becomes unavailable or fails its security checks. Continue removing the verified data-source and parser bottlenecks.
 - The research data-quality gate remains independent: an automated trigger must not rerun or bypass the ETH/BTC study until the pending data-gap reconciliation task validates the required inputs.
 
 ## Official references
@@ -157,7 +157,7 @@ The `workflow_dispatch` event may remain available as a human-owned break-glass 
 
 ## Verified repository-specific dispatch route — 2026-11-21
 
-**Status: the PR-comment route is now end-to-end verified for a harmless smoke command.** The connected GitHub integration's authenticated login was read directly as `takenthatusernameis-collab`. A dedicated draft control PR is open at [PR #2](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/pull/2). Do not merge or close this PR; it is the stable control surface.
+**Status: the PR-comment route is now end-to-end verified for both the harmless smoke command and the audit-only command. The audit command's dispatch succeeded; its data-quality step ended with an expected nonzero result because inputs were incomplete.** The connected GitHub integration's authenticated login was read directly as `takenthatusernameis-collab`. A dedicated draft control PR is open at [PR #2](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/pull/2). Do not merge or close this PR; it is the stable control surface.
 
 The default-branch workflow `.github/workflows/eth-btc-research.yml` now accepts `issue_comment: created` and authorizes only when all conditions match:
 
@@ -175,7 +175,7 @@ The workflow uses repository-level `contents: read` permissions only. The issue-
 - Smoke comment ID: `7071125644`.
 - Smoke workflow run: [44963633770](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44963633770), run number 3, event `issue_comment`, actor `takenthatusernameis-collab`, ref `main`, commit `96b93aeba313d9a083bb031a949955cb8e606509`, conclusion **success**.
 - The authorization logs confirm exact target PR #2, open PR state, exact actor, `issue_comment` created event, and whole-body command equality. The audit job was skipped for the smoke command as intended.
-- Audit comment ID: `7071128780`. The corresponding data-audit workflow run is [44963655383](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44963655383). At the time of this documentation update, authorization, checkout of `main`, dependency installation and the synthetic smoke test have passed; the real data audit is still running. Its result must be recorded before claiming the underlying research task complete.
+- Audit comment ID: `7071128780`. The corresponding data-audit workflow run [44963655383](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44963655383) completed with event `issue_comment`, actor `takenthatusernameis-collab`, ref `main`, workflow SHA `96b93aeba313d9a083bb031a949955cb8e606509`, and exact command `/qfr-run-eth-btc-data-audit`. Authorization, default-branch checkout, dependency installation and synthetic smoke passed; the real-data audit exited 2 because Spot gaps, USDⓈ-M parsing, and funding retrieval remained unresolved; the empirical step was skipped. Artifact `14730731258` was uploaded and retrieved (ZIP SHA-256 `82a8f6e9c6bb82d2ec43af8107a2b2f487321c8a54f84de0bf1693f1da602704`). Full findings: [audit report](../reports/ETH-BTC-AUDIT-ARTIFACT-REVIEW-2026-11-22.md).
 
 ### Operating procedure
 
@@ -186,3 +186,8 @@ The workflow uses repository-level `contents: read` permissions only. The issue-
 5. Never treat a successful trigger or smoke test as a successful data audit or empirical finding. Keep the research status **INCONCLUSIVE** until all input manifests and reconciliation evidence pass the declared acceptance rules.
 
 The manual `workflow_dispatch` route remains a break-glass owner control. The comment route's `/qfr-run-eth-btc-data-audit` command always invokes `--audit-only --reconcile-spot-gaps`; it cannot launch a strategy backtest. Full empirical execution remains a separate manual owner action and is still gated by data completeness.
+
+
+## Audit-only dispatch verification — 2026-11-22
+
+The exact audit command has now been proven end to end as an activation path: the connected actor posted the allowlisted command to PR #2, GitHub passed the authorization gate, the default-branch workflow executed, and the artifact was retrieved and inspected. This proves orchestration and artifact access only. It does not prove that all six input series are complete or that the strategy has an empirical edge. The next agent should use the same command only after code/source changes are committed and no conflicting run is active. Keep PR #2 open and draft; never execute its head code.

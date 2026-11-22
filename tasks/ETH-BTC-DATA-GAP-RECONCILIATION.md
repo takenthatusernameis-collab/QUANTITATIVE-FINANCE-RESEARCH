@@ -1,6 +1,6 @@
 # Pending Research Task: Reconcile ETHUSDT Hourly Data Gaps Before the Full ETH/BTC Study
 
-**Status:** Implementation committed; real-data audit in progress  
+**Status:** Implementation committed; audit-only run completed; data acceptance remains **INCONCLUSIVE**.  
 **Priority:** High  
 **Type:** Data provenance, completeness diagnostics and deterministic validation  
 **Scope:** Research/backtesting only. No live orders, capital deployment or raw market-data commits.
@@ -27,7 +27,7 @@ The following engineering work is committed on `main`:
 - Gated PR-comment dispatch and audit-only workflow: commit `96b93aeba313d9a083bb031a949955cb8e606509`.
 - Verified dispatch procedure: `docs/CHATGPT-WORKFLOW-DISPATCH.md`.
 
-**Important:** the audit-only execution is not yet complete at the time of this task update. No official-source conclusion about the 31 gaps and no completeness conclusion for the six input series has been made. Keep the empirical ETH/BTC study **INCONCLUSIVE** until the follow-up artifact review confirms every acceptance criterion.
+**Important:** the audit-only run has now completed. It produced full Spot gap inventories for ETHUSDT and BTCUSDT, but the hosted-runner REST requests were blocked by HTTP 451, both USDⓈ-M parsers failed on the January 2022 archive, and both funding API requests returned HTTP 451. The empirical ETH/BTC study remains **INCONCLUSIVE**. See the 2026-11-22 audit report and the next ingestion/no-trade validation task.
 
 ## Objectives
 
@@ -77,7 +77,7 @@ The following engineering work is committed on `main`:
 - Autonomous ChatGPT dispatch is now **end-to-end verified for a harmless smoke command** through a dedicated draft control PR, [PR #2](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/pull/2). The authenticated connected actor is `takenthatusernameis-collab`.
 - The existing `.github/workflows/eth-btc-research.yml` now gates `issue_comment: created` on exact PR number 2, open PR state, exact actor login, and exact full comment body. The allowlisted commands are `/qfr-control-smoke` and `/qfr-run-eth-btc-data-audit`. It runs only default-branch code, with `contents: read`; it never checks out PR-head code and does not use `pull_request_target`.
 - Smoke run [44963633770](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44963633770) completed successfully with event `issue_comment`, actor `takenthatusernameis-collab`, ref `main`, and the authorization gate verified in logs.
-- The full audit-only run [44963655383](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44963655383) was initiated by the exact allowlisted comment. It has passed authorization, default-branch checkout, dependency installation and synthetic smoke testing; the real data-audit step is **in progress**. Do not launch a duplicate audit while this run is active.
+- The full audit-only run [44963655383](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44963655383) was initiated by the exact allowlisted comment and is **completed**. Authorization, default-branch checkout, dependency installation and synthetic smoke testing passed; the real data-audit step exited 2 on incomplete inputs; the empirical step was skipped; artifact upload succeeded. This verifies the audit command's dispatch path, not data completeness.
 - `research/run_eth_btc.py` now records every missing hour, contiguous gap intervals and archive provenance; it includes `--audit-only` to inspect all four price series and both funding series without running strategy backtests, and `--reconcile-spot-gaps` to compare every missing ETH Spot hour with Binance REST and daily archives without repairing data.
 - Regression tests cover complete gap inventory/provenance, reconciliation classification, no-repair behavior and continuation through all six data inputs after a failure. CI run [44963445206](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44963445206) passed on the test commit.
 - See [the verified dispatch guide](../docs/CHATGPT-WORKFLOW-DISPATCH.md) for command and verification details.
@@ -99,3 +99,10 @@ The following engineering work is committed on `main`:
 ## Acceptance criteria
 
 The 31 ETH spot gaps have been individually reconciled or explicitly classified as unresolved; all four price series and both funding histories have been audited; no data have been fabricated or silently discarded; deterministic tests pass; and the full empirical workflow is run only after the declared data policy passes. A successful synthetic test or a successful archive download alone is not empirical evidence.
+
+
+## Final audit outcome — 2026-11-22
+
+The audit artifact review is recorded in [reports/ETH-BTC-AUDIT-ARTIFACT-REVIEW-2026-11-22.md](../reports/ETH-BTC-AUDIT-ARTIFACT-REVIEW-2026-11-22.md). Both Spot series have the same 31 missing hours; all 15 corresponding ETH daily archives have verified checksums but omit those candles; all 31 hosted-runner REST requests returned HTTP 451. The current classifier incorrectly conflates failed API requests with successful empty responses. The two USDⓈ-M kline parsers fail at the January 2022 archive, and both funding API calls return HTTP 451. The artifact contains no futures or funding manifests. No empirical metrics were produced.
+
+**The original acceptance criteria are not met.** Keep the study **INCONCLUSIVE** and do not run the empirical workflow. Next handoff: [tasks/ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md](ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md), which must repair source access and parsing, verify the 31 gaps with trade-level positive controls, persist all six manifests, and implement a tested elapsed-time policy before any backtest.

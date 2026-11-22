@@ -1,6 +1,6 @@
-# Pending Task: Review ETH/BTC Input Audit and Finalize the Missing-Bar Data Policy
+# Completed Review: ETH/BTC Input Audit and Missing-Bar Data Policy
 
-**Status:** Pending  
+**Status:** Artifact review completed 2026-11-22; full acceptance criteria not met; research remains **INCONCLUSIVE**.  
 **Priority:** High  
 **Type:** Research artifact verification, data provenance and pre-registration  
 **Scope:** Historical research/backtesting only. No live orders, capital deployment, live credentials or strategy promotion.
@@ -23,6 +23,24 @@ Autonomous dispatch was verified using the exact-actor, exact-command control PR
 At task creation, the audit job had passed authorization, checkout of the default branch, dependency installation and the synthetic test. The real data-audit step was still in progress. **Do not launch another full audit or empirical study until this run's final state and artifacts have been inspected.**
 
 The empirical ETH/BTC study remains **INCONCLUSIVE**. This audit run is explicitly audit-only and cannot produce strategy-performance evidence.
+
+## Execution results — 2026-11-22
+
+Run `44963655383` is complete. The exact-actor PR-comment authorization passed for `/qfr-run-eth-btc-data-audit` on open control PR #2; event `issue_comment`, actor `takenthatusernameis-collab`, ref `main`, workflow `.github/workflows/eth-btc-research.yml`, SHA `96b93aeba313d9a083bb031a949955cb8e606509`, range `2020-01-01` through `2026-10-31`, market `both`. The data-audit step exited 2 because inputs were incomplete. The empirical step was skipped.
+
+Artifact ID `14730731258` was the only artifact returned (1 of 1), size 23,851 bytes, ZIP SHA-256 `82a8f6e9c6bb82d2ec43af8107a2b2f487321c8a54f84de0bf1693f1da602704`. It contains four JSON files: the ETH and BTC Spot archive manifests, the ETH Spot gap-reconciliation manifest, and `data_audit_summary.json`. No raw CSV was uploaded. The four file hashes and the complete 31-gap inventory are recorded in [the audit report](../reports/ETH-BTC-AUDIT-ARTIFACT-REVIEW-2026-11-22.md).
+
+Both Spot series have 82/82 monthly archive checksums verified, no missing archive months, 59,873 rows versus 59,904 expected, 31 missing hours, zero duplicates, and matching requested start/end boundaries. Their missing timestamps are identical. Fifteen ETH daily archives were downloaded and checksum-verified; none contains the corresponding 31 missing candles. All 31 hosted-runner REST requests failed with HTTP 451, so they did not establish a successful empty API response. The generated `absent_from_both_official_representations_unresolved` label is therefore semantically incorrect; it conflates API failure with a successful empty response. The top-level `daily_archives` inventory is also empty despite per-gap nested records.
+
+USDⓈ-M ETHUSDT and BTCUSDT parsing failed at the January 2022 monthly archive with `Invalid open_time values`; the precise CSV schema cause is not yet verified. ETH and BTC funding API retrieval failed with HTTP 451. No futures or funding manifests were emitted. Thus only the two Spot manifests were available, and none of the six inputs passed the full acceptance gate.
+
+A supplementary connected Spot kline query returned neighboring candles but no bars in the missing ETH windows; it did not expose enough raw HTTP/status provenance to clear the gate. The connected aggregate-trades action also returned empty for adjacent known-candle controls, so it failed its positive-control test and was not accepted as no-trade evidence.
+
+**Data policy:** keep all 31 intervals unresolved. Do not synthesize OHLCV, forward-fill, assume zero return/volume, or drop intervals. Simply relaxing the continuity gate would be unsafe: the current backtest's `pct_change()` would treat a two-to-six-hour move as one hourly return. First establish trade-level evidence with a working official source and known-active controls; then pre-register an elapsed-time-correct policy before any backtest.
+
+CI run [44963445206](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44963445206) passed deterministic unit tests and the synthetic smoke test. These are plumbing checks only. No empirical metrics were generated.
+
+**Acceptance status:** not met. The audit artifact review is complete, but the all-six-input audit and tested missing-bar policy are not. The next task is [ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md](ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md). Do not run the empirical workflow until that task passes every gate.
 
 ## Objectives
 
@@ -88,3 +106,8 @@ The empirical ETH/BTC study remains **INCONCLUSIVE**. This audit run is explicit
 ## Acceptance criteria
 
 The existing audit run and all its artifacts have been inspected; all 31 ETH Spot gaps have exact source-based classifications; the four price series and both funding histories have independent completeness results; the data policy is explicit and tested; no observations have been fabricated or silently discarded; the empirical study is run only if every required gate passes; and the repository records the exact evidence and next task. Until then the study remains **INCONCLUSIVE**.
+
+
+## Final acceptance status
+
+The artifact-review portion is complete, but the original acceptance criteria are **not met**: the REST source was blocked, all 31 gaps remain unresolved, both USDⓈ-M kline parsers failed, and both funding downloads failed. The research conclusion remains **INCONCLUSIVE**. Continue with [the ingestion and no-trade validation task](ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md); do not weaken the data gate or run the empirical study before that task passes.
