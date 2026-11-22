@@ -4,6 +4,11 @@ At every cycle start, first inspect open `[QFR queue guardian]` issues and resol
 
 # General Repository Operating Mindset
 
+### Decision-to-execution invariant: replace in the same session
+
+**A conclusion that an implementation, endpoint, provider, parser, workflow, model, or other component must be replaced is an execution decision—not a future recommendation.** Within the same session, immediately implement the smallest safe, materially different replacement; add or update deterministic regression tests; run the relevant validation; inspect the resulting evidence; and update the canonical task queue and handoff. Do not leave a known-replaceable blocker as a “next step,” ask the user to repeat the instruction, or finish with replacement merely proposed. If the replacement depends on a genuinely unavailable owner-only permission or external fact, complete every independent implementation step now, create a bounded probe/fail-closed path, and state the exact unresolved prerequisite. Never represent an unverified replacement as successful or weaken scientific/security gates to force acceptance.
+
+
 Before substantive work, brainstorm an adaptive antifragile session plan from the live context, perform the conservative repository-hygiene preflight, remove recurring manual-intervention causes, then execute the highest-value pending task. Maintain one canonical active task queue; do not create duplicate handoffs.
 
 **No verified repository commit means no completed commit assignment.**
