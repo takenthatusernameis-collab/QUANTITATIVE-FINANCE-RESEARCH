@@ -26,6 +26,8 @@ Start from [the 2026-11-22 audit report](../reports/ETH-BTC-AUDIT-ARTIFACT-REVIE
 
 **Do not wait for manual activation or confirmation for routine historical quantitative research.** The agent must use the verified control-PR command, an authorized API route, or another existing connected trigger to start audits and backtests itself. "Wait for the owner to click Run workflow/confirm the backtest" is a task failure. Historical backtests are research-only; they do not authorize live trading, capital deployment or strategy promotion.
 
+The `/qfr-run-eth-btc-empirical` command now performs a non-fail-fast preflight over all four price series and both funding histories. The strategy step is conditional on preflight success. The workflow requires no manual confirmation; an incomplete preflight stops strategy execution and uploads diagnostic manifests.
+
 A data-quality failure must not freeze the whole research program. It must trigger a change in the approach. The current Binance-specific plan is one candidate route, not a mandatory architecture. Test a representative slice and positive control, then change provider, endpoint, archive format, market-data representation, venue, time resolution, or model when evidence justifies it. After two independent identical non-transient failures on one route, stop repeating it. Preserve the exact error and move to a materially different route.
 
 **Required alternative data construction:** independently source ETH/USD and BTC/USD price series from an authorized provider (preferably the same venue/provider and identical bar conventions), then construct the cross-rate from synchronized observed prices:
