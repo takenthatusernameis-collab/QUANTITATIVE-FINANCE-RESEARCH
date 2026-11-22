@@ -1,9 +1,12 @@
 # Historical Task: Pre-Dispatch ETH/BTC Metric and Reporting Audit
 
-**Status:** Implementation audit complete; owner-side dispatch and empirical artifact review are tracked in the current pending tasks  
+**Status:** Historical implementation audit complete; owner-side/manual dispatch instructions are obsolete. Current empirical follow-up is `tasks/ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md`.
 **Priority:** High  
 **Type:** Reproducible empirical replication and evidence review  
 **Scope:** Backtesting only; no live orders or capital deployment
+
+
+> **Historical / superseded execution note:** Historical record retained for auditability. No manual workflow activation is part of the current operating procedure. Use the verified agent-controlled command, inspect and deduplicate existing runs, apply deterministic queue cancellation, and start one isolated alternative attempt if cancellation is unavailable or fails.
 
 ## Context
 
