@@ -1,19 +1,30 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-22 21:34 UTC  
+**Updated:** 2026-11-22 22:51 UTC  
 **Canonical active-task pointer:** [ETH/BTC ingestion and no-trade validation](ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md).
 
 ## Governing priority
 
 Apply the single authoritative [seven-level adaptive decision hierarchy](../docs/GENERAL-ANTIFRAGILE-AUTONOMOUS-OPERATING-MINDSET.md): P0 hard invariants; P1 compounding meta-process improvements; P2 resolve existing work/highest-value bottlenecks; P3 original research recovery; P4 independent providers/data architectures; P5 formally preregistered hypothesis/model replacement; P6 local polish. The [adaptive execution standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md) implements the hierarchy. Do not create duplicate policy documents or task plans.
 
-## Current follow-up — OKX funding metadata and symbol search (2026-11-22)
+## Latest completed task — Kraken official funding export inspection (2026-11-22 22:43 UTC)
+
+- The previous next task to retrieve and inspect Kraken's public ZIP export is complete: [run 45079169566](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45079169566), artifact [14776366974](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45079169566/artifacts/14776366974). The 109,980,750-byte archive was inspected in runner-local temporary storage, SHA-256 `65ba6712a6ab657389d2795d3ed77bedb4270841dfe711147ae9df16e366edab`, then deleted; only a 66,959-byte manifest/screenshot artifact was retained.
+- Exact files: `PF_XBTUSD` and `PF_ETHUSD` (flexible/linear, 30,431 rows each, 2022-03-22 to 2026-02-01); `PI_XBTUSD` and `PI_ETHUSD` (inverse, marked expired, 38,225 rows each, 2018-08-31 to 2026-02-01). All four have zero invalid/duplicate/out-of-order timestamps and zero gaps over four hours.
+- Each exact symbol has 1,767 overlapping archive/API rows from 2025-11-19 through 2026-02-01; timestamps and both rate fields match exactly. API returns 8,841 rows per PF symbol through 2026-11-22 22:00 UTC and 8,283 rows per PI symbol through 2026-10-30 16:00 UTC. The archive is stale at 2026-02-01; API completeness is not established, so the combined data remain provisional.
+- Full evidence and contract-specific rate semantics: [Kraken/Gate/Coinbase screen report](../reports/ETH-BTC-KRAKEN-GATE-COINBASE-FUNDING-SCREEN-2026-11-22.md). No raw data was retained; no credentials, paid service or trading action was used.
+
+## Current next task — Kraken archive/API-tail quality and separate-venue gate
+
+Extend the existing bounded probe to quality-check every returned API row and calculate the union of the archive and API tail for each exact instrument. Report timestamp validity/order/duplicates, nulls, interval distribution, gaps over four hours, archive/API overlap, API-only tail rows, and merged coverage boundaries. Keep `PF_*` linear/flexible contracts and `PI_*` inverse historical contracts separate. The `tradeable` export column is an instrument-symbol string, not a boolean. Preserve `absolute_rate` and `relative_rate` separately and use the official contract-specific payout formulas. API overlap agreement is not proof of complete API history; keep the data `PROVISIONAL_NOT_ACCEPTED` unless independent completeness evidence passes. Add deterministic tests and run CI. Do not run a backtest or merge Kraken data into Binance. Keep raw market data out of Git and artifacts; retain only provenance-complete manifests and compact reports.
+
+## Completed historical follow-up — OKX funding metadata and symbol search (2026-11-22)
 
 - **Field schema:** `instrument_name`, `funding_rate` (realized rate at most recent settlement), `funding_time` (Unix ms); rate scale, timezone beyond Unix ms and row/event completeness remain unspecified.
 - **Final anonymous search:** the corrected selector input was uniquely identified; searches `ETH` and `BTC` both returned “No result found,” and the modal table remained “No records found.” No selection, confirmation, date change or download. Successful probe [45029337953](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45029337953), artifact [14757585237](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45029337953/artifacts/14757585237).
 - **Code/tests:** locator-based option collection and exact `input[type="search"]` search; CI [45029278204](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45029278204) passed unit tests and synthetic smoke. Full evidence: [OKX metadata/search report](../reports/ETH-BTC-OKX-FUNDING-METADATA-AND-SYMBOL-PROBE-2026-11-22.md).
 - **Decision:** OKX anonymous UI route is **UNACCEPTED / NO SAMPLE**; not proof of global unavailability. Stop repeating probes and do not change regions, accept cookies or bypass restrictions. Funding acceptance remains closed; no perpetual backtest.
-- **Next focus:** The newly identified official Kraken historical-funding CSV export is the highest-value no-purchase candidate for a separate venue pilot; inspect it through the authorized hosted browser and validate exact BTC/ETH perpetual symbols, schema, coverage and API overlap before accepting anything. See [the Kraken/Gate/Coinbase source screen](../reports/ETH-BTC-KRAKEN-GATE-COINBASE-FUNDING-SCREEN-2026-11-22.md). Gate.io is secondary because its public funding endpoint documents only `contract` and `limit`, with no time-range/cursor parameters. Coinbase historical funding is documented as available upon request, not as a public self-service export. Keep all venue data separate; keep Binance's perpetual gate closed. Do not repeat exhausted OKX no-sample or runner-blocked routes, and do not purchase paid data without owner authorization. Keep the cache warm range bounded until retention and weekly schedule reliability are measured.
+- **Disposition:** this OKX probe is closed as `UNACCEPTED / NO SAMPLE`; do not repeat it or bypass regional/UI restrictions. Kraken's subsequent archive inspection and the current next task are recorded at the top of this queue. Gate.io remains a bounded secondary route; Coinbase is not self-service. Keep all venue data separate and the Binance funding gate closed. Do not purchase paid data without owner authorization.
 
 
 ## P1 documentation regression coverage — 2026-11-22 21:34 UTC
@@ -32,7 +43,7 @@ Apply the single authoritative [seven-level adaptive decision hierarchy](../docs
 
 ## P4 independent venue funding-source screen — 2026-11-22
 
-- Kraken's official [historical funding export](https://support.kraken.com/articles/export-historical-funding-rates) states that CSV files for all available derivatives markets can be exported by trading pair since inception. This is the strongest newly identified free candidate for a **separate Kraken venue pilot**, not a Binance substitute. The binary ZIP could not be inspected by the current tool environment; the next agent should retrieve it with the authorized hosted browser and validate exact BTC/ETH perpetual symbols, contract type, units, row coverage, duplicates, cadence and overlap against Kraken's public API. No data have been accepted.
+- Kraken's official [historical funding export](https://support.kraken.com/articles/export-historical-funding-rates) was the strongest free candidate at the initial screen. The later hosted-runner probe retrieved and inspected the ZIP; it is still provisional because the export ends 2026-02-01 and API completeness is unproven. See the completed result and next task at the top of this queue. No data have been accepted.
 - Kraken SDK documentation illustrates public historical funding fields `timestamp`, `fundingRate`, and `relativeFundingRate`, with examples dating to 2018; use this only as a cross-check lead until the official export is inspected.
 - Gate.io's public `GET /futures/{settle}/funding_rate` documents `contract` and `limit` but no time-range or cursor parameter; treat it as a bounded secondary probe, not a full-history source.
 - Coinbase's US Perpetual-Style Futures page says historical funding data is available upon request; it is not currently a self-service public ingestion route.

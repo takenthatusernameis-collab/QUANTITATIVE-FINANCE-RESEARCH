@@ -58,13 +58,18 @@ class KrakenFundingExportProbeTests(unittest.TestCase):
     def test_csv_summary_keeps_kraken_export_absolute_and_relative_rate_columns(self):
         csv_text = (
             "timestamp,tradeable,absolute_rate,relative_rate\n"
-            "2026-01-01 00:00:00,true,0.0000001,0.001\n"
-            "2026-01-01 01:00:00,false,-0.0000002,-0.002\n"
+            "2026-01-01 00:00:00,PF_XBTUSD,0.0000001,0.001\n"
+            "2026-01-01 01:00:00,PF_XBTUSD,-0.0000002,-0.002\n"
         )
         result = analyze_csv_stream(io.StringIO(csv_text))
         self.assertEqual(result["rate_fields"]["absolute_rate"]["min"], -0.0000002)
         self.assertEqual(result["rate_fields"]["relative_rate"]["max"], 0.001)
-        self.assertEqual(result["categorical_value_counts"]["tradeable"], {"true": 1, "false": 1})
+        self.assertEqual(result["categorical_value_counts"]["tradeable"], {"PF_XBTUSD": 2})
+        self.assertEqual(
+            result["column_semantics"]["tradeable"],
+            "Observed values are Kraken instrument symbols, not boolean flags; "
+            "preserve the raw values verbatim.",
+        )
         self.assertEqual(result["null_counts"]["tradeable"], 0)
 
     def test_archive_to_api_overlap_crosscheck_maps_both_rate_fields_without_merging_them(self):

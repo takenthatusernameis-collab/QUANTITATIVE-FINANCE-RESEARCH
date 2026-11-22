@@ -192,6 +192,20 @@ def analyze_csv_stream(stream: Any) -> dict[str, Any]:
                 "timestamp_ms": stamp_ms,
                 "rates": rates,
             })
+    column_semantics: dict[str, str] = {}
+    tradeable_header = next(
+        (header for header in headers if norm_key(header) == "tradeable"), None
+    )
+    if tradeable_header:
+        observed_tradeable_values = categorical_counts.get(tradeable_header, Counter())
+        if observed_tradeable_values and all(
+            re.fullmatch(r"(?:PI|PF)_[A-Z0-9]+", value.upper())
+            for value in observed_tradeable_values
+        ):
+            column_semantics[tradeable_header] = (
+                "Observed values are Kraken instrument symbols, not boolean flags; "
+                "preserve the raw values verbatim."
+            )
     ordered_ms = [item[0] for item in timestamps]
     internal_rows = [
         {"timestamp": raw_time, "timestamp_ms": stamp_ms, "rates": rates}
@@ -222,6 +236,7 @@ def analyze_csv_stream(stream: Any) -> dict[str, Any]:
         "categorical_value_counts": {
             column: dict(counts) for column, counts in categorical_counts.items()
         },
+        "column_semantics": column_semantics,
         "crosscheck_samples": samples,
         "_api_crosscheck_rows": internal_rows,
     }

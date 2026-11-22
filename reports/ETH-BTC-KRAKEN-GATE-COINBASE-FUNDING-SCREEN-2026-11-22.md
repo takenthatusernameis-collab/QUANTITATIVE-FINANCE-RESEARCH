@@ -2,7 +2,7 @@
 
 ## Decision
 
-**Kraken's official historical-funding export is the strongest newly identified no-purchase candidate for a separate venue pilot. It is not yet retrieved or accepted.** The official support page says it exports CSV files for all available Kraken Derivatives markets, one file per trading pair, with history since inception. The page was last updated 2026-02-24. This is a potentially useful independent dataset, but it must not be substituted for Binance USDⓈ-M funding or mixed into the original Binance experiment.
+**Kraken's official historical-funding export has now been retrieved and inspected through the anonymous hosted runner. It is a strong no-purchase candidate for a separate venue pilot, but remains PROVISIONAL_NOT_ACCEPTED:** the ZIP's BTC/ETH files stop at 2026-02-01, and the public API tail has not yet been independently certified as complete. The support page says the export covers available Derivatives markets by trading pair since inception, but that claim does not establish that the currently served ZIP is refreshed through the present. Keep Kraken separate from Binance USDⓈ-M funding and preserve its distinct contract families.
 
 The next step is a bounded anonymous download/inspection through the repository's authorized hosted browser runner. No login, account access, region attestation, captcha bypass, API key, purchase, or raw-data commit is required or authorized.
 
@@ -10,7 +10,7 @@ The next step is a bounded anonymous download/inspection through the repository'
 
 The official [Export historical funding rates](https://support.kraken.com/articles/export-historical-funding-rates) page states that it exports CSV files for all available Derivatives markets, by trading pair, since inception. It exposes an export link to a ZIP asset.
 
-The page is readable, but the current inspection tools could not inspect the binary ZIP: the web reader rejected its application/octet-stream content and the current container could not retrieve it. This is a tooling limitation, not evidence that Kraken denies access or that the export is unavailable.
+At the initial source screen, the binary ZIP could not be inspected by the available tools. The later authorized hosted-runner probe below resolved that tooling limitation using runner-local temporary storage; no provider restriction or authentication was involved.
 
 The [Kraken Python SDK documentation](https://python-kraken-sdk.readthedocs.io/en/v3.1.5/futures/rest.html) also illustrates the historical funding-rate method for symbols such as `PI_XBTUSD`, with `timestamp`, `fundingRate`, and `relativeFundingRate` fields. Its examples include records beginning in 2018; the SDK documents an unauthenticated `Funding()` client. Treat this as an API cross-check lead, not as proof of complete retention or as a replacement for the export's actual schema.
 
@@ -55,8 +55,24 @@ Coinbase's [US Perpetual-Style Futures funding explanation](https://help.coinbas
 
 ## Explicit non-actions
 
-No raw funding data was downloaded or accepted. No paid provider, API key, account, or trading credential was used. No strategy, research gate, live-trading setting, or capital allocation was changed.
+The 109,980,750-byte raw ZIP was downloaded only to runner-local temporary storage, inspected, and deleted; no raw CSV or ZIP was uploaded or committed. The data remain unaccepted. No paid provider, API key, account, or trading credential was used. No strategy, research gate, live-trading setting, or capital allocation was changed.
 
 ## Post-screen CI verification — 2026-11-22 21:34 UTC
 
 The repository's test workflow was updated so documentation-only changes now run the regression suite. CI [run 45072764306](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45072764306) on commit [358f1bc](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/358f1bca7ec574cab325e7ee812580d66df88189) passed 153 deterministic tests and the synthetic plumbing self-test. This validates the documentation/automation changes; it is not empirical funding-data or strategy evidence.
+
+
+## Hosted-runner archive inspection — 2026-11-22 22:43 UTC
+
+- Authorized issue-comment dispatch [run 45079169566](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45079169566) completed successfully. Its manifest-only/screenshot artifact [14776366974](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45079169566/artifacts/14776366974) is 66,959 bytes with SHA-256 `3f5dc2b5962ce7b20802a930feff3147e3fe76eda504813bfd9b484edc19eb58`. The downloaded ZIP was 109,980,750 bytes, valid, and SHA-256 `65ba6712a6ab657389d2795d3ed77bedb4270841dfe711147ae9df16e366edab`; it was deleted after inspection. No raw data entered Git or the artifact.
+- The archive contains 963 members, including 482 macOS metadata members. Four exact BTC/ETH perpetual files were identified from the public instrument catalogue:
+  - `PF_XBTUSD` and `PF_ETHUSD`: `flexible_futures`, currently not expired; 30,431 rows each, from 2022-03-22 16:00 UTC through 2026-02-01 00:00 UTC.
+  - `PI_XBTUSD` and `PI_ETHUSD`: `futures_inverse`, marked expired in the current instrument response; 38,225 rows each, from 2018-08-31 16:00 UTC through 2026-02-01 00:00 UTC.
+- Each file had zero invalid timestamps, duplicate timestamps, out-of-order timestamps, or gaps longer than four hours. The dominant observed intervals were one and four hours. The archive's `tradeable` column contains instrument-symbol strings (for example, `PF_XBTUSD`), not booleans; preserve it as a categorical identifier. The parser regression fixture is being corrected to reflect the observed source schema.
+- The archive's `absolute_rate` maps exactly to API `fundingRate`; `relative_rate` maps exactly to `relativeFundingRate`. For each of the four symbols, the 2025-11-19 through 2026-02-01 overlap contained 1,767 archive and 1,767 API rows: timestamp sets were identical, with zero missing/extra timestamps and zero mismatches in either rate field (maximum absolute difference 0). This is strong overlap-integrity evidence, not proof of complete API history.
+- The public API returned 8,841 rows for each PF symbol (2025-11-19 through 2026-11-22 22:00 UTC) and 8,283 rows for each PI symbol (2025-11-19 through 2026-10-30 16:00 UTC). Relative to the archive, that represents 7,074 provisional API-tail rows per PF symbol and 6,516 per PI symbol. The API response itself does not establish its complete historical event population. The export's 2026-02-01 cutoff is stale relative to the probe date, despite the support page's “since inception” description.
+- Kraken's official [inverse contract specifications](https://support.kraken.com/au/articles/360022835911-inverse-crypto-collateral-perpetual-contract-specifications-derivatives) and [linear contract specifications](https://support.kraken.com/articles/4844359082772-linear-multi-collateral-derivatives-contract-specifications) distinguish the absolute payout per one contract unit per hour from the relative rate referenced to spot; payout conversion differs by contract family. Do not pool PF linear and PI inverse histories or compare their absolute-rate magnitudes as if they shared units.
+
+**Decision:** the export/API overlap is promising enough to advance to a separate Kraken data-quality pilot, but neither full-history completeness nor empirical acceptance is established. The Binance funding gate remains unchanged. No backtest or strategy execution occurred.
+
+**Next executable task:** extend the bounded probe to audit the entire returned API tail (timestamp validity/order/duplicates, nulls, cadence and gaps), compute the archive/API union and cutoff coverage for each exact symbol, and emit a provenance-complete provisional manifest. Keep PF and PI series separate; do not infer API completeness from overlap alone. Preserve raw data only in approved runner-local/cache storage, upload manifests only, add deterministic tests, and keep the research gate closed until completeness and contract semantics pass.
