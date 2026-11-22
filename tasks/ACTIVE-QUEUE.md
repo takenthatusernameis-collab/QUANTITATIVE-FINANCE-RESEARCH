@@ -1,6 +1,6 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-22 19:02 UTC  
+**Updated:** 2026-11-22 21:26 UTC  
 **Canonical active-task pointer:** [ETH/BTC ingestion and no-trade validation](ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md).
 
 ## Governing priority
@@ -13,8 +13,23 @@ Apply the single authoritative [seven-level adaptive decision hierarchy](../docs
 - **Final anonymous search:** the corrected selector input was uniquely identified; searches `ETH` and `BTC` both returned “No result found,” and the modal table remained “No records found.” No selection, confirmation, date change or download. Successful probe [45029337953](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45029337953), artifact [14757585237](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45029337953/artifacts/14757585237).
 - **Code/tests:** locator-based option collection and exact `input[type="search"]` search; CI [45029278204](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45029278204) passed unit tests and synthetic smoke. Full evidence: [OKX metadata/search report](../reports/ETH-BTC-OKX-FUNDING-METADATA-AND-SYMBOL-PROBE-2026-11-22.md).
 - **Decision:** OKX anonymous UI route is **UNACCEPTED / NO SAMPLE**; not proof of global unavailability. Stop repeating probes and do not change regions, accept cookies or bypass restrictions. Funding acceptance remains closed; no perpetual backtest.
-- **Next focus:** P1 cache save/restore is verified. Continue funding-event completeness research only through materially different, authorized routes; keep the Binance perpetual gate closed until settlement-population semantics and contract-incarnation coverage are accepted. Do not repeat the exhausted OKX no-sample or runner-blocked provider probes, and do not purchase paid data without owner authorization. Keep the cache warm range bounded until retention and longer-term schedule reliability are measured.
+- **Next focus:** The newly identified official Kraken historical-funding CSV export is the highest-value no-purchase candidate for a separate venue pilot; inspect it through the authorized hosted browser and validate exact BTC/ETH perpetual symbols, schema, coverage and API overlap before accepting anything. See [the Kraken/Gate/Coinbase source screen](../reports/ETH-BTC-KRAKEN-GATE-COINBASE-FUNDING-SCREEN-2026-11-22.md). Gate.io is secondary because its public funding endpoint documents only `contract` and `limit`, with no time-range/cursor parameters. Coinbase historical funding is documented as available upon request, not as a public self-service export. Keep all venue data separate; keep Binance's perpetual gate closed. Do not repeat exhausted OKX no-sample or runner-blocked routes, and do not purchase paid data without owner authorization. Keep the cache warm range bounded until retention and weekly schedule reliability are measured.
 
+
+## Latest P1 queue-guardian verification — 2026-11-22 21:17 UTC
+
+- Scheduled guardian [run 45071274736](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45071274736) completed successfully on main SHA `954d3cf`. Artifact [14773033947](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45071274736/artifacts/14773033947) records `enumerated_runs=297`, `run_enumeration_complete=true`, no actions and no errors. The report intentionally retains only 50 detailed entries from a 227-entry tracked inventory; this is report truncation, not incomplete API enumeration.
+- Among the latest 100 repository Actions runs, the guardian had 2 schedule-triggered successes and 17 successful `workflow_run` triggers, plus one cancelled `workflow_run`. Its declared five-minute schedule is not delivering the expected cadence. Completion-triggered runs are the more frequently observed path, but cannot detect a research run that never completes; preserve this as a P1 monitoring limitation rather than claiming the cron is reliable.
+- No queued, waiting or in-progress Actions runs were present at inspection. The guardian recorded no queue recovery action or error.
+- The cache warmer's weekly schedule has not yet been observed; the push-triggered save and low-trust read-only restore are verified. Keep the warm range bounded pending a scheduled warm and retention measurements.
+
+## P4 independent venue funding-source screen — 2026-11-22
+
+- Kraken's official [historical funding export](https://support.kraken.com/articles/export-historical-funding-rates) states that CSV files for all available derivatives markets can be exported by trading pair since inception. This is the strongest newly identified free candidate for a **separate Kraken venue pilot**, not a Binance substitute. The binary ZIP could not be inspected by the current tool environment; the next agent should retrieve it with the authorized hosted browser and validate exact BTC/ETH perpetual symbols, contract type, units, row coverage, duplicates, cadence and overlap against Kraken's public API. No data have been accepted.
+- Kraken SDK documentation illustrates public historical funding fields `timestamp`, `fundingRate`, and `relativeFundingRate`, with examples dating to 2018; use this only as a cross-check lead until the official export is inspected.
+- Gate.io's public `GET /futures/{settle}/funding_rate` documents `contract` and `limit` but no time-range or cursor parameter; treat it as a bounded secondary probe, not a full-history source.
+- Coinbase's US Perpetual-Style Futures page says historical funding data is available upon request; it is not currently a self-service public ingestion route.
+- Full evidence and source links: [Kraken/Gate/Coinbase funding-source screen](../reports/ETH-BTC-KRAKEN-GATE-COINBASE-FUNDING-SCREEN-2026-11-22.md). No paid data purchase, API key, raw-data download or perpetual backtest.
 
 ## P1 trusted archive-cache warm-up — save/restore verified (2026-11-22)
 
