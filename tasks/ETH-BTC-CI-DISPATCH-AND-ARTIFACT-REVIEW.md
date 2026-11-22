@@ -1,9 +1,12 @@
 # Pending Research Task: Verify Dispatch Status and Review the Networked ETH/BTC Study
 
-**Status:** Partially executed on 2026-11-21 — test CI verified; full-data run confirmed absent from the complete Actions run listing; blocked on owner-side manual dispatch  
+**Status:** Historical dispatch audit; superseded by the verified PR-comment agent dispatch route and current ingestion task. Empirical research remains **INCONCLUSIVE**.
 **Priority:** High  
 **Type:** Reproducible empirical replication and evidence review  
 **Scope:** Backtesting only; no live orders or capital deployment
+
+
+> **Historical / superseded execution note:** Historical snapshot only. The prior statement that the agent cannot start research or that the owner must manually dispatch is obsolete. Current agents must use the verified allowlisted control-PR route, inspect existing run IDs before dispatch, and continue safe independent work. Apply the deterministic queue policy and launch a separately isolated alternative if cancellation cannot be confirmed.
 
 ## Context
 
