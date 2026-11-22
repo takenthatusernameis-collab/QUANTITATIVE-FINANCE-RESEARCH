@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 from queue_guardian import (
     QUEUE_TIMEOUT_SECONDS,
-    concurrency_group,
+    group_for,
     parse_timestamp,
     process_queue,
     queue_decision,
@@ -80,7 +80,7 @@ class QueueDecisionTests(unittest.TestCase):
     def test_workflow_path_with_or_without_ref_suffix_is_mapped(self):
         item = make_run(19, "eth-btc-research", "queued", NOW - timedelta(minutes=16))
         item["path"] = ".github/workflows/eth-btc-research.yml"
-        self.assertEqual(concurrency_group(item), "eth-btc-research-main")
+        self.assertEqual(group_for(item), "eth-btc-research-main")
         self.assertEqual(queue_decision(item, [item], NOW)["action"], "cancel_overdue")
 
     def test_timestamp_must_include_timezone(self):
