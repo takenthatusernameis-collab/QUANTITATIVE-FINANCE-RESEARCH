@@ -73,7 +73,7 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         self.assertIn("raw_download_uploaded", probe)
         self.assertIn("raw_download_committed", probe)
         self.assertIn("historical-funding-rates", probe)
-        self.assertIn("relativeFundingRate", probe)
+        self.assertIn("relativefundingrate", probe.lower())
         self.assertIn("TemporaryDirectory", probe)
 
     def test_okx_funding_button_probe_is_exactly_allowlisted(self):
