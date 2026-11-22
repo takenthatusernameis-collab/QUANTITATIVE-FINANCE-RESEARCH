@@ -160,12 +160,31 @@ These are repository operating thresholds, not a GitHub service-level guarantee:
 | Observed queue age | Required agent response |
 |---|---|
 | 0–5 minutes | Treat as an ordinary short wait. Keep the existing run ID; do not dispatch a duplicate. |
-| 5–15 minutes | Inspect run and job records, same-group runs, runner labels, and Actions service status. Recheck after a bounded 2–5 minute interval rather than busy-polling. |
-| 15–30 minutes | Classify the cause as concurrency serialization, runner capacity, approval/configuration, or unknown. Record evidence and the next diagnostic. Continue independent code, data, and research work that does not depend on this run. |
+| 5–15 minutes | Inspect run/job state and exact concurrency group; identify any earlier active same-group predecessor. Recheck after a bounded 2–5 minute interval. |
+| More than 15 minutes | **Cancel the run immediately** if it is still run-level `queued`/`pending` and no earlier run in the exact same concurrency group is `in_progress`. Preserve its task as `RETRY_REQUIRED`; do not immediately duplicate it. Keep it only while that verified predecessor is active. |
+
 | More than 30 minutes | Treat as a prolonged infrastructure blocker. Make one evidence-based recovery decision: allow a demonstrably progressing same-group run to finish; repair a repository-controlled concurrency/configuration mistake; or use an already-authorized, available alternative runner/execution route. Do not repeatedly dispatch the same command. |
 | More than 60 minutes | Mark the run **INFRASTRUCTURE-BLOCKED / QUEUED**, preserve the run ID and diagnostics in the task handoff, and advance all independent work. Revisit the same run before considering a replacement. A new run requires a safe deduplication/fencing plan. |
 
 Poll at bounded intervals (typically 2–5 minutes during diagnosis, then 5–10 minutes for a sustained external capacity delay). If the current agent session cannot remain active, persist the run ID, last-observed status/time, evidence, and exact next status check for the next scheduled agent cycle. Do not imply that a background poller exists unless one is actually configured.
+
+### Deterministic 15-minute queued-run cancellation
+
+**Default: cancel a workflow run once it has remained in GitHub Actions `queued` or `pending` state for more than 15 minutes. The sole exception is a positively verified wait for an earlier run to finish in the exact same concurrency group.** This is a deterministic queue policy, not a discretionary suggestion.
+
+Apply the rule on every queue scan:
+
+1. Consider only non-terminal workflow runs whose run-level status is `queued` or `pending`. Use the run's `created_at` as the age clock and re-fetch it immediately before cancellation. Do not apply this workflow-run rule to an individual job with status `queued` inside a workflow run that is already `in_progress`; that may be normal job dependency scheduling.
+2. Determine the workflow's effective concurrency group from the workflow file/ref that governs the run. The exception is true only when an **earlier-created run** in that exact same group is currently `in_progress` and therefore occupies the concurrency slot. A run from another workflow, a different group, a merely queued/pending run, or a guessed dependency does not qualify.
+3. If that exact active same-group predecessor exists, preserve the queued run regardless of its age. Record `WAITING_ON_SAME_GROUP_RUN`, its predecessor run ID, and recheck when the predecessor completes. This is the only age-based cancellation exemption. Do not reset its original creation timestamp.
+4. If no qualifying predecessor exists and the queued/pending run is older than 15 minutes, cancel it immediately through an authorized GitHub Actions cancellation API/action. Do not wait for the 30- or 60-minute thresholds. This includes runner-capacity waits, missing/offline runner labels, and unexplained queued/pending states.
+5. Re-fetch the run after requesting cancellation and verify the terminal `completed` / `cancelled` state. Record the run ID, age, reason `QUEUE_TIMEOUT_OVER_15M_NO_ACTIVE_SAME_GROUP_PREDECESSOR`, cancellation request/result, timestamp, and any API error. If it already started or completed during the race, do not claim it was cancelled; inspect its actual state and outputs.
+6. A cancelled run is **not completed work**. Keep its task/CI requirement open as `RETRY_REQUIRED` or `CI_RETRY_REQUIRED`, preserving the exact command, inputs, SHA and artifacts. Do not immediately enqueue an identical replacement into the same unavailable capacity. Retry once only after there is positive evidence that runner capacity has recovered or through a materially different already-authorized execution route.
+7. Never cancel `in_progress` runs, environment/protection `waiting` runs, or runs merely because an individual dependent job has not started. Those are outside this specific 15-minute runner-queue rule and follow their respective execution/protection policies.
+
+**Concurrency exception ends immediately when the predecessor is no longer `in_progress`.** If the queued run is still `queued`/`pending` and its original age already exceeds 15 minutes after that predecessor ends, it becomes eligible for cancellation on the next scan. Do not invent a fresh 15-minute grace period.
+
+**Enforcement prerequisite:** the agent/watchdog must have an authorized Actions-write cancellation capability. Read-only run inspection is not enforcement. If the connected tool lacks a cancellation action, record `CANCELLATION_ENFORCEMENT_BLOCKED` with the affected run IDs and make provisioning a least-privilege, agent-controlled cancellation path the next orchestration task. Never claim cancellation occurred and never substitute a request for the owner to click Cancel.
 
 ### Mandatory 60-minute recovery protocol — active recovery, not passive waiting
 
@@ -229,7 +248,7 @@ Update the task ledger/README with the root cause, diagnostics, action taken, ru
 
 1. **Never fan out retries to make a queue move faster.** One task/experiment should have one canonical active run. Map the task key and exact inputs to its run ID. Repeated comments or agent cycles must first discover and reuse that run.
 2. **Preserve queued work.** For a workflow that must retain every accepted command, configure an explicit bounded concurrency queue. This repository's ETH/BTC research workflow uses one shared concurrency group to prevent overlapping research operations; queue: max preserves up to 100 pending runs instead of allowing a newer pending run to replace the older pending run under the default single-pending behavior. At the configured limit, stop dispatching more copies and record the remaining work in the task ledger.
-3. **Do not cancel a run only because it is old.** Cancel or supersede it only when it is demonstrably obsolete, unsafe, invalidated by a newer specification, or replaced by a verified alternative. Before starting a replacement, confirm the old run cannot later execute the same expensive task; use a task-level idempotency key, lock, or explicit cancellation/fencing and verify the resulting state.
+3. **Enforce the 15-minute queue cancellation rule.** Cancel every run-level `queued`/`pending` run older than 15 minutes unless an earlier run in the exact same concurrency group is currently `in_progress`. Never cancel the predecessor or a valid `in_progress` run under this rule. Verify the terminal cancellation state; retain the task as retry-required and do not duplicate it until capacity or an alternative route is verified.
 4. **Do not alter concurrency merely to bypass a wait.** Split concurrency groups only when the jobs are genuinely independent and shared data, caches, artifacts, rate limits, and research state cannot conflict. Keep non-cancellable serialization for mutually exclusive full-data operations.
 5. **Use only already-authorized alternatives.** A different runner class or execution environment is acceptable only if it is actually available, authorized, and does not introduce unapproved cost or broader permissions. Do not create paid infrastructure or request routine owner action as the default recovery.
 6. **Classify correctly.** A prolonged queue is not a failed test, data failure, or negative empirical result. Report it as an infrastructure/orchestration delay with its run ID and age. A successful workflow dispatch is likewise not a completed research result.
