@@ -198,6 +198,21 @@ jobs:
             --audit-only \
             "${args[@]}"
 
+      - name: Run non-fail-fast all-series preflight before empirical backtest
+        if: ${{ needs.authorize.outputs.command == 'empirical' }}
+        env:
+          START_DATE: ${{ needs.authorize.outputs.start }}
+          END_DATE: ${{ needs.authorize.outputs.end }}
+        run: |
+          set -euo pipefail
+          python research/run_eth_btc.py \
+            --start "$START_DATE" \
+            --end "$END_DATE" \
+            --market both \
+            --data-dir data \
+            --output-dir reports/generated \
+            --audit-only
+
       - name: Run full historical empirical study (agent-triggered when authorized)
         if: ${{ needs.authorize.outputs.command == 'empirical' }}
         env:
