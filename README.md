@@ -28,7 +28,10 @@ Operate as an evidence-driven, self-improving research loop:
 
 ### 9. **Repeated failure requires a different approach.** Do not repeatedly download the same incomplete archives, hit the same blocked endpoint, use the same failing parser, or restate the same blocker. After a meaningful failure, diagnose it and test materially different alternatives: another authorized endpoint/provider, raw trade data, a different data architecture, separate ETH/USD and BTC/USD pipelines with a synchronized ratio (ETHUSD/BTCUSD), another timeframe, or a more feasible model/hypothesis. Use positive controls, provenance, and pre-registered acceptance gates. Never bypass a legal access restriction, fabricate bars, forward-fill, or weaken scientific standards.
 
-### 10. **Keep the research loop moving.** If the original model cannot be implemented with valid accessible data after distinct alternatives, mark that specific experiment INCONCLUSIVE/INFEASIBLE and move to a separately specified, feasible research question. Do not let one provider, one data pair, or one strategy block all quantitative research. Count routine manual interventions as autonomy failures and remove their causes.
+### 10. **Keep the research loop moving.**
+
+**Agent-triggered backtest command:** `/qfr-run-eth-btc-empirical` is allowlisted on control PR #2. It automatically runs an all-six-input preflight and only runs the historical strategy backtest if the preflight passes. The agent, not the user, initiates the command. No manual confirmation is a prerequisite for historical backtesting within the existing authorized scope.
+ If the original model cannot be implemented with valid accessible data after distinct alternatives, mark that specific experiment INCONCLUSIVE/INFEASIBLE and move to a separately specified, feasible research question. Do not let one provider, one data pair, or one strategy block all quantitative research. Count routine manual interventions as autonomy failures and remove their causes.
 
 
 ---
