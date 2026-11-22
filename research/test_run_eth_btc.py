@@ -879,6 +879,13 @@ class ResearchPipelineTests(unittest.TestCase):
             )
             self.assertFalse(result["accepted"])
             self.assertTrue(any("no-trade archive" in item for item in result["blockers"]))
+            gap["gaps"][0]["aggregate_trade_archive"]["trade_count"] = 0
+            gap["daily_aggtrades_archives"]["2024-01-01"]["duplicate_aggregate_trade_ids"] = 1
+            gap_path.write_text(json.dumps(gap, indent=2))
+            integrity_failure = research.validate_spot_event_time_evidence(
+                root, "2024-01-01", "2024-01-01"
+            )
+            self.assertFalse(integrity_failure["accepted"])
 
     def test_event_time_walk_forward_integrates_strategy_benchmarks_and_elapsed_metrics(self):
         rng = np.random.default_rng(41)

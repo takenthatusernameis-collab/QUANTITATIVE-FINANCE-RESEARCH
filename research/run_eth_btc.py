@@ -689,7 +689,8 @@ def validate_spot_event_time_evidence(data_dir: Path, start: str, end: str) -> d
                 or not all(
                     item.get("status") == "downloaded"
                     and item.get("checksum_verified") is True
-                    and str(item.get("url", "")).startswith(monthly_prefix)
+                    and str(item.get("url", ""))
+                    == f"{monthly_prefix}{symbol}-1h-{item.get('month')}.zip"
                     for item in archive_items
                 )
             ):
@@ -745,6 +746,7 @@ def validate_spot_event_time_evidence(data_dir: Path, start: str, end: str) -> d
                 daily_prefix = (
                     f"https://data.binance.vision/data/spot/daily/aggTrades/{symbol}/"
                 )
+                expected_daily_url = f"{daily_prefix}{symbol}-aggTrades-{day}.zip"
                 if (
                     daily.get("status") != "PARSED"
                     or daily.get("checksum_verified") is not True
@@ -752,7 +754,7 @@ def validate_spot_event_time_evidence(data_dir: Path, start: str, end: str) -> d
                     or int(daily.get("duplicate_aggregate_trade_ids", -1)) != 0
                     or int(daily.get("out_of_order_aggregate_trade_ids", -1)) != 0
                     or int(daily.get("out_of_order_timestamps", -1)) != 0
-                    or not str(daily.get("url", "")).startswith(daily_prefix)
+                    or daily.get("url") != expected_daily_url
                     or control.get("archive_positive_control_passed") is not True
                     or trade_evidence.get("checksum_verified") is not True
                     or trade_evidence.get("positive_control_passed") is not True
