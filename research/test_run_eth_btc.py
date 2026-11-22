@@ -99,7 +99,13 @@ class ResearchPipelineTests(unittest.TestCase):
         )
         self.assertEqual(
             research.classify_gap_reconciliation(False, False),
-            "absent_from_both_official_representations_unresolved",
+            "both_kline_sources_empty_trade_status_unverified",
+        )
+        self.assertEqual(
+            research.classify_gap_reconciliation(
+                False, False, api_request_succeeded=False
+            ),
+            "api_request_failed_daily_archive_absent_unresolved",
         )
 
     def test_all_series_audit_continues_after_first_price_series_fails(self):
@@ -122,6 +128,28 @@ class ResearchPipelineTests(unittest.TestCase):
             self.assertEqual(summary["price_series"]["um_BTCUSDT"]["status"], "complete")
             self.assertFalse(summary["complete"])
             self.assertTrue((root / "out" / "data_audit_summary.json").exists())
+
+    def test_all_series_audit_reconciles_both_spot_symbols(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with patch.object(research, "download_klines"), patch.object(
+                research, "download_funding"
+            ), patch.object(
+                research, "reconcile_spot_gaps",
+                side_effect=[
+                    {"symbol": "ETHUSDT", "reconciliation_complete": True},
+                    {"symbol": "BTCUSDT", "reconciliation_complete": True},
+                ],
+            ) as reconcile:
+                summary = research.audit_all_inputs(
+                    "2024-01-01", "2024-01-01", root / "data", root / "out",
+                    reconcile_gaps=True,
+                )
+            self.assertEqual(
+                set(summary["gap_reconciliation"]), {"ETHUSDT", "BTCUSDT"}
+            )
+            self.assertEqual(reconcile.call_count, 2)
+            self.assertTrue(summary["reconciliation_complete"])
 
     def test_gap_reconciliation_matches_rest_and_daily_archive_without_repairing_csv(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -165,6 +193,8 @@ class ResearchPipelineTests(unittest.TestCase):
                 )
 
             self.assertEqual(result["gap_count"], 1)
+            self.assertEqual(result["rest_endpoint"], "https://data-api.binance.vision/api/v3/klines")
+            self.assertEqual(result["daily_archives"]["2024-01-01"]["status"], "downloaded")
             self.assertEqual(
                 result["gaps"][0]["classification"],
                 "confirmed_monthly_archive_omission",
