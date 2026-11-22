@@ -54,7 +54,7 @@ The two artifact ZIPs were downloaded and inspected. Each corresponding input ma
 ## Queue and CI verification
 
 - Main CI [45058189909](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45058189909) passed 153 deterministic tests and the synthetic plumbing smoke test.
-- Queue guardian [45058258362](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45058258362) ran after the warm workflow completed, enumerated 293/293 runs completely, included the warmer in its inventory, and recorded `actions=[]` and `errors=[]`.
+- Queue guardian [45058407791](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45058407791) ran after the low-trust audit completed, enumerated 296/296 runs completely, included both the warm and audit runs in its inventory, and recorded `actions=[]` and `errors=[]`.
 
 ## Remaining limits
 
