@@ -491,6 +491,10 @@ class ResearchPipelineTests(unittest.TestCase):
             self.assertEqual(manifest["completeness_status"], "PROVISIONAL_NOT_ACCEPTED")
             self.assertTrue(manifest["archives"][0]["checksum_verified"])
             self.assertEqual(manifest["rows"], 1)
+            stored = pd.read_csv(root / "raw" / "um_ETHUSDT_funding.csv")
+            self.assertIn("fundingRate", stored.columns)
+            self.assertIn("funding_interval_hours", stored.columns)
+            self.assertNotIn("last_funding_rate", stored.columns)
 
     def test_funding_ingestion_rejects_unverified_archive_checksum(self):
         with tempfile.TemporaryDirectory() as directory:
