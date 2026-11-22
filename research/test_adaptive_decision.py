@@ -11,6 +11,7 @@ from adaptive_decision import (
     build_experiment_id,
     decide_after_failure,
     dispatch_is_allowed,
+    evaluate_research_scope_gate,
     evaluate_provider_evidence,
     evaluate_six_input_gate,
     hypothesis_replacement_allowed,
