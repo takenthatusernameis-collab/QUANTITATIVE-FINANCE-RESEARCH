@@ -45,10 +45,26 @@ class WorkflowControlTests(unittest.TestCase):
         self.assertIn("github.event.comment.body == '/qfr-queue-guardian-live'", workflow)
         self.assertIn(
             "DRY_RUN: ${{ github.event_name != 'schedule' && "
-            "github.event.comment.body != '/qfr-queue-guardian-live' }}",
+            "github.event_name != 'workflow_run' && github.event.comment.body != '/qfr-queue-guardian-live' }}",
             workflow,
         )
 
+
+    def test_research_completion_event_is_scoped_and_live(self):
+        workflow_path = (
+            Path(__file__).resolve().parents[1]
+            / ".github" / "workflows" / "queue-guardian.yml"
+        )
+        workflow = workflow_path.read_text(encoding="utf-8")
+
+        self.assertIn("workflow_run:", workflow)
+        self.assertIn("ETH-BTC networked empirical research", workflow)
+        self.assertIn("workflow_id == 425839329", workflow)
+        self.assertIn("workflow_run.event == 'issue_comment'", workflow)
+        self.assertIn("workflow_run.head_branch == github.event.repository.default_branch", workflow)
+        self.assertIn("workflow_run.head_repository.full_name == github.repository", workflow)
+        self.assertIn("workflow_run.actor.login == 'takenthatusernameis-collab'", workflow)
+        self.assertIn("github.event_name != 'workflow_run' &&", workflow)
 
 class QueueDecisionTests(unittest.TestCase):
     def test_exactly_fifteen_minutes_is_not_over_threshold(self):
