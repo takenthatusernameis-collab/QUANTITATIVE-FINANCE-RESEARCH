@@ -21,6 +21,9 @@ Apply the single authoritative [seven-level adaptive decision hierarchy](../docs
 - Added executable policy engine [research/adaptive_decision.py](../research/adaptive_decision.py): provider scoring and evidence acceptance; repeated-failure escalation; independent-workstream continuation; distinct experiment identity; spot/perpetual separation; separately preregistered hypothesis replacement; duplicate active-dispatch protection; and the six-input fail-closed gate.
 - Added deterministic regression suite [research/test_adaptive_decision.py](../research/test_adaptive_decision.py).
 - Integrated the shared six-input gate into [research/run_eth_btc.py](../research/run_eth_btc.py). Unknown, missing or rejected input states and missing manifests fail closed.
+- Added independent `spot`, `perpetual`/`um`, and `both` scope gates. Confirmed Spot no-trade gaps require both complete reconciliation and an accepted elapsed-time policy; the current Spot time-policy flag remains false. Perpetual-only research requires UM prices and final funding acceptance but not Spot coverage.
+- Added exact allowlisted commands on control PR #2: `/qfr-run-eth-btc-spot-empirical`, `/qfr-run-eth-btc-um-empirical`, and the original combined `/qfr-run-eth-btc-empirical`. The preflight uses the selected market scope; the audit still records all six inputs.
+- Provider acceptance now also requires verified full-history acquisition feasibility. Experiment identities include timeframe and source version; regression tests lock the seven-level hierarchy and provider-order tie-breaks.
 - Commits:
   - Governing mindset: [378609c](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/378609c7d3bf76ce7ce6bb9ec9997b6538e7054f)
   - Execution standard: [0d4378f](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/0d4378f189c043caf885257b7a53de5d29264767)
@@ -28,6 +31,12 @@ Apply the single authoritative [seven-level adaptive decision hierarchy](../docs
   - Decision engine: [a811c49](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/a811c49223565dc5d3d24c60b408690d0ee0988b)
   - Decision regression tests: [5576fc0](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/5576fc048fffaf0c4080788750f52b4f55f1fc2c)
   - Shared empirical gate integration: [8625d40](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/8625d40b8684ee975d7664ca8b01a17247dd659e)
+  - Independent scope gates: [37fe290](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/37fe290682c5047743d584aa7df7808e90fe84cd)
+  - Scoped research-pipeline integration: [6ab1adb](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/6ab1adba7d61c9de608bc8bbc7a541beac227bd4)
+  - Scoped workflow commands: [f728398](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/f72839867ed1aacf0d5a0f33e7859d9c6abb48b0)
+  - Scope-policy fix: [b13ab5c](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/b13ab5c66e8f64c8e674145c1c27b4a1811f159b)
+  - Full-history feasibility gate: [0e2bfa0](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/0e2bfa07aa6903107dc0794e0401fb108bae0021)
+  - Final policy/test strengthening: [1d700ce](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/1d700ceec9d56acb697493815eab507aecbf092d)
 
 ## Latest full-history audit — resolved
 
@@ -70,7 +79,8 @@ Summary: all six manifests are present; both perps pass; both spot candle grids 
 
 ## Verification status
 
-- The 14 new adaptive-decision unit tests passed locally in a standalone Python 3.11-compatible run before being committed. GitHub Actions verification for the committed full suite and shared-gate integration is pending; do not claim CI success until the actual run completes.
+- Corrected final scope-policy CI run [44989316015](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44989316015) passed 79 deterministic tests and the synthetic plumbing smoke test. Experiment identity regression run [44989496967](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44989496967) also passed 79 tests plus the smoke test.
+- Full-history feasibility and priority-ordering additions are being verified in serialized runs [44989539027](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44989539027) and [44989591317](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44989591317). Earlier failures #81–#86 were intermediate-commit defects (literal newline escape, missing test import, unreconciled Spot acceptance logic, and a fixture not yet updated for the newly required full-history gate); each was corrected and the later 79-test runs passed. Do not treat a failed intermediate SHA as the final code state.
 - Previous research CI [44985194153](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44985194153) passed 61 prior deterministic tests plus the synthetic smoke test. It predates the new policy module.
 - Queue guardian live PR-comment run [44986166616](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44986166616) succeeded and enumerated 117 runs with no queue actions/errors; the scheduled trigger remains unverified.
 - No live trading, capital deployment or strategy promotion occurred.
