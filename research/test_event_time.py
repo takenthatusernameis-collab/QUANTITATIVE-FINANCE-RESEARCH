@@ -12,6 +12,7 @@ from event_time import (
     event_time_backtest,
     event_time_benchmark_backtest,
     event_time_metrics,
+    event_time_pooled_oos_summary,
     make_event_time_positions,
     validate_event_time_frame,
 )
@@ -239,6 +240,82 @@ class EventTimeAccountingTests(unittest.TestCase):
             stats["CAGR"], np.expm1(np.log(0.99) / elapsed_years)
         )
         self.assertAlmostEqual(stats["turnover_per_year"], 1.0 / elapsed_years)
+
+
+class PooledEventTimeOOSTests(unittest.TestCase):
+    def make_oos_returns(self):
+        rows = []
+        base = pd.Timestamp("2024-01-01T00:00:00Z")
+        for fold, offset_days in ((1, 0), (2, 100)):
+            timestamps = [
+                base + pd.Timedelta(days=offset_days + day)
+                for day in (0, 1, 2)
+            ]
+            gross = [0.0, 0.01, -0.005]
+            cost = [0.001, 0.0005, 0.0]
+            funding = [0.0, 0.0, 0.0]
+            borrow = [0.0, 0.0, 0.0]
+            for i, timestamp in enumerate(timestamps):
+                rows.append({
+                    "timestamp": timestamp,
+                    "market": "spot",
+                    "interval": "1h",
+                    "fold": fold,
+                    "variant": "fixed_1x1",
+                    "elapsed_seconds": 0.0 if i == 0 else 86400.0,
+                    "gross_return": gross[i],
+                    "cost": cost[i],
+                    "funding_pnl": funding[i],
+                    "borrow_cost": borrow[i],
+                    "net_return": gross[i] - cost[i] + funding[i] - borrow[i],
+                    "turnover": 1.0 if i == 0 else 0.0,
+                })
+        return pd.DataFrame(rows)
+
+    def test_pooled_oos_excludes_inter_fold_calendar_gaps_and_derives_cost_cases(self):
+        summary = event_time_pooled_oos_summary(
+            self.make_oos_returns(), block_days=1.0, n_bootstrap=30, seed=17
+        )
+        self.assertEqual(set(summary["cost_multiplier"]), {1.0, 1.5, 2.0})
+        base = summary.loc[summary["cost_multiplier"] == 1.0].iloc[0]
+        self.assertAlmostEqual(base["elapsed_days"], 4.0)
+        self.assertEqual(base["fold_count"], 2)
+        self.assertEqual(base["bootstrap_status"], "COMPUTED")
+        self.assertEqual(base["bootstrap_replicates"], 30)
+        self.assertTrue(np.isfinite(base["continuous_time_sharpe_ci_lower"]))
+        self.assertTrue(np.isfinite(base["continuous_time_sharpe_ci_upper"]))
+        total_returns = summary.set_index("cost_multiplier")["total_return"]
+        self.assertGreater(total_returns.loc[1.0], total_returns.loc[1.5])
+        self.assertGreater(total_returns.loc[1.5], total_returns.loc[2.0])
+
+    def test_pooled_oos_bootstrap_is_deterministic_for_a_fixed_seed(self):
+        frame = self.make_oos_returns()
+        first = event_time_pooled_oos_summary(
+            frame, block_days=1.0, n_bootstrap=25, seed=123
+        )
+        second = event_time_pooled_oos_summary(
+            frame, block_days=1.0, n_bootstrap=25, seed=123
+        )
+        columns = [
+            "CAGR_ci_lower", "CAGR_ci_upper",
+            "continuous_time_sharpe_ci_lower", "continuous_time_sharpe_ci_upper",
+            "max_drawdown_ci_lower", "max_drawdown_ci_upper",
+        ]
+        pd.testing.assert_frame_equal(first[columns], second[columns])
+
+    def test_pooled_oos_rejects_elapsed_time_that_does_not_match_utc_timestamps(self):
+        frame = self.make_oos_returns()
+        frame.loc[1, "elapsed_seconds"] = 7200.0
+        with self.assertRaisesRegex(ValueError, "do not match observed UTC timestamps"):
+            event_time_pooled_oos_summary(
+                frame, block_days=1.0, n_bootstrap=10
+            )
+
+    def test_pooled_oos_requires_block_duration_to_cover_largest_observation_gap(self):
+        with self.assertRaisesRegex(ValueError, "increase block_days"):
+            event_time_pooled_oos_summary(
+                self.make_oos_returns(), block_days=0.5, n_bootstrap=10
+            )
 
 
 if __name__ == "__main__":
