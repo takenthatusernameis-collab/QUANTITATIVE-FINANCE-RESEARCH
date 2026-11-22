@@ -1,7 +1,7 @@
 # Active Task: Repair ETH/BTC Data Ingestion and Validate No-Trade Intervals
 
-**Status:** In progress — Spot-only empirical validation running  
-**Updated:** 2026-11-22 07:56 UTC
+**Status:** In progress — Spot-only result complete; USDⓈ-M/funding acceptance pending  
+**Updated:** 2026-11-22 09:01 UTC
 **Priority:** High  
 **Type:** Data-source resilience, parser correctness, missing-observation policy, and reproducible audit  
 **Scope:** Historical research/backtesting only. No live orders, capital deployment, live credentials, or strategy promotion.
