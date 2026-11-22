@@ -628,7 +628,8 @@ def _sample_fold_stratified_time_blocks(
 def event_time_pooled_oos_summary(
     oos_returns: pd.DataFrame,
     *,
-    block_days: float = 7.0,
+    block_days: float | tuple[float, ...] = (3.0, 7.0, 14.0),
+    primary_block_days: float = 7.0,
     n_bootstrap: int = 1000,
     confidence_level: float = 0.95,
     seed: int = 20261122,
@@ -637,9 +638,9 @@ def event_time_pooled_oos_summary(
 
     Fold boundaries remain explicit: elapsed time is validated within each fold,
     and bootstrap blocks are sampled only from within their source fold. The
-    primary 1.0x cost case receives percentile confidence intervals; 1.5x and
-    2.0x pooled point estimates are derived from the same observed gross PnL and
-    the recorded 1.0x transaction costs.
+    primary 1.0x cost case receives percentile confidence intervals at each
+    requested calendar-time block length; 1.5x and 2.0x pooled point estimates
+    are derived from the same observed gross PnL and recorded 1.0x costs.
     """
     required = {
         "timestamp", "fold", "variant", "elapsed_seconds", "gross_return",
@@ -648,8 +649,18 @@ def event_time_pooled_oos_summary(
     missing = sorted(required - set(oos_returns.columns))
     if missing:
         raise ValueError(f"OOS returns are missing required columns: {missing}")
-    if not math.isfinite(block_days) or block_days <= 0:
-        raise ValueError("Bootstrap block_days must be finite and positive")
+    if isinstance(block_days, (int, float)):
+        block_days_values = (float(block_days),)
+    else:
+        block_days_values = tuple(float(value) for value in block_days)
+    if (
+        not block_days_values
+        or len(set(block_days_values)) != len(block_days_values)
+        or any(not math.isfinite(value) or value <= 0 for value in block_days_values)
+    ):
+        raise ValueError("Bootstrap block_days must be unique, finite and positive")
+    if not math.isfinite(primary_block_days) or primary_block_days <= 0:
+        raise ValueError("primary_block_days must be finite and positive")
     if n_bootstrap < 2:
         raise ValueError("At least two bootstrap replications are required")
     if not 0 < confidence_level < 1:
@@ -690,7 +701,16 @@ def event_time_pooled_oos_summary(
     if frame.duplicated(["variant", "fold", "timestamp"]).any():
         raise ValueError("Duplicate variant/fold/timestamp OOS observations are not allowed")
 
-    block_seconds = float(block_days) * SECONDS_PER_DAY
+    primary_block_days = (
+        float(primary_block_days)
+        if float(primary_block_days) in block_days_values
+        else block_days_values[0]
+    )
+    block_seconds_by_days = {
+        value: value * SECONDS_PER_DAY for value in block_days_values
+    }
+    minimum_block_seconds = min(block_seconds_by_days.values())
+    block_days_label = ",".join(f"{value:g}" for value in block_days_values)
     rows: list[dict[str, Any]] = []
     for variant_number, (variant, variant_frame) in enumerate(
         frame.groupby("variant", sort=True)
@@ -709,9 +729,9 @@ def event_time_pooled_oos_summary(
                 raise ValueError(
                     f"Fold {fold} elapsed_seconds do not match observed UTC timestamps"
                 )
-            if elapsed.max(initial=0.0) > block_seconds:
+            if elapsed.max(initial=0.0) > minimum_block_seconds:
                 raise ValueError(
-                    f"Fold {fold} contains an observation gap longer than the bootstrap block; "
+                    f"Fold {fold} contains an observation gap longer than the shortest bootstrap block; "
                     "increase block_days before inference"
                 )
             fold_arrays.append((
@@ -754,57 +774,75 @@ def event_time_pooled_oos_summary(
                 ),
                 **point,
             }
+            suffixes = [f"{value:g}d" for value in block_days_values]
             if multiplier == 1.0:
-                rng = np.random.default_rng(seed + variant_number)
-                bootstrap_values = {
-                    key: []
-                    for key in (
-                        "CAGR", "continuous_time_sharpe", "max_drawdown", "total_return"
+                primary_suffix = f"{primary_block_days:g}d"
+                for block_days_value, suffix in zip(block_days_values, suffixes):
+                    block_seed = (
+                        int(seed) + variant_number * 100_000
+                        + int(round(block_days_value * 100))
                     )
-                }
-                for _ in range(n_bootstrap):
-                    sampled_elapsed, sampled_returns, sampled_turnover = (
-                        _sample_fold_stratified_time_blocks(
-                            fold_arrays, block_seconds, rng
+                    rng = np.random.default_rng(block_seed)
+                    bootstrap_values = {
+                        key: []
+                        for key in (
+                            "CAGR", "continuous_time_sharpe", "max_drawdown", "total_return"
                         )
-                    )
-                    metrics = _event_time_array_metrics(
-                        sampled_elapsed, sampled_returns, sampled_turnover
-                    )
-                    for key in bootstrap_values:
-                        bootstrap_values[key].append(metrics[key])
-                alpha = (1.0 - confidence_level) / 2.0
-                for key, values in bootstrap_values.items():
-                    finite = np.asarray(values, dtype=float)
-                    finite = finite[np.isfinite(finite)]
-                    if len(finite):
-                        lower, upper = np.quantile(finite, [alpha, 1.0 - alpha])
-                    else:
-                        lower = upper = float("nan")
-                    row[f"{key}_ci_lower"] = float(lower)
-                    row[f"{key}_ci_upper"] = float(upper)
+                    }
+                    for _ in range(n_bootstrap):
+                        sampled_elapsed, sampled_returns, sampled_turnover = (
+                            _sample_fold_stratified_time_blocks(
+                                fold_arrays, block_seconds_by_days[block_days_value], rng
+                            )
+                        )
+                        metrics = _event_time_array_metrics(
+                            sampled_elapsed, sampled_returns, sampled_turnover
+                        )
+                        for key in bootstrap_values:
+                            bootstrap_values[key].append(metrics[key])
+                    alpha = (1.0 - confidence_level) / 2.0
+                    for key, values in bootstrap_values.items():
+                        finite = np.asarray(values, dtype=float)
+                        finite = finite[np.isfinite(finite)]
+                        if len(finite):
+                            lower, upper = np.quantile(finite, [alpha, 1.0 - alpha])
+                        else:
+                            lower = upper = float("nan")
+                        row[f"{key}_ci_lower_{suffix}"] = float(lower)
+                        row[f"{key}_ci_upper_{suffix}"] = float(upper)
+                    row[f"bootstrap_seed_{suffix}"] = block_seed
+                    row[f"bootstrap_replicates_{suffix}"] = int(n_bootstrap)
+                for key in ("CAGR", "continuous_time_sharpe", "max_drawdown", "total_return"):
+                    row[f"{key}_ci_lower"] = row[f"{key}_ci_lower_{primary_suffix}"]
+                    row[f"{key}_ci_upper"] = row[f"{key}_ci_upper_{primary_suffix}"]
+                primary_seed = row[f"bootstrap_seed_{primary_suffix}"]
                 row.update({
                     "bootstrap_status": "COMPUTED",
                     "bootstrap_method": "fold-stratified moving-block bootstrap in calendar time",
-                    "bootstrap_block_days": float(block_days),
+                    "bootstrap_block_days": block_days_label,
+                    "bootstrap_primary_block_days": primary_block_days,
                     "bootstrap_replicates": int(n_bootstrap),
+                    "bootstrap_total_replicates": int(n_bootstrap * len(block_days_values)),
                     "bootstrap_confidence_level": float(confidence_level),
-                    "bootstrap_seed": int(seed + variant_number),
+                    "bootstrap_seed": primary_seed,
                 })
             else:
+                for suffix in suffixes:
+                    for key in ("CAGR", "continuous_time_sharpe", "max_drawdown", "total_return"):
+                        row[f"{key}_ci_lower_{suffix}"] = None
+                        row[f"{key}_ci_upper_{suffix}"] = None
+                    row[f"bootstrap_seed_{suffix}"] = None
+                    row[f"bootstrap_replicates_{suffix}"] = 0
+                for key in ("CAGR", "continuous_time_sharpe", "max_drawdown", "total_return"):
+                    row[f"{key}_ci_lower"] = None
+                    row[f"{key}_ci_upper"] = None
                 row.update({
-                    "CAGR_ci_lower": None,
-                    "CAGR_ci_upper": None,
-                    "continuous_time_sharpe_ci_lower": None,
-                    "continuous_time_sharpe_ci_upper": None,
-                    "max_drawdown_ci_lower": None,
-                    "max_drawdown_ci_upper": None,
-                    "total_return_ci_lower": None,
-                    "total_return_ci_upper": None,
                     "bootstrap_status": "NOT_COMPUTED_FOR_COST_SENSITIVITY",
                     "bootstrap_method": "not computed",
-                    "bootstrap_block_days": float(block_days),
+                    "bootstrap_block_days": block_days_label,
+                    "bootstrap_primary_block_days": primary_block_days,
                     "bootstrap_replicates": 0,
+                    "bootstrap_total_replicates": 0,
                     "bootstrap_confidence_level": float(confidence_level),
                     "bootstrap_seed": None,
                 })
