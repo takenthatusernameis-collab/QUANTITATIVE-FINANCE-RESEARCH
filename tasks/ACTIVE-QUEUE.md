@@ -13,6 +13,8 @@ Apply the single authoritative [seven-level adaptive decision hierarchy](../docs
 - One open PR remains: draft control PR #2. Five existing branches were preserved. No open queue-guardian incidents were returned. The latest complete workflow inventory contained 117 runs.
 - No disposable tracked cache, raw market data, generated report or scratch files required deletion. All existing evidence, reports, branches, PRs and active workflow outputs were preserved.
 - No overlapping audit was dispatched. Existing full audit #23 was resolved and its artifact inspected before implementing the new decision policy.
+- **Current cycle plan and hygiene preflight (2026-11-22):** preserve all P0 data/security gates; inspect guardian incidents, active/queued runs, PR #2, recent commits and the tracked tree; clean only verified disposable clutter; prioritize the Spot event-time accounting blocker; keep empirical acceptance closed until end-to-end integration. No guardian incidents, queued/in-progress runs, tracked raw data, disposable caches or scratch outputs were found, so no deletion or duplicate audit was warranted.
+- **Current cycle outcome:** added and tested the event-time accounting prototype, fixed the borrow-cost fixture exposed by CI #95, and verified 92 deterministic tests plus the synthetic smoke test in CI runs [#96](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44993529006) and [#97](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44993652823). The next highest-value action is full walk-forward/benchmark integration; only then reconsider the Spot policy gate.
 
 ## Completed implementation in this session
 
