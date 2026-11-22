@@ -67,6 +67,16 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         self.assertIn("python research/okx_funding_button_probe.py", workflow)
         self.assertIn("cancel direct downloads immediately", workflow.lower())
 
+    def test_okx_field_info_probe_is_exactly_allowlisted(self):
+        workflow = (WORKFLOW_DIR / "eth-btc-research.yml").read_text(encoding="utf-8")
+        command = "/qfr-probe-okx-funding-field-info"
+        self.assertIn(f'"{command}"', workflow)
+        self.assertIn(f'"{command}")', workflow)
+        self.assertIn('COMMAND="okx-field-info-probe"', workflow)
+        self.assertIn("command == 'okx-field-info-probe'", workflow)
+        self.assertIn("--inspect-field-info", workflow)
+        self.assertIn("okx-funding-field-info-probe-", workflow)
+
     def test_deprecated_node20_action_refs_are_absent(self):
         for workflow in WORKFLOW_DIR.glob("*.yml"):
             text = workflow.read_text(encoding="utf-8")
