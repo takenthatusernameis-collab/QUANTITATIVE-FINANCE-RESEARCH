@@ -469,7 +469,7 @@ def download_funding(symbol: str, start: str, end: str, data_dir: Path) -> Path:
             if (raw["funding_interval_hours"] <= 0).any():
                 raise ValueError(f"Non-positive funding interval in {url}")
             raw["timestamp"] = pd.to_datetime(raw["calc_time"], unit="ms", utc=True)
-            month_start = month
+            month_start = month.tz_localize("UTC")
             next_month = month_start + pd.offsets.MonthBegin(1)
             if ((raw["timestamp"] < month_start) | (raw["timestamp"] >= next_month)).any():
                 raise ValueError(f"Funding timestamps outside archive month in {url}")
