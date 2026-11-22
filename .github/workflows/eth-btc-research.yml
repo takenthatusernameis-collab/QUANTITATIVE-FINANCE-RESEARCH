@@ -42,7 +42,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.event_name == 'issue_comment' && (github.event.action != 'created' || github.event.issue.number != 2 || github.event.issue.pull_request == null || github.event.issue.state != 'open' || github.event.comment.user.login != 'takenthatusernameis-collab' || !contains(fromJSON('["/qfr-control-smoke","/qfr-run-eth-btc-data-audit","/qfr-probe-eth-btc-funding-2024-01","/qfr-probe-tardis-funding-2024-01-01","/qfr-probe-tardis-funding-2020-06-01","/qfr-probe-tardis-funding-2025-06-01","/qfr-probe-tardis-funding-2025-10-01","/qfr-probe-tardis-funding-2026-02-01","/qfr-probe-tardis-funding-2026-03-01","/qfr-probe-mexc-funding-history","/qfr-probe-bybit-funding-history","/qfr-probe-bitget-funding-download","/qfr-probe-okx-funding-download","/qfr-probe-okx-funding-button","/qfr-run-eth-btc-empirical","/qfr-run-eth-btc-spot-empirical","/qfr-run-eth-btc-um-empirical"]'), github.event.comment.body)) && format('eth-btc-research-ignored-{0}', github.event.comment.id) || 'eth-btc-research-main' }}
+  group: ${{ github.event_name == 'issue_comment' && (github.event.action != 'created' || github.event.issue.number != 2 || github.event.issue.pull_request == null || github.event.issue.state != 'open' || github.event.comment.user.login != 'takenthatusernameis-collab' || !contains(fromJSON('["/qfr-control-smoke","/qfr-run-eth-btc-data-audit","/qfr-probe-eth-btc-funding-2024-01","/qfr-probe-tardis-funding-2024-01-01","/qfr-probe-tardis-funding-2020-06-01","/qfr-probe-tardis-funding-2025-06-01","/qfr-probe-tardis-funding-2025-10-01","/qfr-probe-tardis-funding-2026-02-01","/qfr-probe-tardis-funding-2026-03-01","/qfr-probe-mexc-funding-history","/qfr-probe-bybit-funding-history","/qfr-probe-bitget-funding-download","/qfr-probe-okx-funding-download","/qfr-probe-okx-funding-button","/qfr-probe-okx-funding-field-info","/qfr-run-eth-btc-empirical","/qfr-run-eth-btc-spot-empirical","/qfr-run-eth-btc-um-empirical"]'), github.event.comment.body)) && format('eth-btc-research-ignored-{0}', github.event.comment.id) || 'eth-btc-research-main' }}
   queue: max
   cancel-in-progress: false
 
@@ -194,6 +194,14 @@ jobs:
               "/qfr-probe-okx-funding-button")
                 # Inspect only the Funding rate card; cancel direct downloads immediately.
                 COMMAND="okx-button-probe"
+                START="2022-03-01"
+                END="2026-11-22"
+                MARKET="both"
+                RECONCILE="false"
+                ;;
+              "/qfr-probe-okx-funding-field-info")
+                # Open the funding modal and inspect only its Field information control.
+                COMMAND="okx-field-info-probe"
                 START="2022-03-01"
                 END="2026-11-22"
                 MARKET="both"
@@ -494,9 +502,9 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
   okx-funding-button-probe:
-    name: Inspect the exact OKX Funding download control (cancel direct downloads)
+    name: Inspect OKX Funding modal safely (no data downloads)
     needs: authorize
-    if: ${{ needs.authorize.outputs.authorized == 'true' && needs.authorize.outputs.command == 'okx-button-probe' }}
+    if: ${{ needs.authorize.outputs.authorized == 'true' && (needs.authorize.outputs.command == 'okx-button-probe' || needs.authorize.outputs.command == 'okx-field-info-probe') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
