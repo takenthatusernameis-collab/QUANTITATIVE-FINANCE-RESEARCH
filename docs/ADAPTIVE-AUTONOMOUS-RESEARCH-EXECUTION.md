@@ -347,6 +347,25 @@ Apply the same adaptive reasoning to the research pipeline itself.
 | Artifact is too large or unavailable | Partition/compress outputs, retain compact manifests and hashes, and use supported artifact/object storage; never commit raw market data merely to simplify transfer. |
 | A scientific gate fails | Diagnose, document, and repair source or methodology where legitimate; otherwise preserve NO-GO/INCONCLUSIVE. Never weaken the gate to manufacture a result. |
 
+
+### Propagation across every safe repository workstream
+
+The adaptive/failover philosophy applies uniformly to all work that does not cross a genuine security, legal, authorization or live-financial boundary. The following is the minimum operating behavior; individual tasks may add stricter scientific acceptance gates but may not weaken this autonomy standard.
+
+| Workstream | Required autonomous behavior after a blocker |
+|---|---|
+| Research hypothesis/model | Preserve the objective; test a different, independently specified hypothesis/model when the original is infeasible; keep experiments distinct. |
+| Market-data ingestion | Continue independent symbols/markets; change authorized provider, endpoint, archive granularity or trade-level construction; never fabricate or silently repair observations. |
+| Parsing/schema/quality | Capture exact failing fixture and schema; test supported formats with deterministic tests; add regression coverage; do not drop malformed rows to pass. |
+| CI/unit/synthetic tests | Read the exact failed assertion/log; repair the root cause; use a materially different available execution path only when runner/orchestration is the blocker; distinguish plumbing from empirical evidence. |
+| Backtests/compute | Execute automatically once frozen code/data/methodology gates pass; chunk long jobs with immutable checkpoints and verified resume; retain elapsed-time/cost correctness. |
+| Workflow dispatch/runner queues | Inspect existing runs first; do not duplicate; enforce 15-minute cancellation except a verified earlier active same-group predecessor; if cancellation fails, create a durable orphan incident and start one isolated alternative. |
+| Artifacts/storage/reporting | Inspect and hash existing artifacts before re-running; use manifests, compact summaries and independent namespaces; preserve failed evidence and exact limitations. |
+| Documentation/tasks/handoffs | Retire stale instructions without rewriting historical evidence; maintain one current task and actionable next step; check queue-guardian incidents each cycle. |
+| Security/authorization/live actions | Stop only the specific protected action; complete all independent safe work; prepare the minimum prerequisite once; never evade the boundary. |
+
+An alternative route must differ in a causal bottleneck-relevant way. Merely renaming a workflow, changing the run ID, rerunning the same request, or copying the same failing code into a new job is not adaptation. A new attempt must have a distinct identity and isolated working state. If a complete parallel attempt is unsafe, start a non-mutating independent slice rather than idling the whole repository.
+
 ## Security, research integrity, and stop conditions
 
 - Never expose API keys, app private keys, tokens, or secrets in code, task text, commits, logs, or artifacts.
