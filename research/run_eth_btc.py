@@ -959,13 +959,16 @@ def make_plots(df: pd.DataFrame, feats: dict, oos: pd.DataFrame, out_dir: Path, 
 
 
 def classify_gap_reconciliation(api_found: bool, daily_archive_found: bool,
-                                values_match: bool | None = None) -> str:
-    """Classify whether independent official representations corroborate a missing bar."""
+                                values_match: bool | None = None,
+                                api_request_succeeded: bool = True) -> str:
+    """Classify observed source evidence without conflating request failures and empty data."""
     if api_found and daily_archive_found:
         return "confirmed_monthly_archive_omission" if values_match else "official_source_value_mismatch"
     if api_found or daily_archive_found:
         return "single_official_representation_only"
-    return "absent_from_both_official_representations_unresolved"
+    if not api_request_succeeded:
+        return "api_request_failed_daily_archive_absent_unresolved"
+    return "both_kline_sources_empty_trade_status_unverified"
 
 
 def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> dict:
@@ -989,7 +992,8 @@ def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> di
         "symbol": symbol,
         "requested_start": start,
         "requested_end_inclusive": end,
-        "rest_endpoint": "https://api.binance.com/api/v3/klines",
+        "rest_endpoint": "https://data-api.binance.vision/api/v3/klines",
+        "rest_host_type": "official_public_market_data_only_host",
         "daily_archive_base": "https://data.binance.vision/data/spot/daily/klines",
         "source_csv": str(csv_path),
         "source_csv_sha256": hashlib.sha256(csv_path.read_bytes()).hexdigest(),
@@ -1032,6 +1036,8 @@ def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> di
             daily_info[day] = {"url": url, "status": "error", "error": f"{type(exc).__name__}: {exc}"}
         time.sleep(0.03)
 
+    result["daily_archives"] = daily_info
+
     for timestamp in missing:
         hour_start_ms = int(timestamp.timestamp() * 1000)
         hour_end_ms = hour_start_ms + 60 * 60 * 1000 - 1
@@ -1043,6 +1049,7 @@ def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> di
             "limit": 10,
         }
         gap_day = timestamp.strftime("%Y-%m-%d")
+        api_request_succeeded = False
         entry = {
             "timestamp": str(timestamp),
             "archive_month": timestamp.strftime("%Y-%m"),
@@ -1062,6 +1069,8 @@ def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> di
             if not isinstance(payload, list):
                 raise RuntimeError(f"Unexpected klines API response: {payload}")
             entry["api_status"] = response.status_code
+            api_request_succeeded = True
+            entry["api_request_succeeded"] = True
             entry["api_rows_returned"] = len(payload)
             api_rows = [row for row in payload if int(row[0]) == hour_start_ms]
             if api_rows:
@@ -1102,8 +1111,10 @@ def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> di
                 )
                 for field in fields
             )
+        entry["api_request_succeeded"] = api_request_succeeded
         entry["classification"] = classify_gap_reconciliation(
-            entry["api_candle_found"], entry["daily_candle_found"], entry["values_match"]
+            entry["api_candle_found"], entry["daily_candle_found"], entry["values_match"],
+            api_request_succeeded=api_request_succeeded,
         )
         result["gaps"].append(entry)
         time.sleep(0.05)
@@ -1187,21 +1198,30 @@ def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
         summary["funding_series"][key] = record
 
     if reconcile_gaps:
-        try:
-            summary["gap_reconciliation"] = reconcile_spot_gaps(
-                "ETHUSDT", start, end, data_dir
-            )
-        except Exception as exc:
-            summary["gap_reconciliation"] = {
-                "status": "failed",
-                "error": f"{type(exc).__name__}: {exc}",
-            }
+        summary["gap_reconciliation"] = {}
+        for symbol in SYMBOLS:
+            try:
+                summary["gap_reconciliation"][symbol] = reconcile_spot_gaps(
+                    symbol, start, end, data_dir
+                )
+            except Exception as exc:
+                summary["gap_reconciliation"][symbol] = {
+                    "status": "failed",
+                    "error": f"{type(exc).__name__}: {exc}",
+                    "reconciliation_complete": False,
+                }
 
     price_ok = all(record["status"] == "complete" for record in summary["price_series"].values())
     funding_ok = all(record["status"] == "complete" for record in summary["funding_series"].values())
     reconciliation_ok = (
         not reconcile_gaps
-        or bool(summary["gap_reconciliation"] and summary["gap_reconciliation"].get("reconciliation_complete"))
+        or (
+            bool(summary["gap_reconciliation"])
+            and all(
+                item.get("reconciliation_complete", False)
+                for item in summary["gap_reconciliation"].values()
+            )
+        )
     )
     summary["complete"] = bool(price_ok and funding_ok and reconciliation_ok)
     summary["status"] = "COMPLETE" if summary["complete"] else "INCOMPLETE"
