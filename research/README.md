@@ -12,7 +12,7 @@ python -m pip install -r research/requirements.txt
 python research/run_eth_btc.py --start 2020-01-01 --end 2026-10-31 --market both
 ```
 
-The script downloads monthly 1-hour Binance Spot and USDⓈ-M perpetual klines for `ETHUSDT` and `BTCUSDT`. It separately paginates settled USDⓈ-M funding events for both contracts. Monthly archives are cached under `data/cache/`; consolidated input CSVs and per-archive SHA-256/checksum/timestamp-unit manifests are written under `data/raw/`. Funding CSVs also receive row-count/hash manifests. The run writes data-quality JSON with sample bounds, gaps and source hashes. Generated outputs go to `reports/generated/`. Raw data are not intended to be committed.
+The script downloads monthly 1-hour Binance Spot and USDⓈ-M perpetual klines for `ETHUSDT` and `BTCUSDT`. USD-M funding history is ingested from monthly Binance Vision `fundingRate` ZIP archives with `.CHECKSUM` verification, schema and UTC-month validation, per-month provenance, and consolidated row-count/hash manifests. The archive route is deliberately fail-closed: the downloader preserves the data and manifest but rejects empirical use until the complete payable-settlement population and event semantics are independently established. Monthly archives are cached under `data/cache/`; consolidated input CSVs and per-archive SHA-256/checksum/timestamp-unit manifests are written under `data/raw/`. The run writes data-quality JSON with sample bounds, gaps and source hashes. Generated outputs go to `reports/generated/`. Raw data are not intended to be committed.
 
 Use `--market spot`, `--market um`, or `--market both`. `--self-test` runs a synthetic plumbing test only; it is not evidence of strategy performance.
 
@@ -52,7 +52,7 @@ Queue or infrastructure failures are not empirical strategy failures. Never fabr
 
 1. The default fee, slippage and spread values are scenario assumptions, not verified current account rates. Replace them with venue- and account-specific values.
 2. Spot short-leg results are theoretical unless margin borrowing is available and its actual borrow costs are entered.
-3. USDⓈ-M perps are used as two separate linear contracts, not as an ETHBTC perpetual. Funding intervals can change; the pipeline uses each actual funding event timestamp rather than assuming a fixed 8-hour schedule.
+3. USDⓈ-M perps are used as two separate linear contracts, not as an ETHBTC perpetual. Funding intervals can change; when a validated event series is accepted, the pipeline uses each event timestamp rather than assuming a fixed 8-hour schedule. The current Binance Vision archive source remains provisional and is rejected by the empirical gate until settlement-population semantics are independently verified.
 4. The pipeline uses 1x gross exposure and does not simulate exchange liquidation engines, order-book queue position, partial fills or outages. It includes illustrative one-bar shock scenarios, not a full margin simulator.
 5. Hourly OHLCV is not a historical order book. The spread/slippage inputs are proxies, not measured historical bid/ask execution costs.
 6. Inspect data-quality JSON and CSV outputs before interpreting statistics. Do not treat a significant cointegration test as evidence of a profitable net trading edge.
