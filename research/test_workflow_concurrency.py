@@ -52,5 +52,18 @@ class WorkflowConcurrencyPolicyTests(unittest.TestCase):
             self.assertIn('MARKET="both"', block)
             self.assertIn('RECONCILE="false"', block)
 
+
+    def test_mexc_probe_is_allowlisted_and_bounded(self):
+        workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+        block = workflow.split('"/qfr-probe-mexc-funding-history")', 1)[1].split(";;", 1)[0]
+        self.assertIn('COMMAND="mexc-probe"', block)
+        self.assertIn('START="2020-01-01"', block)
+        self.assertIn('END="2026-10-31"', block)
+        self.assertIn("MEXC_SYMBOLS: BTC_USDT,ETH_USDT", workflow)
+        self.assertIn("PAGE_SIZE: '1000'", workflow)
+        self.assertIn("MAX_PAGES: '200'", workflow)
+        self.assertIn("MAX_RECORDS: '200000'", workflow)
+        self.assertIn("Upload MEXC manifests (never raw pages)", workflow)
+
 if __name__ == "__main__":
     unittest.main()
