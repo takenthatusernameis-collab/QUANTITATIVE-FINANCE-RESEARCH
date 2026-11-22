@@ -1,0 +1,46 @@
+from pathlib import Path
+import re
+import unittest
+
+
+ROOT = Path(__file__).resolve().parents[1]
+WORKFLOW_DIR = ROOT / ".github" / "workflows"
+EXPECTED_NODE24_ACTIONS = {
+    "actions/checkout": "v7.0.1",
+    "actions/setup-python": "v7.1.0",
+    "actions/cache": "v6.1.0",
+    "actions/upload-artifact": "v7.0.2",
+}
+
+
+class GitHubActionRuntimeTests(unittest.TestCase):
+    def test_workflows_use_verified_node24_action_releases(self):
+        observed = {}
+        for workflow in sorted(WORKFLOW_DIR.glob("*.yml")):
+            for line in workflow.read_text(encoding="utf-8").splitlines():
+                match = re.search(
+                    r"^\\s*uses:\\s*(actions/(?:checkout|setup-python|cache|upload-artifact))@([^\\s]+)",
+                    line,
+                )
+                if match:
+                    observed.setdefault(match.group(1), set()).add(match.group(2))
+
+        self.assertEqual(
+            observed,
+            {name: {version} for name, version in EXPECTED_NODE24_ACTIONS.items()},
+        )
+
+    def test_deprecated_node20_action_refs_are_absent(self):
+        for workflow in WORKFLOW_DIR.glob("*.yml"):
+            text = workflow.read_text(encoding="utf-8")
+            for old in (
+                "actions/checkout@v4",
+                "actions/setup-python@v5",
+                "actions/cache@v4",
+                "actions/upload-artifact@v4",
+            ):
+                self.assertNotIn(old, text, str(workflow))
+
+
+if __name__ == "__main__":
+    unittest.main()
