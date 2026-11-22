@@ -1026,23 +1026,89 @@ def make_plots(df: pd.DataFrame, feats: dict, oos: pd.DataFrame, out_dir: Path, 
 
 
 
+def query_aggregate_trades(session: requests.Session, symbol: str,
+                          timestamp: pd.Timestamp) -> dict:
+    """Probe one UTC hour for any aggregate trade; limit=1 is sufficient for presence."""
+    ts = pd.Timestamp(timestamp)
+    ts = ts.tz_localize("UTC") if ts.tzinfo is None else ts.tz_convert("UTC")
+    start_ms = int(ts.timestamp() * 1000)
+    end_ms = start_ms + 60 * 60 * 1000 - 1
+    endpoint = "https://data-api.binance.vision/api/v3/aggTrades"
+    params = {
+        "symbol": symbol,
+        "startTime": start_ms,
+        "endTime": end_ms,
+        "limit": 1,
+    }
+    response = request_with_retry(session, endpoint, timeout=45, params=params)
+    payload = response.json()
+    if not isinstance(payload, list):
+        raise RuntimeError(f"Unexpected aggregate-trades API response for {symbol}: {payload}")
+    sample = None
+    timestamp_unit = "ms"
+    for item in payload:
+        if not isinstance(item, dict) or not {"a", "p", "q", "T"}.issubset(item):
+            raise RuntimeError(f"Unexpected aggregate-trade schema for {symbol}: {item}")
+        raw_time = int(item["T"])
+        item_unit = "us" if raw_time > 10**14 else "ms"
+        trade_ms = raw_time // 1000 if item_unit == "us" else raw_time
+        if trade_ms < start_ms or trade_ms > end_ms:
+            raise RuntimeError(
+                f"Aggregate trade timestamp outside requested hour for {symbol}: {item['T']}"
+            )
+        timestamp_unit = item_unit
+        if sample is None:
+            sample = {
+                "aggregate_trade_id": int(item["a"]),
+                "timestamp": str(pd.to_datetime(raw_time, unit=item_unit, utc=True)),
+                "price": str(item["p"]),
+                "quantity": str(item["q"]),
+            }
+    body = getattr(response, "content", b"")
+    if isinstance(body, str):
+        body = body.encode("utf-8")
+    return {
+        "endpoint": endpoint,
+        "request": params,
+        "http_status": int(response.status_code),
+        "request_succeeded": True,
+        "rows_returned": len(payload),
+        "trade_found": bool(payload),
+        "timestamp_unit": timestamp_unit,
+        "sample_trade": sample,
+        "response_sha256": hashlib.sha256(body).hexdigest(),
+    }
+
+
 def classify_gap_reconciliation(api_found: bool, daily_archive_found: bool,
                                 values_match: bool | None = None,
-                                api_request_succeeded: bool = True) -> str:
-    """Classify observed source evidence without conflating request failures and empty data."""
+                                api_request_succeeded: bool = True,
+                                agg_trades_found: bool | None = None,
+                                agg_trades_request_succeeded: bool | None = None,
+                                positive_control_passed: bool = False) -> str:
+    """Classify price-bar and trade-level evidence without inferring zero activity."""
     if api_found and daily_archive_found:
         return "confirmed_monthly_archive_omission" if values_match else "official_source_value_mismatch"
     if api_found or daily_archive_found:
         return "single_official_representation_only"
+    if agg_trades_request_succeeded is True:
+        if agg_trades_found:
+            return "aggregate_trades_present_kline_missing"
+        if positive_control_passed:
+            return "confirmed_no_trade_interval"
+        return "aggregate_trade_positive_control_failed_unresolved"
+    if agg_trades_request_succeeded is False:
+        return "aggregate_trade_request_failed_unresolved"
     if not api_request_succeeded:
         return "api_request_failed_daily_archive_absent_unresolved"
     return "both_kline_sources_empty_trade_status_unverified"
 
 
 def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> dict:
-    """Cross-check every missing Spot hour against Binance REST and daily archives.
+    """Cross-check missing Spot hours against REST, daily klines and aggregate trades.
 
-    This function only records evidence. It never fabricates or inserts candles.
+    Aggregate-trade empty responses are interpreted only after a same-day known-active
+    kline positive control succeeds. This function records evidence; it never inserts bars.
     """
     csv_path = data_dir / "raw" / f"spot_{symbol}_1h.csv"
     manifest_path = data_dir / "raw" / f"spot_{symbol}_archive_manifest.json"
@@ -1063,15 +1129,19 @@ def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> di
         "rest_endpoint": "https://data-api.binance.vision/api/v3/klines",
         "rest_host_type": "official_public_market_data_only_host",
         "daily_archive_base": "https://data.binance.vision/data/spot/daily/klines",
+        "aggregate_trade_endpoint": "https://data-api.binance.vision/api/v3/aggTrades",
+        "aggregate_trade_probe_limit": 1,
         "source_csv": str(csv_path),
         "source_csv_sha256": hashlib.sha256(csv_path.read_bytes()).hexdigest(),
         "monthly_archive_quality": quality,
         "daily_archives": {},
+        "aggregate_trade_positive_controls": {},
         "gaps": [],
         "classification_counts": {},
         "reconciliation_complete": True,
     }
     if not len(missing):
+        result["gap_count"] = 0
         out_path = data_dir / "raw" / f"spot_{symbol}_gap_reconciliation.json"
         out_path.write_text(json.dumps(result, indent=2))
         result["manifest_path"] = str(out_path)
@@ -1080,7 +1150,11 @@ def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> di
     session = requests.Session()
     daily_frames: dict[str, pd.DataFrame] = {}
     daily_info: dict[str, dict] = {}
-    for day in sorted({timestamp.strftime("%Y-%m-%d") for timestamp in missing}):
+    gaps_by_day: dict[str, list[pd.Timestamp]] = {}
+    for timestamp in missing:
+        gaps_by_day.setdefault(timestamp.strftime("%Y-%m-%d"), []).append(timestamp)
+
+    for day in sorted(gaps_by_day):
         filename = f"{symbol}-1h-{day}.zip"
         url = f"https://data.binance.vision/data/spot/daily/klines/{symbol}/1h/{filename}"
         cache = data_dir / "cache" / "spot_daily" / symbol / filename
@@ -1120,6 +1194,7 @@ def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> di
         api_request_succeeded = False
         entry = {
             "timestamp": str(timestamp),
+            "gap_day": gap_day,
             "archive_month": timestamp.strftime("%Y-%m"),
             "daily_archive": daily_info.get(gap_day, {}),
             "api_request": params,
@@ -1185,15 +1260,79 @@ def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> di
             api_request_succeeded=api_request_succeeded,
         )
         result["gaps"].append(entry)
-        time.sleep(0.05)
+        time.sleep(0.03)
+
+    unresolved_by_day: dict[str, list[dict]] = {}
+    for entry in result["gaps"]:
+        if not entry["api_candle_found"] and not entry["daily_candle_found"]:
+            unresolved_by_day.setdefault(entry["gap_day"], []).append(entry)
+
+    observed_by_day: dict[str, list[pd.Timestamp]] = {}
+    for observed_ts in pd.DatetimeIndex(frame["timestamp"]):
+        observed_by_day.setdefault(observed_ts.strftime("%Y-%m-%d"), []).append(observed_ts)
+
+    for day, day_gaps in unresolved_by_day.items():
+        daily_frame = daily_frames.get(day)
+        candidates = (
+            list(pd.DatetimeIndex(daily_frame["timestamp"]))
+            if daily_frame is not None and not daily_frame.empty
+            else observed_by_day.get(day, [])
+        )
+        control_info = {
+            "status": "unavailable",
+            "known_active_kline_control_available": bool(candidates),
+            "positive_control_passed": False,
+        }
+        if candidates:
+            first_gap = day_gaps[0]["timestamp"]
+            control_ts = min(
+                candidates,
+                key=lambda candidate: abs((candidate - pd.Timestamp(first_gap)).total_seconds()),
+            )
+            control_info["control_timestamp"] = str(control_ts)
+            try:
+                control_probe = query_aggregate_trades(session, symbol, control_ts)
+                control_info.update(control_probe)
+                control_info["positive_control_passed"] = bool(control_probe["trade_found"])
+                control_info["status"] = "passed" if control_info["positive_control_passed"] else "empty_response"
+            except Exception as exc:
+                control_info["status"] = "request_failed"
+                control_info["error"] = f"{type(exc).__name__}: {exc}"
+        result["aggregate_trade_positive_controls"][day] = control_info
+
+        for entry in day_gaps:
+            try:
+                trade_probe = query_aggregate_trades(
+                    session, symbol, pd.Timestamp(entry["timestamp"])
+                )
+                entry["aggregate_trade_probe"] = trade_probe
+                entry["agg_trades_request_succeeded"] = True
+                entry["agg_trades_found"] = bool(trade_probe["trade_found"])
+            except Exception as exc:
+                entry["agg_trades_request_succeeded"] = False
+                entry["agg_trades_found"] = None
+                entry["agg_trades_error"] = f"{type(exc).__name__}: {exc}"
+            entry["positive_control_passed"] = bool(control_info["positive_control_passed"])
+            entry["classification"] = classify_gap_reconciliation(
+                entry["api_candle_found"], entry["daily_candle_found"], entry["values_match"],
+                api_request_succeeded=entry["api_request_succeeded"],
+                agg_trades_found=entry["agg_trades_found"],
+                agg_trades_request_succeeded=entry["agg_trades_request_succeeded"],
+                positive_control_passed=entry["positive_control_passed"],
+            )
+            time.sleep(0.03)
 
     for entry in result["gaps"]:
         label = entry["classification"]
         result["classification_counts"][label] = result["classification_counts"].get(label, 0) + 1
+    resolved_labels = {
+        "confirmed_monthly_archive_omission",
+        "aggregate_trades_present_kline_missing",
+        "confirmed_no_trade_interval",
+    }
     result["reconciliation_complete"] = (
         len(result["gaps"]) == len(missing)
-        and all(entry["classification"] == "confirmed_monthly_archive_omission" for entry in result["gaps"])
-        and all("api_error" not in entry for entry in result["gaps"])
+        and all(entry["classification"] in resolved_labels for entry in result["gaps"])
     )
     result["gap_count"] = len(result["gaps"])
     out_path = data_dir / "raw" / f"spot_{symbol}_gap_reconciliation.json"
@@ -1201,7 +1340,6 @@ def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> di
     out_path.write_text(json.dumps(result, indent=2))
     result["manifest_path"] = str(out_path)
     return result
-
 
 def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
                      reconcile_gaps: bool = False) -> dict:
