@@ -114,6 +114,15 @@ When the relevant evidence is not machine-readable, record the missing evidence 
 
 **Backtest activation rule:** once a historical research run meets its machine-checkable data, code, and pre-registered methodology gates, the agent must launch it through an authorized agent-triggered workflow without routine human confirmation. Add and verify an allowlisted command for every required research workflow. A failing data gate should fail the run clearly and automatically; it must never silently bypass validation. A workflow trigger being agent-controlled and a dataset being empirically valid are separate requirements.
 
+**ETH/BTC market-scoped command allowlist on control PR #2:**
+
+- `/qfr-run-eth-btc-empirical` — combined Spot + USD-M perpetual experiment; requires all six inputs and both market-specific gates.
+- `/qfr-run-eth-btc-spot-empirical` — independent Spot-only experiment; does not require perpetual funding, but requires both Spot price manifests, complete hourly data or independently reconciled no-trade gaps, and an accepted event-time/elapsed-time policy whenever gaps remain.
+- `/qfr-run-eth-btc-um-empirical` — independent USD-M perpetual experiment; requires both USD-M price histories and both accepted final-settlement funding histories, but does not require Spot completeness.
+
+The preflight receives the same market scope as the selected empirical command. The audit still records all six inputs so independent evidence is retained; the scoped research gate decides only whether the requested experiment is eligible. An accepted Spot gap classification alone is not enough to run the current hourly Spot engine: the event-time/elapsed-time PnL, signal, execution and annualization policy must also be implemented and accepted. The current gate deliberately keeps that condition false. Scope separation is not a reduction of scientific standards: Spot results cannot establish perpetual profitability, and the original combined experiment remains gated on all six inputs.
+
+
 ## Adaptive contingency loop
 
 Use this loop whenever a task encounters a blocker or a proposed mechanism is unavailable.
