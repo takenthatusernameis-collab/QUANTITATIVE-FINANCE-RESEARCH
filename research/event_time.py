@@ -524,3 +524,282 @@ def event_time_metrics(backtest: pd.DataFrame) -> dict[str, float | int]:
                 duration[gross_exposure[positive_duration] > 0].sum() / duration.sum()
             )
     return result
+
+
+
+def _event_time_array_metrics(
+    elapsed_seconds_values: np.ndarray,
+    net_return_values: np.ndarray,
+    turnover_values: np.ndarray,
+) -> dict[str, float]:
+    elapsed = np.asarray(elapsed_seconds_values, dtype=float)
+    returns = np.asarray(net_return_values, dtype=float)
+    turnover = np.asarray(turnover_values, dtype=float)
+    if not (len(elapsed) == len(returns) == len(turnover)) or len(elapsed) == 0:
+        raise ValueError("Bootstrap arrays must be non-empty and have matching lengths")
+    if not (
+        np.isfinite(elapsed).all()
+        and np.isfinite(returns).all()
+        and np.isfinite(turnover).all()
+    ):
+        raise ValueError("Bootstrap arrays must contain only finite values")
+    if (elapsed < 0).any() or (turnover < 0).any() or (returns <= -1.0).any():
+        raise ValueError("Bootstrap elapsed time, turnover or returns are outside valid bounds")
+    total_seconds = float(elapsed.sum())
+    if total_seconds <= 0:
+        raise ValueError("Bootstrap sample must contain positive elapsed time")
+    log_returns = np.log1p(returns)
+    total_years = total_seconds / SECONDS_PER_YEAR
+    annual_log_return = float(log_returns.sum() / total_years)
+    positive = elapsed > 0
+    dt_years = elapsed[positive] / SECONDS_PER_YEAR
+    residuals = log_returns[positive] - annual_log_return * dt_years
+    variance_rate = float(np.square(residuals).sum() / total_years)
+    volatility = math.sqrt(max(variance_rate, 0.0))
+    nav = np.concatenate(([1.0], np.cumprod(1.0 + returns)))
+    drawdown = nav / np.maximum.accumulate(nav) - 1.0
+    return {
+        "CAGR": float(np.expm1(annual_log_return)),
+        "continuous_time_sharpe": (
+            float(annual_log_return / volatility) if volatility > 0 else float("nan")
+        ),
+        "max_drawdown": float(drawdown.min()),
+        "total_return": float(np.expm1(log_returns.sum())),
+        "turnover_per_year": float(turnover.sum() / total_years),
+        "elapsed_days": total_seconds / SECONDS_PER_DAY,
+    }
+
+
+def _sample_fold_stratified_time_blocks(
+    folds: list[tuple[np.ndarray, np.ndarray, np.ndarray]],
+    block_seconds: float,
+    rng: np.random.Generator,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    sampled_elapsed: list[np.ndarray] = []
+    sampled_returns: list[np.ndarray] = []
+    sampled_turnover: list[np.ndarray] = []
+    for elapsed, returns, turnover in folds:
+        target_seconds = float(elapsed.sum())
+        if target_seconds <= 0:
+            continue
+        cumulative = np.concatenate(([0.0], np.cumsum(elapsed)))
+        row_starts = np.arange(len(elapsed))
+        block_ends = np.searchsorted(
+            cumulative, cumulative[:-1] + block_seconds, side="left"
+        )
+        valid_starts = np.flatnonzero(
+            (block_ends > row_starts) & (block_ends <= len(elapsed))
+        )
+        if not len(valid_starts):
+            if target_seconds >= block_seconds:
+                raise ValueError(
+                    "No complete calendar-time bootstrap block fits inside an OOS fold"
+                )
+            sampled_elapsed.append(elapsed)
+            sampled_returns.append(returns)
+            sampled_turnover.append(turnover)
+            continue
+
+        resampled_seconds = 0.0
+        maximum_blocks = int(math.ceil(target_seconds / block_seconds)) + 2
+        blocks_used = 0
+        while resampled_seconds < target_seconds and blocks_used < maximum_blocks:
+            start = int(rng.choice(valid_starts))
+            end = int(block_ends[start])
+            if end <= start:
+                raise RuntimeError("Calendar-time block sampler produced an empty block")
+            sampled_elapsed.append(elapsed[start:end])
+            sampled_returns.append(returns[start:end])
+            sampled_turnover.append(turnover[start:end])
+            resampled_seconds += float(elapsed[start:end].sum())
+            blocks_used += 1
+        if resampled_seconds < target_seconds:
+            raise RuntimeError("Calendar-time block sampler failed to cover the fold duration")
+
+    if not sampled_elapsed:
+        raise ValueError("No positive-duration OOS folds were available for bootstrap")
+    return (
+        np.concatenate(sampled_elapsed),
+        np.concatenate(sampled_returns),
+        np.concatenate(sampled_turnover),
+    )
+
+
+def event_time_pooled_oos_summary(
+    oos_returns: pd.DataFrame,
+    *,
+    block_days: float = 7.0,
+    n_bootstrap: int = 1000,
+    confidence_level: float = 0.95,
+    seed: int = 20261122,
+) -> pd.DataFrame:
+    """Pool event-time OOS folds and bootstrap uncertainty with calendar-time blocks.
+
+    Fold boundaries remain explicit: elapsed time is validated within each fold,
+    and bootstrap blocks are sampled only from within their source fold. The
+    primary 1.0x cost case receives percentile confidence intervals; 1.5x and
+    2.0x pooled point estimates are derived from the same observed gross PnL and
+    the recorded 1.0x transaction costs.
+    """
+    required = {
+        "timestamp", "fold", "variant", "elapsed_seconds", "gross_return",
+        "cost", "funding_pnl", "borrow_cost", "net_return", "turnover",
+    }
+    missing = sorted(required - set(oos_returns.columns))
+    if missing:
+        raise ValueError(f"OOS returns are missing required columns: {missing}")
+    if not math.isfinite(block_days) or block_days <= 0:
+        raise ValueError("Bootstrap block_days must be finite and positive")
+    if n_bootstrap < 2:
+        raise ValueError("At least two bootstrap replications are required")
+    if not 0 < confidence_level < 1:
+        raise ValueError("confidence_level must be between zero and one")
+    if oos_returns.empty:
+        raise ValueError("OOS returns cannot be empty")
+
+    frame = oos_returns.copy()
+    frame["timestamp"] = pd.to_datetime(frame["timestamp"], utc=True, errors="raise")
+    if frame["timestamp"].isna().any() or frame["fold"].isna().any():
+        raise ValueError("OOS timestamps and fold identifiers cannot be missing")
+    numeric_columns = (
+        "elapsed_seconds", "gross_return", "cost", "funding_pnl",
+        "borrow_cost", "net_return", "turnover",
+    )
+    for column in numeric_columns:
+        frame[column] = pd.to_numeric(frame[column], errors="coerce")
+    numeric = frame.loc[:, numeric_columns].to_numpy(dtype=float)
+    if not np.isfinite(numeric).all():
+        raise ValueError("OOS return inputs must be finite")
+    if (frame["cost"] < 0).any() or (frame["turnover"] < 0).any():
+        raise ValueError("OOS costs and turnover must be non-negative")
+    expected_net = (
+        frame["gross_return"] - frame["cost"]
+        + frame["funding_pnl"] - frame["borrow_cost"]
+    )
+    if not np.allclose(
+        frame["net_return"].to_numpy(dtype=float),
+        expected_net.to_numpy(dtype=float),
+        rtol=1e-9,
+        atol=1e-12,
+    ):
+        raise ValueError("Recorded 1.0x net returns do not reconcile to PnL components")
+    if frame.duplicated(["variant", "fold", "timestamp"]).any():
+        raise ValueError("Duplicate variant/fold/timestamp OOS observations are not allowed")
+
+    block_seconds = float(block_days) * SECONDS_PER_DAY
+    rows: list[dict[str, Any]] = []
+    for variant_number, (variant, variant_frame) in enumerate(
+        frame.groupby("variant", sort=True)
+    ):
+        fold_arrays: list[tuple[np.ndarray, np.ndarray, np.ndarray]] = []
+        for fold, fold_frame in variant_frame.groupby("fold", sort=True):
+            ordered = fold_frame.sort_values("timestamp")
+            timestamps = pd.DatetimeIndex(ordered["timestamp"])
+            if timestamps.has_duplicates or not timestamps.is_monotonic_increasing:
+                raise ValueError(f"Fold {fold} timestamps must be unique and increasing")
+            expected_elapsed = (
+                timestamps.to_series().diff().dt.total_seconds().fillna(0.0).to_numpy()
+            )
+            elapsed = ordered["elapsed_seconds"].to_numpy(dtype=float)
+            if not np.allclose(elapsed, expected_elapsed, rtol=0.0, atol=1e-6):
+                raise ValueError(
+                    f"Fold {fold} elapsed_seconds do not match observed UTC timestamps"
+                )
+            if elapsed.max(initial=0.0) > block_seconds:
+                raise ValueError(
+                    f"Fold {fold} contains an observation gap longer than the bootstrap block; "
+                    "increase block_days before inference"
+                )
+            fold_arrays.append((
+                elapsed,
+                ordered["net_return"].to_numpy(dtype=float),
+                ordered["turnover"].to_numpy(dtype=float),
+            ))
+
+        elapsed_all = np.concatenate([item[0] for item in fold_arrays])
+        turnover_all = np.concatenate([item[2] for item in fold_arrays])
+        for multiplier in (1.0, 1.5, 2.0):
+            net_parts = [
+                item[1] if multiplier == 1.0 else (
+                    group["gross_return"].to_numpy(dtype=float)
+                    - group["cost"].to_numpy(dtype=float) * multiplier
+                    + group["funding_pnl"].to_numpy(dtype=float)
+                    - group["borrow_cost"].to_numpy(dtype=float)
+                )
+                for _, group in variant_frame.groupby("fold", sort=True)
+            ]
+            net_all = np.concatenate(net_parts)
+            point = event_time_metrics(pd.DataFrame({
+                "elapsed_seconds": elapsed_all,
+                "net_return": net_all,
+                "turnover": turnover_all,
+            }))
+            row: dict[str, Any] = {
+                "market": str(variant_frame["market"].iloc[0]) if "market" in variant_frame else None,
+                "interval": str(variant_frame["interval"].iloc[0]) if "interval" in variant_frame else None,
+                "variant": str(variant),
+                "cost_multiplier": multiplier,
+                "fold_count": int(len(fold_arrays)),
+                "observations": int(len(net_all)),
+                "metric_method": "continuous_time_elapsed_pooled_oos",
+                "net_return_definition": (
+                    "gross_return - cost * cost_multiplier + funding_pnl - borrow_cost"
+                ),
+                **point,
+            }
+            if multiplier == 1.0:
+                rng = np.random.default_rng(seed + variant_number)
+                bootstrap_values = {
+                    key: []
+                    for key in (
+                        "CAGR", "continuous_time_sharpe", "max_drawdown", "total_return"
+                    )
+                }
+                for _ in range(n_bootstrap):
+                    sampled_elapsed, sampled_returns, sampled_turnover = (
+                        _sample_fold_stratified_time_blocks(
+                            fold_arrays, block_seconds, rng
+                        )
+                    )
+                    metrics = _event_time_array_metrics(
+                        sampled_elapsed, sampled_returns, sampled_turnover
+                    )
+                    for key in bootstrap_values:
+                        bootstrap_values[key].append(metrics[key])
+                alpha = (1.0 - confidence_level) / 2.0
+                for key, values in bootstrap_values.items():
+                    finite = np.asarray(values, dtype=float)
+                    finite = finite[np.isfinite(finite)]
+                    if len(finite):
+                        lower, upper = np.quantile(finite, [alpha, 1.0 - alpha])
+                    else:
+                        lower = upper = float("nan")
+                    row[f"{key}_ci_lower"] = float(lower)
+                    row[f"{key}_ci_upper"] = float(upper)
+                row.update({
+                    "bootstrap_status": "COMPUTED",
+                    "bootstrap_method": "fold-stratified moving-block bootstrap in calendar time",
+                    "bootstrap_block_days": float(block_days),
+                    "bootstrap_replicates": int(n_bootstrap),
+                    "bootstrap_confidence_level": float(confidence_level),
+                    "bootstrap_seed": int(seed + variant_number),
+                })
+            else:
+                row.update({
+                    "CAGR_ci_lower": None,
+                    "CAGR_ci_upper": None,
+                    "continuous_time_sharpe_ci_lower": None,
+                    "continuous_time_sharpe_ci_upper": None,
+                    "max_drawdown_ci_lower": None,
+                    "max_drawdown_ci_upper": None,
+                    "total_return_ci_lower": None,
+                    "total_return_ci_upper": None,
+                    "bootstrap_status": "NOT_COMPUTED_FOR_COST_SENSITIVITY",
+                    "bootstrap_method": "not computed",
+                    "bootstrap_block_days": float(block_days),
+                    "bootstrap_replicates": 0,
+                    "bootstrap_confidence_level": float(confidence_level),
+                    "bootstrap_seed": None,
+                })
+            rows.append(row)
+    return pd.DataFrame(rows)
