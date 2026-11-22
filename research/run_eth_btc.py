@@ -411,63 +411,134 @@ def funding_quality(timestamps: pd.DatetimeIndex, start_ts: pd.Timestamp,
 
 
 def download_funding(symbol: str, start: str, end: str, data_dir: Path) -> Path:
-    """Paginate funding events and fail on duplicate, incomplete or gapped history."""
+    """Ingest monthly Binance Vision funding archives; never call the blocked REST route.
+
+    Archive ingestion is deliberately provisional until Binance's settlement-population
+    semantics are independently established. The data and manifest are retained for
+    inspection, but this function fails closed so the empirical backtest cannot treat
+    an unverified archive population as complete.
+    """
     session = requests.Session()
     start_ts = pd.Timestamp(start, tz="UTC")
     end_exclusive = pd.Timestamp(end, tz="UTC") + pd.Timedelta(days=1)
-    cursor_ms = int(start_ts.timestamp() * 1000)
-    end_ms = int(end_exclusive.timestamp() * 1000) - 1
-    rows = []
-    page_count = 0
-    last_seen = None
-    while cursor_ms <= end_ms:
-        response = request_with_retry(
-            session, "https://fapi.binance.com/fapi/v1/fundingRate", timeout=45,
-            params={"symbol": symbol, "startTime": cursor_ms, "endTime": end_ms, "limit": 1000},
-        )
-        batch = response.json()
-        if not isinstance(batch, list):
-            raise RuntimeError(f"Unexpected funding API response for {symbol}: {batch}")
-        if not batch:
-            break
-        times = [int(item["fundingTime"]) for item in batch]
-        if times != sorted(times) or len(times) != len(set(times)):
-            raise RuntimeError(f"Funding page is not strictly chronological for {symbol}")
-        if times[0] < cursor_ms or (last_seen is not None and times[0] <= last_seen):
-            raise RuntimeError(f"Funding pagination repeated or regressed for {symbol}")
-        if times[-1] > end_ms:
-            raise RuntimeError(f"Funding API returned an event outside requested bounds for {symbol}")
-        rows.extend(batch)
-        page_count += 1
-        last_seen = times[-1]
-        if len(batch) < 1000 or last_seen >= end_ms:
-            break
-        cursor_ms = last_seen + 1
-        time.sleep(0.05)
+    frames = []
+    archive_manifest = []
+    failures = []
 
-    frame = pd.DataFrame(rows)
-    if frame.empty:
-        raise RuntimeError(f"No funding history returned for {symbol}")
-    frame["timestamp"] = pd.to_datetime(frame["fundingTime"], unit="ms", utc=True)
-    frame["fundingRate"] = pd.to_numeric(frame["fundingRate"], errors="coerce")
-    if frame["fundingRate"].isna().any() or not np.isfinite(frame["fundingRate"]).all():
-        raise RuntimeError(f"Invalid funding rates returned for {symbol}")
-    clean = frame[["timestamp", "fundingRate"]].sort_values("timestamp")
-    quality = funding_quality(pd.DatetimeIndex(clean["timestamp"]), start_ts, end_exclusive)
+    for month in month_starts(start, end):
+        tag = month.strftime("%Y-%m")
+        filename = f"{symbol}-fundingRate-{tag}.zip"
+        url = (
+            "https://data.binance.vision/data/futures/um/monthly/fundingRate/"
+            f"{symbol}/{filename}"
+        )
+        cache = data_dir / "cache" / "um" / "fundingRate" / symbol / filename
+        try:
+            payload, checksum_verified, checksum_error = _download_archive(url, cache, session)
+            if not checksum_verified:
+                raise RuntimeError(f"Funding archive checksum not verified: {checksum_error}")
+            with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+                csv_names = [name for name in archive.namelist() if name.lower().endswith(".csv")]
+                if len(csv_names) != 1:
+                    raise ValueError(
+                        f"Expected exactly one funding CSV in {url}; found {len(csv_names)}"
+                    )
+                raw = pd.read_csv(
+                    archive.open(csv_names[0]), header=None, dtype=str, keep_default_na=False
+                )
+            if raw.empty or raw.shape[1] != 3:
+                raise ValueError(
+                    f"Unexpected funding archive schema in {url}: "
+                    f"rows={len(raw)}, columns={raw.shape[1]}"
+                )
+
+            expected = ["calc_time", "funding_interval_hours", "last_funding_rate"]
+            first = [str(value).strip().lower() for value in raw.iloc[0].tolist()]
+            header_detected = first == expected
+            if header_detected:
+                raw = raw.iloc[1:].reset_index(drop=True)
+            raw.columns = expected
+            for column in expected:
+                raw[column] = pd.to_numeric(raw[column], errors="coerce")
+                values = raw[column].to_numpy(dtype=float)
+                invalid = raw[column].isna() | ~np.isfinite(values)
+                if invalid.any():
+                    raise ValueError(
+                        f"Invalid {column} values in {url}: {int(invalid.sum())} rows"
+                    )
+            if (raw["funding_interval_hours"] <= 0).any():
+                raise ValueError(f"Non-positive funding interval in {url}")
+            raw["timestamp"] = pd.to_datetime(raw["calc_time"], unit="ms", utc=True)
+            month_start = month
+            next_month = month_start + pd.offsets.MonthBegin(1)
+            if ((raw["timestamp"] < month_start) | (raw["timestamp"] >= next_month)).any():
+                raise ValueError(f"Funding timestamps outside archive month in {url}")
+            frames.append(raw[["timestamp", "funding_interval_hours", "last_funding_rate"]])
+            archive_manifest.append({
+                "month": tag, "url": url, "status": "downloaded_checksum_verified",
+                "archive_sha256": hashlib.sha256(payload).hexdigest(),
+                "checksum_verified": True, "rows": int(len(raw)),
+                "header_detected": header_detected,
+                "schema": expected,
+                "interval_hours_observed": sorted(
+                    set(raw["funding_interval_hours"].astype(float).tolist())
+                ),
+            })
+        except Exception as exc:
+            failures.append({"month": tag, "url": url, "error": f"{type(exc).__name__}: {exc}"})
+            archive_manifest.append({
+                "month": tag, "url": url, "status": "failed",
+                "error": f"{type(exc).__name__}: {exc}",
+            })
+
     out = data_dir / "raw" / f"um_{symbol}_funding.csv"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    clean.to_csv(out, index=False)
-    manifest = {
-        "symbol": symbol, "endpoint": "https://fapi.binance.com/fapi/v1/fundingRate",
-        "requested_start": str(start_ts), "requested_end_exclusive": str(end_exclusive),
-        "pages": page_count, "data_quality": quality,
-        "csv_sha256": hashlib.sha256(out.read_bytes()).hexdigest(),
-    }
     manifest_path = data_dir / "raw" / f"um_{symbol}_funding_manifest.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    if frames:
+        combined = pd.concat(frames, ignore_index=True).sort_values("timestamp")
+        in_sample = combined[
+            (combined["timestamp"] >= start_ts) & (combined["timestamp"] < end_exclusive)
+        ].copy()
+        duplicate_count = int(in_sample["timestamp"].duplicated().sum())
+        in_sample.to_csv(out, index=False)
+        stamps = pd.DatetimeIndex(in_sample["timestamp"])
+        quality = funding_quality(stamps, start_ts, end_exclusive) if len(stamps) else None
+        csv_sha256 = hashlib.sha256(out.read_bytes()).hexdigest()
+    else:
+        in_sample = pd.DataFrame(columns=["timestamp", "funding_interval_hours", "last_funding_rate"])
+        duplicate_count = 0
+        quality = None
+        csv_sha256 = None
+
+    manifest = {
+        "symbol": symbol,
+        "source": "Binance Vision monthly USD-M fundingRate archives",
+        "requested_start": str(start_ts),
+        "requested_end_exclusive": str(end_exclusive),
+        "archives": archive_manifest,
+        "failed_months": failures,
+        "rows": int(len(in_sample)),
+        "duplicate_timestamps": duplicate_count,
+        "data_quality": quality,
+        "csv_sha256": csv_sha256,
+        "event_semantics": "UNVERIFIED",
+        "completeness_status": "PROVISIONAL_NOT_ACCEPTED",
+        "status": "failed" if failures or not frames or duplicate_count else "provisional",
+        "reason": (
+            "Binance public-data issue #517 leaves settlement-population and event semantics "
+            "unresolved; archive presence/checksum/cadence cannot establish complete payable events."
+        ),
+    }
     manifest_path.write_text(json.dumps(manifest, indent=2))
-    if not quality["complete"]:
-        raise RuntimeError(f"Incomplete funding history for {symbol}; inspect {manifest_path}")
-    return out
+    if failures or not frames or duplicate_count:
+        raise RuntimeError(
+            f"Funding archive ingestion failed for {symbol}: failed_months={len(failures)}, "
+            f"duplicate_timestamps={duplicate_count}; inspect {manifest_path}"
+        )
+    raise RuntimeError(
+        f"Funding archive data retained but not accepted for {symbol}: event semantics and "
+        f"settlement-population completeness remain unverified; inspect {manifest_path}"
+    )
 
 
 def align_funding_events(events: pd.Series, index: pd.DatetimeIndex, symbol: str = "unknown") -> tuple[pd.Series, dict]:
