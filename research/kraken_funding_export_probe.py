@@ -33,6 +33,7 @@ MAX_ARCHIVE_MEMBERS_REPORTED = 500
 MAX_TOTAL_UNCOMPRESSED_BYTES = 2 * 1024 * 1024 * 1024
 MAX_CANDIDATE_CSVS = 30
 MAX_API_SYMBOLS = 8
+RATE_FIELD_NAMES = ("fundingRate", "relativeFundingRate")
 TIME_KEYS = {"timestamp", "time", "fundingtime", "fundingtimestamp", "datetime", "date"}
 PERPETUAL_PREFIXES = {"PI", "PF"}
 
@@ -106,7 +107,7 @@ def analyze_csv_stream(stream: Any) -> dict[str, Any]:
     time_col = _find_column(headers, TIME_KEYS)
     rate_cols = [
         header for header in headers
-        if norm_key(header) in {"fundingrate", "relativefundingrate"}
+        if norm_key(header) in {norm_key(name) for name in RATE_FIELD_NAMES}
     ]
     row_count = 0
     valid_timestamp_count = 0
@@ -322,7 +323,7 @@ def _head_download(url: str) -> dict[str, Any]:
             "content_length": int(headers["content-length"]) if headers.get("content-length", "").isdigit() else None,
             "content_disposition": headers.get("content-disposition"),
         })
-        if response.status_code in (405, 501) or result["content_length"] is None:
+        if response.status_code not in (200, 206) or result["content_length"] is None:
             response.close()
             ranged = session.get(url, headers={"Range": "bytes=0-0"},
                                  allow_redirects=True, stream=True, timeout=(10, 30))
