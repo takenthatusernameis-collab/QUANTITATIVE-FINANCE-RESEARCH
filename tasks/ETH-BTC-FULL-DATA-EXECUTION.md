@@ -1,9 +1,12 @@
 # Pending Research Task: Complete ETH/BTC Mean-Reversion Study with Verified Data
 
-**Status:** Attempted — BLOCKED (2026-11-21; data access unavailable in this runtime)  
+**Status:** Historical attempt — BLOCKED by data access (2026-11-21); superseded by `tasks/ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md`.
 **Priority:** High  
 **Type:** Empirical replication and completion  
 **Scope:** Research and backtesting only; do not deploy capital or place live orders.
+
+
+> **Historical / superseded execution note:** Historical failed execution attempt. Do not repeat this same provider/endpoint workflow unchanged and do not follow any implied manual-dispatch wait. Continue from the current ingestion task, test materially different authorized data and execution paths, and preserve the original experiment as INCONCLUSIVE until all of its own gates pass.
 
 ## Objective
 
