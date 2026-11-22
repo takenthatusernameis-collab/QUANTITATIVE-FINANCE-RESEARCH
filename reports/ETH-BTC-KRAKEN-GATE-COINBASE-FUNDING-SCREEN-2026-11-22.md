@@ -4,7 +4,7 @@
 
 **Kraken's official historical-funding export has now been retrieved and inspected through the anonymous hosted runner. It is a strong no-purchase candidate for a separate venue pilot, but remains PROVISIONAL_NOT_ACCEPTED:** the ZIP's BTC/ETH files stop at 2026-02-01, and the public API tail has not yet been independently certified as complete. The support page says the export covers available Derivatives markets by trading pair since inception, but that claim does not establish that the currently served ZIP is refreshed through the present. Keep Kraken separate from Binance USDⓈ-M funding and preserve its distinct contract families.
 
-The next step is a bounded anonymous download/inspection through the repository's authorized hosted browser runner. No login, account access, region attestation, captcha bypass, API key, purchase, or raw-data commit is required or authorized.
+The next step is to audit the full returned API tail and reconcile it with the archive for each exact symbol, as detailed in the hosted-runner inspection section below. No login, account access, region attestation, captcha bypass, API key, purchase, or raw-data commit is required or authorized.
 
 ## Kraken — highest-priority free independent candidate
 
