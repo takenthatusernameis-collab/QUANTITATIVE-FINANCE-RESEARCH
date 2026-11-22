@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
 from queue_guardian import (
@@ -28,6 +29,25 @@ def make_run(run_id, workflow, status, created_at):
         "event": "push",
         "actor": {"login": "github-actions[bot]"},
     }
+
+
+class WorkflowControlTests(unittest.TestCase):
+    def test_live_control_comment_is_exactly_gated_and_preserves_dry_run(self):
+        workflow_path = (
+            Path(__file__).resolve().parents[1]
+            / ".github" / "workflows" / "queue-guardian.yml"
+        )
+        workflow = workflow_path.read_text(encoding="utf-8")
+
+        self.assertIn("github.event.issue.number == 2", workflow)
+        self.assertIn("github.event.comment.user.login == 'takenthatusernameis-collab'", workflow)
+        self.assertIn("github.event.comment.body == '/qfr-queue-guardian-dry-run'", workflow)
+        self.assertIn("github.event.comment.body == '/qfr-queue-guardian-live'", workflow)
+        self.assertIn(
+            "DRY_RUN: ${{ github.event_name != 'schedule' && "
+            "github.event.comment.body != '/qfr-queue-guardian-live' }}",
+            workflow,
+        )
 
 
 class QueueDecisionTests(unittest.TestCase):
