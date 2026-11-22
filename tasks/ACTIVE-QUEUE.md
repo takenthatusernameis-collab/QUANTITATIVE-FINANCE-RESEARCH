@@ -1,50 +1,75 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-22 04:45 UTC  
+**Updated:** 2026-11-22  
 **Canonical active-task pointer:** [ETH/BTC ingestion and no-trade validation](ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md).
 
-## Operating priority
+## Governing priority
 
-Optimize the probability of trustworthy, reproducible research while removing verified manual-intervention and orchestration bottlenecks. Preserve scientific and security gates. Do not create duplicate task plans, reports, runs, incidents or artifacts.
+Apply the single authoritative [seven-level adaptive decision hierarchy](../docs/GENERAL-ANTIFRAGILE-AUTONOMOUS-OPERATING-MINDSET.md): P0 hard invariants; P1 compounding meta-process improvements; P2 resolve existing work/highest-value bottlenecks; P3 original research recovery; P4 independent providers/data architectures; P5 formally preregistered hypothesis/model replacement; P6 local polish. The [adaptive execution standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md) implements the hierarchy. Do not create duplicate policy documents or task plans.
 
-## Current verified state
+## Session plan and repository hygiene
 
-### Research implementation and tests
+- Inspected the README, governing mindset, execution standard, hygiene policy, active queue, recent commits, open PRs, branches, open issues, workflow inventory, active runs and audit artifacts before editing.
+- One open PR remains: draft control PR #2. Five existing branches were preserved. No open queue-guardian incidents were returned. The latest complete workflow inventory contained 117 runs.
+- No disposable tracked cache, raw market data, generated report or scratch files required deletion. All existing evidence, reports, branches, PRs and active workflow outputs were preserved.
+- No overlapping audit was dispatched. Existing full audit #23 was resolved and its artifact inspected before implementing the new decision policy.
 
-- Daily checksum-verified Binance Spot `aggTrades` archive fallback is implemented in [commit cdb9e76](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/cdb9e76ca690651e256f3c5dfe585361e7a21b27). Initial fixture failures were diagnosed and corrected in [commit bd5375f](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/bd5375f00b01b50241191cac422fb6be107d438e).
-- [Research CI run 44985194153](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44985194153) passed 61 deterministic tests and the synthetic plumbing smoke test on code commit `19ddf6bd`. This validates engineering/plumbing only, not production data completeness or strategy performance.
-- Three representative Tardis/Binance funding samples (2020-06-01, 2024-01-01 and 2026-03-01) matched the visible next-funding-event timestamps within 15 seconds for both ETHUSDT and BTCUSDT. Tardis `funding_rate` remains a pre-event estimate, not the final settled rate. These samples do not prove full payable-settlement completeness.
-- Binance public-data issue [#517](https://github.com/binance/binance-public-data/issues/517) remains open (last updated 2026-11-19). Keep Binance funding `PROVISIONAL_NOT_ACCEPTED` until the complete event population and contract/history semantics are authoritative.
+## Completed implementation in this session
 
-### Active empirical audit
+- Canonical hierarchy added to [General Antifragile Autonomous Operating Mindset](../docs/GENERAL-ANTIFRAGILE-AUTONOMOUS-OPERATING-MINDSET.md), the governing policy.
+- [Adaptive execution standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md) now defines provider, data-architecture, timeframe, model, funding and escalation rules. [README](../README.md) now points wake-up agents to the same hierarchy.
+- Added executable policy engine [research/adaptive_decision.py](../research/adaptive_decision.py): provider scoring and evidence acceptance; repeated-failure escalation; independent-workstream continuation; distinct experiment identity; spot/perpetual separation; separately preregistered hypothesis replacement; duplicate active-dispatch protection; and the six-input fail-closed gate.
+- Added deterministic regression suite [research/test_adaptive_decision.py](../research/test_adaptive_decision.py).
+- Integrated the shared six-input gate into [research/run_eth_btc.py](../research/run_eth_btc.py). Unknown, missing or rejected input states and missing manifests fail closed.
+- Commits:
+  - Governing mindset: [378609c](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/378609c7d3bf76ce7ce6bb9ec9997b6538e7054f)
+  - Execution standard: [0d4378f](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/0d4378f189c043caf885257b7a53de5d29264767)
+  - README: [386ff38](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/386ff38f430cf47c43eab1f2557d1a87c0ca29f6)
+  - Decision engine: [a811c49](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/a811c49223565dc5d3d24c60b408690d0ee0988b)
+  - Decision regression tests: [5576fc0](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/5576fc048fffaf0c4080788750f52b4f55f1fc2c)
+  - Shared empirical gate integration: [8625d40](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/8625d40b8684ee975d7664ca8b01a17247dd659e)
 
-- Full six-input audit run [44986170330](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44986170330) was triggered by control-PR comment [7074321816](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/pull/2#issuecomment-7074321816), event `issue_comment`, actor `takenthatusernameis-collab`, checked-out SHA `0b1aaccd`.
-- Authorization, dependency installation and synthetic plumbing smoke test passed. The non-fail-fast all-series audit was **IN_PROGRESS** at 2026-11-22 04:44 UTC; no artifact was available at that check. Empirical preflight/backtest had not started.
-- **Do not dispatch a duplicate audit.** Resolve this exact run, inspect its logs and artifact, and record all six manifests plus both Spot-symbol gap classifications and positive-control outcomes.
+## Latest full-history audit — resolved
 
-### Queue guardian and orchestration
+Run [44986170330](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44986170330) completed at 2026-11-22 05:16:08 UTC with expected data-quality conclusion **INCOMPLETE**. Authorization, default-branch checkout, dependency installation, synthetic plumbing test and artifact upload passed. The empirical preflight/backtest steps were skipped.
 
-- Live queue-guardian run [44986166616](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44986166616) executed from control-PR comment [7074321256](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/pull/2#issuecomment-7074321256), event `issue_comment`, mode `LIVE_ENFORCEMENT`, SHA `0b1aaccd`.
-- Its report enumerated 117 repository workflow runs completely; 100 belonged to the two monitored research/test workflows, with the latest 50 retained. It recorded `actions=[]`, `errors=[]`, and updated the bot-owned status comment. This verifies the live PR-comment enforcement path; it does **not** verify the five-minute scheduled trigger.
-- The prior complete run inventory contained no `schedule` event for the queue guardian. Scheduled enforcement remains **UNVERIFIED** until a genuine schedule-triggered run is observed.
-- The open `[QFR queue guardian]` issue search returned zero incidents. Preserve the 15-minute cancellation threshold and exact earlier active same-group predecessor exception.
+Artifact [14740847028](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44986170330/artifacts/14740847028): 71,320 bytes; ZIP SHA-256 `a69e7247f2aaf09f049461a80b823084d8fe3384036494548f000815dada7204`. Nine files contain the summary, all six input manifests and both Spot gap-reconciliation manifests; no raw market-data CSV was uploaded.
 
-### Hygiene and repository state
+| Input | Observed | Result |
+|---|---:|---|
+| Spot ETHUSDT | 59,873 / 59,904 hourly bars | 31 missing candles |
+| Spot BTCUSDT | 59,873 / 59,904 hourly bars | Same 31 missing hours |
+| USD-M ETHUSDT | 59,904 / 59,904 | Complete |
+| USD-M BTCUSDT | 59,904 / 59,904 | Complete |
+| ETHUSDT funding | 7,488 events | Coverage/cadence pass; settlement semantics provisional |
+| BTCUSDT funding | 7,488 events | Coverage/cadence pass; settlement semantics provisional |
 
-- The latest recursive default-branch inspection found 39 tracked paths and no tracked cache/bytecode, scratch, raw market-data or generated-report clutter. Remote inspection cannot establish local untracked working-tree state.
-- Five branches and open draft control PR #2 were preserved. Delete or archive nothing without verified merge/abandonment and active-run ancestry.
-- Keep raw market data, bulky logs and generated outputs in retained artifacts/storage; keep compact manifests, hashes and decision summaries in Git.
+**Important Spot finding:** all 31 gaps for each symbol were classified `confirmed_no_trade_interval` (31/31) using checksum-verified daily aggregate-trade archives and successful known-active archive positive controls. Both per-symbol reconciliation manifests report `reconciliation_complete=true`; no unresolved gaps remain in those inventories. This is trade-level evidence of no trades, not a repaired hourly candle series. Do not synthesize OHLCV or assign a one-hour return to a multi-hour elapsed interval. Implement and validate an explicit event-time/irregular-time treatment before using these Spot observations.
 
-## Next executable actions
+**Perpetual price finding:** both USD-M hourly histories now parse and pass the full 59,904-row coverage, duplicate and timestamp checks. The prior January 2022 parser failure is resolved in this run.
 
-1. Resolve run 44986170330; inspect the final job result, logs and artifact. Confirm all six manifests exist and classify every Spot gap for both symbols using checksum-verified trade archives and passing known-active controls.
-2. Keep funding provisional until authoritative evidence establishes event semantics, contract incarnation/retention and the complete payable-settlement population. The three Tardis samples are schedule cross-checks, not a full settlement ledger.
-3. If any source remains blocked, switch to a materially different lawful provider or a separately specified synchronized ETH/USD divided by BTC/USD experiment. Do not merge alternative-source results into the original Binance study, fabricate observations, forward-fill or relax acceptance gates.
-4. Verify an actual scheduled queue-guardian event separately from the successful live PR-comment run. Until then, retain the agent-triggered live route as a bounded fallback and do not claim cron enforcement is verified.
-5. Run empirical strategy computation only after the selected experiment's complete data, missing-observation, funding and methodology gates pass. Record a negative or inconclusive result when warranted.
+**Funding finding:** both Binance Vision archives contain 7,488 rows, zero duplicates, requested boundary coverage and approximately eight-hour observed cadence. Their manifests remain `PROVISIONAL_NOT_ACCEPTED` because complete final-settlement population, event semantics and contract-incarnation coverage are not established. Tardis corroborates sampled next-event timestamps but its pre-event rates are not final settled rates. Do not substitute them.
+
+Summary: all six manifests are present; both perps pass; both spot candle grids remain incomplete despite all missing intervals now being classified as no-trade; both funding datasets remain unaccepted. The empirical result remains **INCONCLUSIVE** and no strategy metrics were produced.
+
+## Current blockers and next executable actions
+
+1. **Spot-only event-time path:** design and test a separate event-time/irregular-time return and position-accounting path that preserves elapsed duration and no-trade intervals, including holding periods, execution opportunities, annualization and transaction costs. Keep the original strict hourly experiment gated until its pre-registered data semantics are met.
+2. **Independent spot provider pilot:** test Coinbase Exchange ETH-USD and BTC-USD 1-hour candles on one known-active 24-hour window, one candidate missing/no-trade interval and one representative month. Validate product history, response completeness, OHLCV, timestamps, controls, hashes, common timestamps and ratio construction. Maintain a separately identified Coinbase experiment.
+3. **Next provider:** test Kraken full-history ETH/USD and BTC/USD OHLCVT with a bounded pair/window pilot if Coinbase fails its acceptance gates. Then screen other authorized providers; compare independent sources only on common coverage.
+4. **Funding stream:** continue independent final-settlement research. Establish event semantics, complete payable-event population, historical interval schedule and contract incarnation/retention from authoritative settlement sources. Keep Spot research separate from perpetual claims.
+5. **Provider/architecture escalation:** after the second distinct provider fails, move to a materially different data construction rather than repeating provider variants. Record the exact failure and experiment identity.
+6. **Backtest gate:** run a market-specific empirical experiment only after its own provenance, coverage, no-trade/missing-data, funding (when applicable), cost and methodology acceptance gates pass. The shared six-input gate protects the original Binance perpetual study.
+
+## Verification status
+
+- The 14 new adaptive-decision unit tests passed locally in a standalone Python 3.11-compatible run before being committed. GitHub Actions verification for the committed full suite and shared-gate integration is pending; do not claim CI success until the actual run completes.
+- Previous research CI [44985194153](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44985194153) passed 61 prior deterministic tests plus the synthetic smoke test. It predates the new policy module.
+- Queue guardian live PR-comment run [44986166616](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44986166616) succeeded and enumerated 117 runs with no queue actions/errors; the scheduled trigger remains unverified.
+- No live trading, capital deployment or strategy promotion occurred.
 
 ## Non-negotiable boundaries
 
-No live orders, capital deployment, live credentials, custody changes or automatic strategy promotion. Routine historical research and validation must remain agent-triggered within existing authorized scope.
+No live orders, capital deployment, live credentials, custody changes or automatic strategy promotion. Respect provider restrictions. Preserve raw market data outside Git and retain compact manifests, hashes and decision summaries.
 
-**Research conclusion:** the original Binance ETH/BTC study remains **INCONCLUSIVE**. No empirical strategy metrics or valid backtest have been produced.
+**Research conclusion:** the original Binance ETH/BTC perpetual study remains **INCONCLUSIVE**. The Spot gap classifications and USD-M price histories are improved, but final funding acceptance remains unresolved and no empirical strategy-performance metrics have been produced.
