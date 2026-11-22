@@ -277,9 +277,13 @@ jobs:
         uses: actions/cache@v6.1.0
         with:
           path: data/cache/
-          key: binance-archives-${{ needs.authorize.outputs.start }}-${{ needs.authorize.outputs.end }}-${{ needs.authorize.outputs.market }}
+          # Unique primary keys prevent immutable old snapshots shadowing newer warm caches.
+          # issue_comment remains low-trust/read-only; never override cache-mode here.
+          key: binance-archives-run-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            binance-archives-${{ needs.authorize.outputs.start }}-${{ needs.authorize.outputs.end }}-
+            binance-archives-warm-
+            binance-archives-run-
+            binance-archives-
 
       - name: Install dependencies
         run: python -m pip install -r research/requirements.txt

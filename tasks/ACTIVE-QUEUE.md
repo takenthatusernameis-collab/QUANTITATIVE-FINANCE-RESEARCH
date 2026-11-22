@@ -1,6 +1,6 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-22 13:48 UTC  
+**Updated:** 2026-11-22 18:46 UTC  
 **Canonical active-task pointer:** [ETH/BTC ingestion and no-trade validation](ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md).
 
 ## Governing priority
@@ -13,7 +13,16 @@ Apply the single authoritative [seven-level adaptive decision hierarchy](../docs
 - **Final anonymous search:** the corrected selector input was uniquely identified; searches `ETH` and `BTC` both returned “No result found,” and the modal table remained “No records found.” No selection, confirmation, date change or download. Successful probe [45029337953](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45029337953), artifact [14757585237](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45029337953/artifacts/14757585237).
 - **Code/tests:** locator-based option collection and exact `input[type="search"]` search; CI [45029278204](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45029278204) passed unit tests and synthetic smoke. Full evidence: [OKX metadata/search report](../reports/ETH-BTC-OKX-FUNDING-METADATA-AND-SYMBOL-PROBE-2026-11-22.md).
 - **Decision:** OKX anonymous UI route is **UNACCEPTED / NO SAMPLE**; not proof of global unavailability. Stop repeating probes and do not change regions, accept cookies or bypass restrictions. Funding acceptance remains closed; no perpetual backtest.
-- **Next focus:** implement and validate the trusted default-branch archive-cache warm-up design (P1), beginning with a representative-month pilot; continue funding-event completeness research only through materially different, authorized routes. One redundant field-info command was posted earlier in this cycle; check comment history before any future dispatch.
+- **Next focus:** merge the tested P1 cache-warm implementation, verify its default-branch push run saves the six checksum-verified January 2024 archives, then run one bounded low-trust audit to prove warm-cache restoration and identical hashes. Do not scale the warmer until runtime, cache size and restore behavior are measured. Continue funding-event completeness research only through materially different, authorized routes.
+
+
+## P1 trusted archive-cache warm-up — implementation awaiting default-branch verification
+
+- Draft PR [#4](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/pull/4) now contains a separate trusted cache warmer at `.github/workflows/eth-btc-cache-warm.yml`. The corrected PR-head push and pull-request CI runs [45035621948](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45035621948) and [45035627706](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45035627706) passed.
+- The warmer is limited to one representative month (2024-01), uses `--market both --audit-only`, omits Spot-gap reconciliation, and never executes a strategy. It uses trusted schedule/workflow-dispatch triggers plus a narrow main-only push trigger for immediate post-merge validation.
+- It restores the shared `data/cache/` path, validates all six manifests and checksums, then saves under a unique immutable key only after that validation. The research workflow now uses a unique per-run key and prefers warm-cache restore prefixes; no low-trust cache-write override is present.
+- Artifacts are restricted to the audit summary, six JSON manifests and cache diagnostics. Raw CSVs and ZIP archives remain outside artifacts and Git.
+- **Not yet proven:** default-branch cache-save success, a subsequent low-trust cache hit, identical source hashes, actual runtime/cache size and duplicate-download reduction. The first main-branch push run and one bounded read-only audit are the acceptance probes; no full-range warm-up is authorized by this pilot.
 
 
 ## Current cycle — 2026-11-22 Spot event-time production validation and pooled OOS inference

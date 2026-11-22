@@ -9,6 +9,8 @@ EXPECTED_NODE24_ACTIONS = {
     "actions/checkout": "v7.0.1",
     "actions/setup-python": "v7.1.0",
     "actions/cache": "v6.1.0",
+    "actions/cache/restore": "v6.1.0",
+    "actions/cache/save": "v6.1.0",
     "actions/upload-artifact": "v7.0.2",
 }
 
@@ -104,7 +106,10 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         cache_step = cache_match.group("step")
         self.assertIn("actions/cache@v6.1.0", cache_step)
         self.assertIn("path: data/cache/", cache_step)
-        self.assertIn("key: binance-archives-", cache_step)
+        self.assertIn("key: binance-archives-run-${{ github.run_id }}-${{ github.run_attempt }}", cache_step)
+        self.assertIn("restore-keys:", cache_step)
+        self.assertIn("binance-archives-warm-", cache_step)
+        self.assertIn("binance-archives-run-", cache_step)
         self.assertIn("restore-keys:", cache_step)
         self.assertIn("issue_comment is low-trust", cache_step)
         self.assertIn("Do not override with cache-mode: write", cache_step)
@@ -114,6 +119,35 @@ class GitHubActionRuntimeTests(unittest.TestCase):
             r"(?m)^\s*cache-mode:\s*(?:write|write-only)\s*$",
         )
 
+
+    def test_trusted_cache_warm_workflow_is_bounded_and_manifest_only(self):
+        warm = (WORKFLOW_DIR / "eth-btc-cache-warm.yml").read_text(encoding="utf-8")
+        self.assertIn("schedule:", warm)
+        self.assertIn("workflow_dispatch:", warm)
+        self.assertIn("push:", warm)
+        self.assertIn("branches: [main]", warm)
+        self.assertIn("if: ${{ github.ref == 'refs/heads/main' }}", warm)
+        self.assertIn("ref: main", warm)
+        self.assertNotIn("issue_comment:", warm)
+        self.assertNotIn("workflow_run:", warm)
+        self.assertIn("actions/cache/restore@v6.1.0", warm)
+        self.assertIn("actions/cache/save@v6.1.0", warm)
+        self.assertIn("key: binance-archives-warm-${{ github.run_id }}-${{ github.run_attempt }}", warm)
+        self.assertIn("--start 2024-01-01", warm)
+        self.assertIn("--end 2024-01-31", warm)
+        self.assertIn("--market both", warm)
+        self.assertIn("--audit-only", warm)
+        self.assertNotIn("--reconcile-spot-gaps", warm)
+        self.assertIn("checksum_verified", warm)
+        self.assertIn("steps.validate.outcome == 'success'", warm)
+        self.assertIn("data/raw/spot_ETHUSDT_archive_manifest.json", warm)
+        self.assertIn("data/raw/um_BTCUSDT_funding_manifest.json", warm)
+        artifact = warm.split("      - name: Upload manifests and diagnostics only", 1)[1]
+        self.assertNotIn("data/cache/", artifact)
+        self.assertNotIn(".csv", artifact)
+        self.assertNotIn(".zip", artifact)
+        self.assertNotIn("cache-mode:", warm)
+
     def test_deprecated_node20_action_refs_are_absent(self):
         for workflow in WORKFLOW_DIR.glob("*.yml"):
             text = workflow.read_text(encoding="utf-8")
@@ -121,6 +155,8 @@ class GitHubActionRuntimeTests(unittest.TestCase):
                 "actions/checkout@v4",
                 "actions/setup-python@v5",
                 "actions/cache@v4",
+                "actions/cache/restore@v4",
+                "actions/cache/save@v4",
                 "actions/upload-artifact@v4",
             ):
                 self.assertNotIn(old, text, str(workflow))
