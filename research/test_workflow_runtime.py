@@ -43,6 +43,10 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         self.assertIn("playwright", workflow.lower())
         self.assertIn("/qfr-probe-okx-funding-download", workflow)
         self.assertIn("command == 'okx-probe'", workflow)
+        probe_job = workflow.split("  bitget-funding-download-probe:", 1)[1]
+        self.assertIn("TARGET_URL:", probe_job)
+        self.assertIn("funding_rate", probe_job)
+        self.assertIn("historical-data", probe_job)
         self.assertIn("playwright==1.65.0", workflow)
         self.assertNotIn("playwright==1.56.0", workflow)
         probe = (ROOT / "research" / "bitget_funding_download_probe.py").read_text(encoding="utf-8")

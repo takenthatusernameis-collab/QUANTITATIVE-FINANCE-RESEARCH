@@ -234,8 +234,6 @@ jobs:
     if: ${{ needs.authorize.outputs.authorized == 'true' && (needs.authorize.outputs.command == 'audit' || needs.authorize.outputs.command == 'empirical') }}
     runs-on: ubuntu-latest
     timeout-minutes: 360
-    env:
-      TARGET_URL: ${{ needs.authorize.outputs.command == 'bitget-probe' && 'https://www.bitget.com/trade-info/funding_rate' || 'https://www.okx.com/historical-data' }}
     steps:
       - name: Checkout repository default branch only
         uses: actions/checkout@v7.0.1
@@ -452,9 +450,11 @@ jobs:
   bitget-funding-download-probe:
     name: Inspect official funding-history download UI (anonymous, read-only)
     needs: authorize
-    if: ${{ needs.authorize.outputs.authorized == 'true' &&  (needs.authorize.outputs.command == 'bitget-probe' || needs.authorize.outputs.command == 'okx-probe') }}
+    if: ${{ needs.authorize.outputs.authorized == 'true' && (needs.authorize.outputs.command == 'bitget-probe' || needs.authorize.outputs.command == 'okx-probe') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      TARGET_URL: ${{ needs.authorize.outputs.command == 'bitget-probe' && 'https://www.bitget.com/trade-info/funding_rate' || 'https://www.okx.com/historical-data' }}
     steps:
       - name: Checkout repository default branch only
         uses: actions/checkout@v7.0.1
