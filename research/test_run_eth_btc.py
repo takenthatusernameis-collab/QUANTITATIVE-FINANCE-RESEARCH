@@ -421,8 +421,8 @@ class ResearchPipelineTests(unittest.TestCase):
                 pd.Timestamp("2024-01-01 12:05:00", tz="UTC").timestamp() * 1000
             )
             agg_csv = (
-                "aggTradeId,price,quantity,firstTradeId,lastTradeId,timestamp,isBuyerMaker,isBestMatch\\n"
-                f"999,100.0,0.5,999,999,{unrelated_ms},true,true\\n"
+                "aggTradeId,price,quantity,firstTradeId,lastTradeId,timestamp,isBuyerMaker,isBestMatch\n"
+                f"999,100.0,0.5,999,999,{unrelated_ms},true,true\n"
             )
             agg_archive = zip_csv(
                 agg_csv, "ETHUSDT-aggTrades-2024-01-01.csv"
