@@ -78,15 +78,16 @@ Other valid alternatives include a different authorized exchange/provider, raw t
 
 ### Provider and architecture failover hierarchy
 
-The initial ETH/BTC provider sequence is:
-1. Resolve existing Binance official archive, public market-data host, parser and aggregate-trade evidence first. Respect HTTP 451 and any other access restriction; never route around it.
-2. Pilot Coinbase Exchange 1-hour ETH-USD and BTC-USD candles from the same venue, with bounded pagination, product-inception checks and common-timestamp validation.
-3. Pilot Kraken full-history ETH/USD and BTC/USD OHLCVT archives, verifying pair identity, archive/build manifests, timestamps and extraction feasibility.
-4. Identify additional lawful exchanges or historical-data providers whose source provenance and retention can be independently checked.
-5. Test raw-trade reconstruction or independently verifiable aggregate-trade datasets when candle sources omit or corrupt observations.
-6. Compare independent sources on common historical windows to quantify discrepancies; comparison is a quality diagnostic, not permission to splice venues.
+The initial ETH/BTC execution sequence is:
+1. Resolve existing Binance official archive, public market-data host, parser and aggregate-trade evidence first as P3 existing-work recovery. Respect HTTP 451 and any other access restriction; never route around it.
+2. **MEXC independent-provider pilot (first P4 candidate):** test synchronized ETH/USDT and BTC/USDT hourly histories, plus suitable USD-quoted pairs if available. Establish endpoint/product identity, inception/retention, pagination and bounded full-history feasibility before scaling.
+3. **Bitget independent-provider pilot (second P4 candidate):** independently test synchronized ETH/USDT and BTC/USDT hourly histories and suitable USD pairs, with separate provenance and acceptance.
+4. Pilot Coinbase Exchange synchronized ETH-USD/BTC-USD candles and Kraken ETH/USD/BTC/USD OHLCVT as further independent alternatives.
+5. Keep discovering and screening lawful, independently verifiable venues and historical-data vendors. Candidates are not limited to this list; examples include OKX, Bybit, Gate.io, KuCoin and specialist historical-data providers. Verify current product availability and permitted access rather than assuming it.
+6. Test raw-trade reconstruction or independently verifiable aggregate-trade datasets when candle sources omit or corrupt observations.
+7. Compare independent sources on common historical windows to quantify discrepancies; comparison is a quality diagnostic, not permission to splice venues.
 
-This is a default exploration order, not a fixed ranking. Rank bounded pilots by expected information gain, probability of success, data quality, historical coverage, reproducibility and cost. Authorization and scientific acceptance are hard filters, not score components that can be traded off.
+MEXC and Bitget have first and second **pilot-order priority**, not automatic acceptance. Rank bounded pilots by expected information gain, probability of success, data quality, historical coverage, full-history feasibility, reproducibility and cost. Evidence-based scoring may reorder execution; authorization and scientific acceptance are hard filters, not score components that can be traded off.
 
 For every provider, define before scaling: (a) one known-active positive control; (b) a meaningful negative/missing-data control; (c) product inception and requested coverage; (d) UTC timestamps, units, schema, OHLCV invariants and duplicates; (e) source URL/parameters, checksums or immutable content hashes and manifest; (f) full-history transfer/storage feasibility; (g) explicit acceptance and rejection rules; and (h) the next independent fallback. A successful download or HTTP 200 is never sufficient for acceptance.
 
