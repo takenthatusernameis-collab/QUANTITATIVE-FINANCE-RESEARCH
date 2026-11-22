@@ -2717,6 +2717,14 @@ def main() -> None:
         "spread_bps_per_leg_per_side": args.spread_bps,
         "spot_borrow_bps_per_day": args.spot_borrow_bps_per_day,
         "spot_event_time_policy_version": EVENT_TIME_POLICY_VERSION,
+        "event_time_pooled_oos_bootstrap": {
+            "method": "fold-stratified moving-block bootstrap in calendar time",
+            "block_days": EVENT_TIME_BOOTSTRAP_BLOCK_DAYS,
+            "replications": EVENT_TIME_BOOTSTRAP_REPS,
+            "confidence_level": EVENT_TIME_BOOTSTRAP_CONFIDENCE,
+            "seed": EVENT_TIME_BOOTSTRAP_SEED,
+            "ci_scope": "1.0x base cost; 1.5x and 2.0x pooled point estimates only",
+        },
         "spot_event_time_evidence": (
             spot_event_time_evidence if "spot_event_time_evidence" in locals() else None
         ),
