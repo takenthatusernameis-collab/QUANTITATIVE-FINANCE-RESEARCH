@@ -31,7 +31,7 @@ import requests
 import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import adfuller, coint, kpss, zivot_andrews
 from statsmodels.tsa.vector_ar.vecm import coint_johansen
-from adaptive_decision import evaluate_six_input_gate
+from adaptive_decision import evaluate_research_scope_gate, evaluate_six_input_gate
 
 COLUMNS = [
     "open_time", "open", "high", "low", "close", "volume", "close_time",
@@ -1706,7 +1706,7 @@ def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> di
     return result
 
 def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
-                     reconcile_gaps: bool = False) -> dict:
+                     reconcile_gaps: bool = False, market_scope: str = "both") -> dict:
     """Audit all six inputs and always persist one artifact-ready manifest per input."""
     summary = {
         "start": start,
@@ -1904,15 +1904,36 @@ def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
         f"funding_{record['symbol']}": record.get("status") == "complete"
         for record in summary["funding_series"].values()
     })
-    empirical_gate = evaluate_six_input_gate(
+    manifest_states = {
+        key: Path(record["manifest_path"]).is_file()
+        for key, record in summary["price_series"].items()
+    }
+    manifest_states.update({
+        f"funding_{record['symbol']}": Path(record["manifest_path"]).is_file()
+        for record in summary["funding_series"].values()
+    })
+    six_input_audit = evaluate_six_input_gate(
         input_states,
         manifests_present=all_six_manifests_present,
         spot_gap_reconciliation_complete=(
             reconciliation_ok if reconcile_gaps else None
         ),
     )
-    summary["empirical_gate"] = empirical_gate
-    summary["complete"] = bool(empirical_gate["allowed"])
+    research_scope_gate = evaluate_research_scope_gate(
+        input_states,
+        manifest_states,
+        market_scope=market_scope,
+        spot_gap_reconciliation_complete=(
+            reconciliation_ok if reconcile_gaps else None
+        ),
+        # Confirmed no-trade intervals still require a separately implemented
+        # event-time/elapsed-time PnL and execution policy before Spot acceptance.
+        spot_time_policy_accepted=False,
+    )
+    summary["six_input_audit_gate"] = six_input_audit
+    summary["research_scope_gate"] = research_scope_gate
+    summary["empirical_gate"] = research_scope_gate
+    summary["complete"] = bool(research_scope_gate["allowed"])
     summary["status"] = "COMPLETE" if summary["complete"] else "INCOMPLETE"
     summary["price_series_complete"] = price_ok
     summary["funding_series_complete"] = funding_ok
@@ -1966,6 +1987,7 @@ def main() -> None:
         summary = audit_all_inputs(
             args.start, args.end, args.data_dir, args.output_dir,
             reconcile_gaps=args.reconcile_spot_gaps,
+            market_scope=args.market,
         )
         print(json.dumps(summary, indent=2))
         if not summary["complete"]:
