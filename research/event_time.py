@@ -659,8 +659,12 @@ def event_time_pooled_oos_summary(
 
     frame = oos_returns.copy()
     frame["timestamp"] = pd.to_datetime(frame["timestamp"], utc=True, errors="raise")
-    if frame["timestamp"].isna().any() or frame["fold"].isna().any():
-        raise ValueError("OOS timestamps and fold identifiers cannot be missing")
+    if (
+        frame["timestamp"].isna().any()
+        or frame["fold"].isna().any()
+        or frame["variant"].isna().any()
+    ):
+        raise ValueError("OOS timestamps, fold identifiers and variants cannot be missing")
     numeric_columns = (
         "elapsed_seconds", "gross_return", "cost", "funding_pnl",
         "borrow_cost", "net_return", "turnover",
@@ -719,15 +723,18 @@ def event_time_pooled_oos_summary(
         elapsed_all = np.concatenate([item[0] for item in fold_arrays])
         turnover_all = np.concatenate([item[2] for item in fold_arrays])
         for multiplier in (1.0, 1.5, 2.0):
-            net_parts = [
-                item[1] if multiplier == 1.0 else (
-                    group["gross_return"].to_numpy(dtype=float)
-                    - group["cost"].to_numpy(dtype=float) * multiplier
-                    + group["funding_pnl"].to_numpy(dtype=float)
-                    - group["borrow_cost"].to_numpy(dtype=float)
-                )
-                for _, group in variant_frame.groupby("fold", sort=True)
-            ]
+            net_parts = []
+            for _, group in variant_frame.groupby("fold", sort=True):
+                ordered_group = group.sort_values("timestamp")
+                if multiplier == 1.0:
+                    net_parts.append(ordered_group["net_return"].to_numpy(dtype=float))
+                else:
+                    net_parts.append(
+                        ordered_group["gross_return"].to_numpy(dtype=float)
+                        - ordered_group["cost"].to_numpy(dtype=float) * multiplier
+                        + ordered_group["funding_pnl"].to_numpy(dtype=float)
+                        - ordered_group["borrow_cost"].to_numpy(dtype=float)
+                    )
             net_all = np.concatenate(net_parts)
             point = event_time_metrics(pd.DataFrame({
                 "elapsed_seconds": elapsed_all,
