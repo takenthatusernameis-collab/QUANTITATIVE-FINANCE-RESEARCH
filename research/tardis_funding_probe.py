@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bounded, no-key Tardis derivative-ticker sample probe.
+"""Bounded, no-key Tardis funding-schedule sample and Binance archive cross-check.
 
 This audits one first-of-month sample only. It does not certify the historical
 settlement population or expose the final settled funding rate.
@@ -12,8 +12,10 @@ import gzip
 import hashlib
 import io
 import json
+import math
 import statistics
 import sys
+import zipfile
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -31,8 +33,12 @@ REQUIRED_COLUMNS = (
     "funding_rate",
     "mark_price",
 )
+BINANCE_FUNDING_COLUMNS = ("calc_time", "funding_interval_hours", "last_funding_rate")
 BINANCE_FUTURES_DOCS = "https://docs.tardis.dev/historical-data-details/binance-futures"
 DATA_TYPES_DOCS = "https://docs.tardis.dev/downloadable-csv-files/data-types"
+BINANCE_FUNDING_DOCS = (
+    "https://developers.binance.info/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data"
+)
 MAX_ACCEPTED_LOCAL_GAP_SECONDS = 60.0
 MAX_ACCEPTED_PRE_EVENT_AGE_SECONDS = 60.0
 
@@ -54,7 +60,7 @@ def parse_optional_float(value: str | None) -> float | None:
     if value is None or not value.strip():
         return None
     parsed = float(value.strip())
-    if not (parsed == parsed and abs(parsed) != float("inf")):
+    if not math.isfinite(parsed):
         raise ValueError("numeric field must be finite")
     return parsed
 
@@ -72,9 +78,9 @@ def parse_derivative_ticker_csv(csv_text: str, symbol: str, sample_date: str) ->
     if missing:
         raise ValueError(f"Missing required derivative_ticker columns: {missing}")
 
-    start_us = int(datetime.combine(sample_day, datetime.min.time(), tzinfo=timezone.utc).timestamp() * 1_000_000)
-    end_us = int((datetime.combine(sample_day, datetime.min.time(), tzinfo=timezone.utc)
-                  + timedelta(days=1)).timestamp() * 1_000_000)
+    start = datetime.combine(sample_day, datetime.min.time(), tzinfo=timezone.utc)
+    start_us = int(start.timestamp() * 1_000_000)
+    end_us = int((start + timedelta(days=1)).timestamp() * 1_000_000)
     rows: list[dict[str, Any]] = []
     funding_rate_count = 0
     mark_price_count = 0
@@ -116,12 +122,9 @@ def parse_derivative_ticker_csv(csv_text: str, symbol: str, sample_date: str) ->
         for left, right in zip(local_times, local_times[1:])
         if right >= left
     ]
+    original_local_times = [row["local_timestamp"] for row in rows]
     out_of_order_count = sum(
-        right < left
-        for left, right in zip(
-            [row["local_timestamp"] for row in rows],
-            [row["local_timestamp"] for row in rows][1:],
-        )
+        right < left for left, right in zip(original_local_times, original_local_times[1:])
     )
     max_gap = max(gaps) if gaps else None
 
@@ -213,7 +216,198 @@ def parse_derivative_ticker_csv(csv_text: str, symbol: str, sample_date: str) ->
     }
 
 
-def probe_symbol(symbol: str, sample_date: str, output_dir: Path) -> dict[str, Any]:
+def parse_binance_funding_archive_csv(
+    csv_text: str, symbol: str, sample_date: str
+) -> dict[str, Any]:
+    if symbol not in ALLOWED_SYMBOLS:
+        raise ValueError(f"Unsupported symbol: {symbol}")
+    day = date.fromisoformat(sample_date)
+    month_start = datetime(day.year, day.month, 1, tzinfo=timezone.utc)
+    if day.month == 12:
+        next_month = datetime(day.year + 1, 1, 1, tzinfo=timezone.utc)
+    else:
+        next_month = datetime(day.year, day.month + 1, 1, tzinfo=timezone.utc)
+    start_us = int(month_start.timestamp() * 1_000_000)
+    end_us = int(next_month.timestamp() * 1_000_000)
+
+    rows = list(csv.reader(io.StringIO(csv_text)))
+    if not rows:
+        raise ValueError("Empty Binance funding archive CSV")
+    header_detected = tuple(value.strip().lower() for value in rows[0]) == BINANCE_FUNDING_COLUMNS
+    data_rows = rows[1:] if header_detected else rows
+    events = []
+    for line_number, row in enumerate(data_rows, start=2 if header_detected else 1):
+        if len(row) != 3:
+            raise ValueError(f"Expected 3 Binance funding fields at CSV line {line_number}")
+        calc_time_ms = int(row[0])
+        interval_hours = float(row[1])
+        funding_rate = float(row[2])
+        if calc_time_ms <= 0 or not math.isfinite(interval_hours) or interval_hours <= 0:
+            raise ValueError(f"Invalid timestamp/interval at Binance CSV line {line_number}")
+        if not math.isfinite(funding_rate):
+            raise ValueError(f"Invalid funding rate at Binance CSV line {line_number}")
+        timestamp_us = calc_time_ms * 1_000
+        if not (start_us <= timestamp_us < end_us):
+            raise ValueError(f"Binance funding timestamp outside UTC month at line {line_number}")
+        events.append({
+            "timestamp_us": timestamp_us,
+            "timestamp_utc": utc_from_microseconds(timestamp_us),
+            "funding_interval_hours": interval_hours,
+            "archive_last_funding_rate": funding_rate,
+        })
+    if not events:
+        raise ValueError("No Binance funding events in archive CSV")
+    events.sort(key=lambda item: item["timestamp_us"])
+    timestamps = [item["timestamp_us"] for item in events]
+    return {
+        "symbol": symbol,
+        "month_utc": month_start.strftime("%Y-%m"),
+        "status": "PARSED",
+        "header_detected": header_detected,
+        "rows": len(events),
+        "duplicate_timestamps": len(timestamps) - len(set(timestamps)),
+        "first_event_timestamp_utc": events[0]["timestamp_utc"],
+        "last_event_timestamp_utc": events[-1]["timestamp_utc"],
+        "interval_hours_observed": sorted({item["funding_interval_hours"] for item in events}),
+        "events": events,
+    }
+
+
+def compare_tardis_to_archive(
+    tardis_sample: dict[str, Any], archive_sample: dict[str, Any]
+) -> dict[str, Any]:
+    archive_by_timestamp = {
+        item["timestamp_us"]: item for item in archive_sample["events"]
+    }
+    tardis_event_times = [
+        int(datetime.fromisoformat(value).timestamp() * 1_000_000)
+        for value in tardis_sample["unique_next_funding_timestamps_utc"]
+    ]
+    matched_timestamps = [value for value in tardis_event_times if value in archive_by_timestamp]
+    rate_comparisons = []
+    for observation in tardis_sample["pre_event_observations"]:
+        event_time = int(
+            datetime.fromisoformat(observation["next_funding_timestamp_utc"]).timestamp()
+            * 1_000_000
+        )
+        archive_event = archive_by_timestamp.get(event_time)
+        if archive_event is None:
+            continue
+        estimate = float(observation["funding_rate_estimate_for_next_event"])
+        settled_archive_rate = float(archive_event["archive_last_funding_rate"])
+        difference = estimate - settled_archive_rate
+        rate_comparisons.append({
+            "event_timestamp_utc": observation["next_funding_timestamp_utc"],
+            "tardis_pre_event_rate_estimate": estimate,
+            "binance_archive_last_funding_rate": settled_archive_rate,
+            "absolute_rate_difference": abs(difference),
+            "exact_rate_match_within_1e_12": math.isclose(
+                estimate, settled_archive_rate, rel_tol=0.0, abs_tol=1e-12
+            ),
+        })
+    abs_differences = [item["absolute_rate_difference"] for item in rate_comparisons]
+    timestamp_pass = (
+        len(tardis_event_times) > 0
+        and len(matched_timestamps) == len(tardis_event_times)
+        and archive_sample["duplicate_timestamps"] == 0
+    )
+    return {
+        "status": (
+            "CROSSCHECK_PASS"
+            if timestamp_pass and len(rate_comparisons) >= 2
+            else "CROSSCHECK_INCOMPLETE"
+        ),
+        "tardis_next_event_timestamp_count": len(tardis_event_times),
+        "binance_archive_event_rows_in_month": archive_sample["rows"],
+        "exact_event_timestamp_matches": len(matched_timestamps),
+        "event_timestamp_match_rate": (
+            len(matched_timestamps) / len(tardis_event_times) if tardis_event_times else None
+        ),
+        "pre_event_rate_comparison_count": len(rate_comparisons),
+        "pre_event_rate_exact_matches": sum(
+            item["exact_rate_match_within_1e_12"] for item in rate_comparisons
+        ),
+        "mean_absolute_rate_difference": (
+            statistics.mean(abs_differences) if abs_differences else None
+        ),
+        "maximum_absolute_rate_difference": max(abs_differences) if abs_differences else None,
+        "rate_comparisons": rate_comparisons,
+        "interpretation": (
+            "Timestamp reconciliation tests whether Tardis next-event times align with Binance archive "
+            "calc_time values for this sample. Rate differences are diagnostic only: Tardis documents "
+            "that the last pre-event estimate can differ from the final rate applied."
+        ),
+    }
+
+
+def request_bytes(url: str, timeout: int = 90) -> tuple[bytes, int, str | None, str | None]:
+    request = Request(url, headers={"User-Agent": "qfr-funding-source-probe/1.0"})
+    with urlopen(request, timeout=timeout) as response:
+        return (
+            response.read(),
+            response.status,
+            response.headers.get("Content-Type"),
+            response.headers.get("Content-Length"),
+        )
+
+
+def download_binance_funding_archive(
+    symbol: str, sample_date: str, cache_dir: Path
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    day = date.fromisoformat(sample_date)
+    month_tag = day.strftime("%Y-%m")
+    filename = f"{symbol}-fundingRate-{month_tag}.zip"
+    url = (
+        "https://data.binance.vision/data/futures/um/monthly/fundingRate/"
+        f"{symbol}/{filename}"
+    )
+    payload, status, content_type, content_length = request_bytes(url)
+    checksum_payload, _, _, _ = request_bytes(url + ".CHECKSUM", timeout=30)
+    tokens = checksum_payload.decode("utf-8", errors="replace").strip().split()
+    if not tokens:
+        raise ValueError(f"Empty Binance checksum sidecar for {url}")
+    expected_sha256 = tokens[0].lower()
+    actual_sha256 = hashlib.sha256(payload).hexdigest().lower()
+    if expected_sha256 != actual_sha256:
+        raise ValueError(
+            f"Binance funding archive SHA-256 mismatch: expected {expected_sha256}, got {actual_sha256}"
+        )
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    archive_path = cache_dir / filename
+    archive_path.write_bytes(payload)
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        csv_names = [name for name in archive.namelist() if name.lower().endswith(".csv")]
+        if len(csv_names) != 1:
+            raise ValueError(f"Expected exactly one CSV in Binance archive; found {len(csv_names)}")
+        csv_text = archive.read(csv_names[0]).decode("utf-8-sig")
+    parsed = parse_binance_funding_archive_csv(csv_text, symbol, sample_date)
+    manifest = {
+        "source": "Binance Vision monthly USD-M fundingRate archive",
+        "source_url": url,
+        "checksum_url": url + ".CHECKSUM",
+        "http_status": status,
+        "content_type": content_type,
+        "content_length_header": content_length,
+        "archive_file": archive_path.name,
+        "archive_bytes": len(payload),
+        "archive_sha256": actual_sha256,
+        "checksum_sha256": expected_sha256,
+        "checksum_verified": True,
+        "csv_member": csv_names[0],
+        "header_detected": parsed["header_detected"],
+        "rows": parsed["rows"],
+        "duplicate_timestamps": parsed["duplicate_timestamps"],
+        "first_event_timestamp_utc": parsed["first_event_timestamp_utc"],
+        "last_event_timestamp_utc": parsed["last_event_timestamp_utc"],
+        "interval_hours_observed": parsed["interval_hours_observed"],
+        "status": parsed["status"],
+    }
+    return manifest, parsed
+
+
+def probe_symbol(
+    symbol: str, sample_date: str, cache_dir: Path, output_dir: Path
+) -> dict[str, Any]:
     day = date.fromisoformat(sample_date)
     if day.day != 1:
         raise ValueError("The no-key Tardis sample probe is restricted to the first day of a month")
@@ -221,74 +415,126 @@ def probe_symbol(symbol: str, sample_date: str, output_dir: Path) -> dict[str, A
         f"https://datasets.tardis.dev/v1/{EXCHANGE}/derivative_ticker/"
         f"{day:%Y/%m/%d}/{symbol}.csv.gz"
     )
-    raw_path = output_dir / f"{symbol}_derivative_ticker_{sample_date}.csv.gz"
+    raw_path = cache_dir / f"{symbol}_derivative_ticker_{sample_date}.csv.gz"
     manifest_path = output_dir / f"{symbol}_manifest.json"
     manifest: dict[str, Any] = {
-        "provider": "Tardis.dev",
-        "provider_exchange": EXCHANGE,
-        "data_type": "derivative_ticker",
         "symbol": symbol,
         "sample_date_utc": sample_date,
-        "source_url": url,
-        "documentation": [BINANCE_FUTURES_DOCS, DATA_TYPES_DOCS],
-        "download_status": "NOT_STARTED",
-        "raw_file": raw_path.name,
-        "raw_sha256": None,
-        "raw_bytes": None,
+        "tardis": {
+            "provider": "Tardis.dev",
+            "provider_exchange": EXCHANGE,
+            "data_type": "derivative_ticker",
+            "source_url": url,
+            "documentation": [BINANCE_FUTURES_DOCS, DATA_TYPES_DOCS],
+            "download_status": "NOT_STARTED",
+            "raw_file_cache_path": str(raw_path),
+            "raw_sha256": None,
+            "raw_bytes": None,
+        },
+        "binance_archive": {
+            "documentation": [BINANCE_FUNDING_DOCS],
+            "status": "NOT_STARTED",
+        },
+        "crosscheck": {"status": "NOT_RUN"},
     }
+    tardis_sample = None
     try:
-        request = Request(url, headers={"User-Agent": "qfr-tardis-funding-probe/1.0"})
-        with urlopen(request, timeout=90) as response:
-            payload = response.read()
-            manifest["http_status"] = response.status
-            manifest["content_type"] = response.headers.get("Content-Type")
-            manifest["content_length_header"] = response.headers.get("Content-Length")
+        payload, http_status, content_type, content_length = request_bytes(url)
         if not payload:
             raise ValueError("Tardis returned an empty response body")
+        cache_dir.mkdir(parents=True, exist_ok=True)
         raw_path.write_bytes(payload)
-        manifest["raw_bytes"] = len(payload)
-        manifest["raw_sha256"] = hashlib.sha256(payload).hexdigest()
-        manifest["download_status"] = "HTTP_200"
         csv_text = gzip.decompress(payload).decode("utf-8-sig")
-        parsed = parse_derivative_ticker_csv(csv_text, symbol, sample_date)
-        manifest.update(parsed)
+        tardis_sample = parse_derivative_ticker_csv(csv_text, symbol, sample_date)
+        manifest["tardis"].update({
+            "download_status": "HTTP_200",
+            "http_status": http_status,
+            "content_type": content_type,
+            "content_length_header": content_length,
+            "raw_sha256": hashlib.sha256(payload).hexdigest(),
+            "raw_bytes": len(payload),
+            "sample": tardis_sample,
+        })
     except HTTPError as exc:
-        manifest["download_status"] = "HTTP_ERROR"
-        manifest["http_status"] = exc.code
-        manifest["error"] = exc.read().decode("utf-8", errors="replace")[:1000]
-        manifest["status"] = "DOWNLOAD_FAILED"
+        manifest["tardis"].update({
+            "download_status": "HTTP_ERROR",
+            "http_status": exc.code,
+            "error": exc.read().decode("utf-8", errors="replace")[:1000],
+        })
     except (URLError, TimeoutError, OSError, ValueError, csv.Error) as exc:
-        manifest["download_status"] = "FAILED"
-        manifest["error"] = str(exc)[:1500]
-        manifest["status"] = "PROBE_FAILED"
+        manifest["tardis"].update({
+            "download_status": "FAILED",
+            "error": str(exc)[:1500],
+        })
+
+    archive_sample = None
+    try:
+        archive_manifest, archive_sample = download_binance_funding_archive(
+            symbol, sample_date, cache_dir
+        )
+        manifest["binance_archive"] = archive_manifest
+    except HTTPError as exc:
+        manifest["binance_archive"] = {
+            "status": "HTTP_ERROR",
+            "http_status": exc.code,
+            "error": exc.read().decode("utf-8", errors="replace")[:1000],
+        }
+    except (URLError, TimeoutError, OSError, ValueError, csv.Error, zipfile.BadZipFile) as exc:
+        manifest["binance_archive"] = {
+            "status": "FAILED",
+            "error": str(exc)[:1500],
+        }
+
+    if tardis_sample is not None and archive_sample is not None:
+        manifest["crosscheck"] = compare_tardis_to_archive(tardis_sample, archive_sample)
+
+    manifest["status"] = (
+        "SAMPLE_VALID_CROSSCHECK_PASS"
+        if tardis_sample is not None
+        and tardis_sample["status"] == "SAMPLE_VALID"
+        and manifest["binance_archive"].get("checksum_verified") is True
+        and manifest["crosscheck"].get("status") == "CROSSCHECK_PASS"
+        else "INCOMPLETE"
+    )
+    output_dir.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return manifest
 
 
-def run_probe(sample_date: str, symbols: tuple[str, ...], output_dir: Path) -> dict[str, Any]:
+def run_probe(
+    sample_date: str,
+    symbols: tuple[str, ...],
+    output_dir: Path,
+    cache_dir: Path,
+) -> dict[str, Any]:
     day = date.fromisoformat(sample_date)
     if day.day != 1:
         raise ValueError("The no-key Tardis sample probe is restricted to the first day of a month")
     if not symbols or any(symbol not in ALLOWED_SYMBOLS for symbol in symbols):
         raise ValueError(f"Symbols must be selected from {ALLOWED_SYMBOLS}")
     output_dir.mkdir(parents=True, exist_ok=True)
-    manifests = [probe_symbol(symbol, sample_date, output_dir) for symbol in symbols]
-    valid = all(item.get("status") == "SAMPLE_VALID" for item in manifests)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    manifests = [probe_symbol(symbol, sample_date, cache_dir, output_dir) for symbol in symbols]
+    valid = all(item.get("status") == "SAMPLE_VALID_CROSSCHECK_PASS" for item in manifests)
     summary = {
         "provider": "Tardis.dev",
         "exchange": EXCHANGE,
         "data_type": "derivative_ticker",
         "sample_date_utc": sample_date,
         "symbols_requested": list(symbols),
-        "symbols_valid": [item["symbol"] for item in manifests if item.get("status") == "SAMPLE_VALID"],
-        "status": "SAMPLE_VALID" if valid else "INCOMPLETE",
+        "symbols_valid": [
+            item["symbol"] for item in manifests
+            if item.get("status") == "SAMPLE_VALID_CROSSCHECK_PASS"
+        ],
+        "status": "SAMPLE_VALID_CROSSCHECK_PASS" if valid else "INCOMPLETE",
         "settled_funding_rate_available": False,
         "settlement_population_complete": False,
         "manifest_files": [f"{item['symbol']}_manifest.json" for item in manifests],
-        "raw_files": [item["raw_file"] for item in manifests if item.get("raw_sha256")],
+        "raw_files_retained_in_runner_cache_only": True,
         "research_decision": (
-            "Sample access/schema and upcoming-event observability only; do not use this sample "
-            "as proof of final settlement rates or complete historical funding."
+            "This validates a one-day Tardis sample and event-time alignment with a checksum-verified "
+            "Binance archive. Pre-event Tardis rates remain estimates, not settled rates; neither source "
+            "cross-check proves the complete 2020–2026 payable-settlement population."
         ),
     }
     (output_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
@@ -299,19 +545,21 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--date", default="2024-01-01")
     parser.add_argument("--symbols", default="ETHUSDT,BTCUSDT")
-    parser.add_argument("--output-dir", default="data/raw/tardis-funding-probe-2024-01-01")
+    parser.add_argument("--output-dir", default="reports/generated/tardis-funding-probe-2024-01-01")
+    parser.add_argument("--cache-dir", default="data/cache/tardis-funding-probe-2024-01-01")
     args = parser.parse_args(argv)
     try:
         summary = run_probe(
             args.date,
             tuple(symbol.strip().upper() for symbol in args.symbols.split(",") if symbol.strip()),
             Path(args.output_dir),
+            Path(args.cache_dir),
         )
     except Exception as exc:
         print(f"Tardis probe configuration error: {exc}", file=sys.stderr)
         return 2
     print(json.dumps(summary, indent=2))
-    return 0 if summary["status"] == "SAMPLE_VALID" else 2
+    return 0 if summary["status"] == "SAMPLE_VALID_CROSSCHECK_PASS" else 2
 
 
 if __name__ == "__main__":
