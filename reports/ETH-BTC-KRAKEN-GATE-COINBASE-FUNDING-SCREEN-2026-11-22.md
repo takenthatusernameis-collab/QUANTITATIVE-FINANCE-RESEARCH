@@ -56,3 +56,7 @@ Coinbase's [US Perpetual-Style Futures funding explanation](https://help.coinbas
 ## Explicit non-actions
 
 No raw funding data was downloaded or accepted. No paid provider, API key, account, or trading credential was used. No strategy, research gate, live-trading setting, or capital allocation was changed.
+
+## Post-screen CI verification — 2026-11-22 21:34 UTC
+
+The repository's test workflow was updated so documentation-only changes now run the regression suite. CI [run 45072764306](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45072764306) on commit [358f1bc](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/358f1bca7ec574cab325e7ee812580d66df88189) passed 153 deterministic tests and the synthetic plumbing self-test. This validates the documentation/automation changes; it is not empirical funding-data or strategy evidence.
