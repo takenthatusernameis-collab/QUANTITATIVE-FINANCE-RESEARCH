@@ -373,17 +373,40 @@ def download_klines(market: str, symbol: str, start: str, end: str, data_dir: Pa
 
 
 def funding_quality(timestamps: pd.DatetimeIndex, start_ts: pd.Timestamp,
-                    end_exclusive: pd.Timestamp) -> dict:
-    stamps = pd.DatetimeIndex(timestamps).sort_values()
-    duplicate_count = int(stamps.duplicated().sum())
+                    end_exclusive: pd.Timestamp,
+                    interval_hours: pd.Series | list[float] | np.ndarray | None = None) -> dict:
+    """Check funding coverage using per-event interval metadata when available."""
+    raw_stamps = pd.DatetimeIndex(timestamps)
+    interval_values = None
+    if interval_hours is not None:
+        supplied_intervals = np.asarray(interval_hours, dtype=float)
+        if len(supplied_intervals) != len(raw_stamps):
+            raise ValueError("Funding interval array must match funding timestamps")
+        order = np.argsort(raw_stamps.asi8)
+        raw_stamps = raw_stamps[order]
+        supplied_intervals = supplied_intervals[order]
+        interval_frame = pd.DataFrame({
+            "timestamp": raw_stamps,
+            "interval_hours": supplied_intervals,
+        })
+        duplicate_count = int(interval_frame["timestamp"].duplicated().sum())
+        interval_valid = bool(
+            np.isfinite(supplied_intervals).all()
+            and (supplied_intervals > 0).all()
+            and (supplied_intervals <= 24).all()
+        )
+        unique_frame = interval_frame.drop_duplicates("timestamp", keep="first")
+        stamps = pd.DatetimeIndex(unique_frame["timestamp"])
+        interval_values = unique_frame["interval_hours"].to_numpy(dtype=float)
+    else:
+        stamps = raw_stamps.sort_values()
+        duplicate_count = int(stamps.duplicated().sum())
+        interval_valid = True
+
     unique = stamps.drop_duplicates()
     gaps = unique.to_series().diff().dropna()
     median_gap = gaps.median() if len(gaps) else pd.NaT
     max_gap = gaps.max() if len(gaps) else pd.NaT
-    # Do not let a missing-event outlier inflate the estimated normal cadence.
-    # Binance funding intervals can vary, but a >24h gap is already a material
-    # coverage warning unless shorter observed intervals establish a wider
-    # legitimate cadence. Estimate cadence only from intervals <=24h.
     normal_gaps = gaps[gaps <= pd.Timedelta(hours=24)]
     cadence_reference_gap = normal_gaps.median() if len(normal_gaps) else pd.NaT
     max_allowed = (
@@ -391,11 +414,55 @@ def funding_quality(timestamps: pd.DatetimeIndex, start_ts: pd.Timestamp,
         if pd.notna(cadence_reference_gap)
         else pd.Timedelta(hours=24)
     )
-    start_ok = bool(len(unique) and unique.min() <= start_ts + pd.Timedelta(hours=24))
-    end_ok = bool(len(unique) and unique.max() >= end_exclusive - pd.Timedelta(hours=24))
-    max_gap_ok = bool(pd.isna(max_gap) or max_gap <= max_allowed)
+
+    interval_gap_anomalies = []
+    interval_distribution = {}
+    if interval_values is not None:
+        if interval_valid:
+            for value in sorted(set(float(x) for x in interval_values)):
+                interval_distribution[str(value)] = int(np.sum(interval_values == value))
+            tolerance_hours = 5.0 / 60.0
+            for i, gap in enumerate(gaps):
+                observed_hours = float(gap.total_seconds() / 3600)
+                previous_interval = float(interval_values[i])
+                current_interval = float(interval_values[i + 1])
+                if min(
+                    abs(observed_hours - previous_interval),
+                    abs(observed_hours - current_interval),
+                ) > tolerance_hours:
+                    interval_gap_anomalies.append({
+                        "from": str(unique[i]),
+                        "to": str(unique[i + 1]),
+                        "observed_gap_hours": observed_hours,
+                        "previous_interval_hours": previous_interval,
+                        "current_interval_hours": current_interval,
+                    })
+        interval_gap_ok = bool(interval_valid and not interval_gap_anomalies)
+        start_tolerance = pd.Timedelta(minutes=5)
+        end_tolerance = (
+            pd.Timedelta(hours=float(interval_values[-1])) + start_tolerance
+            if interval_valid and len(interval_values)
+            else pd.Timedelta(0)
+        )
+        start_ok = bool(
+            len(unique)
+            and unique.min() >= start_ts - start_tolerance
+            and unique.min() <= start_ts + start_tolerance
+        )
+        end_ok = bool(
+            len(unique)
+            and unique.max() < end_exclusive
+            and end_exclusive - unique.max() <= end_tolerance
+        )
+        max_gap_ok = interval_gap_ok
+    else:
+        interval_gap_ok = True
+        start_ok = bool(len(unique) and unique.min() <= start_ts + pd.Timedelta(hours=24))
+        end_ok = bool(len(unique) and unique.max() >= end_exclusive - pd.Timedelta(hours=24))
+        max_gap_ok = bool(pd.isna(max_gap) or max_gap <= max_allowed)
+
     return {
-        "rows": int(len(stamps)),
+        "rows": int(len(raw_stamps)),
         "duplicate_timestamps": duplicate_count,
         "start": str(unique.min()) if len(unique) else None,
         "end": str(unique.max()) if len(unique) else None,
@@ -403,75 +470,284 @@ def funding_quality(timestamps: pd.DatetimeIndex, start_ts: pd.Timestamp,
         "cadence_reference_gap_hours": float(cadence_reference_gap.total_seconds() / 3600) if pd.notna(cadence_reference_gap) else None,
         "max_event_gap_hours": float(max_gap.total_seconds() / 3600) if pd.notna(max_gap) else None,
         "max_allowed_gap_hours": float(max_allowed.total_seconds() / 3600),
+        "funding_interval_hours_distribution": interval_distribution,
+        "interval_gap_anomalies": interval_gap_anomalies,
+        "interval_data_valid": interval_valid,
+        "interval_gap_ok": interval_gap_ok,
         "start_coverage_ok": start_ok,
         "end_coverage_ok": end_ok,
         "max_gap_ok": max_gap_ok,
-        "complete": bool(len(unique) > 0 and duplicate_count == 0 and start_ok and end_ok and max_gap_ok),
+        "alignment_floor": "minute" if interval_values is not None else None,
+        "complete": bool(
+            len(unique) > 0 and duplicate_count == 0 and start_ok and end_ok
+            and max_gap_ok and interval_gap_ok
+        ),
     }
+
+
+
+def parse_funding_archive(payload: bytes, url: str) -> pd.DataFrame:
+    """Parse the official Binance Vision USD-M fundingRate CSV schema."""
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        csv_names = [name for name in archive.namelist() if name.lower().endswith(".csv")]
+        if len(csv_names) != 1:
+            raise ValueError(
+                f"Expected exactly one funding CSV in {url}; found {len(csv_names)}"
+            )
+        raw = pd.read_csv(
+            archive.open(csv_names[0]), header=None, dtype=str, keep_default_na=False
+        )
+    columns = ["calc_time", "funding_interval_hours", "last_funding_rate"]
+    if raw.empty:
+        result = pd.DataFrame(columns=["timestamp", "fundingRate", "funding_interval_hours"])
+        result.attrs["timestamp_unit"] = None
+        result.attrs["header_detected"] = False
+        return result
+    if raw.shape[1] != 3:
+        raise ValueError(f"Unexpected funding CSV schema in {url}: {raw.shape[1]} columns")
+
+    aliases = {
+        "funding_time": "calc_time",
+        "fundingtime": "calc_time",
+        "fundingintervalhours": "funding_interval_hours",
+        "funding_rate": "last_funding_rate",
+        "fundingrate": "last_funding_rate",
+    }
+    first_row = [
+        aliases.get(
+            str(value).strip().lower().replace(" ", "_"),
+            str(value).strip().lower().replace(" ", "_"),
+        )
+        for value in raw.iloc[0].tolist()
+    ]
+    header_detected = first_row[0] in {"calc_time", "funding_time", "fundingtime"}
+    if header_detected:
+        if first_row != columns:
+            raise ValueError(
+                f"Unsupported funding header schema in {url}: "
+                f"observed={first_row}; expected={columns}"
+            )
+        raw = raw.iloc[1:].reset_index(drop=True)
+    if raw.empty:
+        result = pd.DataFrame(columns=["timestamp", "fundingRate", "funding_interval_hours"])
+        result.attrs["timestamp_unit"] = None
+        result.attrs["header_detected"] = header_detected
+        return result
+
+    raw.columns = columns
+    calc_time = pd.to_numeric(raw["calc_time"], errors="coerce")
+    interval = pd.to_numeric(raw["funding_interval_hours"], errors="coerce")
+    rate = pd.to_numeric(raw["last_funding_rate"], errors="coerce")
+    invalid_time = calc_time.isna() | ~np.isfinite(calc_time.to_numpy(dtype=float))
+    if invalid_time.any():
+        raise ValueError(
+            f"Invalid calc_time values in {url}; rows={int(invalid_time.sum())}"
+        )
+    if interval.isna().any() or not np.isfinite(interval.to_numpy(dtype=float)).all():
+        raise ValueError(f"Invalid funding_interval_hours values in {url}")
+    if ((interval <= 0) | (interval > 24)).any():
+        raise ValueError(f"Out-of-range funding_interval_hours values in {url}")
+    if rate.isna().any() or not np.isfinite(rate.to_numpy(dtype=float)).all():
+        raise ValueError(f"Invalid last_funding_rate values in {url}")
+
+    median_time = float(calc_time.median())
+    if median_time < 10**11:
+        raise ValueError(f"Unsupported funding timestamp scale in {url}: median={median_time}")
+    unit = "us" if median_time > 10**14 else "ms"
+    result = pd.DataFrame({
+        "timestamp": pd.to_datetime(calc_time, unit=unit, utc=True),
+        "fundingRate": rate.astype(float),
+        "funding_interval_hours": interval.astype(float),
+    })
+    result.attrs["timestamp_unit"] = unit
+    result.attrs["header_detected"] = header_detected
+    result.attrs["schema"] = columns
+    return result
 
 
 def download_funding(symbol: str, start: str, end: str, data_dir: Path) -> Path:
-    """Paginate funding events and fail on duplicate, incomplete or gapped history."""
+    """Download checksummed monthly fundingRate archives and fail on any coverage gap."""
     session = requests.Session()
     start_ts = pd.Timestamp(start, tz="UTC")
     end_exclusive = pd.Timestamp(end, tz="UTC") + pd.Timedelta(days=1)
-    cursor_ms = int(start_ts.timestamp() * 1000)
-    end_ms = int(end_exclusive.timestamp() * 1000) - 1
-    rows = []
-    page_count = 0
-    last_seen = None
-    while cursor_ms <= end_ms:
-        response = request_with_retry(
-            session, "https://fapi.binance.com/fapi/v1/fundingRate", timeout=45,
-            params={"symbol": symbol, "startTime": cursor_ms, "endTime": end_ms, "limit": 1000},
-        )
-        batch = response.json()
-        if not isinstance(batch, list):
-            raise RuntimeError(f"Unexpected funding API response for {symbol}: {batch}")
-        if not batch:
-            break
-        times = [int(item["fundingTime"]) for item in batch]
-        if times != sorted(times) or len(times) != len(set(times)):
-            raise RuntimeError(f"Funding page is not strictly chronological for {symbol}")
-        if times[0] < cursor_ms or (last_seen is not None and times[0] <= last_seen):
-            raise RuntimeError(f"Funding pagination repeated or regressed for {symbol}")
-        if times[-1] > end_ms:
-            raise RuntimeError(f"Funding API returned an event outside requested bounds for {symbol}")
-        rows.extend(batch)
-        page_count += 1
-        last_seen = times[-1]
-        if len(batch) < 1000 or last_seen >= end_ms:
-            break
-        cursor_ms = last_seen + 1
-        time.sleep(0.05)
+    frames = []
+    archive_manifest = []
+    missing_months = []
+    parse_errors = []
+    download_errors = []
+    checksum_failures = []
 
-    frame = pd.DataFrame(rows)
-    if frame.empty:
-        raise RuntimeError(f"No funding history returned for {symbol}")
-    frame["timestamp"] = pd.to_datetime(frame["fundingTime"], unit="ms", utc=True)
-    frame["fundingRate"] = pd.to_numeric(frame["fundingRate"], errors="coerce")
-    if frame["fundingRate"].isna().any() or not np.isfinite(frame["fundingRate"]).all():
-        raise RuntimeError(f"Invalid funding rates returned for {symbol}")
-    clean = frame[["timestamp", "fundingRate"]].sort_values("timestamp")
-    quality = funding_quality(pd.DatetimeIndex(clean["timestamp"]), start_ts, end_exclusive)
+    for month in month_starts(start, end):
+        tag = month.strftime("%Y-%m")
+        filename = f"{symbol}-fundingRate-{tag}.zip"
+        url = (
+            "https://data.binance.vision/data/futures/um/monthly/fundingRate/"
+            f"{symbol}/{filename}"
+        )
+        cache = data_dir / "cache" / "um" / "fundingRate" / symbol / filename
+        try:
+            payload, checksum_verified, checksum_error = _download_archive(
+                url, cache, session
+            )
+        except FileNotFoundError:
+            archive_manifest.append({
+                "month": tag, "url": url, "status": "missing_http_404",
+            })
+            missing_months.append(tag)
+            continue
+        except Exception as exc:
+            status = (
+                exc.response.status_code
+                if isinstance(exc, requests.HTTPError) and exc.response is not None
+                else None
+            )
+            error = f"{type(exc).__name__}: {exc}"
+            download_errors.append({
+                "month": tag, "url": url, "http_status": status, "error": error,
+            })
+            archive_manifest.append({
+                "month": tag, "url": url, "status": "download_failed",
+                "http_status": status, "error": error,
+            })
+            # A source restriction or exhausted retry is not repeated for later months.
+            break
+
+        if not checksum_verified:
+            checksum_failures.append({
+                "month": tag, "url": url,
+                "error": checksum_error or "checksum not verified",
+            })
+
+        try:
+            raw = parse_funding_archive(payload, url)
+        except Exception as exc:
+            error = f"{type(exc).__name__}: {exc}"
+            parse_errors.append({"month": tag, "url": url, "error": error})
+            archive_manifest.append({
+                "month": tag, "url": url, "status": "parse_failed",
+                "archive_sha256": hashlib.sha256(payload).hexdigest(),
+                "checksum_verified": checksum_verified,
+                "checksum_error": checksum_error,
+                "error": error,
+            })
+            time.sleep(0.03)
+            continue
+
+        if raw.empty:
+            archive_manifest.append({
+                "month": tag, "url": url, "status": "empty_archive",
+                "archive_sha256": hashlib.sha256(payload).hexdigest(),
+                "checksum_verified": checksum_verified,
+                "checksum_error": checksum_error,
+            })
+            missing_months.append(tag)
+            continue
+
+        in_range = (raw["timestamp"] >= start_ts) & (raw["timestamp"] < end_exclusive)
+        selected = raw.loc[in_range].copy()
+        archive_manifest.append({
+            "month": tag, "url": url, "status": "downloaded",
+            "archive_sha256": hashlib.sha256(payload).hexdigest(),
+            "checksum_verified": checksum_verified,
+            "checksum_error": checksum_error,
+            "rows_in_archive": int(len(raw)),
+            "rows_in_requested_range": int(len(selected)),
+            "rows_outside_requested_range": int((~in_range).sum()),
+            "timestamp_unit": raw.attrs.get("timestamp_unit"),
+            "header_detected": bool(raw.attrs.get("header_detected", False)),
+            "funding_interval_hours": sorted(
+                set(float(x) for x in selected["funding_interval_hours"])
+            ),
+            "first_timestamp": str(selected["timestamp"].min()) if len(selected) else None,
+            "last_timestamp": str(selected["timestamp"].max()) if len(selected) else None,
+        })
+        if len(selected):
+            selected["archive_month"] = tag
+            frames.append(selected)
+        time.sleep(0.03)
+
     out = data_dir / "raw" / f"um_{symbol}_funding.csv"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    clean.to_csv(out, index=False)
-    manifest = {
-        "symbol": symbol, "endpoint": "https://fapi.binance.com/fapi/v1/fundingRate",
-        "requested_start": str(start_ts), "requested_end_exclusive": str(end_exclusive),
-        "pages": page_count, "data_quality": quality,
-        "csv_sha256": hashlib.sha256(out.read_bytes()).hexdigest(),
-    }
     manifest_path = data_dir / "raw" / f"um_{symbol}_funding_manifest.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    if frames:
+        combined = pd.concat(frames, ignore_index=True).sort_values("timestamp")
+        duplicate_count = int(combined["timestamp"].duplicated().sum())
+        quality = funding_quality(
+            pd.DatetimeIndex(combined["timestamp"]),
+            start_ts,
+            end_exclusive,
+            combined["funding_interval_hours"],
+        )
+        clean = combined[
+            ["timestamp", "fundingRate", "funding_interval_hours", "archive_month"]
+        ].copy()
+        clean.to_csv(out, index=False)
+        csv_sha256 = hashlib.sha256(out.read_bytes()).hexdigest()
+        rows_received = int(len(clean))
+    else:
+        duplicate_count = 0
+        quality = None
+        csv_sha256 = None
+        rows_received = 0
+
+    complete = bool(
+        frames
+        and not missing_months
+        and not parse_errors
+        and not download_errors
+        and not checksum_failures
+        and duplicate_count == 0
+        and quality
+        and quality["complete"]
+    )
+    manifest = {
+        "market": "um",
+        "symbol": symbol,
+        "source": "Binance Vision USD-M monthly fundingRate archives",
+        "archive_base": (
+            "https://data.binance.vision/data/futures/um/monthly/fundingRate/"
+            f"{symbol}/"
+        ),
+        "requested_start": str(start_ts),
+        "requested_end_exclusive": str(end_exclusive),
+        "archives": archive_manifest,
+        "expected_months": int(len(list(month_starts(start, end)))),
+        "downloaded_months": int(sum(x.get("status") == "downloaded" for x in archive_manifest)),
+        "missing_archive_months": missing_months,
+        "parse_errors": parse_errors,
+        "download_errors": download_errors,
+        "checksum_failures": checksum_failures,
+        "duplicate_timestamps": duplicate_count,
+        "rows_received": rows_received,
+        "data_quality": quality,
+        "csv_sha256": csv_sha256,
+        "status": "complete" if complete else ("incomplete" if frames else "failed"),
+        "completeness_policy": (
+            "Every expected monthly archive must be present and SHA-256 verified; "
+            "funding timestamps must cover both bounds and every adjacent gap must "
+            "match the previous or current funding_interval_hours within five minutes."
+        ),
+        "symbol_lifecycle_note": (
+            "Archive rows are tied to the symbol string; verify contract lifecycle and "
+            "ticker reuse before interpreting post-delisting rows."
+        ),
+    }
     manifest_path.write_text(json.dumps(manifest, indent=2))
-    if not quality["complete"]:
-        raise RuntimeError(f"Incomplete funding history for {symbol}; inspect {manifest_path}")
+    if not complete:
+        raise RuntimeError(
+            f"Incomplete funding archive history for {symbol}: "
+            f"missing={len(missing_months)}, parse_errors={len(parse_errors)}, "
+            f"download_errors={len(download_errors)}, checksum_failures={len(checksum_failures)}, "
+            f"duplicates={duplicate_count}; inspect {manifest_path}"
+        )
     return out
 
 
-def align_funding_events(events: pd.Series, index: pd.DatetimeIndex, symbol: str = "unknown") -> tuple[pd.Series, dict]:
-    """Map each settlement to the first hourly open at/after its event timestamp."""
+
+def align_funding_events(events: pd.Series, index: pd.DatetimeIndex,
+                         symbol: str = "unknown",
+                         interval_hours: pd.Series | None = None) -> tuple[pd.Series, dict]:
+    """Floor calc_time jitter to the minute, then map each settlement to its hourly open."""
     if events.empty:
         raise RuntimeError(f"Missing funding events for {symbol}")
     events = events.sort_index()
@@ -479,25 +755,55 @@ def align_funding_events(events: pd.Series, index: pd.DatetimeIndex, symbol: str
         raise RuntimeError(f"Duplicate funding timestamps for {symbol}")
     if events.isna().any() or not np.isfinite(events.to_numpy(dtype=float)).all():
         raise RuntimeError(f"Invalid funding rates for {symbol}")
+
+    raw_index = pd.DatetimeIndex(events.index)
+    normalized_index = raw_index.floor("min")
+    if normalized_index.has_duplicates:
+        raise RuntimeError(
+            f"Funding calc_time values collide after minute-floor alignment for {symbol}"
+        )
+    normalized_events = events.copy()
+    normalized_events.index = normalized_index
+    normalized_intervals = None
+    if interval_hours is not None:
+        normalized_intervals = pd.Series(
+            pd.to_numeric(interval_hours.reindex(events.index), errors="coerce").to_numpy(),
+            index=normalized_index,
+        )
+        if normalized_intervals.isna().any():
+            raise RuntimeError(f"Invalid funding interval metadata for {symbol}")
+
     index = pd.DatetimeIndex(index).sort_values()
     if index.empty or index.has_duplicates:
         raise RuntimeError("Price index must be non-empty, unique and sorted")
     quality = funding_quality(
-        pd.DatetimeIndex(events.index), index[0], index[-1] + pd.Timedelta(hours=1)
+        normalized_index,
+        index[0],
+        index[-1] + pd.Timedelta(hours=1),
+        normalized_intervals,
     )
     if not quality["complete"]:
         raise RuntimeError(f"Incomplete funding coverage for {symbol}: {quality}")
-    target_positions = index.searchsorted(events.index, side="left")
+    target_positions = index.searchsorted(normalized_index, side="left")
     if (target_positions >= len(index)).any():
         raise RuntimeError(f"Funding event for {symbol} falls after the final price bar")
-    lags = index[target_positions] - events.index
+    lags = index[target_positions] - normalized_index
     if (lags > pd.Timedelta(hours=1)).any():
         raise RuntimeError(f"Funding event for {symbol} cannot be aligned within one hour")
     aligned = pd.Series(0.0, index=index)
-    np.add.at(aligned.values, target_positions, events.to_numpy(dtype=float))
+    np.add.at(aligned.values, target_positions, normalized_events.to_numpy(dtype=float))
+    floor_adjustments = raw_index != normalized_index
+    quality["calc_time_floor_adjustments"] = int(floor_adjustments.sum())
+    quality["max_calc_time_floor_adjustment_seconds"] = (
+        float((raw_index - normalized_index).total_seconds().max())
+        if len(raw_index) else 0.0
+    )
     quality["off_grid_events"] = int((lags != pd.Timedelta(0)).sum())
-    quality["max_alignment_lag_minutes"] = float(lags.max().total_seconds() / 60) if len(lags) else 0.0
+    quality["max_alignment_lag_minutes"] = (
+        float(lags.max().total_seconds() / 60) if len(lags) else 0.0
+    )
     return aligned, quality
+
 
 
 def load_pair(market: str, data_dir: Path, start: str | None = None, end: str | None = None) -> pd.DataFrame:
@@ -545,7 +851,14 @@ def load_funding(symbol: str, index: pd.DatetimeIndex, data_dir: Path) -> tuple[
     frame["timestamp"] = pd.to_datetime(frame["timestamp"], utc=True)
     frame["fundingRate"] = pd.to_numeric(frame["fundingRate"], errors="coerce")
     events = frame.set_index("timestamp")["fundingRate"].sort_index()
-    return align_funding_events(events, index, symbol)
+    intervals = None
+    if "funding_interval_hours" in frame:
+        frame["funding_interval_hours"] = pd.to_numeric(
+            frame["funding_interval_hours"], errors="coerce"
+        )
+        intervals = frame.set_index("timestamp")["funding_interval_hours"].sort_index()
+    return align_funding_events(events, index, symbol, intervals)
+
 
 
 def add_features(df: pd.DataFrame, lookback: int) -> dict[str, pd.Series]:
@@ -1438,7 +1751,10 @@ def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
         key = f"um_{symbol}_funding"
         csv_path = data_dir / "raw" / f"um_{symbol}_funding.csv"
         manifest_path = data_dir / "raw" / f"um_{symbol}_funding_manifest.json"
-        source = "https://fapi.binance.com/fapi/v1/fundingRate"
+        source = (
+            "https://data.binance.vision/data/futures/um/monthly/fundingRate/"
+            f"{symbol}/"
+        )
         record = {
             "symbol": symbol,
             "status": "not_run",
@@ -1465,10 +1781,13 @@ def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
             manifest = {
                 "market": "um",
                 "symbol": symbol,
-                "endpoint": source,
+                "source": "Binance Vision USD-M monthly fundingRate archives",
+                "archive_base": source,
                 "requested_start": str(start_ts),
                 "requested_end_exclusive": str(end_exclusive),
-                "pages": 0,
+                "archives": [],
+                "missing_archive_months": [],
+                "checksum_failures": [],
                 "rows_received": 0,
                 "data_quality": None,
             }
@@ -1487,7 +1806,8 @@ def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
 
         manifest["market"] = "um"
         manifest["symbol"] = symbol
-        manifest["endpoint"] = source
+        manifest["source"] = "Binance Vision USD-M monthly fundingRate archives"
+        manifest["archive_base"] = source
         manifest["requested_start"] = str(pd.Timestamp(start, tz="UTC"))
         manifest["requested_end_exclusive"] = str(
             pd.Timestamp(end, tz="UTC") + pd.Timedelta(days=1)
