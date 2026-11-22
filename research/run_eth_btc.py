@@ -31,6 +31,7 @@ import requests
 import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import adfuller, coint, kpss, zivot_andrews
 from statsmodels.tsa.vector_ar.vecm import coint_johansen
+from adaptive_decision import evaluate_six_input_gate
 
 COLUMNS = [
     "open_time", "open", "high", "low", "close", "volume", "close_time",
@@ -1895,9 +1896,23 @@ def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
             )
         )
     )
-    summary["complete"] = bool(
-        price_ok and funding_ok and reconciliation_ok and all_six_manifests_present
+    input_states = {
+        key: record.get("status") == "complete"
+        for key, record in summary["price_series"].items()
+    }
+    input_states.update({
+        f"funding_{record['symbol']}": record.get("status") == "complete"
+        for record in summary["funding_series"].values()
+    })
+    empirical_gate = evaluate_six_input_gate(
+        input_states,
+        manifests_present=all_six_manifests_present,
+        spot_gap_reconciliation_complete=(
+            reconciliation_ok if reconcile_gaps else None
+        ),
     )
+    summary["empirical_gate"] = empirical_gate
+    summary["complete"] = bool(empirical_gate["allowed"])
     summary["status"] = "COMPLETE" if summary["complete"] else "INCOMPLETE"
     summary["price_series_complete"] = price_ok
     summary["funding_series_complete"] = funding_ok
