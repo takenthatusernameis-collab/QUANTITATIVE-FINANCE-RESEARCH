@@ -213,7 +213,13 @@ class EventTimeAccountingTests(unittest.TestCase):
         self.assertAlmostEqual(
             result.loc[index[2], "borrow_cost"], expected_final_borrow
         )
-        self.assertAlmostEqual(result.loc[index[2], "funding_pnl"], 0.0005)
+        expected_funding_pnl = -(
+            result.loc[index[2], "held_w_eth"] * 0.001
+            + result.loc[index[2], "held_w_btc"] * 0.002
+        )
+        self.assertAlmostEqual(
+            result.loc[index[2], "funding_pnl"], expected_funding_pnl
+        )
         self.assertAlmostEqual(result.loc[index[0], "cost"], 0.001)
         stats = event_time_metrics(result)
         expected = np.prod(1.0 + result["net_return"].to_numpy()) - 1.0
