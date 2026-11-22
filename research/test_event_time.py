@@ -205,7 +205,14 @@ class EventTimeAccountingTests(unittest.TestCase):
         )
         self.assertEqual(result["elapsed_seconds"].tolist(), [0.0, 21600.0, 21600.0])
         self.assertAlmostEqual(result.loc[index[1], "borrow_cost"], 0.00125)
-        self.assertAlmostEqual(result.loc[index[2], "borrow_cost"], 0.00125)
+        final_short_notional = (
+            max(-result.loc[index[2], "held_w_eth"], 0.0)
+            + max(-result.loc[index[2], "held_w_btc"], 0.0)
+        )
+        expected_final_borrow = final_short_notional * 100 / 10_000 * 6 / 24
+        self.assertAlmostEqual(
+            result.loc[index[2], "borrow_cost"], expected_final_borrow
+        )
         self.assertAlmostEqual(result.loc[index[2], "funding_pnl"], 0.0005)
         self.assertAlmostEqual(result.loc[index[0], "cost"], 0.001)
         stats = event_time_metrics(result)

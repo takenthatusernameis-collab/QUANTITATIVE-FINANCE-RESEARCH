@@ -1420,9 +1420,7 @@ def walk_forward_event_time(
                     multiplier, borrow_bps_per_day=borrow_bps_per_day,
                 )
                 sample = backtest.loc[test_mask].copy()
-                sample.iloc[0, sample.columns.get_loc("elapsed_seconds")] = max(
-                    0.0, (sample.index[0] - test_start).total_seconds()
-                )
+                sample.iloc[0, sample.columns.get_loc("elapsed_seconds")] = 0.0
                 stats = event_time_metrics(sample)
                 row = {
                     "market": market,
@@ -1430,6 +1428,7 @@ def walk_forward_event_time(
                     "fold": fold_no,
                     "test_start": str(test_start),
                     "test_end": str(test_end),
+                    "first_observed_test_timestamp": str(test_index[0]),
                     "last_observed_test_timestamp": str(test_index[-1]),
                     "variant": variant,
                     "cost_multiplier": multiplier,
@@ -1525,15 +1524,13 @@ def walk_forward_event_time(
                     else 0.0
                 ),
             )
-            benchmark.iloc[0, benchmark.columns.get_loc("elapsed_seconds")] = max(
-                0.0, (test_index[0] - test_start).total_seconds()
-            )
             fold_rows.append({
                 "market": market,
                 "interval": interval,
                 "fold": fold_no,
                 "test_start": str(test_start),
                 "test_end": str(test_end),
+                "first_observed_test_timestamp": str(test_index[0]),
                 "last_observed_test_timestamp": str(test_index[-1]),
                 "variant": name,
                 "cost_multiplier": 1.0,
@@ -2468,13 +2465,6 @@ def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
         f"funding_{record['symbol']}": Path(record["manifest_path"]).is_file()
         for record in summary["funding_series"].values()
     })
-    six_input_audit = evaluate_six_input_gate(
-        input_states,
-        manifests_present=all_six_manifests_present,
-        spot_gap_reconciliation_complete=(
-            reconciliation_ok if reconcile_gaps else None
-        ),
-    )
     spot_event_time_evidence = (
         validate_spot_event_time_evidence(data_dir, start, end)
         if reconcile_gaps else {
@@ -2488,6 +2478,13 @@ def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
             input_states.get(spot_name, False)
             and spot_event_time_evidence.get("accepted", False)
         )
+    six_input_audit = evaluate_six_input_gate(
+        input_states,
+        manifests_present=all_six_manifests_present,
+        spot_gap_reconciliation_complete=(
+            reconciliation_ok if reconcile_gaps else None
+        ),
+    )
     research_scope_gate = evaluate_research_scope_gate(
         input_states,
         manifest_states,
@@ -2585,6 +2582,7 @@ def main() -> None:
             raise SystemExit(2)
         return
     markets = ("spot", "um") if args.market == "both" else (args.market,)
+    spot_event_time_evidence = None
     for market in markets:
         for symbol in SYMBOLS:
             download_klines(
@@ -2595,22 +2593,15 @@ def main() -> None:
             market, args.data_dir, args.start, args.end,
             allow_irregular=(market == "spot"),
         )
-        spot_event_time_evidence = None
         if market == "spot":
-            expected_spot = pd.date_range(
-                pd.Timestamp(args.start, tz="UTC"),
-                pd.Timestamp(args.end, tz="UTC") + pd.Timedelta(days=1) - pd.Timedelta(hours=1),
-                freq="h",
+            spot_event_time_evidence = validate_spot_event_time_evidence(
+                args.data_dir, args.start, args.end
             )
-            if not pair.index.equals(expected_spot):
-                spot_event_time_evidence = validate_spot_event_time_evidence(
-                    args.data_dir, args.start, args.end
+            if not spot_event_time_evidence["accepted"]:
+                raise RuntimeError(
+                    "Spot event-time evidence rejected: "
+                    + "; ".join(spot_event_time_evidence["blockers"])
                 )
-                if not spot_event_time_evidence["accepted"]:
-                    raise RuntimeError(
-                        "Spot event-time evidence rejected: "
-                        + "; ".join(spot_event_time_evidence["blockers"])
-                    )
         if market == "um":
             for symbol in SYMBOLS:
                 download_funding(symbol, args.start, args.end, args.data_dir)
