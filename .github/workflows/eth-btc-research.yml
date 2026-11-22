@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: Run mode
+        description: Run mode (historical backtests can also be agent-triggered after preflight validation)
         required: true
         default: empirical
         type: choice
@@ -105,6 +105,7 @@ jobs:
             case "$COMMENT_BODY" in
               "/qfr-control-smoke") COMMAND="smoke" ;;
               "/qfr-run-eth-btc-data-audit") COMMAND="audit" ;;
+              "/qfr-run-eth-btc-empirical") COMMAND="empirical" ;;
               *) echo "Rejected non-allowlisted command"; exit 0 ;;
             esac
             START="2020-01-01"
@@ -197,7 +198,7 @@ jobs:
             --audit-only \
             "${args[@]}"
 
-      - name: Run full empirical study (manual break-glass mode only)
+      - name: Run full historical empirical study (agent-triggered when authorized)
         if: ${{ needs.authorize.outputs.command == 'empirical' }}
         env:
           START_DATE: ${{ needs.authorize.outputs.start }}
