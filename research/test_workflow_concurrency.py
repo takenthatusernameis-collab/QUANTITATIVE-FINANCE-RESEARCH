@@ -40,5 +40,17 @@ class WorkflowConcurrencyPolicyTests(unittest.TestCase):
         self.assertIn("  cancel-in-progress: false", workflow)
 
 
+
+    def test_tardis_schedule_change_samples_are_exactly_dated(self):
+        workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+        for sample_date in ("2025-06-01", "2025-10-01", "2026-02-01"):
+            command = f"/qfr-probe-tardis-funding-{sample_date}"
+            block = workflow.split(f'"{command}")', 1)[1].split(";;", 1)[0]
+            self.assertIn('COMMAND="tardis-probe"', block)
+            self.assertIn(f'START="{sample_date}"', block)
+            self.assertIn(f'END="{sample_date}"', block)
+            self.assertIn('MARKET="both"', block)
+            self.assertIn('RECONCILE="false"', block)
+
 if __name__ == "__main__":
     unittest.main()
