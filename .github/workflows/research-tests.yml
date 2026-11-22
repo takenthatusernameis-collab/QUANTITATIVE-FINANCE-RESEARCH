@@ -5,14 +5,21 @@ on:
     paths:
       - "research/**"
       - ".github/workflows/research-tests.yml"
+      - ".github/workflows/queue-guardian.yml"
   pull_request:
     paths:
       - "research/**"
       - ".github/workflows/research-tests.yml"
+      - ".github/workflows/queue-guardian.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: research-tests-main
+  queue: max
+  cancel-in-progress: false
 
 jobs:
   test:
