@@ -184,6 +184,8 @@ def parse_kline_archive(payload: bytes, url: str) -> pd.DataFrame:
     width = raw.shape[1]
     aliases = {
         "count": "trade_count",
+        "number_of_trades": "trade_count",
+        "quote_asset_volume": "quote_volume",
         "taker_buy_volume": "taker_buy_base",
         "taker_buy_base_volume": "taker_buy_base",
         "taker_buy_base_asset_volume": "taker_buy_base",
@@ -1419,6 +1421,7 @@ def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
             manifest["requested_start"] = start
             manifest["requested_end_inclusive"] = end
             manifest["source"] = source
+            manifest["status"] = record["status"]
             manifest["audit_status"] = record["status"]
             if record.get("error"):
                 manifest["audit_error"] = record["error"]
@@ -1489,6 +1492,7 @@ def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
         manifest["requested_end_exclusive"] = str(
             pd.Timestamp(end, tz="UTC") + pd.Timedelta(days=1)
         )
+        manifest["status"] = record["status"]
         manifest["audit_status"] = record["status"]
         if record.get("error"):
             manifest["audit_error"] = record["error"]
