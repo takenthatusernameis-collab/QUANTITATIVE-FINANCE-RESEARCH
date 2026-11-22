@@ -22,6 +22,19 @@ Start from [the 2026-11-22 audit report](../reports/ETH-BTC-AUDIT-ARTIFACT-REVIE
 - ETH and BTC funding API retrieval both fail with HTTP 451. No funding manifests were emitted.
 - The current backtest uses successive-observation `pct_change()` and hourly annualization. Simply allowing missing timestamps would treat a multi-hour change as one hourly return and is not acceptable.
 
+## Mandatory alternative-first execution rule
+
+**Do not wait for manual activation or confirmation for routine historical quantitative research.** The agent must use the verified control-PR command, an authorized API route, or another existing connected trigger to start audits and backtests itself. "Wait for the owner to click Run workflow/confirm the backtest" is a task failure. Historical backtests are research-only; they do not authorize live trading, capital deployment or strategy promotion.
+
+A data-quality failure must not freeze the whole research program. It must trigger a change in the approach. The current Binance-specific plan is one candidate route, not a mandatory architecture. Test a representative slice and positive control, then change provider, endpoint, archive format, market-data representation, venue, time resolution, or model when evidence justifies it. After two independent identical non-transient failures on one route, stop repeating it. Preserve the exact error and move to a materially different route.
+
+**Required alternative data construction:** independently source ETH/USD and BTC/USD price series from an authorized provider (preferably the same venue/provider and identical bar conventions), then construct the cross-rate from synchronized observed prices:
+`ETHBTC_t = ETHUSD_t / BTCUSD_t`, or equivalently the log spread `ln(ETHUSD_t) - ln(BTCUSD_t)`. Validate quote currency, timestamps, timezone, OHLC construction, observation completeness, duplicates, market conventions, source hashes and fees. Use only common observed timestamps; do not forward-fill or invent candles. If mixing USD with USDT/USDC, retrieve and validate the conversion rate rather than assuming parity. Compare the resulting synthetic cross-rate with a direct ETHBTC feed where feasible. This is a distinct data construction whose specification and acceptance criteria must be recorded.
+
+If the ETH/BTC ratio remains impractical with credible accessible data, do not spend unlimited cycles preserving the original formulation. Mark that exact experiment INCONCLUSIVE/INFEASIBLE, and formulate a separate feasible model or research hypothesis with its own pre-registration and validation. A different model is preferable to repeatedly implementing an unrealistic one, but never describe a different study as validation of the original.
+
+Do not bypass legal/provider access restrictions (including HTTP 451); switch to a lawful, authorized provider. Do not weaken the original data gates, fabricate missing observations, or call a restricted endpoint through an evasive proxy. Continue independent research while one route is blocked.
+
 ## Required work
 
 ### 1. Repair Spot REST access and independently validate all 31 gaps
@@ -66,7 +79,7 @@ Start from [the 2026-11-22 audit report](../reports/ETH-BTC-AUDIT-ARTIFACT-REVIE
 
 - Add deterministic regression tests for source failover, positive controls, gap classification, parser schemas, funding completeness, elapsed-time return handling, and failure-manifest persistence.
 - Run the complete research test suite and synthetic smoke test. Record exact CI run IDs and commit SHA.
-- Re-run only the audit-only command through the verified [control PR #2](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/pull/2): `/qfr-run-eth-btc-data-audit`. Do not dispatch a full empirical study until all six inputs pass the declared policy and the irregular-time treatment is frozen and tested.
+- Run the audit and, when the selected study's machine-checkable gates pass, launch the empirical backtest through the agent-triggered [control PR #2](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/pull/2) command `/qfr-run-eth-btc-empirical`. No human confirmation is required for historical research. The backtest must still stop automatically on invalid data. If the ETH/BTC source path remains infeasible, run a separately preregistered alternative dataset/model rather than waiting indefinitely.
 - Inspect and hash the new artifacts. Update README, reports, this task, and the next handoff.
 - Keep raw market data out of Git. No live trading or capital deployment.
 
@@ -79,4 +92,4 @@ Start from [the 2026-11-22 audit report](../reports/ETH-BTC-AUDIT-ARTIFACT-REVIE
 5. CI and the audit-only workflow pass their declared engineering and data-quality gates.
 6. The repository records the exact run, commit, artifact, hashes, limitations, and one next task.
 
-Until every criterion passes, keep the empirical ETH/BTC study **INCONCLUSIVE** and do not run strategy backtests.
+Until every criterion passes, keep the original Binance ETH/BTC experiment **INCONCLUSIVE** and do not backtest that incomplete dataset. Do not block all research: independently implement and backtest a separately specified alternative (for example, synchronized ETH/USD divided by BTC/USD from another authorized provider) once its own data and methodology gates pass. No manual confirmation is required for the agent to launch any historical backtest within its authorized scope.
