@@ -417,10 +417,23 @@ class ResearchPipelineTests(unittest.TestCase):
                 ])
             daily_csv = pd.DataFrame(daily_rows).to_csv(index=False, header=False)
             archive_buffer = zip_csv(daily_csv, "ETHUSDT-1h-2024-01-01.csv")
+            unrelated_ms = int(
+                pd.Timestamp("2024-01-01 12:05:00", tz="UTC").timestamp() * 1000
+            )
+            agg_csv = (
+                "aggTradeId,price,quantity,firstTradeId,lastTradeId,timestamp,isBuyerMaker,isBestMatch\\n"
+                f"999,100.0,0.5,999,999,{unrelated_ms},true,true\\n"
+            )
+            agg_archive = zip_csv(
+                agg_csv, "ETHUSDT-aggTrades-2024-01-01.csv"
+            )
 
             with patch.object(
                 research, "_download_archive",
-                return_value=(archive_buffer, True, None),
+                side_effect=[
+                    (archive_buffer, True, None),
+                    (agg_archive, True, None),
+                ],
             ), patch.object(
                 research.requests, "Session",
                 return_value=FakeSession([
@@ -438,7 +451,7 @@ class ResearchPipelineTests(unittest.TestCase):
             )
             self.assertEqual(
                 result["gaps"][0]["classification"],
-                "aggregate_trade_positive_control_failed_unresolved",
+                "aggregate_trade_archive_positive_control_failed_unresolved",
             )
             self.assertFalse(result["reconciliation_complete"])
 
