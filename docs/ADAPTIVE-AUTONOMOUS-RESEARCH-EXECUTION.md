@@ -167,6 +167,64 @@ These are repository operating thresholds, not a GitHub service-level guarantee:
 
 Poll at bounded intervals (typically 2–5 minutes during diagnosis, then 5–10 minutes for a sustained external capacity delay). If the current agent session cannot remain active, persist the run ID, last-observed status/time, evidence, and exact next status check for the next scheduled agent cycle. Do not imply that a background poller exists unless one is actually configured.
 
+### Mandatory 60-minute recovery protocol — active recovery, not passive waiting
+
+Crossing 60 minutes is a **mandatory recovery trigger**, not an automatic cancellation deadline and not proof that GitHub is down. The agent must perform this procedure in the same cycle in which the threshold is detected. If the current session cannot complete it, persist the exact next action and run IDs for the next agent cycle; do not just write “still queued”.
+
+#### 1. Open an execution incident record
+
+For each affected task, record:
+- canonical task/experiment key and exact command/inputs;
+- run ID and URL, workflow path/name, event, actor, ref, commit SHA and concurrency group;
+- first observed and latest observed timestamps, calculated queue age, workflow status/conclusion, and every job's status/conclusion;
+- runner labels requested, runner name/group if assigned, and any environment/protection wait;
+- the run currently occupying the concurrency slot, if any;
+- GitHub Status incident/component state and the exact diagnostic/API errors observed;
+- artifacts/checkpoints already produced and whether the run could have performed irreversible work.
+
+Keep **execution status** separate from research status. The research result remains NOT RUN / INCONCLUSIVE until valid empirical work completes; a queue delay is never an empirical failure.
+
+#### 2. Diagnose the exact blocker before changing anything
+
+Inspect the run record, latest-attempt jobs, same-concurrency-group runs, workflow YAML, runner labels and available runner configuration. Compare other recent runs that use the same runner class. Check GitHub Status and the applicable repository/organization Actions usage or concurrency limits when the connected identity can read them.
+
+Choose the best-supported classification:
+- **Concurrency-slot wait:** identify the exact run holding the same concurrency group. Inspect whether its job is progressing, has a valid long-running step, or is itself stuck. A pending run behind healthy work is serialized, not runner-starved.
+- **Runner-capacity or label wait:** the job exists but has no runner assignment. Verify that its requested labels match a runner that actually exists and is online; inspect account/organization concurrency ceilings and whether other workflows are consuming available slots. Do not assume the account's limit.
+- **GitHub service incident:** match the time and affected Actions component to the official status incident. Do not flood the service with replacement runs during an incident.
+- **Environment/protection wait:** identify the exact environment or approval gate. Do not bypass a genuine owner/security/deployment boundary. If ordinary CI, historical backtests or data audits were incorrectly coupled to a privileged environment, separate the unprivileged job only after verifying it has no deployment, secret, custody or capital authority.
+- **Abnormal/stale workflow state:** examples include a run with no jobs created, an apparently queued/in-progress run whose cancellation does not take effect, a failed-cancel message, or cancellation/force-cancellation API errors such as HTTP 409/500. Check whether the same stale run continues to block its concurrency group.
+- **Dispatch/authorization problem:** confirm whether a run was actually created, whether the exact actor/command gate passed, and whether the event was rejected, skipped or cancelled. Do not mistake a created comment for a created or authorized run.
+
+A lack of fresh log lines by itself does not prove a job is stuck: some legitimate data or compute steps are quiet. Use job state, step state, runner assignment, elapsed time, timeout configuration and competing runs together.
+
+#### 3. Select exactly one safe recovery path
+
+Do not fan out multiple retries. Select the first applicable path below and record why:
+
+1. **Healthy run owns the concurrency slot:** keep the canonical pending run in the queue. Inspect the active run's logs and expected stage; allow it to finish when it is making progress. Do not cancel a valid long-running full-data audit simply to move a later run forward. Continue independent tests, code review, provider research, task specification and local deterministic checks.
+2. **Obsolete or genuinely stalled slot-holder:** first inspect checkpoints, logs and side effects. Cancel only when the run is no longer useful, is invalidated/unsafe, or blocks a verified replacement. Confirm cancellation reached a terminal state before starting the replacement. For a long job, preserve partial outputs and resume from a deterministic checkpoint rather than repeating all completed work.
+3. **Runner label/capacity problem:** fix an incorrect label or runner selection if repository-controlled and safe. Otherwise use one already-existing, authorized alternative runner or execution path. Verify it has the needed network access, dependencies, data permissions and cost profile. Do not provision paid/larger/self-hosted infrastructure or expand permissions without explicit owner authorization.
+4. **GitHub service incident:** leave the canonical run intact unless GitHub marks it cancelled/failed. Stop creating duplicates; continue independent work and recheck the incident and the same run at bounded intervals. Once the incident resolves, inspect the original run before deciding whether a single retry is necessary.
+5. **Environment gate:** keep the protected operation paused. Move routine non-privileged testing/research into a separate least-privilege job only if this removes an accidental coupling without bypassing the protected action.
+6. **Abnormal/stale run that blocks concurrency:** make at most one carefully evidenced self-service cancellation/force-cancellation attempt if cancellation is appropriate and supported. Re-fetch the run and jobs afterwards. If the run remains queued/in progress, no jobs are created, cancellation reports failure, or the API returns a persistent conflict/server error, stop cycling retries and prepare a GitHub Support case with the repository, workflow/run URLs and IDs, concurrency group, UTC timestamps, job state, cancellation attempts and exact HTTP/error request IDs. Use the Support portal only through an already-authorized account; never expose tokens or secrets. Continue all independent work while the platform-side state is unresolved.
+
+Do not split concurrency groups merely to defeat a wait. Separate groups only for tasks proven independent in code, shared state, caches, rate limits, artifacts and data writes. This repository's single ETH/BTC research group intentionally serializes mutually exclusive empirical runs.
+
+#### 4. Time-box the recovery attempt
+
+After taking the selected action:
+- Recheck the same canonical run and relevant jobs after 10–15 minutes.
+- If it progresses, continue normal bounded monitoring and verify the eventual outputs.
+- If it does not progress, do not repeat the same action or submit an identical dispatch. Record the result of the recovery attempt and either switch once to a materially different, already-authorized route or park the run as **INFRASTRUCTURE-BLOCKED / QUEUED** while advancing independent work.
+- If the same abnormal condition persists after the one safe recovery attempt, escalate using the documented platform/support route where applicable; do not start an endless retry loop.
+- Never use the 60-minute threshold to weaken data gates, reduce validation, shorten the sample, or label incomplete research as complete.
+
+#### 5. Resume and close the incident safely
+
+When the original run starts or completes, inspect that same run first. Verify actor, event, ref, SHA, inputs, jobs, logs, artifacts, manifests, hashes and outputs. If a replacement was created, ensure only one run can still perform the expensive task; cancel/fence redundant work only after checking its state and side effects. Retry only the failed portion when supported and scientifically safe; otherwise create one new run with a recorded reason and idempotency key.
+
+Update the task ledger/README with the root cause, diagnostics, action taken, run IDs, commit SHA, recovery result, any owner-only prerequisite, and the next concrete step. A queue incident is closed only when execution resumes/completes, a verified alternative takes over, or an external platform/support blocker is explicitly recorded with a next check. Never leave “wait indefinitely” as the task.
 ### Safe recovery rules
 
 1. **Never fan out retries to make a queue move faster.** One task/experiment should have one canonical active run. Map the task key and exact inputs to its run ID. Repeated comments or agent cycles must first discover and reuse that run.

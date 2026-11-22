@@ -162,6 +162,22 @@ Do not send another identical command while a matching run is queued or in progr
 A queued run is an infrastructure state, not evidence about the strategy or dataset. Keep research status separate from execution status.
 
 
+#### Required procedure after 60 minutes
+
+The 60-minute threshold requires action, not just a status label. Open an incident record for the task and canonical run ID; snapshot all run/job metadata, concurrency holder, requested/assigned runner, timestamps, GitHub Status and relevant API errors. Then select exactly one evidenced recovery path:
+
+- Keep the run queued if a valid same-group run is making progress; inspect its stage and preserve queued work rather than cancelling healthy work.
+- If the slot-holder is obsolete or demonstrably stalled, preserve checkpoints and side-effect evidence, cancel it only when safe, and verify it is terminal before dispatching one replacement.
+- If runner labels/capacity are the cause, correct a repository-controlled label error or use one already-existing authorized runner. Do not create paid/larger/self-hosted capacity or broaden permissions without owner authorization.
+- If GitHub reports an Actions incident, keep the canonical run, stop duplicate dispatches, continue independent work and recheck the same run after the incident changes.
+- If an environment/protection gate is responsible, preserve that boundary. Separate routine unprivileged research/CI only if the workflow accidentally couples it to a privileged environment.
+- If the run appears stale (no jobs created, failed cancel, or persistent cancellation HTTP 409/500), make at most one justified self-service cancellation attempt. Re-fetch state. If still abnormal or blocking the concurrency group, prepare a GitHub Support case with run IDs/URLs, workflow, concurrency group, UTC timeline, job state and exact errors/request IDs. Do not repeat the same cancel/dispatch call indefinitely.
+
+After the single recovery action, recheck in 10–15 minutes. If progress resumes, verify the original run's logs and artifacts. If not, do not repeat the same operation: use one materially different already-authorized route, or park the run as **INFRASTRUCTURE-BLOCKED / QUEUED** and continue independent research. Record the root cause, recovery attempted, evidence, owner-only prerequisite (if any), and exact next check in the task ledger. No manual workflow activation, duplicate run storm, weakening of research gates, or passive indefinite waiting is permitted.
+
+A lack of new log lines alone is not proof of a stuck job. Inspect step state and expected workload duration. GitHub's troubleshooting guidance identifies no-job-created runs and failed self-service cancellation (including HTTP 409/500) as possible abnormal states; a run that remains stuck and blocks concurrency may require GitHub Support to clear it.
+
+
 ## Repository-specific state
 
 - Current empirical workflow: `.github/workflows/eth-btc-research.yml`.
