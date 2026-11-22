@@ -21,6 +21,14 @@ Canonical guiding documents:
 - [Active Task Queue](tasks/ACTIVE-QUEUE.md) — single current task pointer, incidents and next actions.
 
 **Mandatory cycle order:** brainstorm the session plan → clean and compact safely → resolve queue incidents and manual dependencies → implement the highest-leverage meta-process improvement → execute the current objective → verify, document and hand off.
+## Canonical adaptive decision hierarchy
+
+All agents must apply the single authoritative [General Antifragile Autonomous Operating Mindset](docs/GENERAL-ANTIFRAGILE-AUTONOMOUS-OPERATING-MINDSET.md) in this order: **P0 hard invariants → P1 compounding meta-process improvement → P2 resolve existing work/highest-value bottlenecks → P3 original research recovery → P4 independent providers/data architectures → P5 separately preregistered hypothesis/model replacement → P6 local polish**. The [Adaptive Autonomous Research Execution Standard](docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md) operationalizes the hierarchy; project tasks may add stricter rules but may not contradict it.
+
+At wake-up: inspect current runs, artifacts, branches, PRs and guardian incidents before dispatch; preserve one canonical active queue; clean only verified disposable clutter; continue independent work; and use the machine-checkable policy in research/adaptive_decision.py for provider acceptance/ranking, failure escalation, experiment identity, market separation, duplicate dispatch and fail-closed research gates.
+
+The ETH/BTC provider pilot sequence begins with Binance recovery, then Coinbase Exchange, Kraken, other independently verifiable providers, trade-level reconstruction and cross-provider comparison. Re-rank by expected information gain, probability of success, quality, coverage, reproducibility and cost. Two distinct provider failures trigger an architecture change; the original hypothesis is replaced only after distinct alternatives are exhausted and a new experiment is separately preregistered. Spot and perpetual funding evidence remain separate.
+
 ## Repository guiding ideal
 
 **Continuously increase the probability that each agent cycle produces trustworthy, reproducible, decision-useful quantitative-finance research, while making the research system more autonomous, resilient, and capable after every cycle.** Success means obtaining a defensible research conclusion—including a negative, null, or inconclusive result when that is what the evidence supports—not manufacturing a profitable strategy or forcing a positive finding.
