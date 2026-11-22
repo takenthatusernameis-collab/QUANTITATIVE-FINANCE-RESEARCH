@@ -96,7 +96,7 @@ Summary: all six manifests are present; both perps pass; both spot candle grids 
 
 No live orders, capital deployment, live credentials, custody changes or automatic strategy promotion. Respect provider restrictions. Preserve raw market data outside Git and retain compact manifests, hashes and decision summaries.
 
-**Research conclusion:** the original Binance ETH/BTC perpetual study remains **INCONCLUSIVE**. The Spot gap classifications and USD-M price histories are improved, but final funding acceptance remains unresolved and no empirical strategy-performance metrics have been produced.
+**Research conclusion:** the Binance Spot-only walk-forward study is complete and both tested mean-reversion variants are **NO-GO** on pooled OOS metrics with negative bootstrap CIs. The original combined/perpetual Binance ETH/BTC study remains **INCONCLUSIVE** because funding-settlement population, event semantics and contract-incarnation coverage are not accepted. No live trading, capital deployment or strategy promotion occurred.
 
 
 ## Completed Spot-only empirical result — 2026-11-22 09:01 UTC
