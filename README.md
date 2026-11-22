@@ -217,3 +217,11 @@ UM-only run [45005913283](https://github.com/takenthatusernameis-collab/QUANTITA
 
 The queue-guardian 5-minute schedule is not currently evidenced as reliable: only one scheduled run was present among the latest 100 Actions runs, while 19 guardian runs were 18 issue-comment and 1 schedule. GitHub warns scheduled runs can be delayed or dropped under load. The issue-comment research run also could not save archive cache under the secure read-only cache default. Do not weaken that restriction casually; the active queue calls for a trusted cache warmer and scheduler reliability investigation. [Active queue](tasks/ACTIVE-QUEUE.md)
 
+
+## Funding-source route probe (2026-11-22)
+
+A read-only anonymous Playwright probe confirmed that OKX's official [Historical market data](https://www.okx.com/historical-data) page renders from the US runner and exposes five download categories, including **Funding rate** (the page advertises history from March 2022). The Funding download button was detected but not clicked; its symbol/date scope and file schema remain unverified. The public API's funding-rate-history endpoint is limited to three months, so it is not a substitute for the archive. See [the provider probe report](reports/ETH-BTC-FUNDING-WEB-DOWNLOAD-PROBE-2026-11-22.md).
+
+Bitget's official funding page returned HTTP 200 but displayed a **Restricted IP** dialog because the GitHub runner was geolocated in the United States. No self-declaration, click-through, or regional workaround was attempted. The route remains blocked from that runner; see the same report.
+
+The probe workflow and deterministic tests passed. No raw funding files were downloaded, no source was accepted, and the Binance perpetual funding gate remains **PROVISIONAL_NOT_ACCEPTED**.
