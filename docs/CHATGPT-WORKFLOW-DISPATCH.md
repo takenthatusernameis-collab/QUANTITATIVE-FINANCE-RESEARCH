@@ -202,7 +202,7 @@ Use the durable task/incident ledger for status tags `CANCELLATION_BLOCKED / ORP
 ### Queue guardian and incident-driven alternative attempts
 
 - Live queue enforcement is in `.github/workflows/queue-guardian.yml`, scheduled every five minutes. Its target allowlist is explicit in `research/queue_guardian.py`; unknown workflow paths are ignored.
-- The watchdog has `actions: write` only to cancel eligible runs, `contents: read` to inspect repository configuration and `issues: write` to create one durable incident per run. Do not broaden these permissions or treat read-only run inspection as cancellation.
+- The watchdog has `actions: write` only to cancel eligible runs, `contents: read` to inspect repository configuration, `issues: write` to create durable incidents, and `pull-requests: write` solely to upsert one bot-owned status comment on control PR #2. The comment code updates only a marker-bearing comment authored by `github-actions[bot]`; user-authored comments are preserved. Do not broaden these permissions further or treat read-only run inspection as cancellation.
 - The harmless dry-run command is `/qfr-queue-guardian-dry-run`, accepted only from the verified actor on open control PR #2. It must never cancel runs or create incident issues. Scheduled executions are the live enforcement path.
 - The watchdog only cancels workflow-run-level `queued`/`pending` states older than 15 minutes when no earlier run in the exact mapped concurrency group is `in_progress`. A job queued within an already `in_progress` run and an environment `waiting` state are not candidates.
 - Each cancellation outcome is persisted in one issue whose title begins `[QFR queue guardian]`. At every agent-cycle start, inspect these open/closed incident records, follow their latest status, and prevent duplicate alternative attempts.
@@ -231,6 +231,7 @@ The default-branch workflow `.github/workflows/eth-btc-research.yml` now accepts
 - comment body equals the entire allowlisted command, with no extra text:
   - `/qfr-control-smoke` — harmless smoke test;
   - `/qfr-run-eth-btc-data-audit` — audit all four price series and both funding histories, and reconcile missing ETH Spot hours against Binance REST and daily archives.
+  - `/qfr-probe-eth-btc-funding-2024-01` — run a bounded January 2024 audit-only probe across all six inputs with Spot gap reconciliation disabled; it does not run an empirical backtest.
   - `/qfr-run-eth-btc-empirical` — agent-triggered historical backtest, preserving all code/data/methodology gates; no routine human confirmation.
 
 The workflow uses repository-level `contents: read` permissions only. The issue-comment event executes the workflow from `main`; the research job explicitly checks out `github.event.repository.default_branch`. It never checks out, imports, executes, or trusts the control PR head or its contents. No `pull_request_target` trigger is used. The smoke job performs no checkout and no data access.
@@ -257,3 +258,14 @@ The manual `workflow_dispatch` route remains a break-glass recovery control, not
 ## Audit-only dispatch verification — 2026-11-22
 
 The exact audit command has now been proven end to end as an activation path: the connected actor posted the allowlisted command to PR #2, GitHub passed the authorization gate, the default-branch workflow executed, and the artifact was retrieved and inspected. This proves orchestration and artifact access only. It does not prove that all six input series are complete or that the strategy has an empirical edge. The next agent should use the same command only after code/source changes are committed and no conflicting run is active. Keep PR #2 open and draft; never execute its head code.
+
+
+## Latest execution and recovery evidence — 2026-11-22
+
+- PR comment 7072165218 resolved to audit run [44971182002](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44971182002). The audit exited 2 because data were incomplete, not because the dispatch bridge failed. Artifact 14733503636 contains the summary and all six input manifests. All 82 monthly archives per price series passed checksum verification and parsing; USD-M ETH/BTC are complete at 59,904 bars each. Spot ETH/BTC each have 31 unresolved missing hours; aggregate-trade positive controls did not pass. The funding REST route returned HTTP 451. No empirical step ran.
+- The test-fixture correction passed CI: run 44980449997 passed 46 tests and run 44980801176 passed 48 tests; both passed the synthetic smoke test.
+- Queue-guardian dry-run comment 7073565371 triggered run [44980838848](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44980838848). It enumerated 73 repository runs, found no queue actions/errors, and uploaded a report. Its status-comment POST failed with HTTP 403 Resource not accessible by integration because the workflow lacked Pull requests: write. Permission was added in [3aa0b08](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/3aa0b0802269c1211c7156c3feedbde3a88ddcce); retry and CI verification are pending.
+- The exact bounded probe command /qfr-probe-eth-btc-funding-2024-01 is now allowlisted in the default-branch workflow. It sets a fixed 2024-01-01 through 2024-01-31 range, runs audit-only across all six inputs, and disables Spot gap reconciliation for this narrow funding/archive probe. It is not a substitute for the full audit and never launches strategy computation.
+- The public Binance data issue [#517](https://github.com/binance/binance-public-data/issues/517) remains open with no Binance-team clarification visible. Keep funding settlement-population semantics provisional and fail-closed.
+
+The next agent must verify CI for the permission and probe-workflow changes, confirm the status comment updates successfully, and only then invoke the bounded January 2024 probe. Do not start another full audit or any empirical backtest until the Spot gap and funding acceptance gates are resolved.
