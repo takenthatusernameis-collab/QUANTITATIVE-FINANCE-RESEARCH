@@ -186,7 +186,9 @@ def parse_kline_archive(payload: bytes, url: str) -> pd.DataFrame:
         "count": "trade_count",
         "taker_buy_volume": "taker_buy_base",
         "taker_buy_base_volume": "taker_buy_base",
+        "taker_buy_base_asset_volume": "taker_buy_base",
         "taker_buy_quote_volume": "taker_buy_quote",
+        "taker_buy_quote_asset_volume": "taker_buy_quote",
     }
     first_row = [
         aliases.get(str(value).strip().lower().replace(" ", "_"),
