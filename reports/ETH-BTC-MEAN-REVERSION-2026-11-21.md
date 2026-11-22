@@ -4,6 +4,9 @@
 **Conclusion:** **INCONCLUSIVE — empirical run blocked by data access**  
 **Scope:** Research only; no live trading or capital deployment
 
+
+> **Historical evidence snapshot:** Preserve the findings and timestamps below as the record of the execution period. Any operational instructions referring to manual workflow activation, unavailable dispatch, or repeating the same blocked route are superseded by the current [autonomous execution standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md), [dispatch runbook](../docs/CHATGPT-WORKFLOW-DISPATCH.md), and active [ingestion task](../tasks/ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md). Do not rewrite historical results; use current controls for new work.
+
 ## Executive finding
 
 The pending research task was reviewed and a reproducible research pipeline was added. The pipeline passed a Python syntax check and a synthetic plumbing self-test. A synthetic daily integration run also exercised the walk-forward loop, diagnostics, CSV exports, charts and stress-scenario output. However, this execution environment could not retrieve the historical market-data files needed for a valid empirical run. Therefore, no cointegration p-values, half-life estimates, out-of-sample returns, Sharpe/Sortino ratios, drawdowns, trade counts, funding contributions or cost-adjusted results are reported here.
