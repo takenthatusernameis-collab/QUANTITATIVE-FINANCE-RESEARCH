@@ -541,7 +541,7 @@ jobs:
 
       - name: Install Playwright and HTTP client
         run: |
-          python -m pip install --no-cache-dir playwright==1.65.0 requests>=2.31
+          python -m pip install --no-cache-dir playwright==1.65.0 "requests>=2.31"
 
       - name: Install Chromium and system dependencies
         run: python -m playwright install --with-deps chromium
