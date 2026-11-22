@@ -313,7 +313,7 @@ def run_probe(output_dir: Path, inspect_field_info: bool = False, inspect_symbol
                                             symbol_screenshot = output_dir / "okx-funding-symbol-options.png"
                                             page.screenshot(path=str(symbol_screenshot), full_page=False)
                                             manifest["symbol_options_screenshot"] = symbol_screenshot.name
-                                            search_input = modal.get_by_role("combobox")
+                                            search_input = modal.locator('input[type="search"]')
                                             manifest["symbol_search_input_count"] = search_input.count()
                                             manifest["symbol_search_results"] = {}
                                             if search_input.count() == 1 and search_input.first.is_visible() and search_input.first.is_enabled():
