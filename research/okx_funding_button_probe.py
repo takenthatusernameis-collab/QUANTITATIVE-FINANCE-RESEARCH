@@ -34,7 +34,7 @@ def snapshot(page) -> dict:
           ? (el.type === 'password' ? '[redacted]' : (el.value || '').slice(0,100)) : null
       }));
       const dialogs = Array.from(document.querySelectorAll(
-        '[role=dialog],[aria-modal=true],dialog'
+        '[role=dialog],[aria-modal=true],dialog,[class*="modal" i],[class*="dialog" i]'
       )).filter(visible).map(el => ({
         tag: el.tagName.toLowerCase(), text: clean(el.innerText).slice(0,2500),
         controls: Array.from(el.querySelectorAll('button,input,select,textarea,[role=button]'))
@@ -202,9 +202,12 @@ def run_probe(output_dir: Path) -> dict:
                             page.screenshot(path=str(after_screenshot), full_page=False)
                             manifest["after_click_screenshot"] = after_screenshot.name
                             dialogs = manifest["after_click_snapshot"].get("dialogs", [])
+                            initial_dialogs = initial.get("dialogs", [])
+                            new_dialogs = [d for d in dialogs if d not in initial_dialogs]
+                            manifest["new_modal_like_surfaces"] = new_dialogs
                             if downloads:
                                 manifest["status"] = "direct_download_detected_and_cancel_attempted"
-                            elif dialogs:
+                            elif new_dialogs:
                                 manifest["status"] = "modal_opened_inspected_no_submission"
                             elif popups:
                                 manifest["status"] = "popup_opened_inspected_no_submission"
