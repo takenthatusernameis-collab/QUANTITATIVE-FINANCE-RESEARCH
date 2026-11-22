@@ -44,7 +44,7 @@ class BybitFundingProbeTests(unittest.TestCase):
             parse_payload(payload([row("ETHUSDT")]), "BTCUSDT", 1000, 200)
 
     def test_nonfinite_rate_rejected(self):
-        with self.assertRaisesRegex(ValueError, "invalid record"):
+        with self.assertRaisesRegex(ValueError, "invalid rate or timestamp"):
             parse_payload(payload([row(rate="nan")]), "BTCUSDT", 1000, 200)
 
     def test_timestamp_after_end_rejected(self):
