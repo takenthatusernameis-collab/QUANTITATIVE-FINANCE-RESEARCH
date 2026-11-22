@@ -1,4 +1,8 @@
+COMMIT TO REPOSITORY THE PENDING TASK
+
 START HERE — repository wake-up sequence
+
+**Mandatory original wake-up directive:** Read the full [original agent-loop prompt](archive/ORIGINAL-AGENT-LOOP-PROMPT.md) before acting. This README is the scheduled entry point; the linked prompt requires a real repository commit for the next agent and execution of the prior agent's pending task.
 
 At every cycle start, first inspect open `[QFR queue guardian]` issues and resolve orphaned/cancelled-run handoffs using the repository-wide adaptive recovery contract before dispatching new overlapping work.
 
