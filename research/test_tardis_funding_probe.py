@@ -3,7 +3,11 @@ import io
 import unittest
 from datetime import datetime, timedelta, timezone
 
-from tardis_funding_probe import parse_derivative_ticker_csv
+from tardis_funding_probe import (
+    compare_tardis_to_archive,
+    parse_binance_funding_archive_csv,
+    parse_derivative_ticker_csv,
+)
 
 
 def sample_csv(sample_date="2024-01-01", symbol="ETHUSDT", omit_minutes=()):
@@ -73,6 +77,78 @@ class TardisFundingProbeTests(unittest.TestCase):
         header = rows[0].replace("funding_rate,", "")
         with self.assertRaisesRegex(ValueError, "Missing required"):
             parse_derivative_ticker_csv("\n".join([header] + rows[1:]), "ETHUSDT", "2024-01-01")
+
+    def test_parses_checksum_verified_archive_schema_with_header(self):
+        csv_text = (
+            "calc_time,funding_interval_hours,last_funding_rate\n"
+            "1704067200000,8,0.00010\n"
+            "1704096000000,8,0.00011\n"
+            "1704124800000,8,0.00012\n"
+            "1704153600000,8,0.00013\n"
+        )
+        parsed = parse_binance_funding_archive_csv(csv_text, "ETHUSDT", "2024-01-01")
+        self.assertTrue(parsed["header_detected"])
+        self.assertEqual(parsed["rows"], 4)
+        self.assertEqual(parsed["duplicate_timestamps"], 0)
+        self.assertEqual(parsed["interval_hours_observed"], [8.0])
+
+    def test_reconciles_tardis_next_event_times_and_reports_rate_differences(self):
+        csv_text = (
+            "calc_time,funding_interval_hours,last_funding_rate\n"
+            "1704067200000,8,0.00010\n"
+            "1704096000000,8,0.00011\n"
+            "1704124800000,8,0.00012\n"
+            "1704153600000,8,0.00013\n"
+        )
+        archive = parse_binance_funding_archive_csv(csv_text, "BTCUSDT", "2024-01-01")
+        tardis = {
+            "unique_next_funding_timestamps_utc": [
+                "2024-01-01T00:00:00+00:00",
+                "2024-01-01T08:00:00+00:00",
+                "2024-01-01T16:00:00+00:00",
+                "2024-01-02T00:00:00+00:00",
+            ],
+            "pre_event_observations": [
+                {"next_funding_timestamp_utc": "2024-01-01T08:00:00+00:00",
+                 "funding_rate_estimate_for_next_event": 0.00011},
+                {"next_funding_timestamp_utc": "2024-01-01T16:00:00+00:00",
+                 "funding_rate_estimate_for_next_event": 0.000125},
+                {"next_funding_timestamp_utc": "2024-01-02T00:00:00+00:00",
+                 "funding_rate_estimate_for_next_event": 0.00013},
+            ],
+        }
+        result = compare_tardis_to_archive(tardis, archive)
+        self.assertEqual(result["status"], "CROSSCHECK_PASS")
+        self.assertEqual(result["exact_event_timestamp_matches"], 4)
+        self.assertEqual(result["pre_event_rate_comparison_count"], 3)
+        self.assertEqual(result["pre_event_rate_exact_matches"], 2)
+        self.assertGreater(result["maximum_absolute_rate_difference"], 0)
+
+    def test_event_timestamp_mismatch_fails_crosscheck(self):
+        csv_text = (
+            "calc_time,funding_interval_hours,last_funding_rate\n"
+            "1704067200000,8,0.00010\n"
+            "1704096000000,8,0.00011\n"
+            "1704153600000,8,0.00013\n"
+        )
+        archive = parse_binance_funding_archive_csv(csv_text, "ETHUSDT", "2024-01-01")
+        tardis = {
+            "unique_next_funding_timestamps_utc": [
+                "2024-01-01T00:00:00+00:00",
+                "2024-01-01T08:00:00+00:00",
+                "2024-01-01T16:00:00+00:00",
+                "2024-01-02T00:00:00+00:00",
+            ],
+            "pre_event_observations": [
+                {"next_funding_timestamp_utc": "2024-01-01T08:00:00+00:00",
+                 "funding_rate_estimate_for_next_event": 0.00011},
+                {"next_funding_timestamp_utc": "2024-01-02T00:00:00+00:00",
+                 "funding_rate_estimate_for_next_event": 0.00013},
+            ],
+        }
+        result = compare_tardis_to_archive(tardis, archive)
+        self.assertEqual(result["status"], "CROSSCHECK_INCOMPLETE")
+        self.assertEqual(result["exact_event_timestamp_matches"], 3)
 
 
 if __name__ == "__main__":
