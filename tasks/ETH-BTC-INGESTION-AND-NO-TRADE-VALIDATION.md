@@ -118,3 +118,25 @@ Do not bypass legal/provider access restrictions (including HTTP 451); switch to
 6. The repository records the exact run, commit, artifact, hashes, limitations, and one next task.
 
 Until every criterion passes, keep the original Binance ETH/BTC experiment **INCONCLUSIVE** and do not backtest that incomplete dataset. Do not block all research: independently implement and backtest a separately specified alternative (for example, synchronized ETH/USD divided by BTC/USD from another authorized provider) once its own data and methodology gates pass. No manual confirmation is required for the agent to launch any historical backtest within its authorized scope.
+## Latest audit execution — 2026-11-22
+
+Agent-triggered audit run [44969155096](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44969155096) completed with the expected data-quality failure on commit `41b85ddde32e346cb705d5cd4843ad6b003dda95`. Authorization, default-branch checkout, dependency installation and synthetic plumbing test passed. The all-series audit ran; empirical preflight/backtest steps were skipped; artifact upload succeeded.
+
+- Artifact ID: `14732529254`; name `eth-btc-research-9`; size 31,488 bytes; ZIP SHA-256 `dbf237352b0067ff043d36b04c90a843a233b7430cbe80ceddef97814c5718a3`.
+- Spot ETHUSDT: 59,873 of 59,904 hourly rows; 31 missing hours; zero duplicates; all requested date bounds observed.
+- Spot BTCUSDT: 59,873 of 59,904 hourly rows; same 31 missing hours; zero duplicates; all requested date bounds observed.
+- For both Spot symbols, all 31 gap-specific requests to `https://data-api.binance.vision/api/v3/klines` returned HTTP 200 with zero rows. The corresponding daily kline archives also contained no candle for the requested hours. Each gap is correctly classified `both_kline_sources_empty_trade_status_unverified`; this is **not proof of zero trades or a confirmed no-trade interval**.
+- USDⓈ-M ETHUSDT and BTCUSDT parsing both failed on the January 2022 monthly archive with `Invalid open_time values`.
+- Both USDⓈ-M funding API retrievals failed with HTTP 451 from `fapi.binance.com`; this remains a route restriction/failure, not evidence of zero funding.
+- The uploaded artifact contains the summary, two Spot monthly manifests and two Spot gap-reconciliation manifests. The summary contains all six input statuses, but dedicated failed-input manifests for the two USDⓈ-M price series and two funding series are absent from the ZIP; repair this artifact/manifest persistence gap.
+- Overall status remains **INCOMPLETE / INCONCLUSIVE**. No empirical backtest ran and no strategy performance metrics were generated.
+
+### Required adaptive next steps
+
+1. Do not repeat the identical kline REST queries or infer zero activity. Query official Spot aggregate trades for every missing hour and known-active positive-control hours for both symbols, or use official daily `aggTrades` archives with checksums. Confirm the request path, pagination boundaries, timestamp units and positive-control returns before interpreting an empty interval.
+2. Inspect the actual January 2022 USDⓈ-M archive schema, including header/no-header variants and timestamp units, then implement a parser for the verified schema with a checked-in fixture and deterministic tests. Do not drop malformed rows.
+3. Replace the blocked `fapi.binance.com` funding route with a distinct lawful data construction, such as the official Binance Vision USDⓈ-M funding-rate archives if their exact availability/schema can be verified, or an authorized independent provider. Preserve complete event timestamps and explicit failure manifests.
+4. Repair audit persistence so all six inputs always emit a manifest, including partial counts, requested bounds, source, exact failure, retry history and any acquired-input hashes. Include all six manifests in the artifact without uploading raw CSVs.
+5. In parallel, evaluate a separately specified synchronized ETH/USD divided by BTC/USD research dataset from an authorized provider. Keep it as a distinct experiment with independent data gates; do not blend it with the incomplete Binance sample.
+6. Run the full empirical study only when that experiment's own six-input/data/methodology gates pass. The original Binance ETH/BTC conclusion remains **INCONCLUSIVE** until its own evidence is sufficient.
+
