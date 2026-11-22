@@ -103,16 +103,23 @@ jobs:
                [ "$COMMENT_USER" != "takenthatusernameis-collab" ]; then
               echo "Rejected event, target, state, or actor"; exit 0
             fi
-            case "$COMMENT_BODY" in
-              "/qfr-control-smoke") COMMAND="smoke" ;;
-              "/qfr-run-eth-btc-data-audit") COMMAND="audit" ;;
-              "/qfr-run-eth-btc-empirical") COMMAND="empirical" ;;
-              *) echo "Rejected non-allowlisted command"; exit 0 ;;
-            esac
             START="2020-01-01"
             END="2026-10-31"
             MARKET="both"
             RECONCILE="true"
+            case "$COMMENT_BODY" in
+              "/qfr-control-smoke") COMMAND="smoke" ;;
+              "/qfr-run-eth-btc-data-audit") COMMAND="audit" ;;
+              "/qfr-probe-eth-btc-funding-2024-01")
+                # One-month, audit-only probe of all six inputs; never an empirical run.
+                COMMAND="audit"
+                START="2024-01-01"
+                END="2024-01-31"
+                RECONCILE="false"
+                ;;
+              "/qfr-run-eth-btc-empirical") COMMAND="empirical" ;;
+              *) echo "Rejected non-allowlisted command"; exit 0 ;;
+            esac
           else
             echo "Rejected unsupported event"; exit 0
           fi
