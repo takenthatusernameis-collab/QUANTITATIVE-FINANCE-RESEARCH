@@ -10,6 +10,7 @@ from kraken_funding_export_probe import (
     analyze_archive,
     analyze_csv_stream,
     asset_from_instrument,
+    crosscheck_archive_api,
     is_perpetual_instrument,
     parse_timestamp_ms,
 )
@@ -29,6 +30,8 @@ class KrakenFundingExportProbeTests(unittest.TestCase):
                  "lastTradingTime": "2026-01-01T00:00:00.000Z"}
         self.assertEqual(asset_from_instrument(inverse), "BTC")
         self.assertEqual(asset_from_instrument(linear), "ETH")
+        self.assertIsNone(asset_from_instrument({"symbol": "PF_ETHFIUSD", "base": "ETHFI"}))
+        self.assertIsNone(asset_from_instrument({"symbol": "PF_AIXBTUSD", "base": "AIXBT"}))
         self.assertTrue(is_perpetual_instrument(inverse))
         self.assertTrue(is_perpetual_instrument(linear))
         self.assertFalse(is_perpetual_instrument(dated))
@@ -47,9 +50,50 @@ class KrakenFundingExportProbeTests(unittest.TestCase):
         self.assertEqual(result["out_of_order_timestamp_count"], 1)
         self.assertEqual(result["rate_fields"]["fundingRate"]["min"], -0.001)
         self.assertEqual(result["rate_fields"]["relativeFundingRate"]["max"], 0.02)
+        self.assertEqual(result["null_counts"]["timestamp"], 0)
         self.assertEqual(result["null_counts"]["note"], 1)
         self.assertIn({"hours": 4.0, "count": 1}, result["cadence_hours_top"])
         self.assertEqual(len(result["crosscheck_samples"]), 4)
+
+    def test_csv_summary_keeps_kraken_export_absolute_and_relative_rate_columns(self):
+        csv_text = (
+            "timestamp,tradeable,absolute_rate,relative_rate\n"
+            "2026-01-01 00:00:00,true,0.0000001,0.001\n"
+            "2026-01-01 01:00:00,false,-0.0000002,-0.002\n"
+        )
+        result = analyze_csv_stream(io.StringIO(csv_text))
+        self.assertEqual(result["rate_fields"]["absolute_rate"]["min"], -0.0000002)
+        self.assertEqual(result["rate_fields"]["relative_rate"]["max"], 0.001)
+        self.assertEqual(result["categorical_value_counts"]["tradeable"], {"true": 1, "false": 1})
+        self.assertEqual(result["null_counts"]["tradeable"], 0)
+
+    def test_archive_to_api_overlap_crosscheck_maps_both_rate_fields_without_merging_them(self):
+        archive = {
+            "symbol": "PF_XBTUSD",
+            "data_summary": {
+                "first_timestamp": "2026-01-01 00:00:00",
+                "last_timestamp": "2026-01-01 01:00:00",
+                "_api_crosscheck_rows": [
+                    {"timestamp": "2026-01-01 00:00:00", "timestamp_ms": 1767225600000,
+                     "rates": {"absolute_rate": "0.0001", "relative_rate": "0.01"}},
+                    {"timestamp": "2026-01-01 01:00:00", "timestamp_ms": 1767229200000,
+                     "rates": {"absolute_rate": "-0.0002", "relative_rate": "-0.02"}},
+                ],
+            },
+        }
+        api = {
+            "symbol": "PF_XBTUSD", "status": 200, "result": "success", "rate_count": 2,
+            "first_timestamp": "2026-01-01T00:00:00Z", "last_timestamp": "2026-01-01T01:00:00Z",
+            "rates": [
+                {"timestamp": "2026-01-01T00:00:00Z", "fundingRate": 0.0001, "relativeFundingRate": 0.01},
+                {"timestamp": "2026-01-01T01:00:00Z", "fundingRate": -0.0002, "relativeFundingRate": -0.02},
+            ],
+        }
+        result = crosscheck_archive_api(archive, api)
+        self.assertEqual(result["matched_timestamps"], 2)
+        self.assertTrue(result["timestamp_sets_equal"])
+        self.assertTrue(result["rate_field_comparisons"]["absolute_rate -> fundingRate"]["all_compared_values_equal_with_tolerance"])
+        self.assertTrue(result["rate_field_comparisons"]["relative_rate -> relativeFundingRate"]["all_compared_values_equal_with_tolerance"])
 
     def test_archive_only_analyzes_identified_perpetual_csvs(self):
         instruments = [
@@ -74,13 +118,22 @@ class KrakenFundingExportProbeTests(unittest.TestCase):
                     "timestamp,fundingRate\n2026-01-01T00:00:00.000Z,0.001\n",
                 )
                 archive.writestr(
+                    "PF_ETHFIUSD.csv",
+                    "timestamp,fundingRate\\n2026-01-01T00:00:00.000Z,0.003\\n",
+                )
+                archive.writestr(
+                    "__MACOSX/exports/._PF_XBTUSD.csv",
+                    "not,a,real,csv\\n",
+                )
+                archive.writestr(
                     "PF_ETHUSD.csv",
                     "timestamp,fundingRate\n2026-01-01T00:00:00.000Z,0.003\n",
                 )
             result = analyze_archive(archive_path, instruments)
         self.assertTrue(result["zip_valid"])
-        self.assertEqual(result["archive_member_count"], 3)
+        self.assertEqual(result["archive_member_count"], 5)
         self.assertEqual(len(result["perpetual_csv_summaries"]), 2)
+        self.assertEqual(result["ignored_macos_metadata_members"], 1)
         symbols = {item["symbol"] for item in result["perpetual_csv_summaries"]}
         self.assertEqual(symbols, {"PI_XBTUSD", "PF_ETHUSD"})
         self.assertEqual(
