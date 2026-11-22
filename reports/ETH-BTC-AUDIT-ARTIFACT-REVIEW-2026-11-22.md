@@ -4,6 +4,9 @@
 **Status:** Audit artifact review completed; six-input acceptance not met; empirical study remains **INCONCLUSIVE**.  
 **Scope:** Historical research and data engineering only. No live trading, capital deployment, credentials, or strategy promotion.
 
+
+> **Historical evidence snapshot:** Preserve the findings and timestamps below as the record of the execution period. Any operational instructions referring to manual workflow activation, unavailable dispatch, or repeating the same blocked route are superseded by the current [autonomous execution standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md), [dispatch runbook](../docs/CHATGPT-WORKFLOW-DISPATCH.md), and active [ingestion task](../tasks/ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md). Do not rewrite historical results; use current controls for new work.
+
 ## 1. Execution verification
 
 | Field | Verified value |
