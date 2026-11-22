@@ -281,14 +281,18 @@ def run_probe(output_dir: Path, inspect_field_info: bool = False) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--inspect-field-info", action="store_true",
+                      help="Click only the Field information control after the modal opens.")
     args = parser.parse_args()
-    result = run_probe(args.output_dir)
+    result = run_probe(args.output_dir, inspect_field_info=args.inspect_field_info)
     print(json.dumps({
         "status": result.get("status"),
         "http_status": result.get("http_status"),
         "target_identification": result.get("target_identification"),
         "target_actionability": result.get("target_actionability"),
         "button_clicked": result.get("button_clicked"),
+        "field_info_status": result.get("field_info_status"),
+        "field_info_snapshot": result.get("field_info_snapshot"),
         "download_events": result.get("download_events"),
         "click_error": result.get("click_error"),
         "error": result.get("error"),
