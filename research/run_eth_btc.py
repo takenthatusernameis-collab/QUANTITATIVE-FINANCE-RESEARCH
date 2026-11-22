@@ -165,29 +165,79 @@ def hourly_quality(index: pd.DatetimeIndex, start: str, end: str,
 
 
 def parse_kline_archive(payload: bytes, url: str) -> pd.DataFrame:
-    """Parse a Binance Vision kline ZIP and normalize timestamp units."""
+    """Parse a Binance Vision kline ZIP with explicit header and timestamp schemas."""
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
         csv_names = [name for name in archive.namelist() if name.lower().endswith(".csv")]
-        if not csv_names:
-            raise ValueError(f"No CSV in {url}")
-        raw = pd.read_csv(archive.open(csv_names[0]), header=None)
+        if len(csv_names) != 1:
+            raise ValueError(f"Expected exactly one kline CSV in {url}; found {len(csv_names)}")
+        raw = pd.read_csv(
+            archive.open(csv_names[0]), header=None, dtype=str, keep_default_na=False
+        )
     if raw.empty:
         result = pd.DataFrame(columns=["timestamp", "open", "high", "low", "close", "volume", "quote_volume"])
         result.attrs["timestamp_unit"] = None
+        result.attrs["header_detected"] = False
         return result
-    if raw.shape[1] < 8:
+    if raw.shape[1] < 8 or raw.shape[1] > len(COLUMNS):
         raise ValueError(f"Unexpected kline CSV schema in {url}: {raw.shape[1]} columns")
-    raw = raw.iloc[:, :len(COLUMNS)]
-    raw.columns = COLUMNS[:raw.shape[1]]
+
+    width = raw.shape[1]
+    aliases = {
+        "count": "trade_count",
+        "taker_buy_volume": "taker_buy_base",
+        "taker_buy_base_volume": "taker_buy_base",
+        "taker_buy_quote_volume": "taker_buy_quote",
+    }
+    first_row = [
+        aliases.get(str(value).strip().lower().replace(" ", "_"),
+                    str(value).strip().lower().replace(" ", "_"))
+        for value in raw.iloc[0].tolist()
+    ]
+    expected_header = COLUMNS[:width]
+    header_detected = first_row[0] in {"open_time", "open time"}
+    if header_detected:
+        if first_row != expected_header:
+            raise ValueError(
+                f"Unsupported kline header schema in {url}: "
+                f"observed={first_row}; expected={expected_header}"
+            )
+        raw = raw.iloc[1:].reset_index(drop=True)
+
+    if raw.empty:
+        result = pd.DataFrame(columns=["timestamp", "open", "high", "low", "close", "volume", "quote_volume"])
+        result.attrs["timestamp_unit"] = None
+        result.attrs["header_detected"] = header_detected
+        return result
+
+    raw.columns = COLUMNS[:width]
     raw["open_time"] = pd.to_numeric(raw["open_time"], errors="coerce")
-    if raw["open_time"].isna().any():
-        raise ValueError(f"Invalid open_time values in {url}")
-    unit = "us" if raw["open_time"].median() > 10**14 else "ms"
+    invalid_open = raw["open_time"].isna() | ~np.isfinite(raw["open_time"].to_numpy(dtype=float))
+    if invalid_open.any():
+        samples = raw.loc[invalid_open, "open_time"].head(3).tolist()
+        raise ValueError(
+            f"Invalid open_time values in {url}; rows={int(invalid_open.sum())}; samples={samples}"
+        )
+
+    median_open = float(raw["open_time"].median())
+    if median_open < 10**11:
+        raise ValueError(f"Unsupported kline timestamp scale in {url}: median={median_open}")
+    unit = "us" if median_open > 10**14 else "ms"
     raw["timestamp"] = pd.to_datetime(raw["open_time"], unit=unit, utc=True)
-    for column in ("open", "high", "low", "close", "volume", "quote_volume"):
+
+    numeric_columns = ("open", "high", "low", "close", "volume", "quote_volume")
+    for column in numeric_columns:
         raw[column] = pd.to_numeric(raw[column], errors="coerce")
+        values = raw[column].to_numpy(dtype=float)
+        invalid = raw[column].isna() | ~np.isfinite(values)
+        if invalid.any():
+            samples = raw.loc[invalid, column].head(3).tolist()
+            raise ValueError(
+                f"Invalid {column} values in {url}; rows={int(invalid.sum())}; samples={samples}"
+            )
+
     result = raw[["timestamp", "open", "high", "low", "close", "volume", "quote_volume"]].copy()
     result.attrs["timestamp_unit"] = unit
+    result.attrs["header_detected"] = header_detected
     return result
 
 
@@ -234,6 +284,7 @@ def download_klines(market: str, symbol: str, start: str, end: str, data_dir: Pa
     frames = []
     archive_manifest = []
     missing_months = []
+    parse_errors = []
     for month in month_starts(start, end):
         tag = month.strftime("%Y-%m")
         filename = f"{symbol}-1h-{tag}.zip"
@@ -245,7 +296,20 @@ def download_klines(market: str, symbol: str, start: str, end: str, data_dir: Pa
             archive_manifest.append({"month": tag, "url": url, "status": "missing_http_404"})
             missing_months.append(tag)
             continue
-        raw = parse_kline_archive(payload, url)
+        try:
+            raw = parse_kline_archive(payload, url)
+        except Exception as exc:
+            error = f"{type(exc).__name__}: {exc}"
+            parse_errors.append({"month": tag, "url": url, "error": error})
+            archive_manifest.append({
+                "month": tag, "url": url, "status": "parse_failed",
+                "archive_sha256": hashlib.sha256(payload).hexdigest(),
+                "checksum_verified": checksum_verified,
+                "checksum_error": checksum_error,
+                "error": error,
+            })
+            time.sleep(0.03)
+            continue
         if raw.empty:
             archive_manifest.append({"month": tag, "url": url, "status": "empty_archive"})
             missing_months.append(tag)
@@ -256,10 +320,8 @@ def download_klines(market: str, symbol: str, start: str, end: str, data_dir: Pa
             "archive_sha256": hashlib.sha256(payload).hexdigest(),
             "checksum_verified": checksum_verified, "checksum_error": checksum_error,
             "rows": int(len(raw)), "timestamp_unit": unit,
+            "header_detected": bool(raw.attrs.get("header_detected", False)),
         })
-        for col in ("open", "high", "low", "close", "volume", "quote_volume"):
-            if col in raw:
-                raw[col] = pd.to_numeric(raw[col], errors="coerce")
         frames.append(raw[["timestamp", "open", "high", "low", "close", "volume", "quote_volume"]])
         time.sleep(0.03)
 
@@ -267,13 +329,17 @@ def download_klines(market: str, symbol: str, start: str, end: str, data_dir: Pa
         manifest = {
             "market": market, "symbol": symbol, "requested_start": start,
             "requested_end_inclusive": end, "archives": archive_manifest,
-            "missing_archive_months": missing_months, "data_quality": None,
+            "missing_archive_months": missing_months, "parse_errors": parse_errors,
+            "data_quality": None, "status": "failed",
         }
         out_path = data_dir / "raw" / f"{market}_{symbol}_1h.csv"
         manifest_path = data_dir / "raw" / f"{market}_{symbol}_archive_manifest.json"
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         manifest_path.write_text(json.dumps(manifest, indent=2))
-        raise RuntimeError(f"No {market} data downloaded for {symbol}; see {manifest_path}")
+        raise RuntimeError(
+            f"No {market} data downloaded for {symbol}; parse_errors={len(parse_errors)}; "
+            f"see {manifest_path}"
+        )
 
     combined = pd.concat(frames, ignore_index=True).sort_values("timestamp")
     quality = hourly_quality(pd.DatetimeIndex(combined["timestamp"]), start, end, archive_manifest)
@@ -287,15 +353,17 @@ def download_klines(market: str, symbol: str, start: str, end: str, data_dir: Pa
         "market": market, "symbol": symbol, "requested_start": start,
         "requested_end_inclusive": end, "archives": archive_manifest,
         "missing_archive_months": missing_months,
+        "parse_errors": parse_errors,
         "data_quality": quality,
         "consolidated_csv_sha256": hashlib.sha256(out_path.read_bytes()).hexdigest(),
+        "status": "complete" if not missing_months and not parse_errors and not duplicate_count and quality["complete"] else "incomplete",
     }
     manifest_path.write_text(json.dumps(manifest, indent=2))
-    if missing_months or duplicate_count or not quality["complete"]:
+    if missing_months or parse_errors or duplicate_count or not quality["complete"]:
         raise RuntimeError(
             f"Incomplete {market} {symbol} data: missing archives={missing_months}, "
-            f"duplicates={duplicate_count}, missing hours={quality['missing_hourly_bars']}; "
-            f"inspect {manifest_path}"
+            f"parse errors={len(parse_errors)}, duplicates={duplicate_count}, "
+            f"missing hours={quality['missing_hourly_bars']}; inspect {manifest_path}"
         )
     return out_path
 
