@@ -19,6 +19,45 @@ An agent's responsibility is not merely to execute the initially proposed method
 5. **Evidence before status claims.** A configured workflow is not a successful run; an accepted comment is not proof of a triggered run; a synthetic test is not empirical evidence; and a missing result is not a negative research finding.
 6. **Learn from every failure.** Preserve the exact error, diagnosed cause, attempted route, observed result, and next alternative. Do not force the next agent to rediscover the same limitation.
 
+## Mandatory autonomy: research must not wait for routine human intervention
+
+**Default rule: execute.** Historical backtests, data audits, public-market-data retrieval, parser repairs, provider comparisons, hypothesis tests, synthetic tests, CI, artifact retrieval, reporting, and repository changes within the connected agent's existing authorized scope are ordinary research operations. The agent must perform them without asking the user to click a button, confirm a routine step, approve a known-safe rerun, or manually start a workflow.
+
+A workflow that requires the human to activate routine research is an engineering defect. A conclusion such as "the backtest is ready but I must wait for manual confirmation to launch it" is **FAILURE**, not a completed handoff. Repair the trigger, use the verified agent-controlled event path, or move the execution to another authorized runner. Never present manual UI activation as the recommended next step or leave a research task dormant solely because a routine trigger is missing.
+
+This rule does **not** authorize unsafe access or live financial actions. Pause only the specific unsafe operation for a genuine security/legal/financial-risk boundary, such as:
+- suspected credential exposure, compromised identity, or secret exfiltration;
+- executing untrusted code or allowing untrusted event data to reach a privileged runner;
+- obtaining or using a permission, credential, private dataset, or repository scope that the connected identity is not authorized to access;
+- bypassing a legal, contractual, geographic, or provider access restriction (including an HTTP 451 restriction);
+- live order placement, capital deployment, custody changes, or strategy promotion that has not been separately authorized.
+
+Do not classify ordinary missing data, an unavailable endpoint, a parser error, dependency setup, runner selection, CI activation, or a failed historical backtest as a security issue. A provider's access restriction must be respected; change to a lawful, authorized source rather than circumventing the restriction. If a genuinely owner-only security grant is indispensable and no authorized alternative exists, isolate that one action, prepare the smallest exact prerequisite once, and continue all independent research and engineering work. Never make the entire research loop wait for it.
+
+**Measure manual dependency as failure.** Record every human intervention requested or required, its cause, whether it was genuinely security-critical, and the corrective automation. The target is zero routine human interventions. A task is not autonomously complete if a person had to click "Run workflow", manually approve a normal backtest, transfer ordinary artifacts, or repeatedly answer questions that the agent could resolve through authorized tools.
+
+## Mandatory response to repeated failure: change the approach
+
+An error is evidence that an approach may be wrong—not an instruction to keep repeating it. The first meaningful failure requires root-cause diagnosis and a materially different alternative. After two independent occurrences of the same non-transient error on the same route, stop that route; do not repeat the same endpoint, parameters, data representation, parser, or model unchanged. Repeating an identical failed attempt without new evidence is a process failure.
+
+For every material bottleneck:
+1. Preserve the error, response code, request parameters, time window, source, content hash, parser/schema, and exact failing stage.
+2. Separate transient transport failure, provider restriction, data absence, source-format change, implementation bug, and an invalid research/model assumption.
+3. Generate at least three materially different responses where applicable: change endpoint/official archive route; change authorized data provider or venue; change data construction or pipeline composition; change time resolution/sample scope; or replace the unworkable model/hypothesis with a separately specified alternative.
+4. Test the cheapest representative slice first, including a known-good positive control and the failure case. Confirm the new route returns valid non-empty observations where expected, correct timestamps, units, schema and source provenance.
+5. If it passes, scale the method with bounded, resumable acquisition and content hashes. If it fails, record why and move to the next distinct approach.
+6. If the original study cannot be implemented with realistic accessible evidence, stop spending cycles on that exact design. Preserve its **INCONCLUSIVE/INFEASIBLE** status, then formulate and test a more feasible research question or model. Do not fabricate evidence, weaken the original acceptance gates, or retroactively relabel a different study as the original one.
+
+### Required quantitative-finance examples
+
+**Negative example — repeated failure:** the same ETHUSDT/BTCUSDT monthly archives repeatedly produce the same 31 missing hours; the same `api.binance.com` endpoint repeatedly returns HTTP 451; the same aggregate-trades connector returns empty for both missing and known-active controls; or the same USDⓈ-M parser repeatedly fails on the January 2022 archive. Re-downloading the same files, retrying the same restricted host, or merely restating that the blocker persists adds no evidence. Asking the owner to manually start the next backtest is also failure.
+
+**Positive example — redesign the evidence path:** independently acquire synchronized ETH/USD and BTC/USD OHLCV series from an authorized provider, validate each series and compute the synthetic cross rate as (P_{ETH/BTC,t}=P_{ETH/USD,t}/P_{BTC/USD,t}). For log-spread models, use (log(P_{ETH/USD,t})-log(P_{BTC/USD,t})). Verify both series use the same quote currency, compatible venue/market conventions, UTC bar boundaries and timestamps; align only on genuinely observed common intervals; retain each source's provenance; do not forward-fill missing bars or assume USDT/USD equals one. If quote currencies differ, acquire and validate the conversion series explicitly. Compare the derived ratio against a direct ETHBTC market series when available.
+
+Other valid alternatives include a different authorized exchange/provider, raw trade-level aggregation, official daily archives instead of an inaccessible REST host, a shorter independently validated sample, a different bar frequency, or a model that does not require the failed data representation. A new sample or model is a distinct experiment: pre-specify its hypothesis, scope, costs, controls and acceptance criteria before evaluating its performance.
+
+**Backtest activation rule:** once a historical research run meets its machine-checkable data, code, and pre-registered methodology gates, the agent must launch it through an authorized agent-triggered workflow without routine human confirmation. Add and verify an allowlisted command for every required research workflow. A failing data gate should fail the run clearly and automatically; it must never silently bypass validation. A workflow trigger being agent-controlled and a dataset being empirically valid are separate requirements.
+
 ## Adaptive contingency loop
 
 Use this loop whenever a task encounters a blocker or a proposed mechanism is unavailable.
@@ -84,7 +123,7 @@ For data access, it means testing the exact endpoint, symbol, time range, schema
 - After two independent instances of the same explicit permission denial, do not repeat the identical call. Change the access route, execution environment, or permission design.
 - If an alternative fails, record why and select the next materially different option.
 - Do not keep creating near-identical workflows or repeatedly dispatching an unchanged failing experiment.
-- Do not create broad `push` or recurring `schedule` triggers merely to force progress.
+- Do not create broad `push` or recurring `schedule` triggers merely to force progress. Prefer exact, allowlisted agent-triggered commands for routine audits and historical backtests; missing activation is an engineering failure to repair, not a reason to request a human click.
 - If all safe autonomous routes require an owner-only permission or credential, finish every independently executable part, prepare the exact minimal setup, and state the single precise owner prerequisite. Continue the rest of the research/engineering work where possible.
 
 ### 7. Persist the learning
