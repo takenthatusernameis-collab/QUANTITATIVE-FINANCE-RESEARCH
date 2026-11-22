@@ -273,7 +273,7 @@ def run_probe(output_dir: Path, inspect_field_info: bool = False, inspect_symbol
                                           const clean=s=>(s||'').replace(/\\s+/g,' ').trim();
                                           return {tag:el.tagName.toLowerCase(),role:el.getAttribute('role'),
                                             ariaExpanded:el.getAttribute('aria-expanded'),visible:r.width>0&&r.height>0,
-                                            disabled:!!el.disabled,unobstructed:!!top&&(top===el||el.contains(top),
+                                            disabled:!!el.disabled,unobstructed:!!top&&(top===el||el.contains(top)),
                                             blocker:top?{tag:top.tagName.toLowerCase(),text:clean(top.innerText||top.textContent).slice(0,160),
                                               aria:top.getAttribute('aria-label'),class:String(top.className||'').slice(0,160)}:null};
                                         }""")
