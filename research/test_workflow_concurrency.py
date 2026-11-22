@@ -12,7 +12,7 @@ WORKFLOW_PATH = ROOT / ".github" / "workflows" / "eth-btc-research.yml"
 class WorkflowConcurrencyPolicyTests(unittest.TestCase):
     def test_untrusted_issue_comments_do_not_block_the_authorized_research_queue(self):
         workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
-        match = re.search(r"(?m)^  group: (\\$\\{\\{.*\\}\\})$", workflow)
+        match = re.search(r"(?m)^  group: (\$\{\{.*\}\})$", workflow)
         self.assertIsNotNone(match, "workflow-level concurrency group must be explicit")
         expression = match.group(1)
 
@@ -31,7 +31,7 @@ class WorkflowConcurrencyPolicyTests(unittest.TestCase):
 
         authorization_block = workflow.split('case "$COMMENT_BODY" in', 1)[1].split("esac", 1)[0]
         authorization_commands = set(
-            re.findall(r'^\\s*"(/qfr-[^"]+)"\\)', authorization_block, re.MULTILINE)
+            re.findall(r'^\s*"(/qfr-[^"]+)"\)', authorization_block, re.MULTILINE)
         )
         concurrency_commands = set(re.findall(r'"(/qfr-[^"]+)"', expression))
         self.assertEqual(concurrency_commands, authorization_commands)
