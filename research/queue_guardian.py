@@ -232,6 +232,13 @@ def process_queue(api: GitHubAPI, now: datetime, dry_run: bool = False) -> dict[
             report["actions"].append(action)
             continue
         try:
+            existing_incident = api.find_incident_issue(run_id)
+            if existing_incident:
+                action["result"] = "EXISTING_INCIDENT_NO_REPEAT_CANCELLATION"
+                action["issue_number"] = existing_incident.get("number")
+                action["issue_url"] = existing_incident.get("html_url")
+                report["actions"].append(action)
+                continue
             fresh = api.get_run(run_id)
             fresh_decision = queue_decision(fresh, api.list_all_runs(), now)
             if fresh_decision["action"] == "preserve_same_group_wait":
@@ -265,6 +272,11 @@ def process_queue(api: GitHubAPI, now: datetime, dry_run: bool = False) -> dict[
                 incident_state = "CANCELLED"
             elif latest.get("status") == "in_progress":
                 action["result"] = "STARTED_DURING_CANCELLATION_RACE"
+                report["actions"].append(action)
+                continue
+            elif latest.get("status") == "completed":
+                action["result"] = "COMPLETED_DURING_CANCELLATION_RACE"
+                action["latest_conclusion"] = latest.get("conclusion")
                 report["actions"].append(action)
                 continue
             else:
