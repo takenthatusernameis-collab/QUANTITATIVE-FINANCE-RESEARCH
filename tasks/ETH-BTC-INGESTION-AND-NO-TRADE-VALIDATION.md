@@ -87,11 +87,12 @@ Do not bypass legal/provider access restrictions (including HTTP 451); switch to
 - Validate timestamp units and date bounds, monotonicity, duplicates, finite OHLCV values, expected archive coverage, and checksum sidecars.
 - Add deterministic tests for header/no-header archives, millisecond/microsecond timestamps, invalid rows, and the exact January 2022 failure fixture.
 
-### 4. Replace or adapt funding retrieval
+### 4. Funding route replacement — implemented; verification pending
 
-- Diagnose the HTTP 451 response to `fapi.binance.com` and test materially different official data routes rather than retrying the same endpoint unchanged.
-- Evaluate the official Binance Vision USDⓈ-M monthly `fundingRate` archive route and its checksum sidecars. Inspect the actual CSV schema before implementing the parser; do not assume a fixed eight-hour cadence.
-- Audit ETH and BTC funding from 2020-01-01 through 2026-10-31 for requested/observed bounds, pages or archive months, timestamp normalization, duplicate events, chronology, cadence/gaps, and content hashes.
+- The HTTP-451 `fapi.binance.com/fapi/v1/fundingRate` route has been removed from `research/run_eth_btc.py` in favor of the official Binance Vision USDⓈ-M monthly `fundingRate` ZIP route. The implementation requires a verified `.CHECKSUM`, parses the candidate `calc_time/funding_interval_hours/last_funding_rate` schema, validates UTC month bounds and numeric/interval fields, and writes archive hashes and per-month failures.
+- Deterministic regression tests cover checksum rejection, schema ingestion, the pipeline's `fundingRate` output contract, and fail-closed semantics. Latest test run [44973336934](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44973336934) was pending at the last check; do not claim a pass until verified.
+- Next execute a bounded representative ETH and BTC month probe via the authorized hosted runner. Confirm the actual archive exists, its published checksum matches, the production schema matches the parser, and timestamps/interval metadata are internally consistent before expanding to the full requested history.
+- Binance public-data issue [#517](https://github.com/binance/binance-public-data/issues/517) leaves settlement-population/event semantics unresolved. The downloader therefore retains data/manifests with `event_semantics=UNVERIFIED` and `completeness_status=PROVISIONAL_NOT_ACCEPTED`, then raises to block empirical use. This is an intentional fail-closed state, not a successful funding-completeness result.
 - Missing funding events must remain missing/failed evidence; never substitute zero funding.
 
 ### 5. Make the non-fail-fast audit genuinely complete
