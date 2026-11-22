@@ -926,5 +926,14 @@ class ResearchPipelineTests(unittest.TestCase):
             )
 
 
+class DocumentationConsistencyTests(unittest.TestCase):
+    def test_research_readme_describes_production_event_time_integration(self):
+        readme = Path(__file__).with_name("README.md").read_text()
+        self.assertIn("integrated into the production Spot walk-forward path", readme)
+        self.assertIn("The Spot gate remains fail-closed", readme)
+        self.assertNotIn("production walk-forward pipeline does not yet consume it", readme)
+        self.assertNotIn("Event-time accounting prototype (not yet accepted for empirical use)", readme)
+
+
 if __name__ == "__main__":
     unittest.main()
