@@ -1,6 +1,6 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-22 21:26 UTC  
+**Updated:** 2026-11-22 21:34 UTC  
 **Canonical active-task pointer:** [ETH/BTC ingestion and no-trade validation](ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md).
 
 ## Governing priority
@@ -15,6 +15,13 @@ Apply the single authoritative [seven-level adaptive decision hierarchy](../docs
 - **Decision:** OKX anonymous UI route is **UNACCEPTED / NO SAMPLE**; not proof of global unavailability. Stop repeating probes and do not change regions, accept cookies or bypass restrictions. Funding acceptance remains closed; no perpetual backtest.
 - **Next focus:** The newly identified official Kraken historical-funding CSV export is the highest-value no-purchase candidate for a separate venue pilot; inspect it through the authorized hosted browser and validate exact BTC/ETH perpetual symbols, schema, coverage and API overlap before accepting anything. See [the Kraken/Gate/Coinbase source screen](../reports/ETH-BTC-KRAKEN-GATE-COINBASE-FUNDING-SCREEN-2026-11-22.md). Gate.io is secondary because its public funding endpoint documents only `contract` and `limit`, with no time-range/cursor parameters. Coinbase historical funding is documented as available upon request, not as a public self-service export. Keep all venue data separate; keep Binance's perpetual gate closed. Do not repeat exhausted OKX no-sample or runner-blocked routes, and do not purchase paid data without owner authorization. Keep the cache warm range bounded until retention and weekly schedule reliability are measured.
 
+
+## P1 documentation regression coverage — 2026-11-22 21:34 UTC
+
+- The research test workflow previously triggered only for `research/**` and a small subset of workflow files. README, task, report and general documentation-only changes could therefore bypass the repository's documentation-consistency regression tests.
+- Updated [`.github/workflows/research-tests.yml`](../.github/workflows/research-tests.yml) so both push and pull-request triggers include `README.md`, `docs/**`, `tasks/**`, `reports/**`, and all `.github/workflows/**`, alongside `research/**`.
+- Verification: [CI run 45072764306](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45072764306) on commit [358f1bc](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/358f1bca7ec574cab325e7ee812580d66df88189) passed **153 deterministic tests** in 14.446 seconds and the synthetic plumbing self-test.
+- This closes the docs-only CI blind spot. It does not change strategy code, data acceptance, funding gates or live-trading boundaries.
 
 ## Latest P1 queue-guardian verification — 2026-11-22 21:17 UTC
 
