@@ -318,5 +318,50 @@ class PooledEventTimeOOSTests(unittest.TestCase):
             )
 
 
+class EventTimeBootstrapSensitivityTests(unittest.TestCase):
+    def test_pooled_oos_reports_three_calendar_block_lengths(self):
+        rows = []
+        base = pd.Timestamp("2024-01-01T00:00:00Z")
+        for fold, offset_days in ((1, 0), (2, 100)):
+            for day in range(21):
+                gross = 0.001 * np.sin(day * 0.7) + 0.0002 * np.cos(day * 0.23)
+                cost = 0.0001 if day % 5 == 0 else 0.0
+                timestamp = base + pd.Timedelta(days=offset_days + day)
+                rows.append({
+                    "timestamp": timestamp,
+                    "market": "spot",
+                    "interval": "1h",
+                    "fold": fold,
+                    "variant": "rolling_hedge",
+                    "elapsed_seconds": 0.0 if day == 0 else 86400.0,
+                    "gross_return": gross,
+                    "cost": cost,
+                    "funding_pnl": 0.0,
+                    "borrow_cost": 0.0,
+                    "net_return": gross - cost,
+                    "turnover": 0.5 if cost else 0.0,
+                })
+        summary = event_time_pooled_oos_summary(
+            pd.DataFrame(rows),
+            block_days=(3.0, 7.0, 14.0),
+            primary_block_days=7.0,
+            n_bootstrap=25,
+            seed=33,
+        )
+        base_row = summary.loc[summary["cost_multiplier"] == 1.0].iloc[0]
+        self.assertEqual(base_row["bootstrap_block_days"], "3,7,14")
+        self.assertEqual(base_row["bootstrap_primary_block_days"], 7.0)
+        self.assertEqual(base_row["bootstrap_total_replicates"], 75)
+        for suffix in ("3d", "7d", "14d"):
+            self.assertTrue(np.isfinite(base_row[f"continuous_time_sharpe_ci_lower_{suffix}"]))
+            self.assertTrue(np.isfinite(base_row[f"continuous_time_sharpe_ci_upper_{suffix}"]))
+        self.assertEqual(
+            base_row["continuous_time_sharpe_ci_lower"],
+            base_row["continuous_time_sharpe_ci_lower_7d"],
+        )
+        cost_rows = summary.loc[summary["cost_multiplier"] > 1.0]
+        self.assertTrue(cost_rows["CAGR_ci_lower_3d"].isna().all())
+
+
 if __name__ == "__main__":
     unittest.main()
