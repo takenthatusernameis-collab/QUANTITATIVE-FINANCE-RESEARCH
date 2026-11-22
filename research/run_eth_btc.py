@@ -1343,7 +1343,7 @@ def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> di
 
 def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
                      reconcile_gaps: bool = False) -> dict:
-    """Audit all four price series and both funding histories without fail-fast behavior."""
+    """Audit all six inputs and always persist one artifact-ready manifest per input."""
     summary = {
         "start": start,
         "end": end,
@@ -1352,17 +1352,25 @@ def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
         "gap_reconciliation": None,
         "complete": False,
     }
+    expected_manifest_paths = []
+
     for market in ("spot", "um"):
         for symbol in SYMBOLS:
             key = f"{market}_{symbol}"
             csv_path = data_dir / "raw" / f"{market}_{symbol}_1h.csv"
             manifest_path = data_dir / "raw" / f"{market}_{symbol}_archive_manifest.json"
+            source_base = "spot" if market == "spot" else "futures/um"
+            source = (
+                f"https://data.binance.vision/data/{source_base}/monthly/klines/"
+                f"{symbol}/1h/"
+            )
             record = {
                 "market": market,
                 "symbol": symbol,
                 "status": "not_run",
                 "csv_path": str(csv_path),
                 "manifest_path": str(manifest_path),
+                "source": source,
             }
             try:
                 download_klines(market, symbol, start, end, data_dir)
@@ -1370,24 +1378,68 @@ def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
             except Exception as exc:
                 record["status"] = "failed"
                 record["error"] = f"{type(exc).__name__}: {exc}"
+
+            manifest_path.parent.mkdir(parents=True, exist_ok=True)
             if manifest_path.exists():
-                manifest = json.loads(manifest_path.read_text())
-                record["data_quality"] = manifest.get("data_quality")
-                record["missing_archive_months"] = manifest.get("missing_archive_months", [])
-                record["manifest_sha256"] = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
-                if record["data_quality"] and not record["data_quality"].get("complete", False):
+                try:
+                    manifest = json.loads(manifest_path.read_text())
+                except Exception as exc:
+                    manifest = {
+                        "manifest_read_error": f"{type(exc).__name__}: {exc}",
+                        "archives": [],
+                    }
+            else:
+                manifest = {
+                    "market": market,
+                    "symbol": symbol,
+                    "requested_start": start,
+                    "requested_end_inclusive": end,
+                    "source": source,
+                    "archives": [],
+                    "missing_archive_months": [],
+                    "data_quality": None,
+                }
+
+            quality = manifest.get("data_quality")
+            if record["status"] == "complete" and not (
+                isinstance(quality, dict) and quality.get("complete", False)
+            ):
+                record["status"] = "failed"
+                record["error"] = (
+                    "Downloader returned without a complete data-quality manifest"
+                )
+            elif record["status"] == "failed" and isinstance(quality, dict):
+                if not quality.get("complete", False):
                     record["status"] = "incomplete"
+
+            manifest["market"] = market
+            manifest["symbol"] = symbol
+            manifest["requested_start"] = start
+            manifest["requested_end_inclusive"] = end
+            manifest["source"] = source
+            manifest["audit_status"] = record["status"]
+            if record.get("error"):
+                manifest["audit_error"] = record["error"]
+            manifest_path.write_text(json.dumps(manifest, indent=2))
+
+            record["data_quality"] = manifest.get("data_quality")
+            record["missing_archive_months"] = manifest.get("missing_archive_months", [])
+            record["manifest_sha256"] = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+            record["manifest_status"] = manifest.get("status", record["status"])
             summary["price_series"][key] = record
+            expected_manifest_paths.append(manifest_path)
 
     for symbol in SYMBOLS:
         key = f"um_{symbol}_funding"
         csv_path = data_dir / "raw" / f"um_{symbol}_funding.csv"
         manifest_path = data_dir / "raw" / f"um_{symbol}_funding_manifest.json"
+        source = "https://fapi.binance.com/fapi/v1/fundingRate"
         record = {
             "symbol": symbol,
             "status": "not_run",
             "csv_path": str(csv_path),
             "manifest_path": str(manifest_path),
+            "source": source,
         }
         try:
             download_funding(symbol, start, end, data_dir)
@@ -1395,13 +1447,56 @@ def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
         except Exception as exc:
             record["status"] = "failed"
             record["error"] = f"{type(exc).__name__}: {exc}"
+
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
         if manifest_path.exists():
-            manifest = json.loads(manifest_path.read_text())
-            record["data_quality"] = manifest.get("data_quality")
-            record["manifest_sha256"] = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
-            if record["data_quality"] and not record["data_quality"].get("complete", False):
+            try:
+                manifest = json.loads(manifest_path.read_text())
+            except Exception as exc:
+                manifest = {"manifest_read_error": f"{type(exc).__name__}: {exc}"}
+        else:
+            start_ts = pd.Timestamp(start, tz="UTC")
+            end_exclusive = pd.Timestamp(end, tz="UTC") + pd.Timedelta(days=1)
+            manifest = {
+                "market": "um",
+                "symbol": symbol,
+                "endpoint": source,
+                "requested_start": str(start_ts),
+                "requested_end_exclusive": str(end_exclusive),
+                "pages": 0,
+                "rows_received": 0,
+                "data_quality": None,
+            }
+
+        quality = manifest.get("data_quality")
+        if record["status"] == "complete" and not (
+            isinstance(quality, dict) and quality.get("complete", False)
+        ):
+            record["status"] = "failed"
+            record["error"] = (
+                "Funding downloader returned without a complete data-quality manifest"
+            )
+        elif record["status"] == "failed" and isinstance(quality, dict):
+            if not quality.get("complete", False):
                 record["status"] = "incomplete"
+
+        manifest["market"] = "um"
+        manifest["symbol"] = symbol
+        manifest["endpoint"] = source
+        manifest["requested_start"] = str(pd.Timestamp(start, tz="UTC"))
+        manifest["requested_end_exclusive"] = str(
+            pd.Timestamp(end, tz="UTC") + pd.Timedelta(days=1)
+        )
+        manifest["audit_status"] = record["status"]
+        if record.get("error"):
+            manifest["audit_error"] = record["error"]
+        manifest_path.write_text(json.dumps(manifest, indent=2))
+
+        record["data_quality"] = manifest.get("data_quality")
+        record["manifest_sha256"] = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+        record["manifest_status"] = manifest.get("status", record["status"])
         summary["funding_series"][key] = record
+        expected_manifest_paths.append(manifest_path)
 
     if reconcile_gaps:
         summary["gap_reconciliation"] = {}
@@ -1417,6 +1512,12 @@ def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
                     "reconciliation_complete": False,
                 }
 
+    manifest_paths = [str(path) for path in expected_manifest_paths if path.exists()]
+    all_six_manifests_present = len(manifest_paths) == 6
+    summary["input_manifest_count"] = len(manifest_paths)
+    summary["input_manifest_paths"] = manifest_paths
+    summary["all_six_manifests_present"] = all_six_manifests_present
+
     price_ok = all(record["status"] == "complete" for record in summary["price_series"].values())
     funding_ok = all(record["status"] == "complete" for record in summary["funding_series"].values())
     reconciliation_ok = (
@@ -1429,7 +1530,9 @@ def audit_all_inputs(start: str, end: str, data_dir: Path, output_dir: Path,
             )
         )
     )
-    summary["complete"] = bool(price_ok and funding_ok and reconciliation_ok)
+    summary["complete"] = bool(
+        price_ok and funding_ok and reconciliation_ok and all_six_manifests_present
+    )
     summary["status"] = "COMPLETE" if summary["complete"] else "INCOMPLETE"
     summary["price_series_complete"] = price_ok
     summary["funding_series_complete"] = funding_ok
