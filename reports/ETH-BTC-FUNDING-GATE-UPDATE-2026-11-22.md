@@ -53,11 +53,11 @@ A successful, fully paginated REST capture establishes what the endpoint returne
 
 Three first-of-month Tardis `derivative_ticker` samples were independently checked against checksum-verified Binance monthly archives. The artifacts were downloaded and their SHA-256 values matched the GitHub artifact digests.
 
-| Sample | Binance rows/symbol | BTC/ETH next-event timestamps matched | Maximum offset | |
+| Sample | Binance archive rows per symbol | BTC/ETH event matches | Maximum offset |
 |---|---:|---:|---:|
-| 2020-06-01 | 90 | 3/3 and 3/3 | 1 ms |
-| 2024-01-01 | 93 | 4/4 and 4/4 | 5 ms |
-| 2026-03-01 | 93 | 4/4 and 4/4 | 5 ms |
+| 2020-06-01 | 90 | 3/3 each | 1 ms |
+| 2024-01-01 | 93 | 4/4 each | 5 ms |
+| 2026-03-01 | 93 | 4/4 each | 5 ms |
 
 Runs/artifacts: [2020-06](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44983958409) / [14739152083](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44983958409/artifacts/14739152083); [2024-01](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44983540393) / [14739051517](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44983540393/artifacts/14739051517); [2026-03](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44984500046) / [14739431671](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44984500046/artifacts/14739431671).
 
