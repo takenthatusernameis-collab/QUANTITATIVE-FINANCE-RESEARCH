@@ -27,6 +27,14 @@ class OKXFundingButtonProbeTests(unittest.TestCase):
         self.assertNotIn("download.save_as", source)
         self.assertNotIn("download.path(", source)
 
+    def test_field_information_mode_is_bounded_and_read_only(self):
+        source = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("--inspect-field-info", source)
+        self.assertIn('get_by_role("button", name="Field information", exact=True)', source)
+        self.assertIn("field_info.first.click(timeout=5000)", source)
+        self.assertIn("field_information_clicked_inspected_no_submission", source)
+        self.assertNotIn('get_by_role("button", name="Confirm"', source)
+
     def test_probe_never_accepts_cookies_or_submits_forms(self):
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertIn('"cookie_consent_clicked": False', source)
