@@ -40,6 +40,7 @@ from event_time import (
     event_time_backtest,
     event_time_benchmark_backtest,
     event_time_metrics,
+    event_time_pooled_oos_summary,
     make_event_time_positions,
     validate_event_time_frame,
 )
@@ -50,6 +51,10 @@ COLUMNS = [
 ]
 SYMBOLS = ("ETHUSDT", "BTCUSDT")
 BOOTSTRAP_REPS = 150  # Exploratory CI; quantile precision is limited at this count.
+EVENT_TIME_BOOTSTRAP_REPS = 1000
+EVENT_TIME_BOOTSTRAP_BLOCK_DAYS = 7.0
+EVENT_TIME_BOOTSTRAP_CONFIDENCE = 0.95
+EVENT_TIME_BOOTSTRAP_SEED = 20261122
 
 
 def month_starts(start: str, end: str) -> Iterable[pd.Timestamp]:
@@ -1607,6 +1612,17 @@ def walk_forward_event_time(
     oos = pd.DataFrame(oos_rows)
     if not oos.empty:
         oos.to_csv(out_dir / f"{market}_{interval}_oos_returns.csv", index=False)
+        pooled_summary = event_time_pooled_oos_summary(
+            oos,
+            block_days=EVENT_TIME_BOOTSTRAP_BLOCK_DAYS,
+            n_bootstrap=EVENT_TIME_BOOTSTRAP_REPS,
+            confidence_level=EVENT_TIME_BOOTSTRAP_CONFIDENCE,
+            seed=EVENT_TIME_BOOTSTRAP_SEED,
+        )
+        pooled_summary["event_time_policy_version"] = EVENT_TIME_POLICY_VERSION
+        pooled_summary.to_csv(
+            out_dir / f"{market}_{interval}_pooled_oos_summary.csv", index=False
+        )
         make_plots(df, features, oos, out_dir, market, interval)
         stress_rows = []
         for variant in ("fixed_1x1", "rolling_hedge"):
