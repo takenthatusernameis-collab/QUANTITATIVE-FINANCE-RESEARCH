@@ -151,5 +151,36 @@ class TardisFundingProbeTests(unittest.TestCase):
         self.assertEqual(result["exact_event_timestamp_matches"], 3)
 
 
+    def test_event_time_crosscheck_accepts_documented_small_offsets(self):
+        csv_text = (
+            "calc_time,funding_interval_hours,last_funding_rate\n"
+            "1704096000002,8,0.00011\n"
+            "1704124800015,8,0.00012\n"
+            "1704153600000,8,0.00013\n"
+        )
+        archive = parse_binance_funding_archive_csv(csv_text, "ETHUSDT", "2024-01-01")
+        tardis = {
+            "unique_next_funding_timestamps_utc": [
+                "2024-01-01T08:00:00+00:00",
+                "2024-01-01T16:00:00+00:00",
+                "2024-01-02T00:00:00+00:00",
+            ],
+            "pre_event_observations": [
+                {"next_funding_timestamp_utc": "2024-01-01T08:00:00+00:00",
+                 "funding_rate_estimate_for_next_event": 0.00011},
+                {"next_funding_timestamp_utc": "2024-01-01T16:00:00+00:00",
+                 "funding_rate_estimate_for_next_event": 0.00012},
+                {"next_funding_timestamp_utc": "2024-01-02T00:00:00+00:00",
+                 "funding_rate_estimate_for_next_event": 0.00013},
+            ],
+        }
+        result = compare_tardis_to_archive(tardis, archive)
+        self.assertEqual(result["status"], "CROSSCHECK_PASS")
+        self.assertEqual(result["event_timestamp_matches_within_tolerance"], 3)
+        self.assertEqual(result["exact_event_timestamp_matches"], 1)
+        self.assertAlmostEqual(result["maximum_absolute_event_time_offset_seconds"], 0.015, places=6)
+
+
+
 if __name__ == "__main__":
     unittest.main()
