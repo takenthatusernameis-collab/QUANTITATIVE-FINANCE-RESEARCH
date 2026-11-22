@@ -87,6 +87,32 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         self.assertIn("--inspect-symbol-options", workflow)
         self.assertIn("okx-funding-symbol-options-probe-", workflow)
 
+    def test_research_cache_does_not_override_low_trust_read_only_default(self):
+        workflow = (WORKFLOW_DIR / "eth-btc-research.yml").read_text(encoding="utf-8")
+        match = re.search(
+            r"(?ms)^  empirical-research:\\n(?P<job>.*?)(?=^  [a-z0-9_-]+:\\n|\\Z)",
+            workflow,
+        )
+        self.assertIsNotNone(match, "empirical-research job must be present")
+        job = match.group("job")
+        cache_match = re.search(
+            r"(?ms)^      - name: Cache Binance archives\\n(?P<step>.*?)(?=^      - name:|\\Z)",
+            job,
+        )
+        self.assertIsNotNone(cache_match, "archive cache step must be present")
+        cache_step = cache_match.group("step")
+        self.assertIn("actions/cache@v6.1.0", cache_step)
+        self.assertIn("path: data/cache/", cache_step)
+        self.assertIn("key: binance-archives-", cache_step)
+        self.assertIn("restore-keys:", cache_step)
+        self.assertIn("issue_comment is low-trust", cache_step)
+        self.assertIn("Do not override with cache-mode: write", cache_step)
+        # Protect this research workflow from an accidental cache-write bypass.
+        self.assertNotRegex(
+            workflow,
+            r"(?m)^\\s*cache-mode:\\s*(?:write|write-only)\\s*$",
+        )
+
     def test_deprecated_node20_action_refs_are_absent(self):
         for workflow in WORKFLOW_DIR.glob("*.yml"):
             text = workflow.read_text(encoding="utf-8")

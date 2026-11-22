@@ -109,6 +109,22 @@ Full-history audit #23 parsed both USD-M ETHUSDT and BTCUSDT archives across all
 - Inspect and hash the new artifacts. Update README, reports, this task, and the next handoff.
 - Keep raw market data out of Git. No live trading or capital deployment.
 
+## P1 trusted archive-cache warm-up design and acceptance
+
+The research job's archive cache is read-only for low-trust `issue_comment` runs. Preserve that restriction. GitHub's cache-security policy also treats `workflow_run` as low-trust; do not use it as a write-cache loophole or set `cache-mode: write`/`write-only` on a comment-triggered research job. Official policy permits default-branch cache writes from trusted triggers such as `push`, `workflow_dispatch`, `repository_dispatch`, and `schedule`.
+
+The next P1 implementation should be a separate default-branch cache-warm workflow, **not** a modification that grants cache writes to the current issue-comment research job.
+
+Design/acceptance requirements:
+1. Use trusted triggers only: initially `schedule` and `workflow_dispatch`; add a narrow default-branch `push` path filter only if cost/benefit justifies it. Do not add `issue_comment` or `workflow_run` as a write-capable cache trigger.
+2. Check out only the default branch. Do not consume PR-head code, untrusted artifacts, or arbitrary comment text. No credentials/secrets are needed for public archive warming.
+3. Start with a representative month and bounded `--audit-only` run using `--market both`, without `--reconcile-spot-gaps`; this avoids repeating the unresolved daily aggregate-trade gap route. Measure runtime, archive count, cache size and network cost before scaling to the full requested range.
+4. Use the same `data/cache/` path as the research job. Cache keys are immutable: use a unique run-specific key and restore prefixes, then deliberately adjust the research job's primary/restore keys so the warm cache is compatible and a stale exact-key cache cannot shadow a newer warm entry. Regression-test the key compatibility.
+5. Keep research jobs' low-trust cache behavior read-only by default. A cache warmer should have write access only because it runs on trusted triggers, not by overriding cache policy.
+6. Upload only summary/manifests, checksums, row counts and cache diagnostics. Never upload raw market-data CSVs or archive ZIPs, and never commit cached/raw data to Git.
+7. Verify a warm run saves cache successfully, and a later low-trust audit restores it (cache-hit evidence/logs), then confirms the same source checksums and manifests. Check cache size/retention and duplicate-download avoidance. If scheduled execution is unreliable, report measured reliability and use a different trusted maintenance trigger rather than granting low-trust write access.
+8. The current GitHub connector lacks direct workflow-dispatch capability. The warm workflow can run autonomously via its trusted schedule and retain `workflow_dispatch` as owner fallback; do not claim ChatGPT can activate it on demand until a direct or separately security-reviewed indirect route is verified end to end.
+
 ## Acceptance criteria
 
 These criteria govern the original combined/perpetual Binance experiment. A Spot-only run uses the separate market-scope gate and cannot be used to infer perpetual profitability.

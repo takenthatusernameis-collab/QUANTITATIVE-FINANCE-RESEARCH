@@ -216,7 +216,7 @@ UM-only run [45005913283](https://github.com/takenthatusernameis-collab/QUANTITA
 
 ## Actions reliability and cache
 
-The queue-guardian 5-minute schedule is not currently evidenced as reliable: only one scheduled run was present among the latest 100 Actions runs, while 19 guardian runs were 18 issue-comment and 1 schedule. GitHub warns scheduled runs can be delayed or dropped under load. The issue-comment research run also could not save archive cache under the secure read-only cache default. Do not weaken that restriction casually; the active queue calls for a trusted cache warmer and scheduler reliability investigation. [Active queue](tasks/ACTIVE-QUEUE.md)
+The queue-guardian 5-minute schedule is not currently evidenced as reliable: only one scheduled run was present among the latest 100 Actions runs, while 19 guardian runs were 18 issue-comment and 1 schedule. GitHub warns scheduled runs can be delayed or dropped under load. The issue-comment research run also could not save archive cache under the secure read-only cache default. **Cache security:** GitHub treats `issue_comment` and `workflow_run` as low-trust cache triggers and defaults them to read-only; trusted triggers such as `push`, `workflow_dispatch`, `repository_dispatch` and `schedule` can write default-branch caches. Do not override cache mode on research/comment jobs merely to persist downloads. See the [official cache-security reference](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching). The active queue calls for a separate trusted cache warmer and scheduler reliability investigation. [Active queue](tasks/ACTIVE-QUEUE.md)
 
 
 ## Funding-source route probe (2026-11-22)

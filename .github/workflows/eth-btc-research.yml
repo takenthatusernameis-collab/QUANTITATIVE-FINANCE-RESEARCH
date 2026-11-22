@@ -272,6 +272,8 @@ jobs:
           cache-dependency-path: research/requirements.txt
 
       - name: Cache Binance archives
+        # issue_comment is low-trust and defaults to read-only cache access.
+        # Do not override with cache-mode: write here; use a separate trusted cache warmer.
         uses: actions/cache@v6.1.0
         with:
           path: data/cache/
