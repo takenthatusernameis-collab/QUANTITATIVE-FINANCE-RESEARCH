@@ -1,5 +1,7 @@
 COMMIT TO REPOSITORY THE PENDING TASK
 
+At every cycle start, first inspect open `[QFR queue guardian]` issues and resolve orphaned/cancelled-run handoffs using the repository-wide adaptive recovery contract before dispatching new overlapping work.
+
 # Original agent-loop prompt
 
 Commit a pending task in this repository for the next agent to execute, and execute the pending task commited by the last agent!
@@ -56,6 +58,21 @@ Every agent must follow [docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md](docs/AD
 - Preserve negative results and failure evidence. Update persistent documentation so the next agent inherits what was learned rather than rediscovering the same blocker. Keep raw market data out of Git.
 - For complete run enumeration, record total and returned counts. If the available interface cannot establish full run existence/status, mark it **UNVERIFIED** and identify the next machine-checkable verification step.
 
+
+## Repository-wide autonomous safe-work contract
+
+At the start of every agent cycle, inspect open issues whose title begins `[QFR queue guardian]`. Process `CANCELLATION_BLOCKED / ORPHANED_POSSIBLE_EXECUTION` incidents first: preserve the original run ID, then launch one materially different, independent alternative attempt without waiting for an un-cancelled orphan. Process `QUEUE_CANCELLED / RETRY_REQUIRED` issues by verifying why the run was cancelled and initiating one controlled retry only after capacity recovery or via a different authorized route. Never duplicate an attempt that already exists.
+
+Apply the same adaptive philosophy to every safe repository activity—not only ETH/BTC data ingestion:
+
+- **Research and data:** continue independent inputs and tests after a source failure; switch endpoint/provider, archive/trade construction, quote-currency pipeline, timeframe or model when evidence requires it. Preserve source provenance, checksums, UTC alignment, positive controls and frozen acceptance gates.
+- **Code and tests:** diagnose the failing assertion/fixture/environment; make a minimal reproducible test; fix the root cause; validate with deterministic unit tests and synthetic plumbing checks; never treat synthetic success as empirical market evidence.
+- **CI and orchestration:** use the verified agent-triggered route; inspect run/job status before every dispatch; enforce the 15-minute queue guardian rule and exact same-group predecessor exception; create one durable incident per run and keep a controlled retry/alternative lineage.
+- **Artifacts and reporting:** inspect the existing run and artifact first; preserve hashes/manifests; distinguish engineering, data-quality and empirical conclusions; do not overwrite or silently discard failed evidence.
+- **Documentation and task handoff:** correct stale instructions while preserving historical records; keep one explicit active task; record decisions, run IDs, commit SHAs, status tags, alternatives tested and the next executable action.
+
+Use only authorized, least-privilege resources. Separate parallel attempts' run IDs, branch/worktree, cache, manifests, artifact names and output paths. Never allow an orphan and an alternative to overwrite shared state. If a full alternate run is not safe to parallelize, advance a non-mutating independent slice. No routine manual activation, live orders, capital deployment, credential exposure, custody changes, or automatic strategy promotion.
+
 ## Dispatch implementation guidance
 
 Start with [docs/CHATGPT-WORKFLOW-DISPATCH.md](docs/CHATGPT-WORKFLOW-DISPATCH.md), but follow its adaptive decision process rather than assuming an ordinary issue-comment bridge is available. Test the actual connected integration. If it supports PR comments but not ordinary issue comments, evaluate the tightly gated control-PR route; otherwise evaluate a scoped GitHub App/API relay or another secure event-driven mechanism. Any chosen path must pass a harmless ChatGPT-triggered end-to-end test before it is treated as active.
@@ -99,3 +116,13 @@ This snapshot is superseded by the 2026-11-22 audit artifact review below.
 - Queue policy requires cancellation of run-level `queued`/`pending` work older than 15 minutes unless an earlier run in the exact same concurrency group is `in_progress`. If cancellation is unavailable or fails, the original is tagged in the durable task/incident record `CANCELLATION_BLOCKED / ORPHANED_POSSIBLE_EXECUTION` and one independently isolated, materially different alternative attempt must start without waiting for the orphan. It receives its own attempt/run ID, route, inputs, cache/artifact namespace and status `ALTERNATIVE_ATTEMPT_ACTIVE`; neither attempt may overwrite the other. The connected GitHub interface still lacks a cancel-run action, so true automated cancellation remains an enforcement gap, but this does not block alternative research. See [the autonomous execution standard](docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md) and [dispatch runbook](docs/CHATGPT-WORKFLOW-DISPATCH.md).
 - The new `data-api.binance.vision` source has not yet produced a verified market-data result. Do not treat the host change as success until missing-hour and known-active positive-control requests are checked. If this official route is still unavailable, move to a different lawful provider/data construction, including separate ETH/USD and BTC/USD series and a synchronized ratio, rather than repeating the old endpoint.
 - No empirical performance metrics have been generated. The original Binance ETH/BTC study remains **INCONCLUSIVE**; no backtest has been run on incomplete data. Continue with the pending source/pipeline alternatives and do not request routine manual activation.
+
+
+## Current autonomous execution infrastructure — 2026-11-22
+
+- Scheduled watchdog: [`.github/workflows/queue-guardian.yml`](.github/workflows/queue-guardian.yml), every five minutes; [implementation](research/queue_guardian.py), [deterministic unit tests](research/test_queue_guardian.py). It only scans `eth-btc-research.yml` and `research-tests.yml`, cancels run-level queued/pending work older than 15 minutes without an earlier active same-group predecessor, and creates one durable incident issue per run.
+- Dry-run end-to-end verification: [run 44968904610](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44968904610) succeeded on the exact actor/PR #2 command. It enumerated 37 run records and produced zero queue actions at that timestamp; this validates the guardian's dispatch/plumbing path, not yet a live cancellation.
+- Research CI now serializes its own queue with `research-tests-main` and `queue: max`. The queue guardian's five-minute schedule is the live enforcement route; the guarded PR comment `/qfr-queue-guardian-dry-run` never cancels or creates issues.
+- The guardian uses repository-scoped `actions: write`, `contents: read`, `issues: write`. Unknown workflow paths are ignored. Cancellation API failures or unconfirmed cancellations become `CANCELLATION_BLOCKED / ORPHANED_POSSIBLE_EXECUTION`; the durable issue instructs the agent to start one independent alternative.
+- New CI tests for the guardian are being verified. The initial test revision exposed a test-helper import mismatch; that was corrected in commit `60a33370a82e9efe60596f358414827dcc21c222`. Do not claim the revised CI suite passes until its corresponding run is complete.
+- The current active research task remains [`tasks/ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md`](tasks/ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md). Old manual-dispatch task instructions have been marked historical/superseded; historical reports preserve their original findings.
