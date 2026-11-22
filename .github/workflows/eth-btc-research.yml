@@ -125,6 +125,20 @@ jobs:
                 MARKET="both"
                 RECONCILE="false"
                 ;;
+              "/qfr-probe-tardis-funding-2020-06-01")
+                COMMAND="tardis-probe"
+                START="2020-06-01"
+                END="2020-06-01"
+                MARKET="both"
+                RECONCILE="false"
+                ;;
+              "/qfr-probe-tardis-funding-2026-03-01")
+                COMMAND="tardis-probe"
+                START="2026-03-01"
+                END="2026-03-01"
+                MARKET="both"
+                RECONCILE="false"
+                ;;
               "/qfr-run-eth-btc-empirical") COMMAND="empirical" ;;
               *) echo "Rejected non-allowlisted command"; exit 0 ;;
             esac
@@ -274,19 +288,21 @@ jobs:
           python-version: '3.11'
 
       - name: Download and audit Tardis free sample
+        env:
+          SAMPLE_DATE: ${{ needs.authorize.outputs.start }}
         run: |
           set -euo pipefail
           python research/tardis_funding_probe.py \
-            --date 2024-01-01 \
+            --date "$SAMPLE_DATE" \
             --symbols ETHUSDT,BTCUSDT \
-            --output-dir reports/generated/tardis-funding-probe-2024-01-01 \
-            --cache-dir data/cache/tardis-funding-probe-2024-01-01
+            --output-dir "reports/generated/tardis-funding-probe-$SAMPLE_DATE" \
+            --cache-dir "data/cache/tardis-funding-probe-$SAMPLE_DATE"
 
       - name: Upload Tardis sample and manifests
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: tardis-funding-probe-${{ github.run_id }}
-          path: reports/generated/tardis-funding-probe-2024-01-01/*.json
+          path: reports/generated/tardis-funding-probe-${{ needs.authorize.outputs.start }}/*.json
           if-no-files-found: warn
           retention-days: 30
