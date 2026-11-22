@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import argparse
 import calendar
+import csv
+import itertools
 import hashlib
 import io
 import json
@@ -1156,6 +1158,161 @@ def query_aggregate_trades(session: requests.Session, symbol: str,
     }
 
 
+def inspect_aggtrades_archive(payload: bytes, day: str,
+                              gap_timestamps: list[pd.Timestamp],
+                              control_timestamp: pd.Timestamp | None = None) -> dict:
+    """Stream a checksum-verified daily aggTrades ZIP into per-hour evidence counts."""
+    day_start = pd.Timestamp(day, tz="UTC")
+    day_end = day_start + pd.Timedelta(days=1)
+
+    def utc_hour(value):
+        ts = pd.Timestamp(value)
+        ts = ts.tz_localize("UTC") if ts.tzinfo is None else ts.tz_convert("UTC")
+        return ts.floor("h")
+
+    gap_hours = {str(utc_hour(value)): utc_hour(value) for value in gap_timestamps}
+    control_hour = utc_hour(control_timestamp) if control_timestamp is not None else None
+    gap_counts = {key: 0 for key in gap_hours}
+    gap_samples = {}
+    control_count = 0
+    control_sample = None
+    row_count = 0
+    duplicate_ids = 0
+    out_of_order_ids = 0
+    out_of_order_timestamps = 0
+    previous_id = None
+    previous_timestamp = None
+    timestamp_unit = None
+    first_timestamp = None
+    last_timestamp = None
+    member_name = None
+    header_detected = False
+
+    expected_header = [
+        "aggtradeid", "price", "quantity", "firsttradeid",
+        "lasttradeid", "timestamp", "isbuyermaker", "isbestmatch",
+    ]
+
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        csv_names = [name for name in archive.namelist() if name.lower().endswith(".csv")]
+        if len(csv_names) != 1:
+            raise ValueError(f"Expected exactly one aggTrades CSV for {day}; found {len(csv_names)}")
+        member_name = csv_names[0]
+        with archive.open(member_name) as binary:
+            reader = csv.reader(io.TextIOWrapper(binary, encoding="utf-8", newline=""))
+            first_row = next(reader, None)
+            if first_row is None:
+                raise ValueError(f"Empty aggTrades CSV for {day}")
+            normalized_header = [
+                value.strip().lstrip("\ufeff").lower().replace("_", "").replace(" ", "")
+                for value in first_row
+            ]
+            if normalized_header == expected_header:
+                header_detected = True
+                rows = reader
+            elif len(first_row) == 8 and first_row[0].strip().isdigit():
+                rows = itertools.chain([first_row], reader)
+            else:
+                raise ValueError(
+                    f"Unsupported aggTrades schema for {day}: first row={first_row}"
+                )
+
+            for line_number, row in enumerate(rows, start=2 if header_detected else 1):
+                if not row:
+                    continue
+                if len(row) != 8:
+                    raise ValueError(
+                        f"Expected 8 aggTrades fields for {day} at CSV line {line_number}; "
+                        f"found {len(row)}"
+                    )
+                try:
+                    trade_id = int(row[0])
+                    price = float(row[1])
+                    quantity = float(row[2])
+                    first_trade_id = int(row[3])
+                    last_trade_id = int(row[4])
+                    raw_timestamp = int(row[5])
+                except (TypeError, ValueError) as exc:
+                    raise ValueError(
+                        f"Invalid aggTrades numeric field for {day} at CSV line {line_number}"
+                    ) from exc
+                if (
+                    not math.isfinite(price) or price <= 0
+                    or not math.isfinite(quantity) or quantity <= 0
+                    or first_trade_id < 0 or last_trade_id < first_trade_id
+                    or trade_id < 0
+                ):
+                    raise ValueError(
+                        f"Invalid aggTrades values for {day} at CSV line {line_number}"
+                    )
+
+                unit = "us" if raw_timestamp > 10**14 else "ms"
+                if timestamp_unit is None:
+                    timestamp_unit = unit
+                elif timestamp_unit != unit:
+                    raise ValueError(f"Mixed aggTrades timestamp units in {day}")
+                trade_timestamp = pd.to_datetime(raw_timestamp, unit=unit, utc=True)
+                if not day_start <= trade_timestamp < day_end:
+                    raise ValueError(
+                        f"aggTrades timestamp outside requested UTC day for {day}: "
+                        f"{trade_timestamp}"
+                    )
+                if previous_id is not None:
+                    if trade_id == previous_id:
+                        duplicate_ids += 1
+                    elif trade_id < previous_id:
+                        out_of_order_ids += 1
+                if previous_timestamp is not None and trade_timestamp < previous_timestamp:
+                    out_of_order_timestamps += 1
+                previous_id = trade_id
+                previous_timestamp = trade_timestamp
+                row_count += 1
+                first_timestamp = trade_timestamp if first_timestamp is None else first_timestamp
+                last_timestamp = trade_timestamp
+
+                hour_key = str(trade_timestamp.floor("h"))
+                if hour_key in gap_counts:
+                    gap_counts[hour_key] += 1
+                    if hour_key not in gap_samples:
+                        gap_samples[hour_key] = {
+                            "aggregate_trade_id": trade_id,
+                            "timestamp_utc": str(trade_timestamp),
+                            "price": price,
+                            "quantity": quantity,
+                        }
+                if control_hour is not None and control_hour <= trade_timestamp < control_hour + pd.Timedelta(hours=1):
+                    control_count += 1
+                    if control_sample is None:
+                        control_sample = {
+                            "aggregate_trade_id": trade_id,
+                            "timestamp_utc": str(trade_timestamp),
+                            "price": price,
+                            "quantity": quantity,
+                        }
+
+    anomaly_count = duplicate_ids + out_of_order_ids + out_of_order_timestamps
+    status = "PARSED" if row_count > 0 and anomaly_count == 0 else (
+        "PARSED_WITH_ANOMALIES" if row_count > 0 else "EMPTY_ARCHIVE"
+    )
+    return {
+        "status": status,
+        "archive_member": member_name,
+        "header_detected": header_detected,
+        "timestamp_unit": timestamp_unit,
+        "rows": row_count,
+        "first_timestamp_utc": str(first_timestamp) if first_timestamp is not None else None,
+        "last_timestamp_utc": str(last_timestamp) if last_timestamp is not None else None,
+        "duplicate_aggregate_trade_ids": duplicate_ids,
+        "out_of_order_aggregate_trade_ids": out_of_order_ids,
+        "out_of_order_timestamps": out_of_order_timestamps,
+        "gap_trade_counts": gap_counts,
+        "gap_trade_samples": gap_samples,
+        "positive_control_timestamp": str(control_hour) if control_hour is not None else None,
+        "positive_control_trade_count": control_count if control_hour is not None else None,
+        "positive_control_sample": control_sample,
+    }
+
+
 def classify_gap_reconciliation(api_found: bool, daily_archive_found: bool,
                                 values_match: bool | None = None,
                                 api_request_succeeded: bool = True,
@@ -1217,6 +1374,7 @@ def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> di
         "monthly_archive_quality": quality,
         "daily_archives": {},
         "aggregate_trade_positive_controls": {},
+        "daily_aggtrades_archives": {},
         "gaps": [],
         "classification_counts": {},
         "reconciliation_complete": True,
@@ -1421,6 +1579,111 @@ def reconcile_spot_gaps(symbol: str, start: str, end: str, data_dir: Path) -> di
                 positive_control_passed=entry["positive_control_passed"],
             )
             time.sleep(0.03)
+
+        # The REST aggregate-trades route has previously failed its same-day
+        # positive control. Fall back to the official daily archive rather than
+        # repeating an unchanged empty REST probe or inferring no trading.
+        needs_archive = (
+            not control_info.get("positive_control_passed", False)
+            or any(not entry.get("agg_trades_request_succeeded", False) for entry in day_gaps)
+        )
+        if needs_archive:
+            archive_filename = f"{symbol}-aggTrades-{day}.zip"
+            archive_url = (
+                "https://data.binance.vision/data/spot/daily/aggTrades/"
+                f"{symbol}/{archive_filename}"
+            )
+            archive_cache = (
+                data_dir / "cache" / "spot_daily_aggtrades" / symbol / archive_filename
+            )
+            try:
+                archive_payload, checksum_verified, checksum_error = _download_archive(
+                    archive_url, archive_cache, session
+                )
+                archive_probe = inspect_aggtrades_archive(
+                    archive_payload,
+                    day,
+                    [pd.Timestamp(entry["timestamp"]) for entry in day_gaps],
+                    pd.Timestamp(control_info["control_timestamp"])
+                    if control_info.get("control_timestamp") else None,
+                )
+                archive_record = {
+                    **archive_probe,
+                    "url": archive_url,
+                    "archive_sha256": hashlib.sha256(archive_payload).hexdigest(),
+                    "checksum_verified": checksum_verified,
+                    "checksum_error": checksum_error,
+                }
+                if not checksum_verified:
+                    archive_record["status"] = "CHECKSUM_UNVERIFIED"
+                result["daily_aggtrades_archives"][day] = archive_record
+                archive_valid = checksum_verified and archive_probe["status"] == "PARSED"
+                archive_control_passed = (
+                    archive_valid
+                    and archive_probe["positive_control_trade_count"] is not None
+                    and archive_probe["positive_control_trade_count"] > 0
+                )
+                control_info["archive_url"] = archive_url
+                control_info["archive_checksum_verified"] = checksum_verified
+                control_info["archive_positive_control_passed"] = bool(archive_control_passed)
+                control_info["archive_positive_control_trade_count"] = (
+                    archive_probe["positive_control_trade_count"]
+                )
+
+                for entry in day_gaps:
+                    gap_key = str(pd.Timestamp(entry["timestamp"]))
+                    trade_count = archive_probe["gap_trade_counts"].get(gap_key, 0)
+                    entry["aggregate_trade_archive"] = {
+                        "url": archive_url,
+                        "archive_sha256": archive_record["archive_sha256"],
+                        "checksum_verified": checksum_verified,
+                        "trade_count": trade_count,
+                        "positive_control_passed": bool(archive_control_passed),
+                        "sample_trade": archive_probe["gap_trade_samples"].get(gap_key),
+                    }
+                    if archive_valid and trade_count > 0:
+                        if entry.get("agg_trades_found") is False:
+                            entry["aggregate_trade_rest_archive_disagreement"] = (
+                                "REST probe returned no trade; checksum-verified daily archive contains trades"
+                            )
+                        entry["agg_trades_request_succeeded"] = True
+                        entry["agg_trades_found"] = True
+                        entry["positive_control_passed"] = bool(archive_control_passed)
+                        entry["classification"] = "aggregate_trades_present_kline_missing"
+                    elif archive_control_passed:
+                        if entry.get("agg_trades_found") is True:
+                            entry["aggregate_trade_source_disagreement"] = (
+                                "REST probe found trades; checksum-verified daily archive has none"
+                            )
+                            entry["classification"] = "aggregate_trade_source_disagreement_unresolved"
+                        else:
+                            entry["agg_trades_request_succeeded"] = True
+                            entry["agg_trades_found"] = False
+                            entry["positive_control_passed"] = True
+                            entry["classification"] = "confirmed_no_trade_interval"
+                    elif entry["classification"] not in {
+                        "aggregate_trades_present_kline_missing",
+                        "confirmed_no_trade_interval",
+                    }:
+                        entry["classification"] = "aggregate_trade_archive_positive_control_failed_unresolved"
+            except FileNotFoundError as exc:
+                result["daily_aggtrades_archives"][day] = {
+                    "url": archive_url, "status": "missing_http_404",
+                    "error": f"{type(exc).__name__}: {exc}",
+                }
+                for entry in day_gaps:
+                    entry["aggregate_trade_archive_error"] = f"{type(exc).__name__}: {exc}"
+                    if entry["classification"] not in {"aggregate_trades_present_kline_missing"}:
+                        entry["classification"] = "aggregate_trade_archive_request_failed_unresolved"
+            except Exception as exc:
+                result["daily_aggtrades_archives"][day] = {
+                    "url": archive_url, "status": "error",
+                    "error": f"{type(exc).__name__}: {exc}",
+                }
+                for entry in day_gaps:
+                    entry["aggregate_trade_archive_error"] = f"{type(exc).__name__}: {exc}"
+                    if entry["classification"] not in {"aggregate_trades_present_kline_missing"}:
+                        entry["classification"] = "aggregate_trade_archive_request_failed_unresolved"
 
     for entry in result["gaps"]:
         label = entry["classification"]
