@@ -42,7 +42,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.event_name == 'issue_comment' && (github.event.action != 'created' || github.event.issue.number != 2 || github.event.issue.pull_request == null || github.event.issue.state != 'open' || github.event.comment.user.login != 'takenthatusernameis-collab' || !contains(fromJSON('["/qfr-control-smoke","/qfr-run-eth-btc-data-audit","/qfr-probe-eth-btc-funding-2024-01","/qfr-probe-tardis-funding-2024-01-01","/qfr-probe-tardis-funding-2020-06-01","/qfr-probe-tardis-funding-2025-06-01","/qfr-probe-tardis-funding-2025-10-01","/qfr-probe-tardis-funding-2026-02-01","/qfr-probe-tardis-funding-2026-03-01","/qfr-probe-mexc-funding-history","/qfr-probe-bybit-funding-history","/qfr-probe-bitget-funding-download","/qfr-probe-okx-funding-download","/qfr-probe-okx-funding-button","/qfr-probe-okx-funding-field-info","/qfr-probe-okx-funding-symbols","/qfr-run-eth-btc-empirical","/qfr-run-eth-btc-spot-empirical","/qfr-run-eth-btc-um-empirical"]'), github.event.comment.body)) && format('eth-btc-research-ignored-{0}', github.event.comment.id) || 'eth-btc-research-main' }}
+  group: ${{ github.event_name == 'issue_comment' && (github.event.action != 'created' || github.event.issue.number != 2 || github.event.issue.pull_request == null || github.event.issue.state != 'open' || github.event.comment.user.login != 'takenthatusernameis-collab' || !contains(fromJSON('["/qfr-control-smoke","/qfr-run-eth-btc-data-audit","/qfr-probe-eth-btc-funding-2024-01","/qfr-probe-tardis-funding-2024-01-01","/qfr-probe-tardis-funding-2020-06-01","/qfr-probe-tardis-funding-2025-06-01","/qfr-probe-tardis-funding-2025-10-01","/qfr-probe-tardis-funding-2026-02-01","/qfr-probe-tardis-funding-2026-03-01","/qfr-probe-mexc-funding-history","/qfr-probe-bybit-funding-history","/qfr-probe-bitget-funding-download","/qfr-probe-okx-funding-download","/qfr-probe-okx-funding-button","/qfr-probe-okx-funding-field-info","/qfr-probe-okx-funding-symbols","/qfr-probe-kraken-funding-export","/qfr-run-eth-btc-empirical","/qfr-run-eth-btc-spot-empirical","/qfr-run-eth-btc-um-empirical"]'), github.event.comment.body)) && format('eth-btc-research-ignored-{0}', github.event.comment.id) || 'eth-btc-research-main' }}
   queue: max
   cancel-in-progress: false
 
@@ -212,6 +212,14 @@ jobs:
                 COMMAND="okx-symbol-options-probe"
                 START="2022-03-01"
                 END="2026-11-22"
+                MARKET="both"
+                RECONCILE="false"
+                ;;
+              "/qfr-probe-kraken-funding-export")
+                # Download the public Kraken ZIP only to ephemeral runner storage; upload a manifest/screenshot, never raw market data.
+                COMMAND="kraken-export-probe"
+                START="2018-01-01"
+                END="2026-11-23"
                 MARKET="both"
                 RECONCILE="false"
                 ;;
@@ -514,6 +522,44 @@ jobs:
             reports/generated/funding-ui-probe-${{ github.run_id }}/*.png
           if-no-files-found: warn
           retention-days: 30
+  kraken-funding-export-probe:
+    name: Inspect Kraken public historical funding export (ephemeral only)
+    needs: authorize
+    if: ${{ needs.authorize.outputs.authorized == 'true' && needs.authorize.outputs.command == 'kraken-export-probe' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository default branch only
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.11'
+
+      - name: Install Playwright and HTTP client
+        run: |
+          python -m pip install --no-cache-dir playwright==1.65.0 requests>=2.31
+
+      - name: Install Chromium and system dependencies
+        run: python -m playwright install --with-deps chromium
+
+      - name: Download and inspect the official Kraken archive in temporary storage
+        run: python research/kraken_funding_export_probe.py --output-dir "reports/generated/kraken-funding-export-probe-${{ github.run_id }}"
+
+      - name: Upload compact evidence only (never raw ZIP or CSV)
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: kraken-funding-export-probe-${{ github.run_id }}
+          path: |
+            reports/generated/kraken-funding-export-probe-${{ github.run_id }}/manifest.json
+            reports/generated/kraken-funding-export-probe-${{ github.run_id }}/*.png
+          if-no-files-found: warn
+          retention-days: 30
+
   okx-funding-button-probe:
     name: Inspect OKX Funding modal safely (no data downloads)
     needs: authorize
