@@ -1,9 +1,12 @@
 # Completed Task: Review the Owner-Dispatched ETH/BTC Empirical Runs
 
-**Status:** Artifact review completed on 2026-11-21. The empirical study remains **INCONCLUSIVE** because both full-data runs failed the spot ETHUSDT hourly-completeness gate.  
+**Status:** Historical artifact review completed (2026-11-21); superseded by the 2026-11-22 audit review and current ingestion task.
 **Priority:** High  
 **Type:** Empirical artifact validation and evidence-based strategy review  
 **Scope:** Research/backtesting only. No live orders or capital deployment.
+
+
+> **Historical / superseded execution note:** Historical artifact review retained without rewriting its contemporaneous evidence. Any old statement that the dispatch bridge is unverified or that manual activation is required is superseded. Current safe work follows the verified agent-triggered route and adaptive recovery policy.
 
 ## Context
 
