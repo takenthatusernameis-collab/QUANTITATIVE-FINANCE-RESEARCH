@@ -1,9 +1,12 @@
 # Pending Research Task: Reconcile ETHUSDT Hourly Data Gaps Before the Full ETH/BTC Study
 
-**Status:** Implementation committed; audit-only run completed; data acceptance remains **INCONCLUSIVE**.  
+**Status:** Historical implementation record; data acceptance remains **INCONCLUSIVE**; superseded as an execution plan by `tasks/ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md`.
 **Priority:** High  
 **Type:** Data provenance, completeness diagnostics and deterministic validation  
 **Scope:** Research/backtesting only. No live orders, capital deployment or raw market-data commits.
+
+
+> **Historical / superseded execution note:** This is a historical implementation/evidence record, not the active work queue. Do not repeat the old audit or rely on legacy instructions to wait for manual dispatch. Continue unresolved source, parser, funding and 31-gap work in the current ingestion task. All safe work must be agent-initiated; apply the 15-minute queue cancellation rule, same-concurrency-group predecessor exception, and independent alternative-attempt fallback from the repository-wide standard.
 
 ## Context
 
