@@ -860,6 +860,13 @@ class ResearchPipelineTests(unittest.TestCase):
             write_spot_event_time_fixture(root)
             gap_path = root / "raw" / "spot_ETHUSDT_gap_reconciliation.json"
             gap = json.loads(gap_path.read_text())
+            gap["gaps"][0]["agg_trades_request_succeeded"] = False
+            gap["gaps"][0]["agg_trades_found"] = None
+            gap_path.write_text(json.dumps(gap, indent=2))
+            archive_fallback = research.validate_spot_event_time_evidence(
+                root, "2024-01-01", "2024-01-01"
+            )
+            self.assertTrue(archive_fallback["accepted"])
             gap["gaps"][0]["aggregate_trade_archive"]["trade_count"] = 1
             gap_path.write_text(json.dumps(gap, indent=2))
             result = research.validate_spot_event_time_evidence(
