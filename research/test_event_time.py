@@ -81,14 +81,19 @@ class EventTimeAccountingTests(unittest.TestCase):
         self.assertEqual(trades[0]["exit_reason"], "max_hold")
 
     def test_borrow_cost_is_prorated_by_actual_elapsed_time(self):
-        index = pd.to_datetime(["2026-01-01T00:00:00Z", "2026-01-01T06:00:00Z"])
+        index = pd.to_datetime([
+            "2026-01-01T00:00:00Z",
+            "2026-01-01T06:00:00Z",
+            "2026-01-01T12:00:00Z",
+        ])
         frame = make_frame(index)
-        position = pd.Series([0.0, -1.0], index=index)
+        position = pd.Series([0.0, -1.0, -1.0], index=index)
         beta = pd.Series(1.0, index=index)
         result = event_time_backtest(
             frame, position, beta, 0, 0, 0, 1, borrow_bps_per_day=100
         )
-        self.assertAlmostEqual(result.loc[index[1], "borrow_cost"], 0.00125)
+        # Borrow accrues over the six hours after the short is actually opened.
+        self.assertAlmostEqual(result.loc[index[2], "borrow_cost"], 0.00125)
 
     def test_funding_inside_gap_uses_position_held_at_settlement(self):
         index = pd.to_datetime([
