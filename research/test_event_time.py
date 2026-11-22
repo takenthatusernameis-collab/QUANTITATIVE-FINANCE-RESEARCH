@@ -7,6 +7,7 @@ import pandas as pd
 
 from event_time import (
     SECONDS_PER_YEAR,
+    _calendar_time_start_probabilities,
     add_event_time_features,
     elapsed_seconds,
     event_time_backtest,
@@ -361,6 +362,23 @@ class EventTimeBootstrapSensitivityTests(unittest.TestCase):
         )
         cost_rows = summary.loc[summary["cost_multiplier"] > 1.0]
         self.assertTrue(cost_rows["CAGR_ci_lower_3d"].isna().all())
+
+
+class CalendarTimeBlockWeightTests(unittest.TestCase):
+    def test_block_start_probability_is_weighted_by_elapsed_interval_duration(self):
+        elapsed = np.array([0.0, 3600.0, 21600.0, 3600.0, 3600.0])
+        starts = np.array([1, 2, 3, 4])
+        probabilities = _calendar_time_start_probabilities(elapsed, starts)
+        np.testing.assert_allclose(
+            probabilities,
+            np.array([1.0, 6.0, 1.0, 1.0]) / 9.0,
+        )
+
+    def test_zero_duration_start_weights_fall_back_to_uniform(self):
+        probabilities = _calendar_time_start_probabilities(
+            np.zeros(4), np.array([0, 1, 2, 3])
+        )
+        np.testing.assert_allclose(probabilities, np.full(4, 0.25))
 
 
 if __name__ == "__main__":
