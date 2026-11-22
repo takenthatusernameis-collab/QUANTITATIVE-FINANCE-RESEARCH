@@ -2719,6 +2719,7 @@ def main() -> None:
         "spot_event_time_policy_version": EVENT_TIME_POLICY_VERSION,
         "event_time_pooled_oos_bootstrap": {
             "method": "fold-stratified moving-block bootstrap in calendar time",
+            "start_weighting": "proportional to elapsed duration of the first return interval",
             "block_days": EVENT_TIME_BOOTSTRAP_BLOCK_DAYS,
             "primary_block_days": 7.0,
             "replications_per_block_length": EVENT_TIME_BOOTSTRAP_REPS,
