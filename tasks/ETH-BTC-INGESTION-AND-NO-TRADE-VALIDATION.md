@@ -37,6 +37,14 @@ If the ETH/BTC ratio remains impractical with credible accessible data, do not s
 
 Do not bypass legal/provider access restrictions (including HTTP 451); switch to a lawful, authorized provider. Do not weaken the original data gates, fabricate missing observations, or call a restricted endpoint through an evasive proxy. Continue independent research while one route is blocked.
 
+## Implementation progress — 2026-11-22
+
+- The routine-manual-gate rule is now explicit in the repository README and adaptive execution standard. Waiting for a user to click or confirm an ordinary historical backtest is defined as **FAILURE**; pause only a specific action that crosses a real security/legal/authorization boundary.
+- The control workflow now includes `/qfr-run-eth-btc-empirical`; it runs an all-six-input preflight before strategy computation and needs no routine human confirmation.
+- The gap reconciliation probe now uses Binance's documented market-data-only host `data-api.binance.vision`, audits both Spot symbols, and distinguishes API request failure from a successful empty response. See commits `1894e11084af9054a5d5025f9a355c88899a6a13` and `b2e7e12e496edb520a849283c3416f8177f820ef`.
+- CI runs `44965875648` and `44965889395` were queued at this update; their outcomes remain unverified. The new endpoint also remains untested until its audit run produces request/positive-control evidence.
+- The alternative data-design path is mandatory if the Binance route remains unavailable: source synchronized ETH/USD and BTC/USD independently, compute the observed ratio, validate quote currency and timestamp compatibility, and pre-register the resulting model as a separate experiment. If this is not implementable with credible evidence, replace the hypothesis/model instead of repeating the same failed ingestion path.
+
 ## Required work
 
 ### 1. Repair Spot REST access and independently validate all 31 gaps
