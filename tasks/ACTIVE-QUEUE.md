@@ -44,3 +44,14 @@ Next executable steps, in order of information value:
 - Keep logs, raw CSVs, plots, and large outputs in retained artifacts/storage, not Git. Keep compact manifests, hashes and decision summaries.
 - At every cycle: brainstorm session plan → conservative hygiene cleanup → inspect queue incidents/active runs → remove the highest-leverage manual dependency → execute current tasks → verify, measure and hand off.
 - Never create a duplicate run while an existing canonical attempt is active. Never treat a successful trigger or synthetic test as empirical evidence.
+
+## Latest wake-up cycle — 2026-11-22
+
+**Plan selected:** (1) align the general operating mindset and meta-optimization priority; (2) run conservative repository hygiene; (3) inspect queue incidents and active runs; (4) execute the active all-input audit once; (5) persist the evidence and choose a different trade-level/parser/funding path rather than repeat the same kline/funding calls.
+
+**Hygiene result:** recursive GitHub tree inspection returned 37 tracked objects with no tracked `__pycache__`, test/tool caches, raw `data/`, generated reports or common scratch files. Added `.gitignore` protections for Python/editor caches and local data/generated outputs. No queue-guardian incident issues were open. A GitHub connector view does not expose a local `git status`, so untracked working-tree state is not claimed verified.
+
+**Wake-up automation:** the primary 03:00 automation was invoked successfully. Its saved prompt is a link to the root README; the README now contains the ordered plan → cleanup → incident review → meta-optimization → execution protocol, so all wake-ups using that canonical link inherit the updated instructions. Direct saved-prompt updates were rejected by the automation service because the account currently has four enabled scheduled tasks while the plan limit is three; schedules were left unchanged.
+
+**Process improvement delivered:** documented the general antifragile mindset and higher-order process-optimization priority; added mandatory repository hygiene/context compaction; created this single task index; and ignored disposable/local research outputs. The scheduled queue guardian is configured, but a live `schedule`-event enforcement run has not yet been observed. Keep verifying that separately from the already-passed manual dry-run.
+
