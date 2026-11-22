@@ -2,7 +2,10 @@ import unittest
 from datetime import datetime, timedelta, timezone
 
 from queue_guardian import (
+    GitHubAPI,
     QUEUE_TIMEOUT_SECONDS,
+    STATUS_MARKER,
+    format_status_comment,
     group_for,
     parse_timestamp,
     process_queue,
@@ -119,6 +122,47 @@ class FakeAPI:
         return issue
 
 
+class StatusCommentTests(unittest.TestCase):
+    def test_status_comment_upsert_is_idempotent_and_only_updates_bot_comment(self):
+        api = GitHubAPI("example/repo", "token")
+        comments = [{
+            "id": 1,
+            "body": STATUS_MARKER + "\nuser-authored marker",
+            "user": {"login": "someone-else"},
+        }]
+
+        def fake_request(method, path, body=None):
+            if method == "GET":
+                return 200, list(comments)
+            if method == "POST":
+                comment = {
+                    "id": max(item["id"] for item in comments) + 1,
+                    "body": body["body"],
+                    "user": {"login": "github-actions[bot]"},
+                }
+                comments.append(comment)
+                return 201, comment
+            if method == "PATCH":
+                comment_id = int(path.rsplit("/", 1)[1])
+                comment = next(item for item in comments if item["id"] == comment_id)
+                comment["body"] = body["body"]
+                return 200, comment
+            raise AssertionError(f"Unexpected request: {method} {path}")
+
+        api.request = fake_request
+        first_body = STATUS_MARKER + "\n## QFR workflow status\nPASS"
+        created = api.upsert_status_comment(first_body)
+        unchanged = api.upsert_status_comment(first_body)
+        updated = api.upsert_status_comment(first_body + "\nUpdated")
+
+        self.assertEqual(created["state"], "created")
+        self.assertEqual(unchanged["state"], "unchanged")
+        self.assertEqual(updated["state"], "updated")
+        self.assertEqual(len(comments), 2)
+        self.assertEqual(comments[0]["user"]["login"], "someone-else")
+        self.assertEqual(comments[1]["body"], first_body + "\nUpdated")
+
+
 class QueueProcessingTests(unittest.TestCase):
     def test_cancels_overdue_and_creates_retry_issue(self):
         item = make_run(20, "research-tests", "queued", NOW - timedelta(minutes=20))
@@ -169,6 +213,25 @@ class QueueProcessingTests(unittest.TestCase):
         self.assertEqual(api.cancelled, [25])
         self.assertEqual(report["actions"][0]["result"],
                          "EXISTING_INCIDENT_NO_REPEAT_CANCELLATION")
+
+    def test_report_exposes_research_run_inventory_and_status_comment(self):
+        test_run = make_run(31, "research-tests", "in_progress", NOW - timedelta(minutes=2))
+        research_run = make_run(30, "eth-btc-research", "completed", NOW - timedelta(minutes=4))
+        research_run["conclusion"] = "failure"
+        unrelated = make_run(29, "unmapped-workflow", "completed", NOW - timedelta(minutes=5))
+        api = FakeAPI([research_run, unrelated, test_run])
+
+        report = process_queue(api, NOW, dry_run=True)
+        body = format_status_comment(report)
+
+        self.assertTrue(report["run_enumeration_complete"])
+        self.assertEqual(report["enumerated_runs"], 3)
+        self.assertEqual(report["run_inventory_total"], 2)
+        self.assertEqual([item["run_id"] for item in report["run_inventory"]], [31, 30])
+        self.assertIn("Active runs", body)
+        self.assertIn("[31]", body)
+        self.assertIn("Research pipeline tests", body)
+        self.assertIn("failure", body)
 
     def test_dry_run_never_cancels_or_creates_issue(self):
         item = make_run(23, "research-tests", "queued", NOW - timedelta(minutes=25))
