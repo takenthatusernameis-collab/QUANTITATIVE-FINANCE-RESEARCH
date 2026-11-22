@@ -77,6 +77,16 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         self.assertIn("--inspect-field-info", workflow)
         self.assertIn("okx-funding-field-info-probe-", workflow)
 
+    def test_okx_symbol_options_probe_is_exactly_allowlisted(self):
+        workflow = (WORKFLOW_DIR / "eth-btc-research.yml").read_text(encoding="utf-8")
+        command = "/qfr-probe-okx-funding-symbols"
+        self.assertIn(f'"{command}"', workflow)
+        self.assertIn(f'"{command}")', workflow)
+        self.assertIn('COMMAND="okx-symbol-options-probe"', workflow)
+        self.assertIn("command == 'okx-symbol-options-probe'", workflow)
+        self.assertIn("--inspect-symbol-options", workflow)
+        self.assertIn("okx-funding-symbol-options-probe-", workflow)
+
     def test_deprecated_node20_action_refs_are_absent(self):
         for workflow in WORKFLOW_DIR.glob("*.yml"):
             text = workflow.read_text(encoding="utf-8")
