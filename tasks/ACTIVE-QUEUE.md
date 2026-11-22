@@ -52,6 +52,13 @@ Artifact [14740847028](https://github.com/takenthatusernameis-collab/QUANTITATIV
 
 Summary: all six manifests are present; both perps pass; both spot candle grids remain incomplete despite all missing intervals now being classified as no-trade; both funding datasets remain unaccepted. The empirical result remains **INCONCLUSIVE** and no strategy metrics were produced.
 
+## Independent research-scope gates
+
+- The executable decision engine now separates `spot`, `perpetual`/`um`, and `both` research scopes. Spot-only research does not depend on funding manifests; perpetual-only research does not depend on Spot completeness; combined research still requires all six inputs.
+- Confirmed Spot no-trade intervals do not create hourly candles. Spot research with missing hourly observations additionally requires an accepted event-time/elapsed-time PnL, signal, execution and annualization policy. The current empirical pipeline intentionally leaves `spot_time_policy_accepted=false`, so Spot backtests with these gaps remain blocked.
+- Perpetual research remains blocked until the final settled funding population and historical contract semantics are independently accepted.
+- Control PR #2 commands: `/qfr-run-eth-btc-spot-empirical`, `/qfr-run-eth-btc-um-empirical`, and the existing combined `/qfr-run-eth-btc-empirical`. Each preflight is scoped to the requested market; the all-six audit still records every independent input.
+
 ## Current blockers and next executable actions
 
 1. **Spot-only event-time path:** design and test a separate event-time/irregular-time return and position-accounting path that preserves elapsed duration and no-trade intervals, including holding periods, execution opportunities, annualization and transaction costs. Keep the original strict hourly experiment gated until its pre-registered data semantics are met.
