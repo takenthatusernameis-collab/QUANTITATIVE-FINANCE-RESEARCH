@@ -1,7 +1,7 @@
 # Active Task: Repair ETH/BTC Data Ingestion and Validate No-Trade Intervals
 
-**Status:** In progress — Spot-only result complete; USDⓈ-M/funding acceptance pending  
-**Updated:** 2026-11-22 09:01 UTC
+**Status:** In progress — Spot NO-GO complete; funding gate unaccepted; REST/archive comparison pending  
+**Updated:** 2026-11-22 09:14 UTC
 **Priority:** High  
 **Type:** Data-source resilience, parser correctness, missing-observation policy, and reproducible audit  
 **Scope:** Historical research/backtesting only. No live orders, capital deployment, live credentials, or strategy promotion.
@@ -325,3 +325,14 @@ Run [44998434437](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FIN
 The six-input combined/perpetual study remains **INCONCLUSIVE**. USD-M-only empirical command comment [7076935878](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/pull/2#issuecomment-7076935878) was posted, but its run ID/status is not yet verified. The queue-guardian live command comment [7076972330](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/pull/2#issuecomment-7076972330) is also awaiting status confirmation.
 
 **P1 infrastructure finding:** the Spot run's cache save was denied because an `issue_comment` trigger defaults to read-only cache access. This did not fail the empirical run, but archive data was not persisted. Avoid granting cache-write on this low-trust trigger; a trusted scheduled cache-warm workflow is the safer follow-up.
+
+
+## USDⓈ-M funding-gate completion — 2026-11-22 09:14 UTC
+
+The independent USDⓈ-M-only empirical command was executed: run [45005913283](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45005913283) completed **failure at preflight** with artifact [14747898462](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45005913283/artifacts/14747898462). Both UM price inputs were accepted (59,904 rows each, 82/82 monthly checksums). Both funding inputs were rejected: 7,488 rows per symbol, 82/82 checksums, 8h cadence only, `event_semantics=UNVERIFIED`, `completeness_status=PROVISIONAL_NOT_ACCEPTED`. The gate reported `unaccepted inputs: funding_ETHUSDT, funding_BTCUSDT`; no empirical outputs were produced.
+
+
+Official Binance documentation confirms dynamic funding intervals (default 8h, conditionally 1h or 4h) and schedule-rule version changes. The 8h-only archive is insufficient to certify historical payable-event completeness, but it does not prove BTC/ETH actually missed specific events. The current FAQ/announcements and REST endpoint behavior are documented in [the funding gate report](../reports/ETH-BTC-FUNDING-GATE-UPDATE-2026-11-22.md). Direct REST samples around 2025-05-02, 2025-09-01 and 2026-01-02 were not retrieved through the available web reader; that comparison remains open. Keep the perpetual study **INCONCLUSIVE** and do not run it until the funding gate accepts.
+
+
+Queue guardian live run [45006181916](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45006181916) succeeded without actions/errors but saw the UM run in progress at 09:09 UTC. Only one scheduled guardian run appeared in the latest 100 Actions runs, despite the 5-minute cron; investigate schedule reliability and use a live status check when needed. The issue-comment cache write was denied by secure read-only default; do not weaken it without review. No live trading occurred.
