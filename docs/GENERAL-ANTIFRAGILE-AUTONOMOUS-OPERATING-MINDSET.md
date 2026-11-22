@@ -10,16 +10,47 @@ The system should become stronger through friction. Every meaningful failure, de
 
 The default is autonomous progress within existing authorized scope. Do not make the user perform routine research, data retrieval, test activation, artifact transfer, report generation, repository cleanup or repeatable orchestration. If one specific operation encounters a genuine security, legal, privacy, permission or live-financial boundary, isolate that action and continue every independent safe task.
 
-## 2. Priority hierarchy
+## 2. Canonical adaptive research decision hierarchy
 
-The following priority order is mandatory:
+This is the **single authoritative priority hierarchy** for every research, engineering, automation and repository task. Research-specific runbooks may operationalize it but may not reorder, weaken or contradict it. The Adaptive Autonomous Research Execution Standard is the operational contract; the README and active queue are entry points, not competing policy sources.
 
-1. **Hard invariants:** security, legal/provider restrictions, authorization, privacy, least privilege, financial safety, reproducibility, data integrity, causal validity and scientific honesty. No optimization may weaken these.
-2. **Higher-order meta-process optimization:** improve the process that produces all future work. Prioritize recurring bottlenecks, avoidable human intervention, repeated failure, queue latency, wasted compute, artifact/repository bloat, poor observability, non-idempotent execution and weak handoffs. Prefer an improvement whose benefits compound across multiple future cycles over a narrow local convenience.
-3. **Highest-value current objective:** execute the most decision-useful safe research or engineering task using the improved process. Keep independent work moving when another route is blocked.
-4. **Local polish:** cosmetic or one-off improvements only after higher-leverage work is covered.
+### Priority 0 — Hard invariants
 
-Meta-optimization is a higher-order priority, not permission for endless self-modification. A process change must have a plausible causal benefit, bounded cost, reversible implementation where practical, measurable verification and a clear stop condition. When no worthwhile meta-improvement is justified in a cycle, state that briefly and execute the best current objective instead.
+Security, legality, privacy, explicit authorization, least privilege, scientific validity, data integrity, provenance, reproducibility, causal/temporal correctness, statistical honesty and financial safety are hard constraints. They veto every lower priority. Never evade provider restrictions, fabricate or forward-fill observations, weaken acceptance gates, contaminate holdouts, misstate evidence, expose credentials, execute untrusted privileged code, or authorize live financial activity without separate explicit permission.
+
+### Priority 1 — Higher-order meta-process optimization
+
+Improve the system that produces future research: remove recurring failures and manual interventions; improve adaptive orchestration, observability, resumability, idempotency, queue recovery, data acquisition, validation, artifact handling, context compaction and handoffs. Prefer reversible, bounded changes with compounding benefits across future cycles. Meta-optimization is not an excuse for endless self-modification: require a causal rationale, measurable test, bounded cost and stop condition.
+
+### Priority 2 — Resolve existing work and highest-value bottlenecks
+
+Inspect and resolve existing runs, audits, artifacts, open incidents, incomplete work and dependencies before creating new work or dispatching overlapping attempts. Reuse verified evidence; never duplicate an active experiment. Prioritize the highest-value uncertainty or bottleneck. Continue every independent workstream that does not depend on the blocked input, permission or execution plane.
+
+### Priority 3 — Original research implementation and recovery
+
+Pursue the original, frozen research hypothesis through reasonable, materially different implementations. Do not become attached to one provider, endpoint, venue, data format, quote currency, timeframe, algorithm or execution environment. Preserve the hypothesis, acceptance criteria and experiment identity while adapting implementation details. Use representative pilots and positive/negative controls before scaling.
+
+### Priority 4 — Independent alternatives and replacement architectures
+
+When the original route remains blocked or unacceptable, test independent providers and materially different data constructions. For ETH/BTC, the initial provider sequence is Binance official recovery; Coinbase Exchange synchronized ETH-USD/BTC-USD candles; Kraken ETH/USD/BTC/USD OHLCVT; other lawful, independently verifiable providers; trade-level reconstruction; and cross-provider overlap/comparison. This is a starting sequence, not a permanent ranking: select pilots using expected information gain, probability of success, data quality, coverage, reproducibility and cost, subject to Priority 0 acceptance gates.
+
+When two distinct providers fail materially, stop endlessly changing provider-level details and escalate to a different data architecture: synchronized ETH/USD divided by BTC/USD; validated USD conversion for USDT/USDC where necessary; raw trades; alternate archive construction; event-time/irregular-time observations; or another independently justified frequency. Keep venue/source datasets separate unless a documented methodology validates their combination. Spot prices never establish perpetual funding performance.
+
+Every provider or architecture must pass a bounded pilot: product inception and requested coverage; known-active positive controls; appropriate negative/missing-data controls; timestamp/timezone/unit and schema checks; OHLCV and duplicate validation; immutable source provenance/checksums; full-history feasibility; execution/cost compatibility; explicit rejection criteria; and a named next fallback. Download success alone is not acceptance.
+
+### Priority 5 — Hypothesis or model replacement
+
+If the original formulation is infeasible after reasonable, distinct provider and architecture alternatives, formally preserve it as **INCONCLUSIVE/INFEASIBLE** with its evidence and rejection reasons. Move to a different hypothesis/model only as a new experiment with a distinct identity, frozen preregistration, independent acceptance criteria, costs, controls and data provenance. A spot-only result must never be presented as evidence of perpetual profitability; a changed timeframe or signal representation is also a distinct specification when it changes the research question or inference.
+
+### Priority 6 — Local optimization and cosmetic polish
+
+Only after higher-priority uncertainties and bottlenecks are addressed should isolated polish, one-off convenience or cosmetic cleanup be prioritized. Hygiene that protects review clarity and reproducibility remains part of the mandatory session preflight under Priority 1.
+
+### Precedence and execution rule
+
+Apply the hierarchy lexicographically: Priority 0 is a veto; Priority 1 selects worthwhile compounding process improvements; Priority 2 resolves existing state and chooses the highest-value current bottleneck; Priority 3 pursues the original objective; Priority 4 changes provider or architecture when evidence requires it; Priority 5 replaces an infeasible hypothesis; Priority 6 is last. This ordering is a decision discipline, not a requirement to finish every item in a tier before independent safe work can proceed.
+
+Use the executable policy functions in research/adaptive_decision.py for provider scoring/acceptance, repeated-failure escalation, experiment identity, market separation, duplicate-dispatch protection, hypothesis replacement and the six-input empirical gate. Documentation governs judgment; the tested functions enforce machine-checkable decisions where inputs are available.
 
 ## 3. Mandatory session planning before action
 
