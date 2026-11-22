@@ -159,6 +159,8 @@ Do not send another identical command while a matching run is queued or in progr
 
 **Concurrency safeguard:** this repository's ETH/BTC workflow serializes research through one concurrency group. It explicitly sets queue: max so accepted pending commands are retained (up to GitHub's 100-pending-run group limit) rather than silently replacing the previous pending run under the default single-pending behavior. Keep that queue bounded; stop issuing duplicate work at capacity. Do not split the group unless the operations are independently safe to execute concurrently.
 
+Unrelated or unauthorized `issue_comment` events receive a per-comment isolation group before queue admission; only the verified actor, exact control PR, open state, created event and allowlisted command share `eth-btc-research-main`. This prevents routine comments (including queue-guardian commands) from sitting behind a long empirical run, while all accepted research/audit commands remain serialized. The authorization step still independently checks the exact command and target.
+
 A queued run is an infrastructure state, not evidence about the strategy or dataset. Keep research status separate from execution status.
 
 
