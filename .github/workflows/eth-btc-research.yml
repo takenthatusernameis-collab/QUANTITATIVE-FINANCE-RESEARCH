@@ -277,8 +277,6 @@ jobs:
         uses: actions/cache@v6.1.0
         with:
           path: data/cache/
-          # issue_comment is low-trust and defaults to read-only cache access.
-          # Do not override with cache-mode: write here; use a separate trusted cache warmer.
           # Unique primary keys prevent immutable old snapshots shadowing newer warm caches.
           key: binance-archives-run-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
