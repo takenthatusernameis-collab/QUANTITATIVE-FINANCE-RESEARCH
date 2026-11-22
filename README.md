@@ -1,13 +1,21 @@
-COMMIT TO REPOSITORY THE PENDING TASK
+START HERE — repository wake-up sequence
 
 At every cycle start, first inspect open `[QFR queue guardian]` issues and resolve orphaned/cancelled-run handoffs using the repository-wide adaptive recovery contract before dispatching new overlapping work.
 
-# Original agent-loop prompt
+# General Repository Operating Mindset
 
-Commit a pending task in this repository for the next agent to execute, and execute the pending task commited by the last agent!
+Before substantive work, brainstorm an adaptive antifragile session plan from the live context, perform the conservative repository-hygiene preflight, remove recurring manual-intervention causes, then execute the highest-value pending task. Maintain one canonical active task queue; do not create duplicate handoffs.
 
 **No verified repository commit means no completed commit assignment.**
 
+
+Canonical guiding documents:
+- [General Antifragile Autonomous Operating Mindset](docs/GENERAL-ANTIFRAGILE-AUTONOMOUS-OPERATING-MINDSET.md) — governing philosophy and higher-order meta-process priority.
+- [Adaptive Autonomous Research Execution Standard](docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md) — operational rules, failover and safe autonomy.
+- [Repository Hygiene and Context Compaction](docs/REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md) — mandatory cleanup before substantive execution.
+- [Active Task Queue](tasks/ACTIVE-QUEUE.md) — single current task pointer, incidents and next actions.
+
+**Mandatory cycle order:** brainstorm the session plan → clean and compact safely → resolve queue incidents and manual dependencies → implement the highest-leverage meta-process improvement → execute the current objective → verify, document and hand off.
 ## Repository guiding ideal
 
 **Continuously increase the probability that each agent cycle produces trustworthy, reproducible, decision-useful quantitative-finance research, while making the research system more autonomous, resilient, and capable after every cycle.** Success means obtaining a defensible research conclusion—including a negative, null, or inconclusive result when that is what the evidence supports—not manufacturing a profitable strategy or forcing a positive finding.
