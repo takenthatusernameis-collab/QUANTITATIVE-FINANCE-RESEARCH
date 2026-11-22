@@ -101,7 +101,7 @@ def identify_funding_download(page) -> dict:
     }""")
 
 
-def run_probe(output_dir: Path, inspect_field_info: bool = False) -> dict:
+def run_probe(output_dir: Path, inspect_field_info: bool = False, inspect_symbol_options: bool = False) -> dict:
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest = {
         "probe": "okx_funding_download_button_click",
@@ -115,6 +115,7 @@ def run_probe(output_dir: Path, inspect_field_info: bool = False) -> dict:
         "form_submitted": False,
         "file_saved": False,
         "field_info_mode": inspect_field_info,
+        "symbol_options_mode": inspect_symbol_options,
         "status": "not_started",
     }
     try:
@@ -258,6 +259,59 @@ def run_probe(output_dir: Path, inspect_field_info: bool = False) -> dict:
                                                 manifest["field_info_clicked"] = False
                                                 manifest["field_info_error"] = f"{type(exc).__name__}: {str(exc)[:300]}"
                                                 manifest["status"] = "field_info_click_failed"
+                                elif inspect_symbol_options:
+                                    symbol_select = page.get_by_text("Select", exact=True)
+                                    manifest["symbol_select_count"] = symbol_select.count()
+                                    if symbol_select.count() != 1 or not symbol_select.first.is_visible():
+                                        manifest["symbol_options_status"] = "control_not_found_or_not_visible"
+                                        manifest["status"] = "symbol_select_control_not_found"
+                                    else:
+                                        symbol_select.first.scroll_into_view_if_needed(timeout=5000)
+                                        symbol_action = symbol_select.first.evaluate("""el => {
+                                          const r=el.getBoundingClientRect(), x=r.left+r.width/2, y=r.top+r.height/2;
+                                          const top=document.elementFromPoint(x,y);
+                                          const clean=s=>(s||'').replace(/\\s+/g,' ').trim();
+                                          return {tag:el.tagName.toLowerCase(),role:el.getAttribute('role'),
+                                            ariaExpanded:el.getAttribute('aria-expanded'),visible:r.width>0&&r.height>0,
+                                            disabled:!!el.disabled,unobstructed:!!top&&(top===el||el.contains(top),
+                                            blocker:top?{tag:top.tagName.toLowerCase(),text:clean(top.innerText||top.textContent).slice(0,160),
+                                              aria:top.getAttribute('aria-label'),class:String(top.className||'').slice(0,160)}:null};
+                                        }""")
+                                        manifest["symbol_select_actionability"] = symbol_action
+                                        if not symbol_action.get("visible") or symbol_action.get("disabled"):
+                                            manifest["symbol_options_status"] = "control_not_actionable"
+                                            manifest["status"] = "symbol_select_control_not_actionable"
+                                        elif not symbol_action.get("unobstructed"):
+                                            manifest["symbol_options_status"] = "control_obstructed_no_click"
+                                            manifest["status"] = "symbol_select_control_obstructed_no_click"
+                                        else:
+                                            try:
+                                                symbol_select.first.click(timeout=5000)
+                                                manifest["symbol_select_clicked"] = True
+                                                page.wait_for_timeout(1500)
+                                                symbol_options_snapshot = snapshot(page)
+                                                manifest["symbol_options_snapshot"] = symbol_options_snapshot
+                                                manifest["symbol_options"] = page.evaluate("""() => {
+                                                  const visible=el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el);
+                                                    return r.width>0&&r.height>0&&s.display!=='none'&&s.visibility!=='hidden&&Number(s.opacity||1)>0;};
+                                                  const clean=s=>(s||'').replace(/\\s+/g,' ').trim();
+                                                  const selector='[role=option],li,[class*="option" i]';
+                                                  const els=Array.from(document.querySelectorAll(selector)).filter(visible);
+                                                  const texts=els.map(el=>clean(el.innerText||el.textContent)).filter(Boolean);
+                                                  return {optionLikeCount:els.length,uniqueOptionTexts:Array.from(new Set(texts)).slice(0,100)};
+                                                }""")
+                                                symbol_screenshot = output_dir / "okx-funding-symbol-options.png"
+                                                page.screenshot(path=str(symbol_screenshot), full_page=False)
+                                                manifest["symbol_options_screenshot"] = symbol_screenshot.name
+                                                manifest["symbol_options_status"] = "clicked_and_inspected_no_selection"
+                                                if downloads:
+                                                    manifest["status"] = "unexpected_download_cancelled_after_symbol_dropdown"
+                                                else:
+                                                    manifest["status"] = "symbol_options_opened_inspected_no_selection"
+                                            except Exception as exc:
+                                                manifest["symbol_select_clicked"] = False
+                                                manifest["symbol_options_error"] = f"{type(exc).__name__}: {str(exc)[:300]}"
+                                                manifest["status"] = "symbol_options_click_failed"
                             elif popups:
                                 manifest["status"] = "popup_opened_inspected_no_submission"
                             else:
@@ -283,8 +337,11 @@ def main() -> None:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--inspect-field-info", action="store_true",
                       help="Click only the Field information control after the modal opens.")
+    parser.add_argument("--inspect-symbol-options", action="store_true",
+                      help="Open the Symbol selector and inspect options without selecting.")
     args = parser.parse_args()
-    result = run_probe(args.output_dir, inspect_field_info=args.inspect_field_info)
+    result = run_probe(args.output_dir, inspect_field_info=args.inspect_field_info,
+                      inspect_symbol_options=args.inspect_symbol_options)
     print(json.dumps({
         "status": result.get("status"),
         "http_status": result.get("http_status"),
@@ -293,6 +350,8 @@ def main() -> None:
         "button_clicked": result.get("button_clicked"),
         "field_info_status": result.get("field_info_status"),
         "field_info_snapshot": result.get("field_info_snapshot"),
+        "symbol_options_status": result.get("symbol_options_status"),
+        "symbol_options": result.get("symbol_options"),
         "download_events": result.get("download_events"),
         "click_error": result.get("click_error"),
         "error": result.get("error"),
