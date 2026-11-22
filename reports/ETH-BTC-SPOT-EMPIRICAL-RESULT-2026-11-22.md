@@ -12,7 +12,7 @@ The original Binance USDⓈ-M/perpetual study remains **INCONCLUSIVE** until fun
 - Artifact: [eth-btc-research-24](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44998434437/artifacts/14746369761)
 - Artifact ID: `14746369761`; 2,202,803 bytes; SHA-256: `dba9bb76fd332429673b3c54a6f9e5fd306e3487de0380a35d856226abda4f69`
 - Executed on default-branch commit `66b3594` (pre-pooled-summary code). The pooled OOS metrics and bootstrap inference below were independently recomputed from the uploaded `spot_1h_oos_returns.csv` and `spot_1d_oos_returns.csv`; no raw market data was added to Git.
-- Scope: Binance Spot ETHUSDT/BTCUSDT, 2020-01-01 through 2026-10-31. Twenty rolling walk-forward OOS folds, 730-day training windows, 90-day test windows; OOS begins 2021-12-31 and runs through 2026-10-31. Total OOS elapsed time: 1,765.17 hours-data days for hourly event-time metrics; 1,766 daily returns for daily aggregation.
+- Scope: Binance Spot ETHUSDT/BTCUSDT, 2020-01-01 through 2026-10-31. Twenty rolling walk-forward OOS folds, 730-day training windows, 90-day test windows; OOS begins 2021-12-31 and runs through 2026-10-31. Total OOS elapsed time: 1,765.17 days for hourly event-time metrics; 1,766 daily returns for daily aggregation.
 - Variants: `fixed_1x1` and `rolling_hedge`. Hourly test: 42,383 rows per variant, 42,363 positive-duration observations. Daily test: 1,766 rows per variant. Fold boundaries are kept separate and no inter-fold returns are inserted.
 
 ## Data-quality result
@@ -99,7 +99,7 @@ Benchmark total returns are compounded from the per-fold summaries. Daily benchm
 | 50/50 ETH/BTC rebalanced | -2.04% | -0.42% | +1.25% | +0.26% |
 | Long ETH / short BTC buy-and-hold | -29.84% | -7.07% | -24.15% | -5.56% |
 
-The strategies underperformed the 50/50 benchmarks and no-trade (0%) at both frequencies. Hourly strategies also underperformed the ETH buy-and-hold benchmark despite ETH itself declining over the OOS period. Daily fixed_1x1 did beat ETH buy-and-hold but still lost and underperformed the 50/50 and BTC benchmarks; rolling_hedge underperformed ETH as well.
+The strategies underperformed the 50/50 benchmarks and no-trade (0%) at both frequencies. Hourly strategies also underperformed ETH buy-and-hold despite ETH itself declining over the OOS period. Both daily variants beat ETH buy-and-hold (they lost less), but still underperformed the 50/50 and BTC benchmarks; daily rolling_hedge also underperformed the long-ETH/short-BTC buy-and-hold benchmark.
 
 ## Interpretation / action
 
@@ -108,6 +108,10 @@ The strategies underperformed the 50/50 benchmarks and no-trade (0%) at both fre
 - Spot borrow costs/availability are unverified and modeled as zero; real borrow costs would not rescue the tested results and would make short-Spot results worse.
 - This is a Spot-specific result. Perpetual funding acceptance remains provisional and the original Binance USDⓈ-M study remains inconclusive.
 - No live trading, capital deployment or strategy promotion occurred.
+
+## Infrastructure notes
+
+The empirical run was pinned to the older SHA and used Node-20-era action versions, so its log contains deprecation warnings; the default branch has since upgraded those actions and CI verified the new versions. The archive-cache save was denied: this `issue_comment` trigger receives the secure default read-only cache mode. The backtest completed, but its downloaded Binance archives were not persisted to the shared cache, so the separate USDⓈ-M run may redownload. Do **not** bypass the read-only cache restriction casually; the safer process improvement is a dedicated trusted scheduled cache-warm workflow using default-branch code and official, checksum-verified data, rather than enabling cache writes for low-trust `issue_comment` triggers.
 
 ## Next independent workstream
 
