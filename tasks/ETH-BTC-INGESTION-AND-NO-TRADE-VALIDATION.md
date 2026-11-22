@@ -237,10 +237,51 @@ A promising independent path has been identified, but no production data has bee
 
 **Next bounded experiment:** probe Coinbase `BTC-USD` and `ETH-USD` over one known-active 24-hour window and one candidate no-trade/gap window; verify HTTP status, product identity, row ordering, UTC bucket boundaries, OHLCV invariants, 300-row limit, and paired timestamp coverage. If that passes, fetch one representative month for both products and compare the ratio against a direct ETH/BTC series where available. Keep this as a separate Coinbase spot dataset with its own provenance, missing-interval policy and costs; do not blend it into the Binance experiment or infer perpetual funding from spot prices.
 
-## Current execution follow-up — 2026-11-22 04:41 UTC
+## Current execution follow-up — 2026-11-22 05:16 UTC
 
-- **Live queue guardian:** [run 44986166616](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44986166616), triggered by control-PR comment 7074321256, completed successfully in `LIVE_ENFORCEMENT` mode on SHA `0b1aaccdca11044525556355d7006f9ee350ec75`. The report enumerated 117 repository workflow runs completely, with no queue actions and no API errors; the bot-owned status comment was updated. This proves the live PR-comment path, not the scheduled cron trigger.
-- **Full six-input audit:** [run 44986170330](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44986170330), triggered by control-PR comment 7074321816, passed the exact authorization gate, dependency installation and synthetic smoke test. Its non-fail-fast all-series audit was still `in_progress` at 2026-11-22 04:44 UTC; no artifact was yet available and the empirical preflight/backtest steps had not started. Do not dispatch a duplicate; inspect this run's final logs and artifact when it completes.
-- **Research CI:** [run 44985194153](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44985194153) passed 61 deterministic tests and the synthetic plumbing smoke test on commit `19ddf6bd`. This validates the parser/fallback and workflow plumbing only.
-- **Funding limitation:** the 2020-06-01, 2024-01-01 and 2026-03-01 Tardis/Binance samples support the sampled next-event timestamp interpretation within 15 seconds, but Tardis rates are pre-event estimates and the samples do not establish the complete payable-settlement population. Binance issue [#517](https://github.com/binance/binance-public-data/issues/517) remains open; both funding inputs stay `PROVISIONAL_NOT_ACCEPTED`.
-- **Research decision:** no empirical strategy computation or performance metrics were produced. Keep the original Binance ETH/BTC study **INCONCLUSIVE** until the six-input, Spot-gap and funding-completeness gates pass.
+### Full-history audit #23 resolved
+
+Run [44986170330](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44986170330) completed at 05:16:08 UTC with expected data-quality conclusion **INCOMPLETE** (exit code 2). Authorization, default-branch checkout, Python/dependency setup, synthetic smoke test and artifact upload passed. Both empirical preflight and strategy backtest were skipped.
+
+Artifact [14740847028](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44986170330/artifacts/14740847028) contains nine files (summary, six input manifests, two Spot gap-reconciliation manifests), 71,320 bytes, SHA-256 `a69e7247f2aaf09f049461a80b823084d8fe3384036494548f000815dada7204`. Raw market-data CSVs were not uploaded.
+
+| Input | Observations | Data result |
+|---|---:|---|
+| Spot ETHUSDT | 59,873 / 59,904 hourly | 31 absent hourly candles |
+| Spot BTCUSDT | 59,873 / 59,904 hourly | Same 31 absent hours |
+| USD-M ETHUSDT | 59,904 / 59,904 | Complete |
+| USD-M BTCUSDT | 59,904 / 59,904 | Complete |
+| ETHUSDT funding | 7,488 events | Timestamp/cadence coverage passes; semantics provisional |
+| BTCUSDT funding | 7,488 events | Timestamp/cadence coverage passes; semantics provisional |
+
+**Spot gap resolution:** both reconciliation manifests classify all 31/31 missing hours as `confirmed_no_trade_interval`. Classification is backed by checksum-verified daily aggregate-trade archives and successful known-active archive positive controls. There are zero unresolved gap classifications in either reconciliation manifest. This is not a repair of the original hourly candle CSVs: preserve the absent rows and build an explicit event-time/irregular-time treatment that retains elapsed duration. Never generate synthetic OHLCV, assign zero return, or count a multi-hour gap as one hourly observation.
+
+**Perpetual price resolution:** both USD-M parsers now pass the January 2022 archive and all 82 monthly archive checksums; each series contains 59,904/59,904 hourly bars, zero duplicates and zero missing timestamps. The formerly recurring futures parser blocker is resolved for this full-history run.
+
+**Funding remains the hard research blocker:** Binance Vision monthly archives provide 7,488 rows per symbol, zero duplicate timestamps, requested start/end coverage and approximately eight-hour cadence. Both funding manifests nevertheless remain `PROVISIONAL_NOT_ACCEPTED` because the complete final-settlement population, historical event semantics and contract-incarnation/retention have not been independently established. Three Tardis samples corroborate next-event timestamps only; Tardis pre-event funding-rate estimates are not final settled rates.
+
+The audit summary confirms all six manifests are present, `price_series_complete=false`, `funding_series_complete=false`, `reconciliation_complete=true`, and status `INCOMPLETE`. No strategy computation or performance metric was produced. Original Binance ETH/BTC perpetual research remains **INCONCLUSIVE**.
+
+### Adaptive hierarchy implementation
+
+The canonical seven-priority hierarchy now lives in [the General Antifragile Autonomous Operating Mindset](../docs/GENERAL-ANTIFRAGILE-AUTONOMOUS-OPERATING-MINDSET.md). The [Adaptive Autonomous Research Execution Standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md) defines provider, architecture, time-frequency, hypothesis and funding failover. Machine-checkable policy is implemented in `research/adaptive_decision.py`; tests are in `research/test_adaptive_decision.py`; the original six-input audit now calls the shared fail-closed gate in `research/run_eth_btc.py`.
+
+Implementation commits:
+- Mindset: [378609c](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/378609c7d3bf76ce7ce6bb9ec9997b6538e7054f)
+- Execution standard: [0d4378f](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/0d4378f189c043caf885257b7a53de5d29264767)
+- README: [386ff38](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/386ff38f430cf47c43eab1f2557d1a87c0ca29f6)
+- Policy engine: [a811c49](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/a811c49223565dc5d3d24c60b408690d0ee0988b)
+- Policy tests: [5576fc0](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/5576fc048fffaf0c4080788750f52b4f55f1fc2c)
+- Six-input gate integration: [8625d40](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/8625d40b8684ee975d7664ca8b01a17247dd659e)
+
+### Next executable research actions
+
+1. **Spot-only event-time/irregular-time research:** build a separate data representation for the confirmed no-trade intervals. Preserve actual timestamps and elapsed duration in returns, signal windows, holding periods, annualization, execution opportunity and cost models. Test this against synthetic fixtures and the checksum-backed gap evidence. Do not reuse the strict hourly strategy code without validating its time semantics.
+2. **Coinbase Exchange pilot:** bounded one-day known-active and candidate-gap windows for ETH-USD and BTC-USD 1-hour candles, then one month if controls pass. Validate product inception, 300-candle pagination, UTC bucket boundaries, OHLCV, missing/no-tick semantics, duplicates, checksums/immutable hashes, common timestamps, ratio construction and transaction-cost assumptions. Keep this a distinct Coinbase spot experiment.
+3. **Kraken fallback:** if Coinbase fails, pilot both ETH/USD and BTC/USD 60-minute OHLCVT from Kraken's downloadable historical archives. Inspect manifest/build version, market availability, checksums, gap semantics, archive extraction and pair synchronization before scaling.
+4. **Further independent providers and trade-level architectures:** only after bounded pilots; assess expected information gain, coverage, reproducibility and cost. After two distinct provider failures, change the data architecture instead of repeating provider-specific variants.
+5. **Funding acceptance:** continue a separate final-settlement population investigation. Do not use pre-event Tardis rate estimates as final rates or allow the spot-only workstream to imply perpetual profitability.
+6. Run the original Binance perpetual empirical workflow only after all six input, Spot semantics, funding settlement, synchronization and methodology gates pass. A distinct spot-only or alternative-provider study must have its own experiment identity and preregistration.
+
+The current canonical queue is [tasks/ACTIVE-QUEUE.md](ACTIVE-QUEUE.md). CI verification for the new adaptive decision module and shared-gate integration is pending; the 14 policy tests passed in a standalone local run, but this must not be described as GitHub CI or empirical validation until the actual Actions result is inspected.
+
