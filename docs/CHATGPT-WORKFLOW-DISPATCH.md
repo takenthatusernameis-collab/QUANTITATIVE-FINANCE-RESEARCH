@@ -199,6 +199,18 @@ Use the durable task/incident ledger for status tags `CANCELLATION_BLOCKED / ORP
 - Do not build a second dispatch bridge unless the existing route becomes unavailable or fails its security checks. Continue removing the verified data-source and parser bottlenecks.
 - The research data-quality gate remains independent: an automated trigger must not rerun or bypass the ETH/BTC study until the pending data-gap reconciliation task validates the required inputs.
 
+### Queue guardian and incident-driven alternative attempts
+
+- Live queue enforcement is in `.github/workflows/queue-guardian.yml`, scheduled every five minutes. Its target allowlist is explicit in `research/queue_guardian.py`; unknown workflow paths are ignored.
+- The watchdog has `actions: write` only to cancel eligible runs, `contents: read` to inspect repository configuration and `issues: write` to create one durable incident per run. Do not broaden these permissions or treat read-only run inspection as cancellation.
+- The harmless dry-run command is `/qfr-queue-guardian-dry-run`, accepted only from the verified actor on open control PR #2. It must never cancel runs or create incident issues. Scheduled executions are the live enforcement path.
+- The watchdog only cancels workflow-run-level `queued`/`pending` states older than 15 minutes when no earlier run in the exact mapped concurrency group is `in_progress`. A job queued within an already `in_progress` run and an environment `waiting` state are not candidates.
+- Each cancellation outcome is persisted in one issue whose title begins `[QFR queue guardian]`. At every agent-cycle start, inspect these open/closed incident records, follow their latest status, and prevent duplicate alternative attempts.
+- If cancellation is confirmed, keep the task `QUEUE_CANCELLED / RETRY_REQUIRED`; retry only after evidence of capacity recovery or with a materially different authorized route. If cancellation is not confirmed, use `CANCELLATION_BLOCKED / ORPHANED_POSSIBLE_EXECUTION` and immediately launch one independent alternative attempt as `ALTERNATIVE_ATTEMPT_ACTIVE`.
+- A new attempt must differ in execution plane, runner, dispatch path, data construction, provider, timeframe, model or task decomposition as justified by the cause. Give it a unique attempt key and isolated branch/worktree, cache, artifact namespace and output path. Never treat a fresh run ID as sufficient adaptation.
+- The queue guardian report is uploaded as a 30-day artifact. The issue is the durable task handoff; the artifact is supplementary execution evidence.
+
+
 ## Official references
 
 - [Workflow events: issue_comment, workflow_dispatch, repository_dispatch](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)
