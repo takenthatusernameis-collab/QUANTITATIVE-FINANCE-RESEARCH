@@ -1,9 +1,12 @@
 # Pending Research Task: ETH/BTC Market-Neutral Mean Reversion
 
-**Status:** Executed — INCONCLUSIVE (2026-11-21)  
+**Status:** Historical research execution — **INCONCLUSIVE** (2026-11-21); follow-up is tracked in `tasks/ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md`.
 **Priority:** High  
 **Type:** Empirical quantitative research  
 **Scope:** Research and backtesting only; do not deploy capital or place live orders.
+
+
+> **Historical / superseded execution note:** This research report/task remains a valid record of the original inconclusive study, but its original follow-up dispatch path is superseded. Continue only through the current ingestion task and repository-wide adaptive execution standard. Do not interpret this historical INCONCLUSIVE result as evidence for or against the strategy.
 
 ## 1. Objective
 
