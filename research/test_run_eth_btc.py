@@ -442,6 +442,92 @@ class ResearchPipelineTests(unittest.TestCase):
             )
             self.assertFalse(result["reconciliation_complete"])
 
+    def test_inspect_aggtrades_archive_counts_gap_and_positive_control(self):
+        day = "2024-01-01"
+        control = pd.Timestamp("2024-01-01 01:00:00", tz="UTC")
+        gap = pd.Timestamp("2024-01-01 02:00:00", tz="UTC")
+        control_ms = int(pd.Timestamp("2024-01-01 01:05:00", tz="UTC").timestamp() * 1000)
+        gap_ms = int(pd.Timestamp("2024-01-01 02:10:00", tz="UTC").timestamp() * 1000)
+        csv_text = (
+            "aggTradeId,price,quantity,firstTradeId,lastTradeId,timestamp,isBuyerMaker,isBestMatch\n"
+            f"1,100.0,0.5,1,1,{control_ms},true,true\n"
+            f"2,101.0,0.25,2,2,{gap_ms},false,true\n"
+        )
+        payload = zip_csv(csv_text, "ETHUSDT-aggTrades-2024-01-01.csv")
+
+        result = research.inspect_aggtrades_archive(payload, day, [gap], control)
+
+        self.assertEqual(result["status"], "PARSED")
+        self.assertTrue(result["header_detected"])
+        self.assertEqual(result["rows"], 2)
+        self.assertEqual(result["gap_trade_counts"][str(gap)], 1)
+        self.assertEqual(result["positive_control_trade_count"], 1)
+        self.assertEqual(result["gap_trade_samples"][str(gap)]["aggregate_trade_id"], 2)
+
+    def test_reconcile_spot_gaps_uses_checksum_verified_daily_aggtrades_fallback(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            raw_dir = root / "raw"
+            raw_dir.mkdir()
+            all_hours = pd.date_range("2024-01-01", periods=24, freq="h", tz="UTC")
+            missing = all_hours[2]
+            source_csv = raw_dir / "spot_ETHUSDT_1h.csv"
+            pd.DataFrame({
+                "timestamp": [str(ts) for ts in all_hours if ts != missing],
+                "volume": [10.0 for ts in all_hours if ts != missing],
+            }).to_csv(source_csv, index=False)
+
+            daily_rows = []
+            for ts in all_hours.delete(2):
+                open_time = int(ts.timestamp() * 1000)
+                daily_rows.append([
+                    open_time, "100", "101", "99", "100.5", "10",
+                    open_time + 3599999, "1000", "1", "5", "500", "0",
+                ])
+            daily_csv = pd.DataFrame(daily_rows).to_csv(index=False, header=False)
+            kline_archive = zip_csv(daily_csv, "ETHUSDT-1h-2024-01-01.csv")
+
+            control_ms = int(pd.Timestamp("2024-01-01 01:05:00", tz="UTC").timestamp() * 1000)
+            agg_csv = (
+                "aggTradeId,price,quantity,firstTradeId,lastTradeId,timestamp,isBuyerMaker,isBestMatch\n"
+                f"123,100.0,0.5,123,123,{control_ms},true,true\n"
+            )
+            agg_archive = zip_csv(agg_csv, "ETHUSDT-aggTrades-2024-01-01.csv")
+
+            with patch.object(
+                research, "_download_archive",
+                side_effect=[
+                    (kline_archive, True, None),
+                    (agg_archive, True, None),
+                ],
+            ), patch.object(
+                research.requests, "Session",
+                return_value=FakeSession([response(200, b"[]")]),
+            ), patch.object(
+                research, "query_aggregate_trades",
+                return_value={"trade_found": False, "rows_returned": 0},
+            ):
+                result = research.reconcile_spot_gaps(
+                    "ETHUSDT", "2024-01-01", "2024-01-01", root
+                )
+
+            entry = result["gaps"][0]
+            self.assertTrue(
+                result["daily_aggtrades_archives"]["2024-01-01"]["checksum_verified"]
+            )
+            self.assertEqual(
+                result["daily_aggtrades_archives"]["2024-01-01"]["status"], "PARSED"
+            )
+            self.assertTrue(
+                result["aggregate_trade_positive_controls"]["2024-01-01"][
+                    "archive_positive_control_passed"
+                ]
+            )
+            self.assertEqual(entry["aggregate_trade_archive"]["trade_count"], 0)
+            self.assertEqual(entry["classification"], "confirmed_no_trade_interval")
+            self.assertTrue(result["reconciliation_complete"])
+            self.assertEqual(len(pd.read_csv(source_csv)), 23)
+
     def test_close_signal_executes_next_open_and_pnl_starts_after_that_open(self):
         close_signal = pd.Series([1.0, 0.0, 0.0, 0.0], index=self.index)
         executed = research.shift_signal_to_next_open(close_signal)
