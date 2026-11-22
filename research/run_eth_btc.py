@@ -672,8 +672,10 @@ def download_funding(symbol: str, start: str, end: str, data_dir: Path) -> Path:
     if frames:
         combined = pd.concat(frames, ignore_index=True).sort_values("timestamp")
         duplicate_count = int(combined["timestamp"].duplicated().sum())
+        minute_index = pd.DatetimeIndex(combined["timestamp"]).floor("min")
+        minute_floor_collisions = int(minute_index.duplicated().sum())
         quality = funding_quality(
-            pd.DatetimeIndex(combined["timestamp"]),
+            minute_index,
             start_ts,
             end_exclusive,
             combined["funding_interval_hours"],
@@ -686,6 +688,7 @@ def download_funding(symbol: str, start: str, end: str, data_dir: Path) -> Path:
         rows_received = int(len(clean))
     else:
         duplicate_count = 0
+        minute_floor_collisions = 0
         quality = None
         csv_sha256 = None
         rows_received = 0
@@ -697,6 +700,7 @@ def download_funding(symbol: str, start: str, end: str, data_dir: Path) -> Path:
         and not download_errors
         and not checksum_failures
         and duplicate_count == 0
+        and minute_floor_collisions == 0
         and quality
         and quality["complete"]
     )
@@ -718,6 +722,7 @@ def download_funding(symbol: str, start: str, end: str, data_dir: Path) -> Path:
         "download_errors": download_errors,
         "checksum_failures": checksum_failures,
         "duplicate_timestamps": duplicate_count,
+        "minute_floor_collisions": minute_floor_collisions,
         "rows_received": rows_received,
         "data_quality": quality,
         "csv_sha256": csv_sha256,
