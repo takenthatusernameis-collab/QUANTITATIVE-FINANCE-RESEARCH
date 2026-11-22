@@ -1,7 +1,7 @@
 # Active Task: Repair ETH/BTC Data Ingestion and Validate No-Trade Intervals
 
-**Status:** In progress — Spot NO-GO complete; funding gate unaccepted; REST/archive comparison pending  
-**Updated:** 2026-11-22 09:14 UTC
+**Status:** In progress — Spot NO-GO complete; funding gate unaccepted; Binance REST blocked; MEXC history limited to ~540 days; Bitget web download under investigation  
+**Updated:** 2026-11-22
 **Priority:** High  
 **Type:** Data-source resilience, parser correctness, missing-observation policy, and reproducible audit  
 **Scope:** Historical research/backtesting only. No live orders, capital deployment, live credentials, or strategy promotion.
@@ -336,3 +336,16 @@ Official Binance documentation confirms dynamic funding intervals (default 8h, c
 
 
 Queue guardian live run [45006181916](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45006181916) succeeded without actions/errors but saw the UM run in progress at 09:09 UTC. Only one scheduled guardian run appeared in the latest 100 Actions runs, despite the 5-minute cron; investigate schedule reliability and use a live status check when needed. The issue-comment cache write was denied by secure read-only default; do not weaken it without review. No live trading occurred.
+
+## Latest automated execution — 2026-11-22
+
+The additional schedule-change samples and queue-reliability work are recorded in [the schedule-sample report](../reports/ETH-BTC-FUNDING-SCHEDULE-SAMPLES-2026-11-22.md). Three Tardis `derivative_ticker` one-day samples (2025-06-01, 2025-10-01, 2026-02-01) matched 4/4 next-event timestamps per symbol against checksum-verified monthly archives, with maximum offsets 4 ms and archive cadence 8h on each sampled date. Pre-event rate estimates differ from archive rates; they are not settled funding. The sample manifests explicitly keep `settlement_population_complete=false`. Direct Binance funding REST remains blocked by HTTP 451.
+
+The queue guardian now has a fail-closed `workflow_run` trigger after the authorized research workflow. The harmless smoke and its guardian verified `LIVE_ENFORCEMENT`, complete run enumeration and no actions/errors; four subsequent guardians also succeeded. This mitigates the observed cron sparsity (1 scheduled run in the latest 100 Actions runs) without removing the schedule or bypassing authorization.
+
+The MEXC public funding-history endpoint was successfully paginated for BTC_USDT and ETH_USDT: 1,620 rows each, two pages, zero duplicates, 8-hour cycle/gaps, from 2025-05-31 16:00 UTC to 2026-11-22 08:00 UTC. That is roughly 540 days and is not full 2020–2026 history. Official MEXC announcements confirm BTC/ETH USDT futures existed before May 31, 2025, so the endpoint window is truncated/limited rather than contract inception; exact retention is undocumented. [MEXC probe run 45009034025](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45009034025), artifact [14748872166](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45009034025/artifacts/14748872166), verified ZIP SHA-256 `b51fa5f8a2ddb194cfdd203a0577d39c32c67194e85b6444243654fa12920165`.
+
+A separate public, read-only probe is implemented and tested; it is not Binance evidence and cannot promote the original strategy. CI [45009000423](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45009000423) passed 120 tests plus synthetic smoke. The corrected test-fixture revision is [52302914](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/52302914e767e1cca3e9089b928ac358fe5ab988).
+
+**Next step:** investigate Bitget's official web funding-rate download. Its docs describe full-history web downloads (often as early as 2018), while the API endpoint is limited to 90 days. The web page's dynamic download control is not exposed by the web reader; a bounded headless-browser probe may be attempted without login/captcha bypass. Keep MEXC and Bitget evidence separate from Binance and do not run a perpetual backtest until the complete funding event population is accepted.
+

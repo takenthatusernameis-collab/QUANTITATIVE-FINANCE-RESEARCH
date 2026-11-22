@@ -53,6 +53,23 @@ End-to-end verification:
 - Guardians after the three samples ([45008517849](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45008517849), [45008547335](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45008547335), [45008562887](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45008562887)) also succeeded in live mode, enumerating 190, 191 and 192 runs respectively, with no queue actions/errors.
 - CI [45008182369](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45008182369) passed 108 tests and synthetic smoke after the guardian change; [45008363615](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45008363615) passed 109 tests after probe commands were added; [45008382261](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45008382261) passed 109 tests and synthetic smoke after date-mapping regression tests were added. The first workflow revision's stale assertion failure was corrected; the subsequent runs passed.
 
+## MEXC independent funding-history pilot — 2026-11-22
+
+The new read-only probe `research/mexc_funding_probe.py` paginated MEXC's public `/api/v1/contract/funding_rate/history` endpoint for BTC_USDT and ETH_USDT, with 1,000 rows/page, 200-page/200,000-row hard bounds, metadata and symbol/rate/time/cycle validation, duplicate checks, page hashes, and runner-local raw responses. It uses no API key and uploads manifests only.
+
+| Symbol | Records | Pages | Earliest UTC | Latest UTC | Cycles / timestamp gaps | Duplicates |
+|---|---:|---:|---|---|---:|
+| BTC_USDT | 1,620 | 2 | 2025-05-31 16:00 | 8h only | 0 |
+| ETH_USDT | 1,620 | 2 | 2025-05-31 16:00 | 8h only | 0 |
+
+Both histories end at 2026-11-22 08:00 UTC. The observed window is roughly 540 days (1,620 8h events). Official MEXC announcements show BTCUSDT and ETHUSDT existed before May 31, 2025, so the API window is limited/truncated rather than contract inception; exact retention is not documented. The API is not a full 2020–2026 funding source.
+
+- Research run [45009034025](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45009034025), artifact [14748872166](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45009034025/artifacts/14748872166), ZIP size 2,467 bytes, SHA-256 `b51fa5f8a2ddb194cfdd203a0577d39c32c67194e85b6444243654fa12920165`.
+- BTC page hashes: `3cd90413fab69d7e1bb5639f8314c8d0c8ea80d7095f128635f33f26b6602e60`, `dbef154d46f23bdc60d9d2c2a8558f543f4a593176acddf97315b04c9ee385c8`.
+- ETH page hashes: `2f0a52c7983670abc450fc62a0e6d4242207107b02aca06e1abab2a26cd33a5c`, `67aece4a672f6e3293d0f7e60bc80ef617574b8a45e07b645e584ae1a7bad702`.
+- CI [45009000423](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45009000423) passed **120 tests** and the synthetic smoke test after correcting a test-fixture lambda error.
+- Live queue guardian [45009124333](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45009124333), artifact [14749071714](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45009124333/artifacts/14749071714), verified `LIVE_ENFORCEMENT`, 200/200 runs enumerated completely, no actions/errors.
+
 ## Remaining blockers
 
 1. Direct Binance funding REST requests are still unavailable from the prior hosted-runner route (HTTP 451); the web reader cannot retrieve the API endpoint. No evasion/proxy was attempted.
