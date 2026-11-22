@@ -1,0 +1,49 @@
+name: QFR Actions queue guardian
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Inspect queue decisions without cancelling runs or opening incident issues
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  actions: write
+  contents: read
+  issues: write
+
+concurrency:
+  group: qfr-queue-guardian
+  cancel-in-progress: false
+
+jobs:
+  inspect-and-recover:
+    name: Enforce 15-minute queued-run policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Inspect, cancel and persist incidents
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_API_URL: ${{ github.api_url }}
+          DRY_RUN: ${{ inputs.dry_run || false }}
+        run: python research/queue_guardian.py
+
+      - name: Upload queue guardian report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qfr-queue-guardian-${{ github.run_id }}
+          path: queue_guardian_report.json
+          if-no-files-found: warn
+          retention-days: 30
