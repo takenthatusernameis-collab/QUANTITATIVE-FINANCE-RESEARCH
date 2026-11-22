@@ -4,6 +4,9 @@
 **Status:** Empirical study **INCONCLUSIVE** — both full-data attempts stopped at the first spot-series completeness gate  
 **Scope:** Research/backtesting only. No live orders or capital deployment.
 
+
+> **Historical evidence snapshot:** Preserve the findings and timestamps below as the record of the execution period. Any operational instructions referring to manual workflow activation, unavailable dispatch, or repeating the same blocked route are superseded by the current [autonomous execution standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md), [dispatch runbook](../docs/CHATGPT-WORKFLOW-DISPATCH.md), and active [ingestion task](../tasks/ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md). Do not rewrite historical results; use current controls for new work.
+
 ## Executive finding
 
 The owner dispatched the full-data workflow twice on `main`, using the pre-registered range `2020-01-01` through `2026-10-31` and `market=both`. Both runs completed setup, dependency installation and the synthetic smoke test, then failed on the same real-data validation:
