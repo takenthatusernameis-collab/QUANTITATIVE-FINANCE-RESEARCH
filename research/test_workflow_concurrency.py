@@ -65,5 +65,16 @@ class WorkflowConcurrencyPolicyTests(unittest.TestCase):
         self.assertIn("MAX_RECORDS: '200000'", workflow)
         self.assertIn("Upload MEXC manifests (never raw pages)", workflow)
 
+    def test_bybit_probe_is_allowlisted_and_bounded(self):
+        workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+        block = workflow.split('"/qfr-probe-bybit-funding-history")', 1)[1].split(";;", 1)[0]
+        self.assertIn('COMMAND="bybit-probe"', block)
+        self.assertIn('START="2020-01-01"', block)
+        self.assertIn('END="2026-11-22"', block)
+        self.assertIn("BYBIT_SYMBOLS: BTCUSDT,ETHUSDT", workflow)
+        self.assertIn("LIMIT: '200'", workflow)
+        self.assertIn("Upload Bybit sample manifests (never raw responses)", workflow)
+        self.assertIn("bybit-funding-probe-${{ github.run_id }}/*.json", workflow)
+
 if __name__ == "__main__":
     unittest.main()

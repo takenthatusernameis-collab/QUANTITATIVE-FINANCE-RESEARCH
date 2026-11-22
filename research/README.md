@@ -37,6 +37,10 @@ An alternative attempt must have its own attempt key, execution route, worktree/
 
 Queue or infrastructure failures are not empirical strategy failures. Never fabricate market observations, forward-fill missing prices, substitute zero funding, weaken data gates, or use synthetic smoke results as evidence of a trading edge. No live orders, capital deployment, live credentials or strategy promotion.
 
+### Independent Bybit funding-history sample
+
+The allowlisted control-PR command `/qfr-probe-bybit-funding-history` runs a read-only public API availability check for exactly `BTCUSDT` and `ETHUSDT`. It samples 2020-01-01, 2022-01-01 and run-time UTC, at most 200 rows per request (six requests total, three bounded attempts per request). Raw response caches stay on the ephemeral runner; only hashed compact manifests are uploaded. This is an independent Bybit venue pilot, not Binance evidence, full-history acceptance, or a backtest. The official endpoint documents endTime-only sampling and a 200-record maximum: [Bybit funding history](https://bybit-exchange.github.io/docs/v5/market/history-fund-rate).
+
 ## Research design
 
 - Signal: completed-bar close; execution: next bar open; PnL: open-to-open.
