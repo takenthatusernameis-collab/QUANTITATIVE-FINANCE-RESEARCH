@@ -13,6 +13,12 @@ WORKFLOW_GROUPS = {
     ".github/workflows/eth-btc-research.yml": "eth-btc-research-main",
     ".github/workflows/research-tests.yml": "research-tests-main",
 }
+OBSERVABILITY_WORKFLOWS = {
+    ".github/workflows/eth-btc-research.yml": "ETH/BTC research",
+    ".github/workflows/research-tests.yml": "Research pipeline tests",
+}
+STATUS_ISSUE_NUMBER = 2
+STATUS_MARKER = "<!-- qfr-queue-status -->"
 QUEUE_STATUSES = {"queued", "pending"}
 
 
@@ -29,6 +35,90 @@ def workflow_path(run: dict[str, Any]) -> str:
 
 def group_for(run: dict[str, Any]) -> str | None:
     return WORKFLOW_GROUPS.get(workflow_path(run))
+
+
+def build_run_inventory(runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    inventory = []
+    for run in runs:
+        path = workflow_path(run)
+        if path not in OBSERVABILITY_WORKFLOWS:
+            continue
+        actor = run.get("actor") or {}
+        inventory.append({
+            "run_id": int(run["id"]),
+            "workflow_path": path,
+            "workflow_name": OBSERVABILITY_WORKFLOWS[path],
+            "event": run.get("event"),
+            "status": run.get("status"),
+            "conclusion": run.get("conclusion"),
+            "created_at": run["created_at"],
+            "updated_at": run.get("updated_at"),
+            "head_sha": run.get("head_sha"),
+            "actor": actor.get("login"),
+            "html_url": run.get("html_url"),
+        })
+    inventory.sort(key=lambda item: parse_timestamp(item["created_at"]), reverse=True)
+    return inventory
+
+
+def format_status_comment(report: dict[str, Any]) -> str:
+    runs = report.get("run_inventory") or []
+    active = [
+        run for run in runs
+        if run.get("status") in {"queued", "pending", "in_progress", "waiting", "requested"}
+    ]
+    lines = [
+        STATUS_MARKER,
+        "## QFR workflow status",
+        (
+            f"Research/test runs captured: {report.get('run_inventory_total', len(runs))}; "
+            f"latest {len(runs)} retained in the machine-readable guardian report."
+        ),
+    ]
+    if report.get("run_inventory_truncated"):
+        lines.append("The displayed inventory is truncated to the latest retained runs.")
+    lines.extend(["", "### Active runs"])
+    if active:
+        for run in active[:20]:
+            url = run.get("html_url") or "#"
+            sha = str(run.get("head_sha") or "")[:8]
+            lines.append(
+                f"- [{run['run_id']}]({url}) — **{run.get('workflow_name')}** "
+                f"status={run.get('status')}; event={run.get('event')}; "
+                f"actor={run.get('actor')}; commit={sha}"
+            )
+    else:
+        lines.append("- No active research/test workflow runs.")
+    for path, label in OBSERVABILITY_WORKFLOWS.items():
+        subset = [run for run in runs if run.get("workflow_path") == path]
+        lines.extend(["", f"### {label}"])
+        if not subset:
+            lines.append("- No runs captured.")
+            continue
+        for run in subset[:4]:
+            outcome = str(run.get("status") or "unknown")
+            if run.get("conclusion"):
+                outcome += f" / {run['conclusion']}"
+            url = run.get("html_url") or "#"
+            sha = str(run.get("head_sha") or "")[:8]
+            lines.append(
+                f"- [{run['run_id']}]({url}) — {outcome}; event={run.get('event')}; "
+                f"actor={run.get('actor')}; commit={sha}"
+            )
+    actions = report.get("actions") or []
+    if actions:
+        lines.extend(["", "### Queue decisions"])
+        for action in actions[:10]:
+            lines.append(
+                f"- Run {action.get('run_id')}: "
+                f"{action.get('result', action.get('action'))}"
+            )
+    errors = report.get("errors") or []
+    if errors:
+        lines.extend(["", "### Guardian errors"])
+        for error in errors[:10]:
+            lines.append(f"- Run {error.get('run_id')}: {error.get('error')}")
+    return "\n".join(lines)
 
 
 def age_seconds(run: dict[str, Any], now: datetime) -> float:
@@ -148,6 +238,47 @@ class GitHubAPI:
             raise RuntimeError("Issue creation returned no issue")
         return result
 
+    def find_status_comment(self) -> dict[str, Any] | None:
+        page = 1
+        while True:
+            _, result = self.request(
+                "GET",
+                f"/repos/{self.repository}/issues/{STATUS_ISSUE_NUMBER}/comments?per_page=100&page={page}",
+            )
+            if not isinstance(result, list):
+                raise RuntimeError("Invalid control-PR comments response")
+            for comment in result:
+                author = (comment.get("user") or {}).get("login")
+                if author == "github-actions[bot]" and STATUS_MARKER in str(comment.get("body") or ""):
+                    return comment
+            if len(result) < 100:
+                return None
+            page += 1
+
+    def upsert_status_comment(self, body: str) -> dict[str, Any]:
+        if STATUS_MARKER not in body:
+            raise ValueError("Status comment must contain its idempotency marker")
+        existing = self.find_status_comment()
+        if existing and existing.get("body") == body:
+            return {"state": "unchanged", "comment_id": existing.get("id")}
+        if existing:
+            _, result = self.request(
+                "PATCH",
+                f"/repos/{self.repository}/issues/comments/{existing['id']}",
+                {"body": body},
+            )
+            if not isinstance(result, dict):
+                raise RuntimeError("Status comment update returned no comment")
+            return {"state": "updated", "comment_id": result.get("id")}
+        _, result = self.request(
+            "POST",
+            f"/repos/{self.repository}/issues/{STATUS_ISSUE_NUMBER}/comments",
+            {"body": body},
+        )
+        if not isinstance(result, dict):
+            raise RuntimeError("Status comment creation returned no comment")
+        return {"state": "created", "comment_id": result.get("id")}
+
 
 def incident_body(run: dict[str, Any], age: float, group: str, state: str,
                   error: str | None = None) -> str:
@@ -212,8 +343,17 @@ def verify_cancellation(api: GitHubAPI, run_id: int, sleep=time.sleep) -> tuple[
 
 def process_queue(api: GitHubAPI, now: datetime, dry_run: bool = False) -> dict[str, Any]:
     runs = api.list_all_runs()
-    report: dict[str, Any] = {"checked_at": now.astimezone(timezone.utc).isoformat(),
-                              "enumerated_runs": len(runs), "actions": [], "errors": []}
+    inventory = build_run_inventory(runs)
+    report: dict[str, Any] = {
+        "checked_at": now.astimezone(timezone.utc).isoformat(),
+        "enumerated_runs": len(runs),
+        "run_enumeration_complete": True,
+        "run_inventory_total": len(inventory),
+        "run_inventory_truncated": len(inventory) > 50,
+        "run_inventory": inventory[:50],
+        "actions": [],
+        "errors": [],
+    }
     ordered = sorted(runs, key=lambda r: parse_timestamp(r["created_at"]))
     for run in ordered:
         decision = queue_decision(run, runs, now)
@@ -322,6 +462,11 @@ def main() -> int:
     try:
         report = process_queue(api, datetime.now(timezone.utc),
                                dry_run=os.environ.get("DRY_RUN", "false").lower() == "true")
+        try:
+            report["status_comment"] = api.upsert_status_comment(format_status_comment(report))
+        except Exception as exc:
+            report["status_comment_error"] = str(exc)[:1500]
+            print(f"Non-fatal status-comment update failure: {exc}", file=sys.stderr)
         write_report(report)
     except Exception as exc:
         print(f"Queue guardian failed closed: {exc}", file=sys.stderr)
