@@ -313,6 +313,25 @@ def run_probe(output_dir: Path, inspect_field_info: bool = False, inspect_symbol
                                             symbol_screenshot = output_dir / "okx-funding-symbol-options.png"
                                             page.screenshot(path=str(symbol_screenshot), full_page=False)
                                             manifest["symbol_options_screenshot"] = symbol_screenshot.name
+                                            search_input = modal.get_by_role("combobox")
+                                            manifest["symbol_search_input_count"] = search_input.count()
+                                            manifest["symbol_search_results"] = {}
+                                            if search_input.count() == 1 and search_input.first.is_visible() and search_input.first.is_enabled():
+                                                manifest["symbol_search_terms"] = ["ETH", "BTC"]
+                                                for term in ("ETH", "BTC"):
+                                                    search_input.first.fill(term, timeout=5000)
+                                                    page.wait_for_timeout(1000)
+                                                    manifest["symbol_search_results"][term] = {
+                                                        "modal_text": (modal.first.inner_text(timeout=2000) or "")[-2500:],
+                                                        "options": collect_visible_option_texts(modal),
+                                                    }
+                                                    search_screenshot = output_dir / f"okx-funding-symbol-options-{term}.png"
+                                                    page.screenshot(path=str(search_screenshot), full_page=False)
+                                                search_input.first.fill("", timeout=5000)
+                                                page.wait_for_timeout(300)
+                                                manifest["symbol_search_status"] = "searched_eth_btc_no_selection"
+                                            else:
+                                                manifest["symbol_search_status"] = "search_input_not_unique_or_not_actionable"
                                             if downloads:
                                                 manifest["status"] = "unexpected_download_cancelled_after_symbol_dropdown"
                                             elif manifest["symbol_dropdown_open"]:
