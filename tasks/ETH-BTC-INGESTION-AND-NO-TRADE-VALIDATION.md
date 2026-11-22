@@ -1,14 +1,14 @@
 # Active Task: Repair ETH/BTC Data Ingestion and Validate No-Trade Intervals
 
 **Status:** In progress — Spot-only empirical validation running  
-**Updated:** 2026-11-22 07:41 UTC
+**Updated:** 2026-11-22 07:43 UTC
 **Priority:** High  
 **Type:** Data-source resilience, parser correctness, missing-observation policy, and reproducible audit  
 **Scope:** Historical research/backtesting only. No live orders, capital deployment, live credentials, or strategy promotion.
 
 ## Objective
 
-Remove the verified ingestion bottlenecks without weakening the ETH/BTC research specification or inventing observations. Produce a provenance-complete audit of all six required inputs and a defensible, tested treatment for the 31 synchronized Spot gaps before any empirical backtest is allowed.
+Remove the verified ingestion bottlenecks without weakening the ETH/BTC research specification or inventing observations. Produce a provenance-complete audit of all six required inputs and a defensible, tested treatment for the 31 synchronized Spot gaps before the original combined/perpetual empirical backtest is allowed. The independently gated Spot-only scope may proceed only after its own Spot provenance, no-trade, event-time, cost and methodology checks pass; it must not be presented as perpetual evidence.
 
 Start from [the 2026-11-22 audit report](../reports/ETH-BTC-AUDIT-ARTIFACT-REVIEW-2026-11-22.md), the current pipeline `research/run_eth_btc.py`, and [the adaptive execution standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md).
 
@@ -102,11 +102,13 @@ Full-history audit #23 parsed both USD-M ETHUSDT and BTCUSDT archives across all
 
 - Add deterministic regression tests for source failover, positive controls, gap classification, parser schemas, funding completeness, elapsed-time return handling, and failure-manifest persistence.
 - Run the complete research test suite and synthetic smoke test. Record exact CI run IDs and commit SHA.
-- Run the audit and, when the selected study's machine-checkable gates pass, launch the empirical backtest through the agent-triggered [control PR #2](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/pull/2) command `/qfr-run-eth-btc-empirical`. No human confirmation is required for historical research. The backtest must still stop automatically on invalid data. If the ETH/BTC source path remains infeasible, run a separately preregistered alternative dataset/model rather than waiting indefinitely.
+- Run the audit and, when the selected study's machine-checkable gates pass, launch the Spot-only study through control PR #2 command `/qfr-run-eth-btc-spot-empirical`. Reserve `/qfr-run-eth-btc-empirical` for the original combined study after all six inputs and funding semantics pass. No human confirmation is required for historical research. The backtest must still stop automatically on invalid data. If the ETH/BTC source path remains infeasible, run a separately preregistered alternative dataset/model rather than waiting indefinitely.
 - Inspect and hash the new artifacts. Update README, reports, this task, and the next handoff.
 - Keep raw market data out of Git. No live trading or capital deployment.
 
 ## Acceptance criteria
+
+These criteria govern the original combined/perpetual Binance experiment. A Spot-only run uses the separate market-scope gate and cannot be used to infer perpetual profitability.
 
 1. All 31 Spot gaps have source-backed classifications for both ETHUSDT and BTCUSDT, including a working positive-control test for trade-level evidence.
 2. All four hourly price series and both funding histories have independently complete, checksum/provenance-backed manifests.
@@ -295,8 +297,8 @@ The workflow now allowlists `/qfr-run-eth-btc-spot-empirical`, `/qfr-run-eth-btc
 3. **Bitget second independent-provider pilot:** apply the same independent acceptance protocol and separate provenance/experiment identity to ETH/USDT and BTC/USDT (and suitable USD pairs if available).
 4. **Further open-ended provider discovery:** pilot Coinbase Exchange synchronized ETH-USD/BTC-USD and Kraken ETH/USD/BTC/USD OHLCVT, then continue screening lawful, independently verifiable exchanges and historical-data vendors. Candidates include, but are not limited to, OKX, Bybit, Gate.io, KuCoin and specialist archives. Verify current product availability and permitted access.
 5. **Trade-level and architecture alternatives:** investigate raw trades and other materially different constructions. After two distinct provider failures, change data architecture instead of endlessly repeating provider-specific variants.
-5. **Funding acceptance:** continue a separate final-settlement population investigation. Do not use pre-event Tardis rate estimates as final rates or allow the spot-only workstream to imply perpetual profitability.
-6. Run the original Binance perpetual empirical workflow only after all six input, Spot semantics, funding settlement, synchronization and methodology gates pass. A distinct spot-only or alternative-provider study must have its own experiment identity and preregistration.
+6. **Funding acceptance:** continue a separate final-settlement population investigation. Do not use pre-event Tardis rate estimates as final rates or allow the spot-only workstream to imply perpetual profitability.
+7. Run the original Binance perpetual empirical workflow only after all six input, Spot semantics, funding settlement, synchronization and methodology gates pass. A distinct spot-only or alternative-provider study must have its own experiment identity and preregistration.
 
 The current canonical queue is [tasks/ACTIVE-QUEUE.md](ACTIVE-QUEUE.md). Final GitHub Actions run [44989792456](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44989792456) passed 82 deterministic tests and the synthetic plumbing smoke test on the final policy/test revision [a82192b](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/a82192be07c64b10b0966dabc5741f62635a1075). The suite covers hierarchy order, provider scoring/acceptance/full-history feasibility, stop/escalation rules, independent workstreams, experiment identity, Spot/perpetual separation and scope gates, hypothesis replacement, duplicate-active-dispatch checks, and fail-closed six-input acceptance. Runs #81–#86, #89 and #91 were intermediate code/test revisions whose defects were fixed in subsequent commits; run #92 is the final passing verification. Deterministic and synthetic checks validate engineering behavior only—not production provider quality or strategy profitability.
 
