@@ -42,7 +42,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.event_name == 'issue_comment' && (github.event.action != 'created' || github.event.issue.number != 2 || github.event.issue.pull_request == null || github.event.issue.state != 'open' || github.event.comment.user.login != 'takenthatusernameis-collab' || !contains(fromJSON('["/qfr-control-smoke","/qfr-run-eth-btc-data-audit","/qfr-probe-eth-btc-funding-2024-01","/qfr-probe-tardis-funding-2024-01-01","/qfr-probe-tardis-funding-2020-06-01","/qfr-probe-tardis-funding-2025-06-01","/qfr-probe-tardis-funding-2025-10-01","/qfr-probe-tardis-funding-2026-02-01","/qfr-probe-tardis-funding-2026-03-01","/qfr-probe-mexc-funding-history","/qfr-probe-bybit-funding-history","/qfr-probe-bitget-funding-download","/qfr-probe-okx-funding-download","/qfr-probe-okx-funding-button","/qfr-probe-okx-funding-field-info","/qfr-run-eth-btc-empirical","/qfr-run-eth-btc-spot-empirical","/qfr-run-eth-btc-um-empirical"]'), github.event.comment.body)) && format('eth-btc-research-ignored-{0}', github.event.comment.id) || 'eth-btc-research-main' }}
+  group: ${{ github.event_name == 'issue_comment' && (github.event.action != 'created' || github.event.issue.number != 2 || github.event.issue.pull_request == null || github.event.issue.state != 'open' || github.event.comment.user.login != 'takenthatusernameis-collab' || !contains(fromJSON('["/qfr-control-smoke","/qfr-run-eth-btc-data-audit","/qfr-probe-eth-btc-funding-2024-01","/qfr-probe-tardis-funding-2024-01-01","/qfr-probe-tardis-funding-2020-06-01","/qfr-probe-tardis-funding-2025-06-01","/qfr-probe-tardis-funding-2025-10-01","/qfr-probe-tardis-funding-2026-02-01","/qfr-probe-tardis-funding-2026-03-01","/qfr-probe-mexc-funding-history","/qfr-probe-bybit-funding-history","/qfr-probe-bitget-funding-download","/qfr-probe-okx-funding-download","/qfr-probe-okx-funding-button","/qfr-probe-okx-funding-field-info","/qfr-probe-okx-funding-symbols","/qfr-run-eth-btc-empirical","/qfr-run-eth-btc-spot-empirical","/qfr-run-eth-btc-um-empirical"]'), github.event.comment.body)) && format('eth-btc-research-ignored-{0}', github.event.comment.id) || 'eth-btc-research-main' }}
   queue: max
   cancel-in-progress: false
 
@@ -202,6 +202,14 @@ jobs:
               "/qfr-probe-okx-funding-field-info")
                 # Open the funding modal and inspect only its Field information control.
                 COMMAND="okx-field-info-probe"
+                START="2022-03-01"
+                END="2026-11-22"
+                MARKET="both"
+                RECONCILE="false"
+                ;;
+              "/qfr-probe-okx-funding-symbols")
+                # Open the Symbol selector only; do not select any instrument.
+                COMMAND="okx-symbol-options-probe"
                 START="2022-03-01"
                 END="2026-11-22"
                 MARKET="both"
@@ -504,7 +512,7 @@ jobs:
   okx-funding-button-probe:
     name: Inspect OKX Funding modal safely (no data downloads)
     needs: authorize
-    if: ${{ needs.authorize.outputs.authorized == 'true' && (needs.authorize.outputs.command == 'okx-button-probe' || needs.authorize.outputs.command == 'okx-field-info-probe') }}
+    if: ${{ needs.authorize.outputs.authorized == 'true' && (needs.authorize.outputs.command == 'okx-button-probe' || needs.authorize.outputs.command == 'okx-field-info-probe' || needs.authorize.outputs.command == 'okx-symbol-options-probe') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -551,5 +559,19 @@ jobs:
           path: |
             reports/generated/okx-funding-field-info-probe-${{ github.run_id }}/manifest.json
             reports/generated/okx-funding-field-info-probe-${{ github.run_id }}/*.png
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Inspect only the Symbol selector without selecting any option
+        if: ${{ needs.authorize.outputs.command == 'okx-symbol-options-probe' }}
+        run: python research/okx_funding_button_probe.py --inspect-symbol-options --output-dir "reports/generated/okx-funding-symbol-options-probe-${{ github.run_id }}"
+
+      - name: Upload bounded symbol-options evidence (no downloaded data)
+        if: always() && needs.authorize.outputs.command == 'okx-symbol-options-probe'
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: okx-funding-symbol-options-probe-${{ github.run_id }}
+          path: |
+            reports/generated/okx-funding-symbol-options-probe-${{ github.run_id }}/manifest.json
+            reports/generated/okx-funding-symbol-options-probe-${{ github.run_id }}/*.png
           if-no-files-found: warn
           retention-days: 30
