@@ -41,6 +41,7 @@ BINANCE_FUNDING_DOCS = (
 )
 MAX_ACCEPTED_LOCAL_GAP_SECONDS = 60.0
 MAX_ACCEPTED_PRE_EVENT_AGE_SECONDS = 60.0
+MAX_EVENT_TIMESTAMP_OFFSET_SECONDS = 15.0
 
 
 def utc_from_microseconds(value: int) -> str:
@@ -276,39 +277,67 @@ def parse_binance_funding_archive_csv(
 def compare_tardis_to_archive(
     tardis_sample: dict[str, Any], archive_sample: dict[str, Any]
 ) -> dict[str, Any]:
-    archive_by_timestamp = {
-        item["timestamp_us"]: item for item in archive_sample["events"]
-    }
+    archive_events = sorted(archive_sample["events"], key=lambda item: item["timestamp_us"])
     tardis_event_times = [
         int(datetime.fromisoformat(value).timestamp() * 1_000_000)
         for value in tardis_sample["unique_next_funding_timestamps_utc"]
     ]
-    matched_timestamps = [value for value in tardis_event_times if value in archive_by_timestamp]
+    used_archive_timestamps: set[int] = set()
+    matched_pairs = []
+    for tardis_time in tardis_event_times:
+        candidates = [
+            event for event in archive_events
+            if event["timestamp_us"] not in used_archive_timestamps
+            and abs(event["timestamp_us"] - tardis_time)
+            <= MAX_EVENT_TIMESTAMP_OFFSET_SECONDS * 1_000_000
+        ]
+        if len(candidates) != 1:
+            continue
+        archive_event = candidates[0]
+        used_archive_timestamps.add(archive_event["timestamp_us"])
+        matched_pairs.append({
+            "tardis_next_funding_timestamp_utc": utc_from_microseconds(tardis_time),
+            "binance_archive_calc_time_utc": archive_event["timestamp_utc"],
+            "signed_archive_minus_tardis_offset_seconds": (
+                archive_event["timestamp_us"] - tardis_time
+            ) / 1_000_000,
+            "archive_last_funding_rate": archive_event["archive_last_funding_rate"],
+        })
+
+    matched_by_tardis_time = {
+        int(datetime.fromisoformat(item["tardis_next_funding_timestamp_utc"]).timestamp() * 1_000_000): item
+        for item in matched_pairs
+    }
     rate_comparisons = []
     for observation in tardis_sample["pre_event_observations"]:
         event_time = int(
             datetime.fromisoformat(observation["next_funding_timestamp_utc"]).timestamp()
             * 1_000_000
         )
-        archive_event = archive_by_timestamp.get(event_time)
-        if archive_event is None:
+        matched = matched_by_tardis_time.get(event_time)
+        if matched is None:
             continue
         estimate = float(observation["funding_rate_estimate_for_next_event"])
-        settled_archive_rate = float(archive_event["archive_last_funding_rate"])
-        difference = estimate - settled_archive_rate
+        archive_rate = float(matched["archive_last_funding_rate"])
+        difference = estimate - archive_rate
         rate_comparisons.append({
             "event_timestamp_utc": observation["next_funding_timestamp_utc"],
             "tardis_pre_event_rate_estimate": estimate,
-            "binance_archive_last_funding_rate": settled_archive_rate,
+            "binance_archive_last_funding_rate": archive_rate,
             "absolute_rate_difference": abs(difference),
             "exact_rate_match_within_1e_12": math.isclose(
-                estimate, settled_archive_rate, rel_tol=0.0, abs_tol=1e-12
+                estimate, archive_rate, rel_tol=0.0, abs_tol=1e-12
             ),
         })
+
     abs_differences = [item["absolute_rate_difference"] for item in rate_comparisons]
+    absolute_offsets = [
+        abs(item["signed_archive_minus_tardis_offset_seconds"])
+        for item in matched_pairs
+    ]
     timestamp_pass = (
         len(tardis_event_times) > 0
-        and len(matched_timestamps) == len(tardis_event_times)
+        and len(matched_pairs) == len(tardis_event_times)
         and archive_sample["duplicate_timestamps"] == 0
     )
     return {
@@ -317,12 +346,21 @@ def compare_tardis_to_archive(
             if timestamp_pass and len(rate_comparisons) >= 2
             else "CROSSCHECK_INCOMPLETE"
         ),
+        "timestamp_tolerance_seconds": MAX_EVENT_TIMESTAMP_OFFSET_SECONDS,
         "tardis_next_event_timestamp_count": len(tardis_event_times),
         "binance_archive_event_rows_in_month": archive_sample["rows"],
-        "exact_event_timestamp_matches": len(matched_timestamps),
+        "event_timestamp_matches_within_tolerance": len(matched_pairs),
         "event_timestamp_match_rate": (
-            len(matched_timestamps) / len(tardis_event_times) if tardis_event_times else None
+            len(matched_pairs) / len(tardis_event_times) if tardis_event_times else None
         ),
+        "exact_event_timestamp_matches": sum(
+            item["signed_archive_minus_tardis_offset_seconds"] == 0
+            for item in matched_pairs
+        ),
+        "maximum_absolute_event_time_offset_seconds": (
+            max(absolute_offsets) if absolute_offsets else None
+        ),
+        "matched_event_pairs": matched_pairs,
         "pre_event_rate_comparison_count": len(rate_comparisons),
         "pre_event_rate_exact_matches": sum(
             item["exact_rate_match_within_1e_12"] for item in rate_comparisons
@@ -333,12 +371,11 @@ def compare_tardis_to_archive(
         "maximum_absolute_rate_difference": max(abs_differences) if abs_differences else None,
         "rate_comparisons": rate_comparisons,
         "interpretation": (
-            "Timestamp reconciliation tests whether Tardis next-event times align with Binance archive "
-            "calc_time values for this sample. Rate differences are diagnostic only: Tardis documents "
-            "that the last pre-event estimate can differ from the final rate applied."
+            "Tardis next-event timestamps are reconciled to Binance archive calc_time values within "
+            "the documented 15-second funding-timing window. Rate differences are diagnostic only: "
+            "Tardis documents that the last pre-event estimate can differ from the final rate applied."
         ),
     }
-
 
 def request_bytes(url: str, timeout: int = 90) -> tuple[bytes, int, str | None, str | None]:
     request = Request(url, headers={"User-Agent": "qfr-funding-source-probe/1.0"})
