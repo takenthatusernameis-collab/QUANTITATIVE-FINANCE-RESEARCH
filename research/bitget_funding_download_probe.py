@@ -228,33 +228,14 @@ def run_probe(output_dir: Path) -> dict[str, Any]:
             elif not candidates:
                 manifest["status"] = "ui_inspection_complete_no_download_button"
             else:
-                manifest["download_button_clicked"] = True
-                download = None
-                try:
-                    with page.expect_download(timeout=8000) as download_event:
-                        candidates[0]["locator"].click(timeout=5000)
-                    download = download_event.value
-                except PlaywrightTimeout:
-                    manifest["download_outcome"] = "no_download_event_within_8s"
-                if download:
-                    suggested = Path(download.suggested_filename).name[:180] or "download.bin"
-                    raw_path = output_dir / "ephemeral-download" / suggested
-                    raw_path.parent.mkdir(parents=True, exist_ok=True)
-                    download.save_as(str(raw_path))
-                    manifest["download"] = analyze_download(raw_path)
-                    raw_path.unlink(missing_ok=True)
-                    try:
-                        raw_path.parent.rmdir()
-                    except OSError:
-                        pass
-                    manifest["status"] = "download_inspected"
-                else:
-                    manifest["status"] = "button_clicked_no_download"
-                after = snapshot_page(page)
-                manifest["after_click_state"] = after
-                screenshot2 = output_dir / "bitget-after-download-click.png"
-                page.screenshot(path=str(screenshot2), full_page=False)
-                manifest["after_click_screenshot"] = screenshot2.name
+                # First pass is deliberately read-only: the currently selected
+                # symbols/date range are not yet verified as a bounded request.
+                manifest["status"] = "ui_inspection_complete_download_not_clicked"
+                manifest["download_click_skipped_reason"] = (
+                    "No download is triggered until the visible symbol selection and "
+                    "date scope are confirmed to be narrow."
+                )
+                manifest["download_button_clicked"] = False
             manifest["page_errors"] = errors[:20]
             browser.close()
     except Exception as exc:

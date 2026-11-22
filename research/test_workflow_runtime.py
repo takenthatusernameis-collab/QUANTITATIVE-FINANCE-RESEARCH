@@ -41,6 +41,10 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         self.assertIn("python research/bitget_funding_download_probe.py", workflow)
         self.assertIn("anonymous", workflow.lower())
         self.assertIn("playwright", workflow.lower())
+        probe = (ROOT / "research" / "bitget_funding_download_probe.py").read_text(encoding="utf-8")
+        self.assertIn("download_click_skipped_reason", probe)
+        self.assertIn("download_button_clicked", probe)
+        self.assertNotIn("candidates[0][\"locator\"].click", probe)
 
     def test_deprecated_node20_action_refs_are_absent(self):
         for workflow in WORKFLOW_DIR.glob("*.yml"):
