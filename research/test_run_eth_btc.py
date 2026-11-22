@@ -80,7 +80,7 @@ class ResearchPipelineTests(unittest.TestCase):
             "1000,5,4,400,0"
         )
         parsed = research.parse_kline_archive(
-            zip_csv(header + "\\n" + row + "\\n"), "fixture-header.zip"
+            zip_csv(header + "\n" + row + "\n"), "fixture-header.zip"
         )
         self.assertEqual(len(parsed), 1)
         self.assertEqual(parsed.iloc[0]["timestamp"], pd.Timestamp("2022-01-01T00:00:00Z"))
@@ -97,7 +97,7 @@ class ResearchPipelineTests(unittest.TestCase):
             "1000,5,4,400,0"
         )
         parsed = research.parse_kline_archive(
-            zip_csv(header + "\\n" + row + "\\n"), "fixture-microseconds.zip"
+            zip_csv(header + "\n" + row + "\n"), "fixture-microseconds.zip"
         )
         self.assertEqual(parsed.iloc[0]["timestamp"], pd.Timestamp("2025-01-01T00:00:00Z"))
         self.assertEqual(parsed.attrs["timestamp_unit"], "us")
@@ -109,7 +109,7 @@ class ResearchPipelineTests(unittest.TestCase):
         bad = "not-a-timestamp,100,101,99,100.5,10,1640998799999,1000,5,4,400,0"
         with self.assertRaisesRegex(ValueError, "Invalid open_time"):
             research.parse_kline_archive(
-                zip_csv(header + "\\n" + good + "\\n" + bad + "\\n"),
+                zip_csv(header + "\n" + good + "\n" + bad + "\n"),
                 "fixture-invalid.zip",
             )
 
