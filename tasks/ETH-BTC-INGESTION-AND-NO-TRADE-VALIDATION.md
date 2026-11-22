@@ -74,6 +74,9 @@ Do not bypass legal/provider access restrictions (including HTTP 451); switch to
 
 ### 2. Define and test the missing-observation policy
 
+**Implementation progress — 2026-11-22:** a reusable event-time accounting prototype and deterministic regression suite have been added. It preserves the observed timestamp index, uses elapsed-time rolling windows and annualization, delays signals to the next observed open, measures holding duration from actual execution, prorates borrow by elapsed seconds, and maps funding settlements inside gaps to the next observation while applying the position held at settlement. The prototype is not yet wired into the production walk-forward folds, benchmark suite, or manifest-backed acceptance gate; no Spot backtest has been run and the policy remains unaccepted.
+
+
 - Do not create synthetic OHLCV candles, forward-fill, set missing returns or volume to zero, or silently drop intervals.
 - If trade-level evidence confirms a no-trade interval, preserve the raw timestamp gap and design an explicit, pre-registered event-time/irregular-time policy. It must retain elapsed duration, avoid inventing signal or execution opportunities, and correctly handle funding events and holding periods across gaps.
 - If the gap is not conclusively a no-trade interval, keep the series incomplete and the study **INCONCLUSIVE**.
@@ -285,7 +288,7 @@ Implementation commits:
 ### Independent Spot/perpetual acceptance and dispatch scopes
 
 The machine-checkable research gate now has three explicit scopes:
-- **Spot:** only `spot_ETHUSDT` and `spot_BTCUSDT` plus their provenance manifests are required. Perpetual funding is not a dependency. If the hourly series has missing bars, Spot acceptance additionally requires complete independent no-trade reconciliation and a separately accepted event-time/elapsed-time PnL, signal, execution and annualization policy. The event-time policy is not yet implemented; the current pipeline leaves its acceptance flag false and therefore fails closed.
+- **Spot:** only `spot_ETHUSDT` and `spot_BTCUSDT` plus their provenance manifests are required. Perpetual funding is not a dependency. If the hourly series has missing bars, Spot acceptance additionally requires complete independent no-trade reconciliation and a separately accepted event-time/elapsed-time PnL, signal, execution and annualization policy. A separate accounting prototype is now implemented in `research/event_time.py` and covered by `research/test_event_time.py`; it tests irregular intervals, next-observation execution, actual holding durations, elapsed-time borrow, funding-event mapping and calendar-time annualization. It is not yet integrated into the production walk-forward strategy or accepted by the empirical gate; the current pipeline keeps `spot_time_policy_accepted=false` and fails closed.
 - **Perpetual / USD-M:** requires `um_ETHUSDT`, `um_BTCUSDT`, `funding_ETHUSDT`, and `funding_BTCUSDT`, with their manifests. Spot gaps do not block this independent scope. Both funding series remain provisional, so the gate is currently closed.
 - **Both:** requires all six inputs and both market-specific conditions.
 

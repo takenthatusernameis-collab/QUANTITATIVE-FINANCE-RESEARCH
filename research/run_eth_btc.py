@@ -32,6 +32,7 @@ import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import adfuller, coint, kpss, zivot_andrews
 from statsmodels.tsa.vector_ar.vecm import coint_johansen
 from adaptive_decision import evaluate_research_scope_gate, evaluate_six_input_gate
+from event_time import event_time_backtest, event_time_metrics
 
 COLUMNS = [
     "open_time", "open", "high", "low", "close", "volume", "close_time",
@@ -1960,7 +1961,29 @@ def self_test() -> None:
     bt = backtest(frame, p, pd.Series(1.0, index=idx), 10, 2, 1, 1.0)
     assert np.isfinite(bt["net_return"]).all()
     assert set(p.dropna().unique()).issubset({-1.0, 0.0, 1.0})
-    print("SELF-TEST PASS: feature generation, position state machine, costs and PnL are finite.")
+
+    # Event-time smoke: a six-hour observation gap remains six elapsed hours.
+    event_index = pd.to_datetime([
+        "2022-01-01T00:00:00Z",
+        "2022-01-01T06:00:00Z",
+        "2022-01-01T12:00:00Z",
+    ])
+    event_frame = pd.DataFrame({
+        "eth_open": [100.0, 110.0, 121.0],
+        "btc_open": [50.0, 50.0, 50.0],
+        "eth_close": [100.0, 110.0, 121.0],
+        "btc_close": [50.0, 50.0, 50.0],
+    }, index=event_index)
+    event_position = pd.Series([0.0, 1.0, 1.0], index=event_index)
+    event_beta = pd.Series(1.0, index=event_index)
+    event_bt = event_time_backtest(
+        event_frame, event_position, event_beta, 0.0, 0.0, 0.0, 1.0
+    )
+    assert event_bt["elapsed_seconds"].tolist() == [0.0, 21600.0, 21600.0]
+    assert abs(event_bt.loc[event_index[2], "gross_return"] - 0.05) < 1e-12
+    event_stats = event_time_metrics(event_bt)
+    assert abs(event_stats["elapsed_years"] - 12 * 3600 / (365.25 * 86400)) < 1e-12
+    print("SELF-TEST PASS: regular pipeline and elapsed-time accounting are finite.")
 
 
 def main() -> None:

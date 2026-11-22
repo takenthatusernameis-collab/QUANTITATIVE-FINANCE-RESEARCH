@@ -48,6 +48,12 @@ Queue or infrastructure failures are not empirical strategy failures. Never fabr
 - Costs: fees, slippage and spread are configurable per leg per side; 1.0x, 1.5x and 2.0x cost cases are reported. USDⓈ-M funding is charged at observed settlement timestamps. Spot borrow can be configured with `--spot-borrow-bps-per-day`.
 - Daily robustness resamples OHLC data and uses next-day-open execution. It is price-only: funding is not applied to the daily robustness run. Sharpe and Sortino use a 0% risk-free hurdle; annualization is 8,760 hourly or 365 daily periods.
 
+## Event-time accounting prototype (not yet accepted for empirical use)
+
+The separate `research/event_time.py` module preserves the observed hourly timestamp grid without requiring a complete grid. It uses calendar-time rolling windows, executes close signals only at the next observed open, measures holding periods from actual execution timestamps, and accounts for borrow costs using elapsed seconds. Funding events inside an observation gap are assigned to the next observed timestamp and charged against the position held at the settlement time. Annualized drift and variance use total elapsed calendar time rather than the number of observations.
+
+Deterministic tests in `research/test_event_time.py` cover six-hour gaps, delayed execution, maximum-hold delays, funding across gaps, elapsed-time borrow, time-window lookahead, and annualization. This is a tested accounting prototype only: the production walk-forward pipeline does not yet consume it, no strategy result has been generated with it, and `spot_time_policy_accepted` must remain false until end-to-end signal, execution, fold, benchmark, cost, and manifest integration is independently validated. The original strict hourly experiment remains gated.
+
 ## Important caveats
 
 1. The default fee, slippage and spread values are scenario assumptions, not verified current account rates. Replace them with venue- and account-specific values.
