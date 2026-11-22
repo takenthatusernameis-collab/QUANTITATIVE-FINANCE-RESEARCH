@@ -273,6 +273,12 @@ Implementation commits:
 - Policy engine: [a811c49](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/a811c49223565dc5d3d24c60b408690d0ee0988b)
 - Policy tests: [5576fc0](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/5576fc048fffaf0c4080788750f52b4f55f1fc2c)
 - Six-input gate integration: [8625d40](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/8625d40b8684ee975d7664ca8b01a17247dd659e)
+- Scoped gate implementation: [37fe290](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/37fe290682c5047743d584aa7df7808e90fe84cd)
+- Scoped pipeline integration: [6ab1adb](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/6ab1adba7d61c9de608bc8bbc7a541beac227bd4)
+- Scoped workflow commands: [f728398](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/f72839867ed1aacf0d5a0f33e7859d9c6abb48b0)
+- Spot reconciliation/time-policy fix: [b13ab5c](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/b13ab5c66e8f64c8e674145c1c27b4a1811f159b)
+- Full-history provider feasibility gate: [0e2bfa0](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/0e2bfa07aa6903107dc0794e0401fb108bae0021)
+- Priority and provider-order regression tests: [1d700ce](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/1d700ceec9d56acb697493815eab507aecbf092d)
 
 ### Independent Spot/perpetual acceptance and dispatch scopes
 
@@ -292,5 +298,5 @@ The workflow now allowlists `/qfr-run-eth-btc-spot-empirical`, `/qfr-run-eth-btc
 5. **Funding acceptance:** continue a separate final-settlement population investigation. Do not use pre-event Tardis rate estimates as final rates or allow the spot-only workstream to imply perpetual profitability.
 6. Run the original Binance perpetual empirical workflow only after all six input, Spot semantics, funding settlement, synchronization and methodology gates pass. A distinct spot-only or alternative-provider study must have its own experiment identity and preregistration.
 
-The current canonical queue is [tasks/ACTIVE-QUEUE.md](ACTIVE-QUEUE.md). CI verification for the new adaptive decision module and shared-gate integration is pending; the 14 policy tests passed in a standalone local run, but this must not be described as GitHub CI or empirical validation until the actual Actions result is inspected.
+The current canonical queue is [tasks/ACTIVE-QUEUE.md](ACTIVE-QUEUE.md). GitHub Actions run [44989316015](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44989316015) passed 79 deterministic tests and the synthetic plumbing smoke test; run [44989496967](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44989496967) independently repeated that 79-test pass. The final full-history provider gate and priority-order tests are being verified in runs [44989539027](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44989539027) and [44989591317](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/44989591317). These are deterministic engineering tests, not provider acceptance or empirical strategy validation.
 
