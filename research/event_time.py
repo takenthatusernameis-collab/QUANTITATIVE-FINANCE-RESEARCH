@@ -570,6 +570,24 @@ def _event_time_array_metrics(
     }
 
 
+def _calendar_time_start_probabilities(
+    elapsed_seconds_values: np.ndarray,
+    valid_starts: np.ndarray,
+) -> np.ndarray:
+    """Weight valid block starts by the calendar duration of their first return interval."""
+    elapsed = np.asarray(elapsed_seconds_values, dtype=float)
+    starts = np.asarray(valid_starts, dtype=int)
+    if not len(starts):
+        raise ValueError("At least one valid calendar-time block start is required")
+    weights = elapsed[starts]
+    if not np.isfinite(weights).all() or (weights < 0).any():
+        raise ValueError("Calendar-time block start weights must be finite and non-negative")
+    total = float(weights.sum())
+    if total <= 0:
+        return np.full(len(starts), 1.0 / len(starts), dtype=float)
+    return weights / total
+
+
 def _sample_fold_stratified_time_blocks(
     folds: list[tuple[np.ndarray, np.ndarray, np.ndarray]],
     block_seconds: float,
@@ -604,7 +622,10 @@ def _sample_fold_stratified_time_blocks(
         maximum_blocks = int(math.ceil(target_seconds / block_seconds)) + 2
         blocks_used = 0
         while resampled_seconds < target_seconds and blocks_used < maximum_blocks:
-            start = int(rng.choice(valid_starts))
+            start_probabilities = _calendar_time_start_probabilities(
+                elapsed, valid_starts
+            )
+            start = int(rng.choice(valid_starts, p=start_probabilities))
             end = int(block_ends[start])
             if end <= start:
                 raise RuntimeError("Calendar-time block sampler produced an empty block")
@@ -637,10 +658,11 @@ def event_time_pooled_oos_summary(
     """Pool event-time OOS folds and bootstrap uncertainty with calendar-time blocks.
 
     Fold boundaries remain explicit: elapsed time is validated within each fold,
-    and bootstrap blocks are sampled only from within their source fold. The
-    primary 1.0x cost case receives percentile confidence intervals at each
-    requested calendar-time block length; 1.5x and 2.0x pooled point estimates
-    are derived from the same observed gross PnL and recorded 1.0x costs.
+    and bootstrap blocks are sampled only from within their source fold. Valid
+    block starts are weighted by the calendar duration of their first return
+    interval rather than by raw observation count. The primary 1.0x cost case
+    receives percentile intervals at each requested block length; 1.5x and
+    2.0x pooled point estimates use the same observed gross PnL and 1.0x costs.
     """
     required = {
         "timestamp", "fold", "variant", "elapsed_seconds", "gross_return",
