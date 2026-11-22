@@ -525,15 +525,31 @@ jobs:
         run: python -m playwright install --with-deps chromium
 
       - name: Click only the Funding rate Download button; cancel any direct download
+        if: ${{ needs.authorize.outputs.command == 'okx-button-probe' }}
         run: python research/okx_funding_button_probe.py --output-dir "reports/generated/okx-funding-button-probe-${{ github.run_id }}"
 
-      - name: Upload bounded UI evidence (no downloaded data)
-        if: always()
+      - name: Inspect only Field information after opening the funding modal
+        if: ${{ needs.authorize.outputs.command == 'okx-field-info-probe' }}
+        run: python research/okx_funding_button_probe.py --inspect-field-info --output-dir "reports/generated/okx-funding-field-info-probe-${{ github.run_id }}"
+
+      - name: Upload bounded button-probe evidence (no downloaded data)
+        if: always() && needs.authorize.outputs.command == 'okx-button-probe'
         uses: actions/upload-artifact@v7.0.2
         with:
           name: okx-funding-button-probe-${{ github.run_id }}
           path: |
             reports/generated/okx-funding-button-probe-${{ github.run_id }}/manifest.json
             reports/generated/okx-funding-button-probe-${{ github.run_id }}/*.png
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload bounded field-information evidence (no downloaded data)
+        if: always() && needs.authorize.outputs.command == 'okx-field-info-probe'
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: okx-funding-field-info-probe-${{ github.run_id }}
+          path: |
+            reports/generated/okx-funding-field-info-probe-${{ github.run_id }}/manifest.json
+            reports/generated/okx-funding-field-info-probe-${{ github.run_id }}/*.png
           if-no-files-found: warn
           retention-days: 30
