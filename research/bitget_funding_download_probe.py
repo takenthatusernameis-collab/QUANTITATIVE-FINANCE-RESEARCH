@@ -158,6 +158,11 @@ def snapshot_page(page) -> dict[str, Any]:
     }""")
 
 
+def is_geographically_restricted(snapshot: dict[str, Any]) -> bool:
+    body = (snapshot.get("bodyText") or "").lower()
+    return "restricted ip" in body and "attempting to access our services from" in body
+
+
 def run_probe(output_dir: Path) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest: dict[str, Any] = {
@@ -189,55 +194,65 @@ def run_probe(output_dir: Path) -> dict[str, Any]:
             page.wait_for_timeout(1500)
             initial = snapshot_page(page)
             manifest["initial_page"] = initial
-            history_tab = page.get_by_role("tab", name=re.compile("funding rate history", re.I))
-            if history_tab.count() == 0:
-                history_tab = page.get_by_text("Funding rate history", exact=True)
-            if history_tab.count() > 0 and history_tab.first.is_visible():
-                history_tab.first.click(timeout=5000)
-                manifest["history_tab_clicked"] = True
-                page.wait_for_timeout(1500)
-            else:
-                manifest["history_tab_clicked"] = False
-            history_state = snapshot_page(page)
-            manifest["history_state"] = history_state
             screenshot1 = output_dir / "bitget-funding-history-ui.png"
             page.screenshot(path=str(screenshot1), full_page=False)
             manifest["screenshot"] = screenshot1.name
 
-            auth_block = bool(history_state.get("passwordInputsVisible")) or bool(history_state.get("captchaFrames"))
-            body_lower = (history_state.get("bodyText") or "").lower()
-            auth_block = auth_block or any(phrase in body_lower for phrase in (
-                "login to download", "log in to download", "sign in to download", "please login to download"
-            ))
-            candidates = []
-            for button in page.locator("button,[role=button]").all():
-                try:
-                    if not button.is_visible() or button.is_disabled():
-                        continue
-                    text = (button.inner_text(timeout=1000) or "").strip()
-                    aria = button.get_attribute("aria-label") or ""
-                    title = button.get_attribute("title") or ""
-                    label = " ".join((text, aria, title)).strip()
-                    if re.search(r"download", label, re.I):
-                        candidates.append({"locator": button, "label": label[:180]})
-                except Exception:
-                    continue
-            manifest["download_buttons"] = [c["label"] for c in candidates[:10]]
-            if auth_block:
-                manifest["status"] = "blocked_login_or_captcha"
-            elif not candidates:
-                manifest["status"] = "ui_inspection_complete_no_download_button"
+            if is_geographically_restricted(initial):
+                # Do not self-declare or click through a regional restriction.
+                manifest["status"] = "blocked_geographic_restriction"
+                manifest["geographic_restriction_detected"] = True
+                manifest["history_tab_clicked"] = False
+                manifest["history_state"] = initial
+                manifest["download_buttons"] = []
+                manifest["page_errors"] = errors[:20]
+                browser.close()
             else:
-                # First pass is deliberately read-only: the currently selected
-                # symbols/date range are not yet verified as a bounded request.
-                manifest["status"] = "ui_inspection_complete_download_not_clicked"
-                manifest["download_click_skipped_reason"] = (
-                    "No download is triggered until the visible symbol selection and "
-                    "date scope are confirmed to be narrow."
-                )
-                manifest["download_button_clicked"] = False
-            manifest["page_errors"] = errors[:20]
-            browser.close()
+                history_tab = page.get_by_role("tab", name=re.compile("funding rate history", re.I))
+                if history_tab.count() == 0:
+                    history_tab = page.get_by_text("Funding rate history", exact=True)
+                if history_tab.count() > 0 and history_tab.first.is_visible():
+                    history_tab.first.click(timeout=5000)
+                    manifest["history_tab_clicked"] = True
+                    page.wait_for_timeout(1500)
+                else:
+                    manifest["history_tab_clicked"] = False
+                history_state = snapshot_page(page)
+                manifest["history_state"] = history_state
+                auth_block = bool(history_state.get("passwordInputsVisible")) or bool(history_state.get("captchaFrames"))
+                body_lower = (history_state.get("bodyText") or "").lower()
+                auth_block = auth_block or any(phrase in body_lower for phrase in (
+                    "login to download", "log in to download", "sign in to download", "please login to download"
+                ))
+                candidates = []
+                for button in page.locator("button,[role=button]").all():
+                    try:
+                        if not button.is_visible() or button.is_disabled():
+                            continue
+                        text = (button.inner_text(timeout=1000) or "").strip()
+                        aria = button.get_attribute("aria-label") or ""
+                        title = button.get_attribute("title") or ""
+                        label = " ".join((text, aria, title)).strip()
+                        if re.search(r"download", label, re.I):
+                            candidates.append({"locator": button, "label": label[:180]})
+                    except Exception:
+                        continue
+                manifest["download_buttons"] = [c["label"] for c in candidates[:10]]
+                if auth_block:
+                    manifest["status"] = "blocked_login_or_captcha"
+                elif not candidates:
+                    manifest["status"] = "ui_inspection_complete_no_download_button"
+                else:
+                    # First pass is deliberately read-only: the currently selected
+                    # symbols/date range are not yet verified as a bounded request.
+                    manifest["status"] = "ui_inspection_complete_download_not_clicked"
+                    manifest["download_click_skipped_reason"] = (
+                        "No download is triggered until the visible symbol selection and "
+                        "date scope are confirmed to be narrow."
+                    )
+                    manifest["download_button_clicked"] = False
+                manifest["page_errors"] = errors[:20]
+                browser.close()
     except Exception as exc:
         manifest["status"] = "probe_error"
         manifest["error"] = f"{type(exc).__name__}: {str(exc)[:500]}"

@@ -45,6 +45,8 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         self.assertNotIn("playwright==1.56.0", workflow)
         probe = (ROOT / "research" / "bitget_funding_download_probe.py").read_text(encoding="utf-8")
         self.assertIn("download_click_skipped_reason", probe)
+        self.assertIn("is_geographically_restricted", probe)
+        self.assertIn("blocked_geographic_restriction", probe)
         self.assertIn("download_button_clicked", probe)
         self.assertNotIn("candidates[0][\"locator\"].click", probe)
 

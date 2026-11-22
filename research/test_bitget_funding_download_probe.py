@@ -4,7 +4,7 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from bitget_funding_download_probe import analyze_csv_stream, analyze_download
+from bitget_funding_download_probe import analyze_csv_stream, analyze_download, is_geographically_restricted
 
 
 class BitgetDownloadProbeParserTests(unittest.TestCase):
@@ -25,6 +25,13 @@ class BitgetDownloadProbeParserTests(unittest.TestCase):
         self.assertEqual(summary["last_timestamp_raw"], "2020-01-01 08:00:00")
         self.assertEqual(summary["rate_min"], 0.0001)
         self.assertEqual(summary["rate_max"], 0.0002)
+
+    def test_restricted_ip_page_is_detected_without_bypass(self):
+        snapshot = {
+            "bodyText": "Restricted IP Your IP address shows that you are attempting to access our services from United States of America."
+        }
+        self.assertTrue(is_geographically_restricted(snapshot))
+        self.assertFalse(is_geographically_restricted({"bodyText": "Funding rate history"}))
 
     def test_download_file_hash_and_csv_summary(self):
         data = "timestamp,fundingRate\n1704067200000,0.0001\n1704096000000,-0.0002\n"
