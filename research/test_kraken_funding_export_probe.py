@@ -49,7 +49,7 @@ class KrakenFundingExportProbeTests(unittest.TestCase):
         self.assertEqual(result["rate_fields"]["relativeFundingRate"]["max"], 0.02)
         self.assertEqual(result["null_counts"]["note"], 1)
         self.assertIn({"hours": 4.0, "count": 1}, result["cadence_hours_top"])
-        self.assertEqual(len(result["crosscheck_samples"]), 3)
+        self.assertEqual(len(result["crosscheck_samples"]), 4)
 
     def test_archive_only_analyzes_identified_perpetual_csvs(self):
         instruments = [
