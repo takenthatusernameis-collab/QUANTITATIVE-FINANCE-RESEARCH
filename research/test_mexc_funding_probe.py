@@ -81,7 +81,9 @@ class MexcFundingProbeTests(unittest.TestCase):
     def test_duplicate_timestamps_fail_closed(self):
         page1 = payload("BTC_USDT", 1, [row("BTC_USDT", "0.1", 1000), row("BTC_USDT", "0.2", 2000)])
         page2 = payload("BTC_USDT", 2, [row("BTC_USDT", "0.3", 2000)], 3, 2, 2)
-        fetcher = lambda symbol, page_num, page_size: (page1 if page_num == 1 else page2), b"raw"
+        def fetcher(symbol, page_num, page_size):
+            return (page1 if page_num == 1 else page2), b"raw"
+
         with self.assertRaisesRegex(ValueError, "duplicate"):
             fetch_symbol("BTC_USDT", 2, 3, 10, fetcher, sleeper=lambda _: None)
 
