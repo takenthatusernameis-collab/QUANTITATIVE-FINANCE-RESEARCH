@@ -40,6 +40,7 @@ class AdaptiveDecisionTests(unittest.TestCase):
             "legal_authorized": True,
             "product_inception_verified": True,
             "historical_coverage_verified": True,
+            "full_history_feasibility_verified": True,
             "positive_control_passed": True,
             "negative_control_passed": True,
             "timestamps_valid": True,
@@ -83,6 +84,13 @@ class AdaptiveDecisionTests(unittest.TestCase):
         result = evaluate_provider_evidence(evidence)
         self.assertFalse(result["accepted"])
         self.assertIn("positive_control_passed", result["blockers"])
+
+    def test_provider_is_rejected_when_full_history_is_not_feasible(self):
+        evidence = self.complete_evidence()
+        evidence["full_history_feasibility_verified"] = False
+        result = evaluate_provider_evidence(evidence)
+        self.assertFalse(result["accepted"])
+        self.assertIn("full_history_feasibility_verified", result["blockers"])
 
     def test_funding_provider_requires_final_settlement_population_semantics(self):
         evidence = self.complete_evidence()
