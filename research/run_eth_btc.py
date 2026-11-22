@@ -52,7 +52,7 @@ COLUMNS = [
 SYMBOLS = ("ETHUSDT", "BTCUSDT")
 BOOTSTRAP_REPS = 150  # Exploratory CI; quantile precision is limited at this count.
 EVENT_TIME_BOOTSTRAP_REPS = 1000
-EVENT_TIME_BOOTSTRAP_BLOCK_DAYS = 7.0
+EVENT_TIME_BOOTSTRAP_BLOCK_DAYS = (3.0, 7.0, 14.0)
 EVENT_TIME_BOOTSTRAP_CONFIDENCE = 0.95
 EVENT_TIME_BOOTSTRAP_SEED = 20261122
 
@@ -2720,7 +2720,11 @@ def main() -> None:
         "event_time_pooled_oos_bootstrap": {
             "method": "fold-stratified moving-block bootstrap in calendar time",
             "block_days": EVENT_TIME_BOOTSTRAP_BLOCK_DAYS,
-            "replications": EVENT_TIME_BOOTSTRAP_REPS,
+            "primary_block_days": 7.0,
+            "replications_per_block_length": EVENT_TIME_BOOTSTRAP_REPS,
+            "total_replications_per_variant": (
+                EVENT_TIME_BOOTSTRAP_REPS * len(EVENT_TIME_BOOTSTRAP_BLOCK_DAYS)
+            ),
             "confidence_level": EVENT_TIME_BOOTSTRAP_CONFIDENCE,
             "seed": EVENT_TIME_BOOTSTRAP_SEED,
             "ci_scope": "1.0x base cost; 1.5x and 2.0x pooled point estimates only",
