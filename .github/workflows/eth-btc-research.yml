@@ -42,7 +42,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.event_name == 'issue_comment' && (github.event.action != 'created' || github.event.issue.number != 2 || github.event.issue.pull_request == null || github.event.issue.state != 'open' || github.event.comment.user.login != 'takenthatusernameis-collab' || !contains(fromJSON('["/qfr-control-smoke","/qfr-run-eth-btc-data-audit","/qfr-probe-eth-btc-funding-2024-01","/qfr-probe-tardis-funding-2024-01-01","/qfr-probe-tardis-funding-2020-06-01","/qfr-probe-tardis-funding-2026-03-01","/qfr-run-eth-btc-empirical","/qfr-run-eth-btc-spot-empirical","/qfr-run-eth-btc-um-empirical"]'), github.event.comment.body)) && format('eth-btc-research-ignored-{0}', github.event.comment.id) || 'eth-btc-research-main' }}
+  group: ${{ github.event_name == 'issue_comment' && (github.event.action != 'created' || github.event.issue.number != 2 || github.event.issue.pull_request == null || github.event.issue.state != 'open' || github.event.comment.user.login != 'takenthatusernameis-collab' || !contains(fromJSON('["/qfr-control-smoke","/qfr-run-eth-btc-data-audit","/qfr-probe-eth-btc-funding-2024-01","/qfr-probe-tardis-funding-2024-01-01","/qfr-probe-tardis-funding-2020-06-01","/qfr-probe-tardis-funding-2025-06-01","/qfr-probe-tardis-funding-2025-10-01","/qfr-probe-tardis-funding-2026-02-01","/qfr-probe-tardis-funding-2026-03-01","/qfr-run-eth-btc-empirical","/qfr-run-eth-btc-spot-empirical","/qfr-run-eth-btc-um-empirical"]'), github.event.comment.body)) && format('eth-btc-research-ignored-{0}', github.event.comment.id) || 'eth-btc-research-main' }}
   queue: max
   cancel-in-progress: false
 
@@ -129,6 +129,27 @@ jobs:
                 COMMAND="tardis-probe"
                 START="2020-06-01"
                 END="2020-06-01"
+                MARKET="both"
+                RECONCILE="false"
+                ;;
+              "/qfr-probe-tardis-funding-2025-06-01")
+                COMMAND="tardis-probe"
+                START="2025-06-01"
+                END="2025-06-01"
+                MARKET="both"
+                RECONCILE="false"
+                ;;
+              "/qfr-probe-tardis-funding-2025-10-01")
+                COMMAND="tardis-probe"
+                START="2025-10-01"
+                END="2025-10-01"
+                MARKET="both"
+                RECONCILE="false"
+                ;;
+              "/qfr-probe-tardis-funding-2026-02-01")
+                COMMAND="tardis-probe"
+                START="2026-02-01"
+                END="2026-02-01"
                 MARKET="both"
                 RECONCILE="false"
                 ;;
