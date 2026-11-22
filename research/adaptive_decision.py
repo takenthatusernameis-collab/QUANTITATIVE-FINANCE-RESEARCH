@@ -47,6 +47,12 @@ REQUIRED_SIX_INPUTS = (
     "funding_BTCUSDT",
 )
 
+REQUIRED_INPUTS_BY_SCOPE = {
+    "spot": ("spot_ETHUSDT", "spot_BTCUSDT"),
+    "perpetual": ("um_ETHUSDT", "um_BTCUSDT", "funding_ETHUSDT", "funding_BTCUSDT"),
+    "both": REQUIRED_SIX_INPUTS,
+}
+
 _PROVIDER_WEIGHTS = {
     "expected_information_gain": 0.20,
     "probability_of_success": 0.15,
@@ -316,3 +322,64 @@ def evaluate_six_input_gate(
         ],
         "blockers": blockers,
     }
+
+def evaluate_research_scope_gate(
+    input_states: Mapping[str, bool],
+    manifest_states: Mapping[str, bool],
+    *,
+    market_scope: str,
+    spot_gap_reconciliation_complete: bool | None = None,
+    spot_time_policy_accepted: bool = False,
+) -> dict[str, object]:
+    """Gate spot and perpetual research independently without weakening either.
+
+    A Spot series with known no-trade gaps is accepted only after the gap evidence
+    and its elapsed-time/event-time treatment are both accepted. A perpetual
+    experiment always requires both USD-M prices and accepted final funding
+    histories. Combined research requires both market scopes.
+    """
+    scope = market_scope.lower()
+    if scope == "um":
+        scope = "perpetual"
+    if scope not in REQUIRED_INPUTS_BY_SCOPE:
+        raise ValueError("market_scope must be spot, perpetual/um, or both")
+
+    required = REQUIRED_INPUTS_BY_SCOPE[scope]
+    blockers: list[str] = []
+    missing_status = [name for name in required if name not in input_states]
+    rejected = [
+        name for name in required
+        if name in input_states and input_states.get(name) is not True
+    ]
+    missing_manifests = [name for name in required if manifest_states.get(name) is not True]
+
+    if missing_status:
+        blockers.append(f"missing input status: {', '.join(missing_status)}")
+    if missing_manifests:
+        blockers.append(f"missing required manifests: {', '.join(missing_manifests)}")
+
+    spot_inputs = ("spot_ETHUSDT", "spot_BTCUSDT")
+    if scope in {"spot", "both"}:
+        spot_complete = all(input_states.get(name) is True for name in spot_inputs)
+        if not spot_complete:
+            if spot_gap_reconciliation_complete is not True:
+                blockers.append("Spot hourly gaps are not fully reconciled")
+            if not spot_time_policy_accepted:
+                blockers.append("Spot event-time/elapsed-time policy is not accepted")
+        if spot_complete:
+            rejected = [name for name in rejected if name not in spot_inputs]
+
+    if rejected:
+        blockers.append(f"unaccepted inputs: {', '.join(rejected)}")
+
+    return {
+        "allowed": not blockers,
+        "status": "PASS" if not blockers else "INCOMPLETE",
+        "market_scope": scope,
+        "required_inputs": list(required),
+        "accepted_inputs": [name for name in required if input_states.get(name) is True],
+        "spot_gap_reconciliation_complete": spot_gap_reconciliation_complete,
+        "spot_time_policy_accepted": bool(spot_time_policy_accepted),
+        "blockers": blockers,
+    }
+\n
