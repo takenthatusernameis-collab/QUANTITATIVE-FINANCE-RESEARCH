@@ -8,7 +8,7 @@
 
 - Run: [45005913283](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45005913283) — completed **failure** at the research gate, not a network/runtime failure.
 - Artifact: [14747898462](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45005913283/artifacts/14747898462)
-- Artifact ZIP: 36,820 bytes; SHA-256 `cfe7cfd4bbf1cb3215df23b9f07d40d91c6e261a3e2cc61`
+- Artifact ZIP: 36,820 bytes; SHA-256 `cfe7fc14b86be151d3ae22ca79489045463d1e512ee701599f81c25add7788e2`
 - `data_audit_summary.json` SHA-256: `b3184a0d13f229f75a872f0c9c0eac26e0d565ceda8c547a83136a287c61d71b`
 
 ## Data facts
