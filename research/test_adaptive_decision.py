@@ -156,8 +156,12 @@ class AdaptiveDecisionTests(unittest.TestCase):
         identity = build_experiment_id(original)
         changed_provider = dict(original, provider="kraken", venue="kraken")
         changed_construction = dict(original, data_construction="trade_level_ratio")
+        changed_timeframe = dict(original, timeframe="15m")
+        changed_source = dict(original, source_version="manifest-sha256:def")
         self.assertNotEqual(identity, build_experiment_id(changed_provider))
         self.assertNotEqual(identity, build_experiment_id(changed_construction))
+        self.assertNotEqual(identity, build_experiment_id(changed_timeframe))
+        self.assertNotEqual(identity, build_experiment_id(changed_source))
         self.assertEqual(identity, build_experiment_id(original))
 
     def test_spot_and_perpetual_research_are_separated(self):
