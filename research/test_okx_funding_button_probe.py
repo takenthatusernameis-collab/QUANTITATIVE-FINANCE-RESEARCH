@@ -51,6 +51,14 @@ class OKXFundingButtonProbeTests(unittest.TestCase):
         self.assertEqual(result["unique_option_texts"], ["ETHUSDT", "BTCUSDT", "Select All", "All"])
         self.assertEqual(result["selector_counts"]["li"], 3)
 
+    def test_symbol_options_searches_eth_btc_without_selecting(self):
+        source = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn('for term in ("ETH", "BTC")', source)
+        self.assertIn("search_input.first.fill(term, timeout=5000)", source)
+        self.assertIn("search_input.first.fill(\"\", timeout=5000)", source)
+        self.assertIn("symbol_search_results", source)
+        self.assertNotIn("select_option", source)
+
     def test_probe_script_compiles(self):
         source = SCRIPT.read_text(encoding="utf-8")
         compile(source, str(SCRIPT), "exec")
