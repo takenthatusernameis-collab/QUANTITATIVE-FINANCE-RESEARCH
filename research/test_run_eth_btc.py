@@ -66,7 +66,7 @@ def write_spot_event_time_fixture(root: Path, start: str = "2024-01-01", end: st
         csv_sha = hashlib.sha256(csv_path.read_bytes()).hexdigest()
         monthly_archive = [{
             "month": "2024-01",
-            "url": "https://data.binance.vision/test.zip",
+            "url": f"https://data.binance.vision/data/spot/monthly/klines/{symbol}/1h/{symbol}-1h-2024-01.zip",
             "status": "downloaded",
             "checksum_verified": True,
         }]
@@ -94,6 +94,7 @@ def write_spot_event_time_fixture(root: Path, start: str = "2024-01-01", end: st
             "positive_control_passed": True,
             "aggregate_trade_archive": {
                 "archive_sha256": archive_sha,
+                "url": f"https://data.binance.vision/data/spot/daily/aggTrades/{symbol}/{symbol}-aggTrades-2024-01-01.zip",
                 "checksum_verified": True,
                 "positive_control_passed": True,
                 "trade_count": 0,
@@ -110,8 +111,12 @@ def write_spot_event_time_fixture(root: Path, start: str = "2024-01-01", end: st
                 missing.strftime("%Y-%m-%d"): {
                     "status": "PARSED",
                     "archive_sha256": archive_sha,
+                    "url": f"https://data.binance.vision/data/spot/daily/aggTrades/{symbol}/{symbol}-aggTrades-2024-01-01.zip",
                     "checksum_verified": True,
                     "positive_control_trade_count": 1,
+                    "duplicate_aggregate_trade_ids": 0,
+                    "out_of_order_aggregate_trade_ids": 0,
+                    "out_of_order_timestamps": 0,
                 }
             },
             "aggregate_trade_positive_controls": {

@@ -680,15 +680,20 @@ def validate_spot_event_time_evidence(data_dir: Path, start: str, end: str) -> d
             archive_items = archive_manifest.get("archives", [])
             expected_months = {month.strftime("%Y-%m") for month in month_starts(start, end)}
             observed_months = {str(item.get("month")) for item in archive_items}
+            monthly_prefix = (
+                f"https://data.binance.vision/data/spot/monthly/klines/{symbol}/1h/"
+            )
             if (
                 observed_months != expected_months
                 or len(archive_items) != len(expected_months)
                 or not all(
-                    item.get("status") == "downloaded" and item.get("checksum_verified") is True
+                    item.get("status") == "downloaded"
+                    and item.get("checksum_verified") is True
+                    and str(item.get("url", "")).startswith(monthly_prefix)
                     for item in archive_items
                 )
             ):
-                raise ValueError("monthly archive coverage or checksum verification failed")
+                raise ValueError("monthly archive coverage, source URL or checksum verification failed")
             quality = archive_manifest.get("data_quality") or {}
             if int(quality.get("duplicate_timestamps", -1)) != 0:
                 raise ValueError("monthly archive quality reports duplicate timestamps")
@@ -737,15 +742,23 @@ def validate_spot_event_time_evidence(data_dir: Path, start: str, end: str) -> d
                 daily = (gap_manifest.get("daily_aggtrades_archives") or {}).get(day) or {}
                 control = (gap_manifest.get("aggregate_trade_positive_controls") or {}).get(day) or {}
                 trade_evidence = entry.get("aggregate_trade_archive") or {}
+                daily_prefix = (
+                    f"https://data.binance.vision/data/spot/daily/aggTrades/{symbol}/"
+                )
                 if (
                     daily.get("status") != "PARSED"
                     or daily.get("checksum_verified") is not True
                     or int(daily.get("positive_control_trade_count") or 0) <= 0
+                    or int(daily.get("duplicate_aggregate_trade_ids", -1)) != 0
+                    or int(daily.get("out_of_order_aggregate_trade_ids", -1)) != 0
+                    or int(daily.get("out_of_order_timestamps", -1)) != 0
+                    or not str(daily.get("url", "")).startswith(daily_prefix)
                     or control.get("archive_positive_control_passed") is not True
                     or trade_evidence.get("checksum_verified") is not True
                     or trade_evidence.get("positive_control_passed") is not True
                     or int(trade_evidence.get("trade_count", -1)) != 0
                     or trade_evidence.get("archive_sha256") != daily.get("archive_sha256")
+                    or trade_evidence.get("url") != daily.get("url")
                 ):
                     raise ValueError(f"{key} lacks checksum-verified no-trade archive and positive-control evidence")
 
