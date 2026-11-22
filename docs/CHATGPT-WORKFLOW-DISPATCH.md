@@ -148,6 +148,20 @@ Until these are demonstrated, state exactly which requirement is still unverifie
 
 The `workflow_dispatch` event may remain available as a human-owned break-glass recovery control where appropriate. It is not the routine agent procedure, does not satisfy autonomous acceptance, and should not be repeatedly presented as the answer to an unresolved automation blocker.
 
+
+### Queued and pending run recovery
+
+A successful trigger is only the start of execution. Track the returned/discovered workflow run ID as the canonical execution for that task. On every follow-up, query the run and its jobs; record the event, actor, ref, SHA, created/updated timestamps, status/conclusion, job statuses, runner assignment where present, and concurrency group. Do not treat "queued" or "pending" as "in_progress", and do not treat a queued run as a failed experiment.
+
+Apply the repository queue-age thresholds: 0–5 minutes, ordinary wait; 5–15 minutes, inspect competing concurrency-group runs, job state, runner labels/capacity, and GitHub Status; 15–30 minutes, classify and document the precise bottleneck while continuing independent work; beyond 30 minutes, perform one evidence-based recovery assessment; beyond 60 minutes, record **INFRASTRUCTURE-BLOCKED / QUEUED** and hand off the same run ID for later inspection. Poll at bounded 2–5 minute intervals during active diagnosis, then 5–10 minutes during sustained platform delays. Never busy-poll.
+
+Do not send another identical command while a matching run is queued or in progress. Before replacing a stale run, establish that it is obsolete and fence/cancel it so it cannot later execute in parallel with its replacement. Use a different runner or execution route only when it is already available and authorized. Never ask the owner to manually activate a routine research, test, or audit run.
+
+**Concurrency safeguard:** this repository's ETH/BTC workflow serializes research through one concurrency group. It explicitly sets queue: max so accepted pending commands are retained (up to GitHub's 100-pending-run group limit) rather than silently replacing the previous pending run under the default single-pending behavior. Keep that queue bounded; stop issuing duplicate work at capacity. Do not split the group unless the operations are independently safe to execute concurrently.
+
+A queued run is an infrastructure state, not evidence about the strategy or dataset. Keep research status separate from execution status.
+
+
 ## Repository-specific state
 
 - Current empirical workflow: `.github/workflows/eth-btc-research.yml`.

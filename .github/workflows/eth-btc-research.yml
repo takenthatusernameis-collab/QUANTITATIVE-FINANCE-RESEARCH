@@ -43,6 +43,7 @@ permissions:
 
 concurrency:
   group: eth-btc-research-main
+  queue: max
   cancel-in-progress: false
 
 jobs:

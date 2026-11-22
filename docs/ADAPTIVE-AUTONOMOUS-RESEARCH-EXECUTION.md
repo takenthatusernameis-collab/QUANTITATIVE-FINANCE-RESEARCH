@@ -138,6 +138,46 @@ Update the relevant README, standard, task, or report with:
 
 Queue a next task that advances the objective rather than merely repeating the blocked attempt.
 
+## GitHub Actions queue-pending contingency
+
+A queued workflow is an infrastructure/orchestration state, not a research result. Never report it as running, completed, passed, or failed until the corresponding run/job evidence supports that status. Never ask the owner to click "Run workflow", rerun a routine historical job, or approve an ordinary CI/data-audit step merely to clear a queue.
+
+### Identify which queue is blocking execution
+
+For every delayed run, preserve the workflow run ID and task/command key, then inspect both the workflow-run record and its jobs. Record the run URL, workflow path/name, event, actor, ref, head SHA, created_at, updated_at, current status/conclusion, job names/statuses, requested runner labels, populated runner name/group, and the relevant concurrency group. Inspect competing runs in the same group and the current workflow YAML. Use created_at and job timestamps to estimate queue age; do not rely on run_started_at alone as a queue-duration measurement.
+
+Distinguish at least these cases:
+
+- **Workflow-level/concurrency pending:** another run in the same concurrency group is occupying the slot. Identify that run and whether it is genuinely progressing, stuck, or obsolete. A workflow-level concurrency key can serialize otherwise unrelated commands.
+- **Job queued for a runner:** the run exists, but a job has not acquired a runner. Inspect runner labels/groups, available runner capacity, plan/organization concurrency limits, and GitHub Actions service status. Compare other recent jobs using the same runner class.
+- **Job waiting on an environment or approval:** this is an approval/protection gate, not ordinary runner capacity. Routine historical research and CI should not be coupled to an environment that requires owner approval. Do not bypass a genuine protection boundary; redesign the routine workflow so it does not request privileged deployment/capital permissions.
+- **Workflow dispatch not actually created, rejected, or cancelled:** verify the trigger event, exact actor/command gate, run record, cancellation reason, and API response. A comment succeeding is not proof a run was queued.
+
+### Queue-age response thresholds
+
+These are repository operating thresholds, not a GitHub service-level guarantee:
+
+| Observed queue age | Required agent response |
+|---|---|
+| 0–5 minutes | Treat as an ordinary short wait. Keep the existing run ID; do not dispatch a duplicate. |
+| 5–15 minutes | Inspect run and job records, same-group runs, runner labels, and Actions service status. Recheck after a bounded 2–5 minute interval rather than busy-polling. |
+| 15–30 minutes | Classify the cause as concurrency serialization, runner capacity, approval/configuration, or unknown. Record evidence and the next diagnostic. Continue independent code, data, and research work that does not depend on this run. |
+| More than 30 minutes | Treat as a prolonged infrastructure blocker. Make one evidence-based recovery decision: allow a demonstrably progressing same-group run to finish; repair a repository-controlled concurrency/configuration mistake; or use an already-authorized, available alternative runner/execution route. Do not repeatedly dispatch the same command. |
+| More than 60 minutes | Mark the run **INFRASTRUCTURE-BLOCKED / QUEUED**, preserve the run ID and diagnostics in the task handoff, and advance all independent work. Revisit the same run before considering a replacement. A new run requires a safe deduplication/fencing plan. |
+
+Poll at bounded intervals (typically 2–5 minutes during diagnosis, then 5–10 minutes for a sustained external capacity delay). If the current agent session cannot remain active, persist the run ID, last-observed status/time, evidence, and exact next status check for the next scheduled agent cycle. Do not imply that a background poller exists unless one is actually configured.
+
+### Safe recovery rules
+
+1. **Never fan out retries to make a queue move faster.** One task/experiment should have one canonical active run. Map the task key and exact inputs to its run ID. Repeated comments or agent cycles must first discover and reuse that run.
+2. **Preserve queued work.** For a workflow that must retain every accepted command, configure an explicit bounded concurrency queue. This repository's ETH/BTC research workflow uses one shared concurrency group to prevent overlapping research operations; queue: max preserves up to 100 pending runs instead of allowing a newer pending run to replace the older pending run under the default single-pending behavior. At the configured limit, stop dispatching more copies and record the remaining work in the task ledger.
+3. **Do not cancel a run only because it is old.** Cancel or supersede it only when it is demonstrably obsolete, unsafe, invalidated by a newer specification, or replaced by a verified alternative. Before starting a replacement, confirm the old run cannot later execute the same expensive task; use a task-level idempotency key, lock, or explicit cancellation/fencing and verify the resulting state.
+4. **Do not alter concurrency merely to bypass a wait.** Split concurrency groups only when the jobs are genuinely independent and shared data, caches, artifacts, rate limits, and research state cannot conflict. Keep non-cancellable serialization for mutually exclusive full-data operations.
+5. **Use only already-authorized alternatives.** A different runner class or execution environment is acceptable only if it is actually available, authorized, and does not introduce unapproved cost or broader permissions. Do not create paid infrastructure or request routine owner action as the default recovery.
+6. **Classify correctly.** A prolonged queue is not a failed test, data failure, or negative empirical result. Report it as an infrastructure/orchestration delay with its run ID and age. A successful workflow dispatch is likewise not a completed research result.
+
+Official diagnostics: [GitHub Actions concurrency controls](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency), [Actions limits](https://docs.github.com/en/actions/reference/limits), and [GitHub Status](https://www.githubstatus.com/).
+
 ## Dispatch contingency patterns
 
 The dispatch route is selected by demonstrated capabilities, not by loyalty to one event type.
