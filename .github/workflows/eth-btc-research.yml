@@ -279,13 +279,14 @@ jobs:
           python research/tardis_funding_probe.py \
             --date 2024-01-01 \
             --symbols ETHUSDT,BTCUSDT \
-            --output-dir data/raw/tardis-funding-probe-2024-01-01
+            --output-dir reports/generated/tardis-funding-probe-2024-01-01 \
+            --cache-dir data/cache/tardis-funding-probe-2024-01-01
 
       - name: Upload Tardis sample and manifests
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: tardis-funding-probe-${{ github.run_id }}
-          path: data/raw/tardis-funding-probe-2024-01-01/
+          path: reports/generated/tardis-funding-probe-2024-01-01/*.json
           if-no-files-found: warn
           retention-days: 30
