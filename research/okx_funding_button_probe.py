@@ -34,7 +34,7 @@ def snapshot(page) -> dict:
           ? (el.type === 'password' ? '[redacted]' : (el.value || '').slice(0,100)) : null
       }));
       const dialogs = Array.from(document.querySelectorAll(
-        '[role=dialog],[aria-modal=true],dialog,[class*="modal" i],[class*="dialog" i]'
+        '[role=dialog],[aria-modal=true],dialog,[class*="modal" i],[class*="dialog" i],[class*="popover" i],[class*="tooltip" i]'
       )).filter(visible).map(el => ({
         tag: el.tagName.toLowerCase(), text: clean(el.innerText).slice(0,2500),
         controls: Array.from(el.querySelectorAll('button,input,select,textarea,[role=button]'))
@@ -101,7 +101,7 @@ def identify_funding_download(page) -> dict:
     }""")
 
 
-def run_probe(output_dir: Path) -> dict:
+def run_probe(output_dir: Path, inspect_field_info: bool = False) -> dict:
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest = {
         "probe": "okx_funding_download_button_click",
@@ -114,6 +114,7 @@ def run_probe(output_dir: Path) -> dict:
         "network_workaround_used": False,
         "form_submitted": False,
         "file_saved": False,
+        "field_info_mode": inspect_field_info,
         "status": "not_started",
     }
     try:
@@ -209,6 +210,54 @@ def run_probe(output_dir: Path) -> dict:
                                 manifest["status"] = "direct_download_detected_and_cancel_attempted"
                             elif new_dialogs:
                                 manifest["status"] = "modal_opened_inspected_no_submission"
+                                if inspect_field_info:
+                                    field_info = page.get_by_role("button", name="Field information", exact=True)
+                                    manifest["field_info_control_count"] = field_info.count()
+                                    if field_info.count() != 1 or not field_info.first.is_visible():
+                                        manifest["field_info_status"] = "control_not_found_or_not_visible"
+                                        manifest["status"] = "field_info_control_not_found"
+                                    else:
+                                        field_info.first.scroll_into_view_if_needed(timeout=5000)
+                                        field_info_action = field_info.first.evaluate("""el => {
+                                          const r=el.getBoundingClientRect(), x=r.left+r.width/2, y=r.top+r.height/2;
+                                          const top=document.elementFromPoint(x,y);
+                                          const clean=s=>(s||'').replace(/\\s+/g,' ').trim();
+                                          return {visible:r.width>0&&r.height>0,disabled:!!el.disabled,
+                                            unobstructed:!!top&&(top===el||el.contains(top)),
+                                            blocker:top?{tag:top.tagName.toLowerCase(),text:clean(top.innerText||top.textContent).slice(0,160),
+                                              aria:top.getAttribute('aria-label'),class:String(top.className||'').slice(0,160)}:null};
+                                        }""")
+                                        manifest["field_info_actionability"] = field_info_action
+                                        if not field_info_action.get("visible") or field_info_action.get("disabled"):
+                                            manifest["field_info_status"] = "control_not_actionable"
+                                            manifest["status"] = "field_info_control_not_actionable"
+                                        elif not field_info_action.get("unobstructed"):
+                                            manifest["field_info_status"] = "control_obstructed_no_click"
+                                            manifest["status"] = "field_info_control_obstructed_no_click"
+                                        else:
+                                            try:
+                                                field_info.first.click(timeout=5000)
+                                                manifest["field_info_clicked"] = True
+                                                page.wait_for_timeout(1500)
+                                                field_info_snapshot = snapshot(page)
+                                                manifest["field_info_snapshot"] = field_info_snapshot
+                                                modal_surfaces_before = manifest["after_click_snapshot"].get("dialogs", [])
+                                                manifest["field_info_new_surfaces"] = [
+                                                    surface for surface in field_info_snapshot.get("dialogs", [])
+                                                    if surface not in modal_surfaces_before
+                                                ]
+                                                field_info_screenshot = output_dir / "okx-funding-field-info.png"
+                                                page.screenshot(path=str(field_info_screenshot), full_page=False)
+                                                manifest["field_info_screenshot"] = field_info_screenshot.name
+                                                manifest["field_info_status"] = "clicked_and_inspected"
+                                                if downloads:
+                                                    manifest["status"] = "unexpected_download_cancelled_after_field_info_click"
+                                                else:
+                                                    manifest["status"] = "field_information_clicked_inspected_no_submission"
+                                            except Exception as exc:
+                                                manifest["field_info_clicked"] = False
+                                                manifest["field_info_error"] = f"{type(exc).__name__}: {str(exc)[:300]}"
+                                                manifest["status"] = "field_info_click_failed"
                             elif popups:
                                 manifest["status"] = "popup_opened_inspected_no_submission"
                             else:
