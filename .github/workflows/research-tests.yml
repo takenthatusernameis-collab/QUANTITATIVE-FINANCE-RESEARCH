@@ -4,14 +4,19 @@ on:
   push:
     paths:
       - "research/**"
-      - ".github/workflows/research-tests.yml"
-      - ".github/workflows/eth-btc-research.yml"
-      - ".github/workflows/queue-guardian.yml"
+      - "README.md"
+      - "docs/**"
+      - "tasks/**"
+      - "reports/**"
+      - ".github/workflows/**"
   pull_request:
     paths:
       - "research/**"
-      - ".github/workflows/research-tests.yml"
-      - ".github/workflows/queue-guardian.yml"
+      - "README.md"
+      - "docs/**"
+      - "tasks/**"
+      - "reports/**"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 permissions:
