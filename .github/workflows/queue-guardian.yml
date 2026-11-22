@@ -4,12 +4,8 @@ on:
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
-    inputs:
-      dry_run:
-        description: Inspect queue decisions without cancelling runs or opening incident issues
-        required: true
-        default: true
-        type: boolean
+  issue_comment:
+    types: [created]
 
 permissions:
   actions: write
@@ -23,6 +19,7 @@ concurrency:
 jobs:
   inspect-and-recover:
     name: Enforce 15-minute queued-run policy
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.number == 2 && github.event.issue.pull_request != null && github.event.issue.state == 'open' && github.event.comment.user.login == 'takenthatusernameis-collab' && github.event.comment.body == '/qfr-queue-guardian-dry-run') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -31,12 +28,12 @@ jobs:
         with:
           ref: ${{ github.event.repository.default_branch }}
 
-      - name: Inspect, cancel and persist incidents
+      - name: Inspect queue and persist incident decisions
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_API_URL: ${{ github.api_url }}
-          DRY_RUN: ${{ inputs.dry_run || false }}
+          DRY_RUN: ${{ github.event_name != 'schedule' }}
         run: python research/queue_guardian.py
 
       - name: Upload queue guardian report
