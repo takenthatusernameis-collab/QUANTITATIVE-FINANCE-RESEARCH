@@ -462,6 +462,57 @@ class ResearchPipelineTests(unittest.TestCase):
         self.assertAlmostEqual(bt["turnover"].sum(), 2.0)
         self.assertAlmostEqual(bt["cost"].sum(), 0.0026)
 
+    def test_funding_ingestion_uses_checksum_verified_archive_and_fails_closed_on_semantics(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            csv_text = (
+                "calc_time,funding_interval_hours,last_funding_rate\\n"
+                "1704067200000,8,0.0001\\n"
+            )
+            payload = zip_csv(csv_text, "ETHUSDT-fundingRate-2024-01.csv")
+            with patch.object(
+                research, "_download_archive",
+                return_value=(payload, True, None),
+            ) as download:
+                with self.assertRaisesRegex(RuntimeError, "event semantics"):
+                    research.download_funding(
+                        "ETHUSDT", "2024-01-01", "2024-01-01", root
+                    )
+            self.assertEqual(download.call_count, 1)
+            self.assertIn(
+                "https://data.binance.vision/data/futures/um/monthly/fundingRate/"
+                "ETHUSDT/ETHUSDT-fundingRate-2024-01.zip",
+                download.call_args.args[0],
+            )
+            manifest = json.loads(
+                (root / "raw" / "um_ETHUSDT_funding_manifest.json").read_text()
+            )
+            self.assertEqual(manifest["event_semantics"], "UNVERIFIED")
+            self.assertEqual(manifest["completeness_status"], "PROVISIONAL_NOT_ACCEPTED")
+            self.assertTrue(manifest["archives"][0]["checksum_verified"])
+            self.assertEqual(manifest["rows"], 1)
+
+    def test_funding_ingestion_rejects_unverified_archive_checksum(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            payload = zip_csv(
+                "calc_time,funding_interval_hours,last_funding_rate\\n"
+                "1704067200000,8,0.0001\\n"
+            )
+            with patch.object(
+                research, "_download_archive",
+                return_value=(payload, False, "checksum unavailable"),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "failed_months=1"):
+                    research.download_funding(
+                        "ETHUSDT", "2024-01-01", "2024-01-01", root
+                    )
+            manifest = json.loads(
+                (root / "raw" / "um_ETHUSDT_funding_manifest.json").read_text()
+            )
+            self.assertEqual(manifest["status"], "failed")
+            self.assertEqual(manifest["failed_months"][0]["month"], "2024-01")
+
     def test_funding_event_is_aligned_to_next_bar_when_off_grid(self):
         events = pd.Series(
             [0.001, 0.002],
