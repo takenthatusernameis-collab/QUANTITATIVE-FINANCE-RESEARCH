@@ -177,6 +177,18 @@ After the single recovery action, recheck in 10–15 minutes. If progress resume
 
 A lack of new log lines alone is not proof of a stuck job. Inspect step state and expected workload duration. GitHub's troubleshooting guidance identifies no-job-created runs and failed self-service cancellation (including HTTP 409/500) as possible abnormal states; a run that remains stuck and blocks concurrency may require GitHub Support to clear it.
 
+#### Mandatory independent fallback when cancellation is unavailable or fails
+
+If a run older than 15 minutes is not exempt because of a verified active same-group predecessor, attempt cancellation once. If the agent cannot call the cancellation API, the request fails, or the run does not become terminal after re-fetching, do not stop at `CANCELLATION_ENFORCEMENT_BLOCKED` and do not wait for GitHub Support before progressing. Mark the original in the task/incident ledger as `CANCELLATION_BLOCKED / ORPHANED_POSSIBLE_EXECUTION`, preserve its run ID and last-known state, and immediately initiate one independent alternative attempt.
+
+The alternative must change a substantive mechanism—not merely use a new run ID. Prefer another authorized runner/execution plane, dispatch mechanism, data provider, endpoint, data construction, pipeline architecture, timeframe or model/hypothesis. Give it a distinct attempt key, run name, branch/worktree where appropriate, concurrency group only if truly independent, cache key, artifact namespace and output path. Keep it read-only and prevent shared mutable writes. Verify the alternative's own event, actor, workflow, SHA, route and actual job start. Record it as `ALTERNATIVE_ATTEMPT_ACTIVE` with the orphan run as its parent/related incident.
+
+If a separate full run cannot be isolated safely, immediately run a non-mutating independent slice (for example, a different provider's positive-control probe, an independent input audit, deterministic tests, or a separately specified model/data-construction experiment). Do not let a potentially orphaned run block all other useful work.
+
+If the original run unexpectedly starts later, maintain attempt isolation, rate-limit budgets and immutable provenance; do not merge the two studies or let them overwrite each other's artifacts. Keep only one active alternative per orphan incident. Do not automatically spawn a third attempt if the alternative queues or fails: diagnose its distinct failure and justify a materially different next experiment.
+
+Use the durable task/incident ledger for status tags `CANCELLATION_BLOCKED / ORPHANED_POSSIBLE_EXECUTION` and `ALTERNATIVE_ATTEMPT_ACTIVE`; do not imply that the GitHub Actions run object itself has a native custom label. Continue to pursue the authorized cancellation capability as an infrastructure improvement, but that work must not delay the independent alternative.
+
 
 ## Repository-specific state
 

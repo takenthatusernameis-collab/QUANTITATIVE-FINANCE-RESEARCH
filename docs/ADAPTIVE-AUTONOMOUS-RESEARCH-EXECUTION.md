@@ -184,7 +184,31 @@ Apply the rule on every queue scan:
 
 **Concurrency exception ends immediately when the predecessor is no longer `in_progress`.** If the queued run is still `queued`/`pending` and its original age already exceeds 15 minutes after that predecessor ends, it becomes eligible for cancellation on the next scan. Do not invent a fresh 15-minute grace period.
 
-**Enforcement prerequisite:** the agent/watchdog must have an authorized Actions-write cancellation capability. Read-only run inspection is not enforcement. If the connected tool lacks a cancellation action, record `CANCELLATION_ENFORCEMENT_BLOCKED` with the affected run IDs and make provisioning a least-privilege, agent-controlled cancellation path the next orchestration task. Never claim cancellation occurred and never substitute a request for the owner to click Cancel.
+**Enforcement prerequisite:** the agent/watchdog must have an authorized Actions-write cancellation capability. Read-only run inspection is not enforcement. If the connected tool lacks a cancellation action, record `CANCELLATION_ENFORCEMENT_BLOCKED` with the affected run IDs, mark each eligible run `CANCELLATION_BLOCKED / ORPHANED_POSSIBLE_EXECUTION`, and immediately initiate the mandatory isolated alternative attempt described below. Provisioning a least-privilege, agent-controlled cancellation path remains an engineering task, but it must not block alternative research. Never claim cancellation occurred and never substitute a request for the owner to click Cancel.
+
+### Mandatory fallback when a queued run cannot be cancelled
+
+**A failed or unavailable cancellation must not leave the research objective idle.** Once a run is eligible for the 15-minute cancellation rule, attempt the authorized cancellation once and inspect the result. If cancellation cannot be issued, is rejected, times out, or does not reach a terminal state after re-fetching, the agent must do both of the following in the same recovery cycle:
+
+1. **Mark the original run explicitly in the durable task/incident record** with status `CANCELLATION_BLOCKED / ORPHANED_POSSIBLE_EXECUTION`. Record the original run ID and URL, task key, age, concurrency group, last observed state/time, cancellation action/result/error, and the fact that it may still start later. Do not describe it as cancelled, dead, terminated, or harmless. GitHub Actions run records do not provide a general-purpose user-defined label field; the canonical status tag belongs in the repository task/incident ledger and, if an incident issue is used, as an issue label/comment. Never rely on a label alone for state tracking.
+
+2. **Initiate exactly one separate alternative attempt**, without waiting for the original run to be cleared. It must preserve the same high-level research objective but materially change at least one failed mechanism: execution plane/runner, workflow/dispatch path, provider/endpoint, data construction, pipeline architecture, timeframe, model/hypothesis, or decomposition of the work. A new run ID with the same workflow, same runner pool, same inputs and same code is not a different approach. Record its status as `ALTERNATIVE_ATTEMPT_ACTIVE`, its own attempt ID/run ID, parent/orphan run ID, changed mechanism, hypothesis, inputs, acceptance criteria and completion evidence.
+
+#### Independence and orphan-safety requirements
+
+- Give the alternative a distinct stable attempt key and run name. Keep its branch/worktree, working directory, cache key, artifacts, manifests and output paths separate from the orphaned attempt. Never allow the two attempts to overwrite shared mutable state.
+- Prefer a genuinely different authorized execution plane or provider/pipeline so the alternative is not waiting on the same failed queue, runner labels, endpoint or orchestration bottleneck. Before dispatch, inspect the actual route and capacity; do not assume a new workflow name creates a different runner pool.
+- Keep both attempts read-only with respect to market venues, accounts and capital. Do not introduce orders, live credentials, custody changes or external irreversible side effects.
+- Use immutable inputs, checksums, idempotency keys and bounded provider request budgets. If the original run unexpectedly starts later, the two attempts must remain isolated; coordinate shared rate limits and prevent duplicate writes or conflicting publication.
+- If complete parallel execution cannot be made safe, immediately execute a genuinely independent, non-mutating slice of the alternative (for example a provider positive-control probe, a separate asset-pair ingestion, a different model specification, deterministic tests or an independent data-quality audit) while keeping the original orphan fenced from shared outputs. Do not wait passively for the original run.
+- Do not weaken the original experiment's data, causality, cost, holdout or statistical gates. Treat the alternative as a distinct experiment with its own pre-specified hypothesis and acceptance criteria; never merge its results into the original experiment as if they were the same sample or model.
+
+#### Progress, retry and closure
+
+- After starting the alternative, verify that its trigger, actor, workflow, runner/route, commit, attempt key and first job actually started. A successful dispatch/comment alone is not execution evidence.
+- Recheck the orphan and alternative independently. If the orphan later starts, do not automatically cancel the alternative or combine their results; inspect isolation, resource budgets and progress, then keep the more informative safe path(s).
+- Do not create a third attempt merely because the first alternative is also queued. Diagnose that new bottleneck and select a materially different independent slice or route; cap the response at one active alternative per orphan incident unless evidence shows the alternative itself has failed and a new separately justified experiment is required.
+- Close the orphan incident only when the original run reaches a verified terminal state, or its risk is explicitly bounded and the independent alternative has produced inspectable evidence. Preserve both run IDs and their lineage in the task report.
 
 ### Mandatory 60-minute recovery protocol — active recovery, not passive waiting
 
