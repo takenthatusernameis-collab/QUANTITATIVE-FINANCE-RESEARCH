@@ -54,7 +54,7 @@ The clock starts at the recorded implementation start timestamp. It includes ord
 
 The purpose is not to force a positive result or rush unsafe work. It is to guarantee that each model gets a proportionate, finite opportunity to produce a valid conclusion—and that an unresolved model does not consume unlimited research cycles.
 
-## 5. Active assignment — ETH/BTC Spot Relative-Momentum Rotation
+## 5. First assignment — ETH/BTC Spot Relative-Momentum Rotation (CONCLUDED)
 
 This is the first model governed by the activated policy.
 
@@ -66,6 +66,7 @@ This is the first model governed by the activated policy.
 - **Implementation deadline:** 2026-11-26 18:00 UTC.
 - **Final empirical conclusion deadline:** 2026-11-28 18:00 UTC.
 - **Required final deliverable:** committed reproducible implementation, deterministic tests, accepted input/provenance checks, empirical result report with all frozen metrics and benchmarks, and GO/NO-GO/INCONCLUSIVE conclusion.
+- **Outcome:** completed on 2026-11-23 after substantive cycle 1 of 4; **NO-GO** under all six preregistered criteria. Report: [ETH-BTC Spot Momentum empirical conclusion](../reports/ETH-BTC-SPOT-MOMENTUM-EMPIRICAL-RESULT-2026-11-23.md). No unused cycles or deadline extension were applied; the model is closed and must not be tuned on the OOS sample.
 - **Expired-budget handling:** if the acceptance gates or empirical result are not complete by the final deadline, close this attempt as INCONCLUSIVE/IMPLEMENTATION-INFEASIBLE with the exact blocker. Do not call it NO-GO, weaken the gates or silently extend the deadline.
 
 These dates and limits are frozen for this experiment. The canonical task-level copy is in [the Spot Momentum preregistration](../tasks/ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md); the active queue and README must keep pointing agents to this policy and assignment.
