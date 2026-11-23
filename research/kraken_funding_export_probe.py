@@ -33,6 +33,11 @@ MAX_ARCHIVE_MEMBERS_REPORTED = 500
 MAX_TOTAL_UNCOMPRESSED_BYTES = 2 * 1024 * 1024 * 1024
 MAX_CANDIDATE_CSVS = 30
 MAX_API_SYMBOLS = 8
+EXPECTED_ARCHIVE_SIZE_BYTES = 109_980_750
+EXPECTED_ARCHIVE_SHA256 = "65ba6712a6ab657389d2795d3ed77bedb4270841dfe711147ae9df16e366edab"
+TARGETED_SYMBOLS = ("PF_XBTUSD", "PF_ETHUSD", "PI_XBTUSD", "PI_ETHUSD")
+HISTORICAL_CUTOVER_MS = 1_664_452_800_000  # 2022-09-29 12:00:00 UTC
+PI_DELISTING_MS = int(datetime(2026, 10, 30, 16, 0, tzinfo=timezone.utc).timestamp() * 1000)
 RATE_FIELD_NAMES = ("fundingRate", "relativeFundingRate", "absolute_rate", "relative_rate")
 # CSV absolute_rate and relative_rate are kept separate; only overlap comparison tests their API-field correspondence.
 TIME_KEYS = {"timestamp", "time", "fundingtime", "fundingtimestamp", "datetime", "date"}
@@ -258,12 +263,18 @@ def _symbol_from_filename(name: str) -> str:
     return Path(name).stem.upper().replace("-", "_").replace(" ", "_")
 
 
-def analyze_archive(path: Path, instruments: list[dict[str, Any]]) -> dict[str, Any]:
+def analyze_archive(
+    path: Path,
+    instruments: list[dict[str, Any]],
+    target_symbols: set[str] | None = None,
+) -> dict[str, Any]:
+    """Inspect BTC/ETH perpetual CSVs, optionally restricted to exact instrument symbols."""
     specs_by_symbol = {
         norm_key(str(item.get("symbol", ""))): item
         for item in instruments if item.get("symbol")
     }
     summary: dict[str, Any] = {
+        "target_symbols_requested": sorted(target_symbols) if target_symbols is not None else None,
         "archive_size_bytes": path.stat().st_size,
         "archive_sha256": sha256_file(path),
         "zip_valid": False,
@@ -298,6 +309,8 @@ def analyze_archive(path: Path, instruments: list[dict[str, Any]]) -> dict[str, 
             if "__MACOSX" in Path(item.filename).parts or Path(item.filename).name.startswith("._"):
                 continue
             stem = _symbol_from_filename(item.filename)
+            if target_symbols is not None and stem not in target_symbols:
+                continue
             matched = specs_by_symbol.get(norm_key(stem))
             asset = asset_from_instrument(matched) if matched else _asset_from_filename(item.filename)
             if asset not in {"BTC", "ETH"}:
@@ -349,6 +362,13 @@ def analyze_archive(path: Path, instruments: list[dict[str, Any]]) -> dict[str, 
     summary["candidate_csvs_truncated"] = len([
         item for item in summary["asset_csv_candidates"] if item["perpetual_candidate"]
     ]) > MAX_CANDIDATE_CSVS
+    if target_symbols is not None:
+        found = {
+            str(item.get("symbol") or "").upper()
+            for item in summary["perpetual_csv_summaries"]
+        }
+        summary["target_symbols_found"] = sorted(found)
+        summary["target_symbols_missing"] = sorted(target_symbols - found)
     return summary
 
 
@@ -456,6 +476,7 @@ def fetch_historical_funding(symbol: str) -> dict[str, Any]:
             "url": response.url,
             "status": response.status_code,
             "content_type": response.headers.get("Content-Type"),
+            "response_sha256": hashlib.sha256(response.content).hexdigest(),
         }
         if response.status_code != 200:
             record["error"] = response.text[:400]
@@ -479,6 +500,222 @@ def _utc_iso(timestamp_ms: int | None) -> str | None:
     if timestamp_ms is None:
         return None
     return datetime.fromtimestamp(timestamp_ms / 1000, tz=timezone.utc).isoformat()
+
+def _compact_rate_row(row: dict[str, Any]) -> dict[str, Any]:
+    """Keep only timestamp and the two funding-rate fields in evidence manifests."""
+    rates = row.get("rates") or {}
+    return {
+        "timestamp": row.get("timestamp"),
+        "timestamp_ms": row.get("timestamp_ms"),
+        "rates": {
+            key: rates.get(key)
+            for key in ("absolute_rate", "relative_rate", "fundingRate", "relativeFundingRate")
+            if key in rates
+        },
+    }
+
+
+def expected_interval_hours(left_timestamp_ms: int) -> int:
+    """Return the observed/documented Kraken cadence regime for an interval's left boundary."""
+    return 4 if left_timestamp_ms < HISTORICAL_CUTOVER_MS else 1
+
+
+def extract_archive_interval_anomalies(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Extract every interval inconsistent with the 4h-to-1h schedule, with adjacent rows."""
+    ordered = sorted(
+        (
+            row for row in rows
+            if isinstance(row, dict) and row.get("timestamp_ms") is not None
+        ),
+        key=lambda row: int(row["timestamp_ms"]),
+    )
+    anomalies = []
+    for index, (left, right) in enumerate(zip(ordered, ordered[1:])):
+        left_ms = int(left["timestamp_ms"])
+        right_ms = int(right["timestamp_ms"])
+        delta_ms = right_ms - left_ms
+        if delta_ms <= 0:
+            continue
+        actual_hours = round(delta_ms / 3_600_000, 6)
+        expected_hours = expected_interval_hours(left_ms)
+        if math.isclose(actual_hours, expected_hours, rel_tol=0.0, abs_tol=1e-6):
+            continue
+        context = ordered[max(0, index - 1):min(len(ordered), index + 3)]
+        missing_hourly = []
+        if delta_ms % 3_600_000 == 0:
+            missing_hourly = [
+                _utc_iso(stamp)
+                for stamp in range(left_ms + 3_600_000, right_ms, 3_600_000)
+            ]
+        anomalies.append({
+            "from_utc": _utc_iso(left_ms),
+            "to_utc": _utc_iso(right_ms),
+            "actual_interval_hours": actual_hours,
+            "expected_interval_hours": expected_hours,
+            "missing_hourly_boundaries": missing_hourly,
+            "left_record": _compact_rate_row(left),
+            "right_record": _compact_rate_row(right),
+            "adjacent_context_records": [_compact_rate_row(row) for row in context],
+            "classification": "UNEXPECTED_ARCHIVE_INTERVAL_REQUIRES_EXPLANATION",
+        })
+    return anomalies
+
+
+def rate_cap_assessment(
+    symbol: str,
+    field: str,
+    timestamp_ms: int | None,
+    value: float,
+) -> dict[str, Any]:
+    """Compare relative rates only with the date-appropriate documented cap."""
+    symbol = symbol.upper()
+    result = {
+        "symbol": symbol,
+        "field": field,
+        "value": value,
+        "timestamp_utc": _utc_iso(timestamp_ms),
+        "applicable_absolute_cap": None,
+        "cap_status": "NOT_APPLICABLE",
+        "evidence_scope": "absolute fundingRate is not the relative hourly rate",
+    }
+    if field != "relativeFundingRate":
+        return result
+    if timestamp_ms is None:
+        result.update({
+            "cap_status": "UNVERIFIABLE_TIMESTAMP",
+            "evidence_scope": "rate timestamp could not be parsed",
+        })
+        return result
+    if symbol.startswith("PI_"):
+        cap = 0.001 if timestamp_ms < HISTORICAL_CUTOVER_MS else 0.0025
+        result.update({
+            "applicable_absolute_cap": cap,
+            "evidence_scope": (
+                "historical inverse cap before 2022-09-29 12:00 UTC"
+                if timestamp_ms < HISTORICAL_CUTOVER_MS
+                else "current inverse cap ±0.25% per hour"
+            ),
+        })
+    elif symbol.startswith("PF_"):
+        if timestamp_ms < HISTORICAL_CUTOVER_MS:
+            result.update({
+                "cap_status": "HISTORICAL_LINEAR_CAP_UNVERIFIED",
+                "evidence_scope": "pre-cutover PF cadence is observed, but PF-specific historical cap is not established",
+            })
+            return result
+        cap = 0.005
+        result.update({
+            "applicable_absolute_cap": cap,
+            "evidence_scope": "current linear cap ±0.50% per hour",
+        })
+    else:
+        result.update({
+            "cap_status": "UNKNOWN_INSTRUMENT_FAMILY",
+            "evidence_scope": "no contract-family cap mapping",
+        })
+        return result
+
+    result["cap_status"] = (
+        "EXCEEDS_DOCUMENTED_CAP"
+        if abs(value) > cap + 1e-12
+        else "WITHIN_DOCUMENTED_CAP"
+    )
+    if symbol.startswith("PI_") and timestamp_ms >= PI_DELISTING_MS:
+        result["delisting_boundary_review"] = "AT_OR_AFTER_2026-10-30T16:00:00Z"
+    return result
+
+
+def extract_api_extrema(api_record: dict[str, Any]) -> dict[str, Any]:
+    """Retain timestamped min/max rows and immediate neighbors, never the full API history."""
+    rows = api_record.get("rates") or []
+    symbol = str(api_record.get("symbol") or "").upper()
+    result: dict[str, Any] = {
+        "symbol": symbol,
+        "http_status": api_record.get("status"),
+        "result": api_record.get("result"),
+        "request_url": api_record.get("url"),
+        "serverTime": api_record.get("serverTime"),
+        "response_sha256": api_record.get("response_sha256"),
+        "row_count": len(rows),
+        "extrema": {},
+    }
+    for field in ("fundingRate", "relativeFundingRate"):
+        valid = []
+        for index, row in enumerate(rows):
+            if not isinstance(row, dict):
+                continue
+            stamp = parse_timestamp_ms(row.get("timestamp"))
+            try:
+                value = float(row.get(field))
+                if stamp is None or not math.isfinite(value):
+                    continue
+                valid.append((index, stamp, value, row))
+            except (TypeError, ValueError):
+                continue
+        field_result = {"valid_count": len(valid), "min": None, "max": None}
+        for label, selector in (("min", min), ("max", max)):
+            if not valid:
+                continue
+            extreme_value = selector(item[2] for item in valid)
+            matches = [item for item in valid if item[2] == extreme_value]
+            match_records = []
+            for index, stamp, value, row in matches:
+                context = []
+                for neighbor_index in range(max(0, index - 1), min(len(rows), index + 2)):
+                    neighbor = rows[neighbor_index]
+                    if not isinstance(neighbor, dict):
+                        continue
+                    neighbor_stamp = parse_timestamp_ms(neighbor.get("timestamp"))
+                    if neighbor_stamp is None:
+                        continue
+                    neighbor_values = {}
+                    for rate_field in ("fundingRate", "relativeFundingRate"):
+                        raw = neighbor.get(rate_field)
+                        try:
+                            number = float(raw)
+                            neighbor_values[rate_field] = number if math.isfinite(number) else None
+                        except (TypeError, ValueError):
+                            neighbor_values[rate_field] = None
+                    context.append({
+                        "timestamp": neighbor.get("timestamp"),
+                        "timestamp_ms": neighbor_stamp,
+                        "rates": neighbor_values,
+                    })
+                match_records.append({
+                    "timestamp": row.get("timestamp"),
+                    "timestamp_ms": stamp,
+                    "value": value,
+                    "cap_assessment": rate_cap_assessment(symbol, field, stamp, value),
+                    "adjacent_context_records": context,
+                })
+            field_result[label] = {
+                "value": extreme_value,
+                "match_count": len(matches),
+                "matches": match_records,
+            }
+        result["extrema"][field] = field_result
+    return result
+
+
+def timestamp_semantics_assessment() -> dict[str, Any]:
+    """Separate documented rate-period mechanics from undocumented API timestamp mapping."""
+    return {
+        "official_contract_mechanics": (
+            "The rate for the next funding period is calculated over the current rate-setting "
+            "window and applies continuously during the next period; hourly settlement occurs "
+            "at the period boundary."
+        ),
+        "api_reference_scope": (
+            "The historical-funding API documents the symbol parameter and ascending timestamp "
+            "order, but does not define whether each returned timestamp labels the start or end "
+            "of the rate's accrual interval."
+        ),
+        "rate_period_mechanics": "NEXT_PERIOD_RATE_SET_AT_PRIOR_BOUNDARY",
+        "api_timestamp_boundary_semantics": "UNRESOLVED",
+        "backtest_alignment_status": "BLOCKED_PENDING_API_FIELD_MAPPING",
+        "inference_prohibited": True,
+    }
+
 
 
 def _interval_metrics(timestamps: list[int]) -> dict[str, Any]:
@@ -828,10 +1065,15 @@ def crosscheck_archive_api(
     }
 
 
-def run_probe(output_dir: Path) -> dict[str, Any]:
+def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
+    if mode not in {"export", "anomaly-audit"}:
+        raise ValueError("mode must be 'export' or 'anomaly-audit'")
+    targeted = mode == "anomaly-audit"
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest: dict[str, Any] = {
         "probe": "kraken_official_historical_funding_export",
+        "mode": mode,
+        "funding_acceptance_status": "PROVISIONAL_NOT_ACCEPTED",
         "page_url": PAGE_URL,
         "started_utc": datetime.now(timezone.utc).isoformat(),
         "access_mode": "anonymous_public_page_and_public_api",
@@ -939,23 +1181,65 @@ def run_probe(output_dir: Path) -> dict[str, Any]:
                                         "instrument_count": len(instruments["instruments"]),
                                         "perpetual_btc_eth": instruments["perpetual_btc_eth"],
                                     }
-                                    archive_summary = analyze_archive(archive_path, instruments["instruments"])
+                                    archive_summary = analyze_archive(
+                                        archive_path,
+                                        instruments["instruments"],
+                                        target_symbols=set(TARGETED_SYMBOLS) if targeted else None,
+                                    )
                                     manifest["archive"] = archive_summary
-                                    api_symbols: list[str] = []
-                                    for item in archive_summary["perpetual_csv_summaries"]:
-                                        symbol = str(item.get("symbol") or "").upper()
-                                        if symbol and symbol not in api_symbols:
-                                            api_symbols.append(symbol)
-                                    for item in instruments["perpetual_btc_eth"]:
-                                        symbol = str(item.get("symbol") or "").upper()
-                                        if symbol and symbol not in api_symbols:
-                                            api_symbols.append(symbol)
-                                    api_symbols = api_symbols[:MAX_API_SYMBOLS]
+                                    manifest["archive_hash_check"] = {
+                                        "expected_size_bytes": EXPECTED_ARCHIVE_SIZE_BYTES if targeted else None,
+                                        "actual_size_bytes": archive_path.stat().st_size,
+                                        "expected_sha256": EXPECTED_ARCHIVE_SHA256 if targeted else None,
+                                        "actual_sha256": archive_summary.get("archive_sha256"),
+                                        "matches_prior_inspected_archive": (
+                                            archive_summary.get("archive_sha256") == EXPECTED_ARCHIVE_SHA256
+                                            if targeted else None
+                                        ),
+                                    }
+                                    if targeted:
+                                        for item in archive_summary["perpetual_csv_summaries"]:
+                                            data_summary = item.get("data_summary") or {}
+                                            item["residual_interval_anomalies"] = extract_archive_interval_anomalies(
+                                                data_summary.get("_api_crosscheck_rows") or []
+                                            )
+                                    api_symbols: list[str] = list(TARGETED_SYMBOLS) if targeted else []
+                                    if not targeted:
+                                        for item in archive_summary["perpetual_csv_summaries"]:
+                                            symbol = str(item.get("symbol") or "").upper()
+                                            if symbol and symbol not in api_symbols:
+                                                api_symbols.append(symbol)
+                                        for item in instruments["perpetual_btc_eth"]:
+                                            symbol = str(item.get("symbol") or "").upper()
+                                            if symbol and symbol not in api_symbols:
+                                                api_symbols.append(symbol)
+                                        api_symbols = api_symbols[:MAX_API_SYMBOLS]
                                     api_records = [fetch_historical_funding(symbol) for symbol in api_symbols]
                                     manifest["public_api_quality"] = [
                                         {"symbol": item.get("symbol"), **analyze_api_rows(item)}
                                         for item in api_records
                                     ]
+                                    if targeted:
+                                        manifest["api_extrema"] = [
+                                            extract_api_extrema(item) for item in api_records
+                                        ]
+                                        manifest["timestamp_semantics_assessment"] = timestamp_semantics_assessment()
+                                        manifest["api_rate_cap_assessment"] = {
+                                            item.get("symbol"): {
+                                                field: {
+                                                    extreme: {
+                                                        "value": (item.get("extrema", {}).get(field, {}).get(extreme) or {}).get("value"),
+                                                        "matches": [
+                                                            row["cap_assessment"]
+                                                            for row in (item.get("extrema", {}).get(field, {}).get(extreme) or {}).get("matches", [])
+                                                        ],
+                                                    }
+                                                    for extreme in ("min", "max")
+                                                }
+                                                for field in ("fundingRate", "relativeFundingRate")
+                                            }
+                                            for item in manifest["api_extrema"]
+                                        }
                                     manifest["public_api_crosschecks"] = []
                                     for item in archive_summary["perpetual_csv_summaries"]:
                                         symbol = str(item.get("symbol") or "").upper()
@@ -970,6 +1254,31 @@ def run_probe(output_dir: Path) -> dict[str, Any]:
                                         for item in api_records
                                     ]
                                     manifest["status"] = "downloaded_and_inspected"
+                                    if targeted:
+                                        found = set(archive_summary.get("target_symbols_found") or [])
+                                        api_ok = all(item.get("status") == 200 and item.get("rates") for item in api_records)
+                                        anomaly_counts = {
+                                            item.get("symbol"): len(item.get("residual_interval_anomalies") or [])
+                                            for item in archive_summary["perpetual_csv_summaries"]
+                                        }
+                                        hash_ok = archive_summary.get("archive_sha256") == EXPECTED_ARCHIVE_SHA256
+                                        manifest["targeted_acceptance_checks"] = {
+                                            "all_four_exact_csvs_found": found == set(TARGETED_SYMBOLS),
+                                            "all_four_api_responses_nonempty": api_ok,
+                                            "known_archive_sha256_matches": hash_ok,
+                                            "archive_anomaly_counts_by_symbol": anomaly_counts,
+                                            "expected_anomaly_count_per_symbol": 6,
+                                            "anomaly_counts_match_expected": (
+                                                set(anomaly_counts) == set(TARGETED_SYMBOLS)
+                                                and all(count == 6 for count in anomaly_counts.values())
+                                            ),
+                                            "funding_acceptance": "PROVISIONAL_NOT_ACCEPTED",
+                                        }
+                                        manifest["status"] = (
+                                            "targeted_anomaly_audit_complete"
+                                            if found == set(TARGETED_SYMBOLS) and api_ok and hash_ok
+                                            else "targeted_anomaly_audit_incomplete"
+                                        )
                                     manifest["download_size_bytes"] = archive_path.stat().st_size
                                     manifest["download_sha256"] = sha256_file(archive_path)
                             except PlaywrightTimeout as exc:
@@ -998,14 +1307,22 @@ def run_probe(output_dir: Path) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--mode", choices=("export", "anomaly-audit"), default="export")
     args = parser.parse_args()
-    result = run_probe(args.output_dir)
+    result = run_probe(args.output_dir, mode=args.mode)
     print(json.dumps({
         "status": result.get("status"),
         "page_http_status": result.get("page_http_status"),
         "download_preflight": result.get("download_preflight"),
         "download_size_bytes": result.get("download_size_bytes"),
+        "mode": result.get("mode"),
         "archive_member_count": (result.get("archive") or {}).get("archive_member_count"),
+        "archive_hash_check": result.get("archive_hash_check"),
+        "api_extrema": [
+            {"symbol": item.get("symbol"), "extrema": item.get("extrema")}
+            for item in result.get("api_extrema", [])
+        ],
+        "timestamp_semantics_assessment": result.get("timestamp_semantics_assessment"),
         "perpetual_csv_summaries": [
             {
                 "member": item.get("member"),
