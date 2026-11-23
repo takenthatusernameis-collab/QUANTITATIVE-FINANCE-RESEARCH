@@ -128,9 +128,9 @@ Implementation: [8114a18](https://github.com/takenthatusernameis-collab/QUANTITA
 
 ## Decision and next task
 
-**Keep all four Kraken series `PROVISIONAL_NOT_ACCEPTED`.** The archive/API anomaly diagnostics, full-row cap census and bounded exception-context audit are complete. Nine PI rows still exceed the currently documented cap. The inverse rate fields are internally coherent under the documented conversion formula, but the cap discrepancy remains unexplained. API timestamp-to-accrual semantics and full settlement-event population remain unresolved.
+**Keep all four Kraken series PROVISIONAL_NOT_ACCEPTED.** The bounded Coinbase independent price/terms diagnostic is complete in [the PI price-validation report](ETH-BTC-KRAKEN-PI-PRICE-VALIDATION-2026-11-23.md). All nine implied levels are locally plausible against Coinbase, but all nine still exceed the published ±0.25% hourly cap and no PI-specific historical exception was found in the public changelog. API timestamp-to-accrual semantics and complete payable-event population remain unresolved.
 
-Next, execute [Kraken PI cap-anomaly independent price and terms validation](../tasks/KRAKEN-PI-CAP-ANOMALY-INDEPENDENT-PRICE-VALIDATION.md). Use a bounded independent Coinbase BTC-USD/ETH-USD spot cross-check for plausibility, and search authoritative dated Kraken terms. Do not backtest, clip, interpolate, or merge venues.
+Next, execute [Kraken PI cap exceptions, API timestamp semantics and settlement-population completeness](../tasks/KRAKEN-PI-API-SEMANTICS-AND-SETTLEMENT-COMPLETENESS.md). Do not repeat the Coinbase windows, re-download the same archive unchanged, backtest, clip, interpolate, or merge venues.
 
 ## Targeted residual-anomaly and PI rate-cap audit — 2026-11-23
 

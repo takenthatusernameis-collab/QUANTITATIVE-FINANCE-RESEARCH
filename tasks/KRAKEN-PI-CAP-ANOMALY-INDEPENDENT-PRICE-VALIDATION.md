@@ -1,6 +1,6 @@
 # Kraken PI cap-anomaly independent price and terms validation
 
-**Status:** PENDING — 2026-11-23 02:52 UTC  
+**Status:** COMPLETED — bounded diagnostic only, 2026-11-23 05:10 UTC  
 **Priority:** P1 data-integrity / independent-provider cross-check  
 **Research gate:** all four Kraken funding series remain `PROVISIONAL_NOT_ACCEPTED`; no backtest or cross-venue merge.
 
@@ -86,3 +86,19 @@ Sources: [Kraken inverse Coin-M contract specifications](https://support.kraken.
 - The report, README and active queue are updated with exact evidence and the next decision.
 
 **Do not run a Kraken funding backtest, merge Kraken with Binance, or accept the nine exceptions while any cap, timestamp-semantic or event-population requirement remains unresolved.**
+
+
+## Results — 2026-11-23
+
+**Diagnostic completion:** [report](../reports/ETH-BTC-KRAKEN-PI-PRICE-VALIDATION-2026-11-23.md), [successful run 45116028859](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45116028859), manifest-only artifact [14791133228](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45116028859/artifacts/14791133228), artifact ZIP SHA-256 `0071722e55c0b9cb3f95548dcb36872753f5c71175f8ecef8ba6718372657ddc`.
+
+- Four bounded Coinbase BTC-USD/ETH-USD windows returned 21 valid hourly candles. Product identity/status checks and both known-active positive controls passed. All nine exception timestamps had an exact-hour candle and complete t−1/t/t+1 windows; all nine implied levels fell inside their three-hour spot envelopes.
+- Nearest three-hour Coinbase close absolute basis was 0.004889%–0.038044%, median 0.015975%. This is independent price-plausibility evidence only; it does not prove that Coinbase equals Kraken's index or establish the Kraken API timestamp.
+- The first run [45115641203](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45115641203) failed closed on one out-of-window candle per request. The API end boundary was corrected to one second before the exclusive analysis bound and covered by a deterministic test in [commit 8420754](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/8420754d5edb927b420c6ea5f4fd19ca0dbf4700). CI [45115907842](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45115907842) passed 209 deterministic tests and synthetic smoke.
+- The inverse specification dated 29 September 2026 states ±0.25% per hour, n=24 and next-period rate calculation over the current one-hour window. The public parameters changelog contains no PI-specific funding-cap change; it does demonstrate an instrument-specific PF_OGNUSD override in 2023. No authoritative pre-20-August PI cap snapshot was verified.
+- The PI delisting notice's 15:00–16:00 London observation is compatible at a high level with CME CF ETHUSD_RR's one-hour, twelve five-minute partition methodology. The exact historical CME CF rate and Kraken's deviation safeguards were not reconstructed.
+- Coinbase response hashes and selected candle summaries only were retained. No raw candle arrays or raw responses were retained/uploaded; no raw market data was committed.
+
+**Decision:** this bounded diagnostic satisfies the task's price-comparison and public-terms-review scope, but does not resolve the nine cap exceptions. All four Kraken series remain PROVISIONAL_NOT_ACCEPTED. The historical PI cap, API timestamp-to-accrual mapping and complete payable-event population remain independent hard blockers. No backtest or cross-venue merge.
+
+**Next task:** [Resolve Kraken PI cap exceptions, API timestamp semantics and settlement-population completeness](KRAKEN-PI-API-SEMANTICS-AND-SETTLEMENT-COMPLETENESS.md).
