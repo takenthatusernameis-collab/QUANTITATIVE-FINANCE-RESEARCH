@@ -9,7 +9,7 @@
 - **Policy activation:** the preceding Binance Spot ETH/BTC mean-reversion study reached NO-GO on 2026-11-22. This new, separately preregistered model is the first model subject to the activated deadline policy. The unresolved USDⓈ-M funding-aware study is separate and does not defer this requirement.
 - **Expected implementation difficulty:** MEDIUM.
 - **Rationale:** the model is a single frozen 200-day relative-momentum rule and accepted Spot data/event-time infrastructure already exist; moderate integration, next-hour execution/elapsed-time verification, benchmark/cost/bootstrap validation, tests and reporting remain.
-- **Timebox start:** 2026-11-23 UTC.
+- **Timebox start:** 2026-11-23T13:14:44Z (UTC; preregistration commit timestamp).
 - **Maximum budget:** 4 substantive agent cycles total, including implementation, valid empirical execution, analysis and final reporting.
 - **Hard implementation deadline:** 2026-11-26 18:00 UTC.
 - **Hard final conclusion deadline:** 2026-11-28 18:00 UTC.
