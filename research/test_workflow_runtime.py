@@ -117,6 +117,29 @@ class GitHubActionRuntimeTests(unittest.TestCase):
                          "raw_data_uploaded", "historical_archive_downloaded", "MAX_AGE_SECONDS"):
             self.assertIn(required, probe)
 
+    def test_kraken_tardis_gap_probe_is_bounded_and_manifest_only(self):
+        workflow = (WORKFLOW_DIR / "eth-btc-research.yml").read_text(encoding="utf-8")
+        command = "/qfr-audit-kraken-tardis-gap-events"
+        self.assertIn(f'"{command}"', workflow)
+        self.assertIn(f'"{command}")', workflow)
+        self.assertIn('COMMAND="kraken-tardis-gap-audit"', workflow)
+        self.assertIn("command == 'kraken-tardis-gap-audit'", workflow)
+        self.assertIn("kraken-tardis-gap-event-probe:", workflow)
+        job = workflow.split("  kraken-tardis-gap-event-probe:", 1)[1].split("\n\n  kraken-pi-price-validation:", 1)[0]
+        self.assertIn("python research/kraken_tardis_gap_probe.py", job)
+        self.assertIn("2025-12-04", workflow)
+        self.assertIn("2026-10-30", workflow)
+        self.assertIn("/manifest.json", job)
+        self.assertIn("retention-days: 30", job)
+        self.assertIn("if: ${{ needs.authorize.outputs.authorized", job)
+        self.assertIn("ref: ${{ github.event.repository.default_branch }}", job)
+        self.assertNotIn("*.csv", job.lower())
+        self.assertNotIn("*.gz", job.lower())
+        probe = (ROOT / "research" / "kraken_tardis_gap_probe.py").read_text(encoding="utf-8")
+        for required in ("GAP_SAMPLES", "settlement_observed", "raw_data_uploaded",
+                         "paid_data_used", "relativeFundingRate"):
+            self.assertIn(required, probe)
+
     def test_kraken_pi_price_validation_job_is_bounded_and_manifest_only(self):
         workflow = (WORKFLOW_DIR / "eth-btc-research.yml").read_text(encoding="utf-8")
         command = "/qfr-audit-kraken-pi-price-validation"

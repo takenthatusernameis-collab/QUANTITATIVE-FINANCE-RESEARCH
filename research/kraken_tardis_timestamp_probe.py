@@ -21,8 +21,9 @@ TARDIS = "https://datasets.tardis.dev/v1/cryptofacilities/derivative_ticker"
 KRAKEN_API_DOCS = "https://docs.kraken.com/api-reference/historical-funding-rates/historical-funding-rates"
 KRAKEN_WS_DOCS = "https://docs.kraken.com/api/docs/futures-api/websocket/ticker"
 TARDIS_DOCS = "https://docs.tardis.dev/downloadable-csv-files/data-types"
+KRAKEN_INVERSE_SPEC_DOCS = "https://support.kraken.com/articles/360022835911-inverse-crypto-collateral-perpetual-contract-specifications-derivatives"
 MAX_COMPRESSED, MAX_CSV, MAX_API, MAX_ROWS = 50_000_000, 150_000_000, 25_000_000, 500_000
-MAX_AGE_SECONDS, MIN_EVENTS = 3600, 20
+MAX_AGE_SECONDS, MIN_EVENTS = 300, 20
 RATE_FIELDS = ("fundingRate", "relativeFundingRate")
 UTC = timezone.utc
 
@@ -49,8 +50,6 @@ def _api_ms(value):
 
 def _bounds(sample_date):
     day = date.fromisoformat(sample_date)
-    if day.day != 1:
-        raise ValueError("Tardis no-key sample must be the first day of a month")
     start = datetime.combine(day, time.min, tzinfo=UTC)
     return day, int(start.timestamp() * 1e6), int((start + timedelta(days=1)).timestamp() * 1e6)
 
@@ -110,6 +109,7 @@ def parse_tardis(payload, symbol, sample_date):
         parsed.append({
             "event_ms": event_us // 1000,
             "event_utc": _iso(event_us // 1000),
+            "pre_event_ms": item["local_us"] // 1000,
             "pre_event_utc": _iso(item["local_us"] // 1000),
             "seconds_before_event": round(age, 6),
             "pre_event_rate": item["rate"],
@@ -161,19 +161,24 @@ def parse_api(payload, symbol):
 
 
 def compare(tardis, api, min_events=MIN_EVENTS):
-    by_time, metrics, details = api["by_time"], {}, []
+    by_time, metrics = api["by_time"], {}
     for field in RATE_FIELDS:
         event_diffs, prior_diffs = [], []
         event_better = prior_better = ties = exact_event = exact_prior = 0
         for event in tardis["events"]:
             if not event["usable"]:
                 continue
-            current, prior = by_time.get(event["event_ms"]), by_time.get(event["event_ms"] - 3_600_000)
+            current = by_time.get(event["event_ms"])
+            prior = by_time.get(event["event_ms"] - 3_600_000)
             if not current or not prior or current[field] is None or prior[field] is None:
                 continue
-            a, b = abs(event["pre_event_rate"] - current[field]), abs(event["pre_event_rate"] - prior[field])
-            event_diffs.append(a); prior_diffs.append(b)
-            event_better += a < b; prior_better += b < a; ties += a == b
+            a = abs(event["pre_event_rate"] - current[field])
+            b = abs(event["pre_event_rate"] - prior[field])
+            event_diffs.append(a)
+            prior_diffs.append(b)
+            event_better += a < b
+            prior_better += b < a
+            ties += a == b
             exact_event += math.isclose(event["pre_event_rate"], current[field], rel_tol=1e-9, abs_tol=1e-15)
             exact_prior += math.isclose(event["pre_event_rate"], prior[field], rel_tol=1e-9, abs_tol=1e-15)
         n = len(event_diffs)
@@ -182,9 +187,9 @@ def compare(tardis, api, min_events=MIN_EVENTS):
         candidate = "INCONCLUSIVE"
         if n >= min_events and med_event is not None and med_prior is not None:
             if event_better / n >= 0.8 and med_event < med_prior * 0.5:
-                candidate = "PERIOD_END"
+                candidate = "EVENT_BOUNDARY"
             elif prior_better / n >= 0.8 and med_prior < med_event * 0.5:
-                candidate = "PERIOD_START"
+                candidate = "RATE_SETTING_WINDOW_START"
         metrics[field] = {
             "comparisons": n,
             "closer_to_event_timestamp_count": event_better,
@@ -196,8 +201,53 @@ def compare(tardis, api, min_events=MIN_EVENTS):
             "median_abs_difference_one_hour_prior": med_prior,
             "candidate_boundary": candidate,
         }
+
+    candidates = []
+    for field, metric in metrics.items():
+        boundary = metric["candidate_boundary"]
+        if boundary == "EVENT_BOUNDARY":
+            score = (
+                metric["exact_at_event_count"],
+                metric["closer_to_event_timestamp_count"],
+                -(metric["median_abs_difference_at_event"] or 0),
+            )
+        elif boundary == "RATE_SETTING_WINDOW_START":
+            score = (
+                metric["exact_one_hour_prior_count"],
+                metric["closer_to_one_hour_prior_count"],
+                -(metric["median_abs_difference_one_hour_prior"] or 0),
+            )
+        else:
+            continue
+        candidates.append((score, field, boundary))
+    candidates.sort(reverse=True)
+    semantics = candidates[0][2] if candidates else "INCONCLUSIVE"
+    best_field = candidates[0][1] if candidates else None
+    offset_hours = 0 if semantics == "EVENT_BOUNDARY" else 1 if semantics == "RATE_SETTING_WINDOW_START" else None
+
+    usable_events = [event for event in tardis["events"] if event["usable"]]
+    expected_row_count = exact_expected_count = expected_missing_count = 0
+    details = []
     for event in tardis["events"]:
-        current, prior = by_time.get(event["event_ms"]), by_time.get(event["event_ms"] - 3_600_000)
+        current = by_time.get(event["event_ms"])
+        prior = by_time.get(event["event_ms"] - 3_600_000)
+        expected_ms = (
+            event["event_ms"] if semantics == "EVENT_BOUNDARY"
+            else event["event_ms"] - 3_600_000 if semantics == "RATE_SETTING_WINDOW_START"
+            else None
+        )
+        expected_row = by_time.get(expected_ms) if expected_ms is not None else None
+        expected_value = expected_row.get(best_field) if expected_row and best_field else None
+        exact_expected = (
+            expected_value is not None
+            and math.isclose(event["pre_event_rate"], expected_value, rel_tol=1e-9, abs_tol=1e-15)
+        )
+        if event["usable"] and semantics != "INCONCLUSIVE":
+            if expected_value is None:
+                expected_missing_count += 1
+            else:
+                expected_row_count += 1
+                exact_expected_count += exact_expected
         details.append({
             "event_utc": event["event_utc"],
             "pre_event_utc": event["pre_event_utc"],
@@ -207,26 +257,29 @@ def compare(tardis, api, min_events=MIN_EVENTS):
             "api_fundingRate_one_hour_prior": prior["fundingRate"] if prior else None,
             "api_relativeFundingRate_at_event": current["relativeFundingRate"] if current else None,
             "api_relativeFundingRate_one_hour_prior": prior["relativeFundingRate"] if prior else None,
+            "expected_api_rate_timestamp_utc": _iso(expected_ms) if expected_ms is not None else None,
+            "expected_api_rate_field": best_field,
+            "expected_api_rate_value": expected_value,
+            "expected_api_rate_exact_match": bool(exact_expected) if expected_value is not None else None,
         })
-    candidates = []
-    for field, metric in metrics.items():
-        boundary = metric["candidate_boundary"]
-        if boundary == "PERIOD_END":
-            score = (metric["exact_at_event_count"], metric["closer_to_event_timestamp_count"], -(metric["median_abs_difference_at_event"] or 0))
-        elif boundary == "PERIOD_START":
-            score = (metric["exact_one_hour_prior_count"], metric["closer_to_one_hour_prior_count"], -(metric["median_abs_difference_one_hour_prior"] or 0))
-        else:
-            continue
-        candidates.append((score, field, boundary))
-    candidates.sort(reverse=True)
-    event_matches = sum(event["event_ms"] in by_time for event in tardis["events"])
+
+    event_row_count = sum(event["event_ms"] in by_time for event in tardis["events"])
+    event_row_coverage = event_row_count / len(tardis["events"]) if tardis["events"] else 0
+    expected_coverage = expected_row_count / len(usable_events) if usable_events else 0
+    exact_fraction = exact_expected_count / expected_row_count if expected_row_count else 0
     return {
         "tardis_next_event_count": len(tardis["events"]),
-        "usable_pre_event_observation_count": sum(e["usable"] for e in tardis["events"]),
-        "api_exact_event_timestamp_matches": event_matches,
-        "api_event_timestamp_coverage": round(event_matches / len(tardis["events"]), 6) if tardis["events"] else 0,
-        "candidate_timestamp_to_accrual_mapping": candidates[0][2] if candidates else "INCONCLUSIVE",
-        "best_matching_api_rate_field": candidates[0][1] if candidates else None,
+        "usable_pre_event_observation_count": len(usable_events),
+        "api_event_timestamp_row_count": event_row_count,
+        "api_event_timestamp_row_coverage": round(event_row_coverage, 6),
+        "candidate_api_timestamp_semantics": semantics,
+        "api_timestamp_to_funding_event_offset_hours": offset_hours,
+        "best_matching_api_rate_field": best_field,
+        "api_expected_rate_timestamp_row_count": expected_row_count,
+        "api_expected_rate_timestamp_missing_count": expected_missing_count,
+        "api_expected_rate_timestamp_coverage": round(expected_coverage, 6),
+        "api_exact_expected_rate_match_count": exact_expected_count,
+        "api_expected_rate_exact_match_fraction": round(exact_fraction, 6),
         "rate_alignment_by_api_field": metrics,
         "event_comparisons": details,
         "api_row_count": api["row_count"],
@@ -236,6 +289,8 @@ def compare(tardis, api, min_events=MIN_EVENTS):
         "api_out_of_order_timestamp_count": api["out_of_order_timestamp_count"],
         "api_invalid_rate_row_count": api["invalid_rate_row_count"],
     }
+
+
 
 
 def _fetch(url, limit, accept):
@@ -256,14 +311,16 @@ def run_probe(output_dir, sample_date="2026-10-01"):
         "status": "INCONCLUSIVE",
         "sample_date_utc": sample_date,
         "symbols": list(SYMBOLS),
-        "sources": {"kraken_api": API, "kraken_api_docs": KRAKEN_API_DOCS, "kraken_websocket_docs": KRAKEN_WS_DOCS, "tardis_docs": TARDIS_DOCS},
+        "sources": {"kraken_api": API, "kraken_api_docs": KRAKEN_API_DOCS, "kraken_websocket_docs": KRAKEN_WS_DOCS, "kraken_inverse_spec_docs": KRAKEN_INVERSE_SPEC_DOCS, "tardis_docs": TARDIS_DOCS},
         "semantics": {
-            "kraken_api": "Ascending timestamp order is documented; timestamp-to-accrual mapping is not.",
+            "kraken_api": "Ascending timestamp order is documented; the historical API schema does not define the timestamp field.",
+            "kraken_inverse_spec": "The rate for the next 12-13 UTC period is calculated over 11-12 UTC; funding accrues during the next period and settles hourly at its end.",
             "kraken_websocket": "funding_rate is current; next_funding_rate_time is time until the next funding rate.",
             "tardis": "funding_timestamp is the next event; funding_rate is for that event and the last pre-event value can differ from settlement.",
         },
         "results_by_symbol": {},
-        "timestamp_to_accrual_mapping": "INCONCLUSIVE",
+        "api_timestamp_semantics": "INCONCLUSIVE",
+        "api_timestamp_to_funding_event_offset_hours": None,
         "settlement_population_complete": False,
         "data_acceptance_status": "PROVISIONAL_NOT_ACCEPTED",
         "historical_archive_downloaded": False,
@@ -303,20 +360,23 @@ def run_probe(output_dir, sample_date="2026-10-01"):
         valid = (
             len(results) == len(SYMBOLS)
             and all(
-                item["candidate_timestamp_to_accrual_mapping"] in ("PERIOD_END", "PERIOD_START")
+                item["candidate_api_timestamp_semantics"] in ("EVENT_BOUNDARY", "RATE_SETTING_WINDOW_START")
                 and item["usable_pre_event_observation_count"] >= MIN_EVENTS
-                and item["api_event_timestamp_coverage"] >= 0.9
+                and item["api_event_timestamp_row_coverage"] >= 0.9
+                and item["api_expected_rate_timestamp_coverage"] >= 0.9
+                and item["api_expected_rate_exact_match_fraction"] >= 0.9
                 and item["api_duplicate_timestamp_count"] == 0
                 and item["api_out_of_order_timestamp_count"] == 0
                 and item["api_invalid_rate_row_count"] == 0
                 and item["tardis_quality"]["out_of_order_local_timestamp_count"] == 0
                 for item in results
             )
-            and len({item["candidate_timestamp_to_accrual_mapping"] for item in results}) == 1
+            and len({item["candidate_api_timestamp_semantics"] for item in results}) == 1
             and len({item["best_matching_api_rate_field"] for item in results}) == 1
         )
         if valid:
-            manifest["timestamp_to_accrual_mapping"] = results[0]["candidate_timestamp_to_accrual_mapping"]
+            manifest["api_timestamp_semantics"] = results[0]["candidate_api_timestamp_semantics"]
+            manifest["api_timestamp_to_funding_event_offset_hours"] = results[0]["api_timestamp_to_funding_event_offset_hours"]
             manifest["status"] = "EVENT_TIME_MAPPING_CORROBORATED"
     except Exception as exc:
         manifest["status"] = "FAILED"
@@ -333,13 +393,16 @@ def main():
     result = run_probe(args.output_dir, args.sample_date)
     print(json.dumps({
         "status": result["status"],
-        "timestamp_to_accrual_mapping": result["timestamp_to_accrual_mapping"],
+        "api_timestamp_semantics": result["api_timestamp_semantics"],
+        "api_timestamp_to_funding_event_offset_hours": result["api_timestamp_to_funding_event_offset_hours"],
         "results_by_symbol": {
             symbol: {
-                "candidate": item["candidate_timestamp_to_accrual_mapping"],
+                "candidate": item["candidate_api_timestamp_semantics"],
                 "events": item["tardis_next_event_count"],
                 "usable": item["usable_pre_event_observation_count"],
-                "event_time_coverage": item["api_event_timestamp_coverage"],
+                "event_timestamp_row_coverage": item["api_event_timestamp_row_coverage"],
+                "expected_rate_row_coverage": item["api_expected_rate_timestamp_coverage"],
+                "exact_expected_rate_matches": item["api_exact_expected_rate_match_count"],
                 "best_rate_field": item["best_matching_api_rate_field"],
             }
             for symbol, item in result["results_by_symbol"].items()
