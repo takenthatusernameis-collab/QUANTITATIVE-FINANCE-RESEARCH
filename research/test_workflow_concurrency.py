@@ -99,6 +99,25 @@ class WorkflowConcurrencyPolicyTests(unittest.TestCase):
         self.assertNotIn("*.zip", artifact_block.lower())
         self.assertNotIn("*.csv", artifact_block.lower())
 
+    def test_kraken_pi_price_validation_is_allowlisted_and_bounded(self):
+        workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+        command = "/qfr-audit-kraken-pi-price-validation"
+        block = workflow.split(f'"{command}")', 1)[1].split(";;", 1)[0]
+        self.assertIn('COMMAND="kraken-pi-price-validation"', block)
+        self.assertIn('START="2026-08-20"', block)
+        self.assertIn('END="2026-10-30"', block)
+        self.assertIn('MARKET="both"', block)
+        self.assertIn('RECONCILE="false"', block)
+        self.assertIn(command, workflow.split('case "$COMMENT_BODY" in', 1)[0])
+        self.assertIn("needs.authorize.outputs.command == 'kraken-pi-price-validation'", workflow)
+        self.assertIn("python research/kraken_pi_price_validation.py", workflow)
+        job = workflow.split("  kraken-pi-price-validation:", 1)[1].split("\\n  okx-funding-button-probe:", 1)[0]
+        self.assertIn("/manifest.json", job)
+        self.assertIn("retention-days: 30", job)
+        self.assertNotIn("*.zip", job.lower())
+        self.assertNotIn("*.csv", job.lower())
+
+
     def test_bybit_probe_is_allowlisted_and_bounded(self):
         workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
         block = workflow.split('"/qfr-probe-bybit-funding-history")', 1)[1].split(";;", 1)[0]
