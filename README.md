@@ -11,6 +11,8 @@ At every cycle start, first inspect open `[QFR queue guardian]` issues and resol
 
 The prior Binance Spot ETH/BTC mean-reversion study concluded **NO-GO on 2026-11-22**. Every subsequent quantitative model must have a preregistered difficulty tier, finite implementation budget and exact final-conclusion deadline before substantive implementation or empirical-result inspection. The current Spot Momentum model is MEDIUM difficulty: **4 substantive cycles maximum**, implementation by **2026-11-26 18:00 UTC**, and final conclusion by **2026-11-28 18:00 UTC**. Expiry without valid empirical evidence means INCONCLUSIVE/INFEASIBLE, never an automatic performance NO-GO. The separate funding-aware USDⓈ-M study remains INCONCLUSIVE but does not defer this policy.
 
+**Latest model conclusion:** [ETH/BTC Spot Relative-Momentum Rotation — NO-GO (2026-11-23)](reports/ETH-BTC-SPOT-MOMENTUM-EMPIRICAL-RESULT-2026-11-23.md). The exact gated empirical run completed successfully; all six promotion criteria failed. This experiment is closed after cycle 1/4. Do not tune on the same OOS sample.
+
 Read and follow the [mandatory timebox policy](docs/MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md) and [current Spot Momentum preregistration](tasks/ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md) before acting.
 
 # General Repository Operating Mindset
