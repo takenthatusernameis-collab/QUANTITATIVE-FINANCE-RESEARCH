@@ -182,12 +182,13 @@ def parse_candle_payload(
         return [], {
             "row_count": 0, "valid_row_count": 0, "invalid_row_count": 0,
             "duplicate_timestamp_count": 0, "out_of_window_count": 0,
-            "unaligned_timestamp_count": 0, "errors": ["response_not_array"],
+            "pre_start_extra_count": 0, "unaligned_timestamp_count": 0, "errors": ["response_not_array"],
             "raw_order": "EMPTY",
         }
     parsed: list[dict[str, Any]] = []
     invalid = 0
     out_of_window = 0
+    pre_start_extra = 0
     unaligned = 0
     raw_timestamps: list[int] = []
     for row in payload:
@@ -205,7 +206,13 @@ def parse_candle_payload(
             if timestamp % GRANULARITY_SECONDS:
                 unaligned += 1
                 raise ValueError("unaligned_timestamp")
-            if timestamp < start_epoch or timestamp >= end_epoch:
+            # Coinbase documents that responses may include candles preceding
+            # the requested start. Ignore those extra buckets; never use them
+            # to fill a missing target hour.
+            if timestamp < start_epoch:
+                pre_start_extra += 1
+                continue
+            if timestamp >= end_epoch:
                 out_of_window += 1
                 raise ValueError("out_of_window")
             raw_timestamps.append(timestamp)
@@ -244,6 +251,7 @@ def parse_candle_payload(
         "invalid_row_count": invalid,
         "duplicate_timestamp_count": duplicates,
         "out_of_window_count": out_of_window,
+        "pre_start_extra_count": pre_start_extra,
         "unaligned_timestamp_count": unaligned,
         "errors": errors,
         "raw_order": raw_order,
@@ -363,8 +371,10 @@ def run_probe(
         record = {
             "window_id": f"W{index}",
             "product_id": product_id,
-            "start_utc_inclusive": window["start"],
-            "end_utc_exclusive": window["end"],
+            "requested_start_utc": window["start"],
+            "requested_end_utc": window["end"],
+            "analysis_start_utc_inclusive": window["start"],
+            "analysis_end_utc_exclusive": window["end"],
             "granularity_seconds": GRANULARITY_SECONDS,
             "request": response,
             "validation": validation,
@@ -478,7 +488,7 @@ def run_probe(
         },
         "interpretation": (
             "Coinbase BTC-USD and ETH-USD are independent spot references, not Kraken derivatives index values. "
-            "Hourly bars are timestamped by Coinbase bucket start. The three-hour comparison explicitly spans "
+            "Coinbase documents that historical candle responses may omit no-tick intervals and may include extra candles before the requested start; pre-start extras are ignored and no missing hour is filled. Hourly bars are timestamped by Coinbase bucket start. The three-hour comparison explicitly spans 
             "the Kraken timestamp and adjacent hours because Kraken API start/end accrual semantics remain unresolved. "
             "Price proximity cannot validate a funding cap, settlement event, or payable-event population."
         ),
