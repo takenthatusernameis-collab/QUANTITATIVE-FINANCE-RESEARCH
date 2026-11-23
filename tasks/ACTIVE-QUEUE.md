@@ -1,7 +1,18 @@
 # Active Repository Queue
 
 **Updated:** 2026-11-23 00:25 UTC  
-**Canonical active-task pointer:** [ETH/BTC ingestion and no-trade validation](ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md).
+**Canonical active-task pointer:** [Kraken archive residual anomalies and PI rate-cap audit](KRAKEN-ARCHIVE-ANOMALY-AND-RATE-CAP-VALIDATION.md).
+
+
+
+## Current session plan — 2026-11-23 03:33 UTC
+
+- **P0:** Preserve venue separation, exact instrument identity, provenance, raw-data ephemerality and fail-closed status. No rate clipping/interpolation, no synthetic settlements, no backtest, no credentials, no paid data, and no access-restriction bypass.
+- **P1/P2:** Reuse the verified 2026-11-22 Kraken archive digest and compact artifact [14780177851](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45088431644/artifacts/14780177851); inspect the latest completed CI and current run/PR/issue state before any dispatch. Current inventory: main at `03b68d4`; CI [45094812266](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45094812266) passed; no queued/in-progress Actions runs or open standalone issues; draft control PR #2 is the sole open PR. Preserve all six branches; no branch deletion is justified.
+- **Hygiene preflight:** Recursive main tree contains only source/tests, workflows, canonical docs, reports and task files; no tracked raw market data, cache directories, scratch/build outputs or disposable clutter. No deletion/renaming is warranted; preserve historical evidence and PR-linked branch.
+- **Primary objective:** Add a separate, exact-command, read-only Kraken residual-anomaly probe. It must inspect only PF_XBTUSD, PF_ETHUSD, PI_XBTUSD and PI_ETHUSD, verify the known archive SHA-256, extract exact 2h/3h archive interval boundaries and adjacent records, and retain timestamped API min/max absolute and relative rate rows plus adjacent records and response hashes. Raw ZIP/CSV must remain runner-local and be deleted.
+- **Independent research:** Reconcile PI extrema with the current ±0.25% hourly inverse cap, the complete official parameter-changelog search, and the 2026-10-30 delisting/settlement. Compare archive/API anomalies with exact incident phases. Determine whether API timestamps label the start or end of the applicable funding period from official evidence; if still ambiguous, record the ambiguity as a hard blocker rather than infer alignment.
+- **Acceptance:** deterministic tests for exact interval extraction, extrema/tie handling, adjacency, cap classification, delisting boundary and timestamp-semantic restraint; hosted CI pass; bounded runner probe succeeds; artifact contains manifest only (no raw market data); update the existing Kraken report, README and canonical queue/handoff. If the archive or API changes, record the mismatch and stop acceptance.
 
 ## Governing priority
 
