@@ -129,6 +129,11 @@ class KrakenFundingExportProbeTests(unittest.TestCase):
         self.assertEqual(result["rate_fields"]["relativeFundingRate"]["invalid_count"], 1)
         self.assertEqual(result["gaps_over_4h_count"], 1)
         self.assertEqual(result["max_positive_gap_hours"], 16.0)
+        self.assertEqual(result["non_hourly_gap_count"], 3)
+        self.assertEqual(
+            [sample["hours"] for sample in result["non_hourly_gap_samples"]],
+            [4.0, 4.0, 16.0],
+        )
         self.assertEqual(result["history_completeness_status"], "PROVISIONAL_NOT_ACCEPTED")
 
     def test_archive_api_union_counts_full_api_only_tail_without_merging_contract_values(self):
