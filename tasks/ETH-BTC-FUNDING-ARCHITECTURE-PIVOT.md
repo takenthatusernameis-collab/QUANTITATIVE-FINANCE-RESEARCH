@@ -44,12 +44,12 @@ Report: [ETH/BTC funding-data architecture pivot](../reports/ETH-BTC-FUNDING-DAT
 
 Decision complete: the original funding-aware study remains INCONCLUSIVE pending owner authorization for the $5 minimum purchase and a subsequent bounded sample-validation gate. The next task is a preregistered, separate spot-only ETH/BTC momentum experiment.
 
-## Acceptance criteria
+## Acceptance criteria — completed for the architecture decision
 
-- A concise comparison of the four architectures with sourced coverage, cost, permission, data semantics and hard limitations.
-- Select one primary route and one fallback, or conclude that the original study is INCONCLUSIVE/INFEASIBLE pending the exact owner authorization.
-- Any new free sample is bounded, one-time and materially different from already failed routes; validate both symbols, interval semantics, positive/negative controls, completeness and provenance before acceptance.
-- Prospective collection may be designed or tested with synthetic fixtures only; never imply it fills historical gaps.
-- Keep one canonical task pointer; update README and report; no redundant probe or provider retry.
+- Four materially different routes compared with coverage, cost, permission and limitations: **PASS**.
+- Primary route and fallback selected: **PASS** (Market History; prospective capture only if legally/regionally accessible).
+- No new free sample, purchase or key was used: **PASS**. Sample validation is an external prerequisite, not an architecture-task requirement.
+- Prospective capture is identified as future-only and cannot backfill: **PASS**.
+- README/report/queue and one canonical task pointer updated: **PASS**.
 
-**Stop condition:** End the cycle after the decision and precise prerequisite/handoff. Do not keep searching indefinitely. The original empirical gate remains closed until complete, independently validated payable funding events are available.
+**Stop condition reached:** no additional provider search. The original funding-aware study remains INCONCLUSIVE until owner authorization and complete independent validation.

@@ -27,7 +27,7 @@ A simple long-only regime rotation using the ETH/BTC relative trend can outperfo
 ## Costs and metrics
 
 - Baseline cost: 10 basis points per one-way leg; each ETH↔BTC rotation incurs costs on both legs.
-- Cost sensitivity: 5, 25 and 50 bps per leg.
+- Cost sensitivity: 5, 10, 15, 20, 25 and 50 bps per leg.
 - Report net OOS CAGR, Sharpe, maximum drawdown, Calmar, turnover, total transaction costs, time in ETH/BTC and recovery periods.
 - Bootstrap net excess CAGR versus BTC using 3-, 7- and 14-day blocks with 95% confidence intervals; record seed and method.
 
@@ -38,7 +38,7 @@ GO only if the net pooled OOS strategy:
 2. has a higher Sharpe than BTC;
 3. has maximum drawdown no worse than BTC;
 4. has a 95% block-bootstrap lower confidence bound for excess CAGR above zero; and
-5. remains profitable and does not reverse its decision under 1.5× and 2× baseline costs.
+5. remains profitable and does not reverse its decision under 1.5× (15 bps) and 2× (20 bps) baseline costs.
 
 Otherwise report NO-GO. A GO is research-only, not authorization to trade.
 
