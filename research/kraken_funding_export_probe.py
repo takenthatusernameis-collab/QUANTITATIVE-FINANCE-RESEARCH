@@ -1190,6 +1190,10 @@ def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
                                     manifest["archive_hash_check"] = {
                                         "expected_size_bytes": EXPECTED_ARCHIVE_SIZE_BYTES if targeted else None,
                                         "actual_size_bytes": archive_path.stat().st_size,
+                                        "size_matches_prior": (
+                                            archive_path.stat().st_size == EXPECTED_ARCHIVE_SIZE_BYTES
+                                            if targeted else None
+                                        ),
                                         "expected_sha256": EXPECTED_ARCHIVE_SHA256 if targeted else None,
                                         "actual_sha256": archive_summary.get("archive_sha256"),
                                         "matches_prior_inspected_archive": (
@@ -1257,6 +1261,22 @@ def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
                                     if targeted:
                                         found = set(archive_summary.get("target_symbols_found") or [])
                                         api_ok = all(item.get("status") == 200 and item.get("rates") for item in api_records)
+                                        api_quality_by_symbol = {
+                                            item.get("symbol"): item
+                                            for item in manifest["public_api_quality"]
+                                        }
+                                        api_integrity_ok = all(
+                                            quality.get("invalid_row_count") == 0
+                                            and quality.get("invalid_timestamp_count") == 0
+                                            and quality.get("duplicate_timestamp_count") == 0
+                                            and quality.get("out_of_order_timestamp_count") == 0
+                                            and all(count == 0 for count in quality.get("null_counts", {}).values())
+                                            and all(
+                                                stats.get("invalid_count") == 0
+                                                for stats in quality.get("rate_fields", {}).values()
+                                            )
+                                            for quality in api_quality_by_symbol.values()
+                                        ) and set(api_quality_by_symbol) == set(TARGETED_SYMBOLS)
                                         anomaly_counts = {
                                             item.get("symbol"): len(item.get("residual_interval_anomalies") or [])
                                             for item in archive_summary["perpetual_csv_summaries"]
@@ -1265,6 +1285,8 @@ def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
                                         manifest["targeted_acceptance_checks"] = {
                                             "all_four_exact_csvs_found": found == set(TARGETED_SYMBOLS),
                                             "all_four_api_responses_nonempty": api_ok,
+                                            "all_four_api_rows_pass_integrity": api_integrity_ok,
+                                            "known_archive_size_matches": archive_path.stat().st_size == EXPECTED_ARCHIVE_SIZE_BYTES,
                                             "known_archive_sha256_matches": hash_ok,
                                             "archive_anomaly_counts_by_symbol": anomaly_counts,
                                             "expected_anomaly_count_per_symbol": 6,
@@ -1276,7 +1298,15 @@ def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
                                         }
                                         manifest["status"] = (
                                             "targeted_anomaly_audit_complete"
-                                            if found == set(TARGETED_SYMBOLS) and api_ok and hash_ok
+                                            if (
+                                                found == set(TARGETED_SYMBOLS)
+                                                and api_ok
+                                                and api_integrity_ok
+                                                and hash_ok
+                                                and archive_path.stat().st_size == EXPECTED_ARCHIVE_SIZE_BYTES
+                                                and set(anomaly_counts) == set(TARGETED_SYMBOLS)
+                                                and all(count == 6 for count in anomaly_counts.values())
+                                            )
                                             else "targeted_anomaly_audit_incomplete"
                                         )
                                     manifest["download_size_bytes"] = archive_path.stat().st_size
