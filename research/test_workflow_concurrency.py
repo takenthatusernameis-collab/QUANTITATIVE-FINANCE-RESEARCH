@@ -111,7 +111,7 @@ class WorkflowConcurrencyPolicyTests(unittest.TestCase):
         self.assertIn(command, workflow.split('case "$COMMENT_BODY" in', 1)[0])
         self.assertIn("needs.authorize.outputs.command == 'kraken-pi-price-validation'", workflow)
         self.assertIn("python research/kraken_pi_price_validation.py", workflow)
-        job = workflow.split("  kraken-pi-price-validation:", 1)[1].split("\n  okx-funding-button-probe:", 1)[0]
+        job = workflow.split("  kraken-pi-price-validation:", 1)[1].split("\n\n  okx-funding-button-probe:", 1)[0]
         self.assertIn("/manifest.json", job)
         self.assertIn("retention-days: 30", job)
         self.assertNotIn("*.zip", job.lower())
