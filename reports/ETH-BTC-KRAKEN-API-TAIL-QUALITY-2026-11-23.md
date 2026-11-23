@@ -170,6 +170,37 @@ The official inverse specification states an hourly relative-rate range of ±0.2
 
 Sources: [Kraken inverse contract specification](https://support.kraken.com/articles/360022835911-inverse-crypto-collateral-perpetual-contract-specifications-derivatives), [Kraken derivatives parameter changelog](https://support.kraken.com/ro/articles/13049711807636-derivatives-platform-parameters-changelog), and [Kraken delisting notice](https://support.kraken.com/articles/7526425887508-derivatives-contracts-trading-suspensions-delistings).
 
-The listed rows are the extrema, not yet the complete count of every out-of-cap API row. The new code adds an all-row cap census and an API-only mode so the next probe does not repeat the 110 MB archive download. The exact command is `/qfr-audit-kraken-rate-cap-census` on control PR #2; it records every cap-exception timestamp and per-symbol count while uploading only a manifest. The API timestamp-to-accrual boundary remains undocumented; `api_timestamp_boundary_semantics=UNRESOLVED` and backtest alignment remains blocked.
+## API-only full-row cap census — 2026-11-23
 
-**Decision:** retain all four Kraken series as `PROVISIONAL_NOT_ACCEPTED`. No Kraken backtest, cross-venue merge or empirical performance claim is authorized by this diagnostic.
+The all-row audit completed in [run 45100276868](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45100276868), with manifest-only artifact [14784609201](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45100276868/artifacts/14784609201). Artifact SHA-256: `053108fa092b053c99f511b262dae51098461ddcc282de313bdac615ffc4ff20`. It queried the four public API histories only; no archive download, credentials, account access, region attestation, CAPTCHA bypass, proxy, purchase, trading, or raw-row retention/upload/commit occurred.
+
+All 34,256 rows were cap-assessed with zero unassessed rows:
+
+| Symbol | Rows | Within documented cap | Exceeds documented cap |
+|---|---:|---:|---:|
+| PF_XBTUSD | 8,845 | 8,845 | 0 |
+| PF_ETHUSD | 8,845 | 8,845 | 0 |
+| PI_XBTUSD | 8,283 | 8,282 | 1 |
+| PI_ETHUSD | 8,283 | 8,275 | 8 |
+
+The nine PI exceptions are preserved exactly:
+
+| Symbol | Timestamp (UTC) | relativeFundingRate | Current inverse cap |
+|---|---|---:|---:|
+| PI_XBTUSD | 2026-08-20 09:00 | +0.005 | ±0.0025 |
+| PI_ETHUSD | 2026-08-20 07:00 | +0.005 | ±0.0025 |
+| PI_ETHUSD | 2026-08-20 08:00 | +0.005 | ±0.0025 |
+| PI_ETHUSD | 2026-08-20 11:00 | -0.003835161729166667 | ±0.0025 |
+| PI_ETHUSD | 2026-10-29 09:00 | +0.003261576116071429 | ±0.0025 |
+| PI_ETHUSD | 2026-10-30 13:00 | +0.003248896366666667 | ±0.0025 |
+| PI_ETHUSD | 2026-10-30 14:00 | +0.005 | ±0.0025 |
+| PI_ETHUSD | 2026-10-30 15:00 | +0.005 | ±0.0025 |
+| PI_ETHUSD | 2026-10-30 16:00 | +0.005 | ±0.0025 |
+
+All nine exceed the currently documented inverse hourly cap. The August 20 values are not near the delisting. The October 29/30 values cluster near the October 30 16:00 UTC settlement, but the API timestamp-to-accrual mapping is unresolved. The public parameter changelog contains no PI-specific funding-cap change in the reviewed entries; this cannot exclude unpublished or omitted changes.
+
+Every returned row passed mechanical timestamp/order/duplicate/null checks; no interval exceeds four hours. The five common two-hour gaps remain unexplained as settlement events. The API begins at 2025-11-19 09:00 UTC and has no documented retention/refresh/cursor policy. This census does not establish complete settlement-population coverage.
+
+The new implementation adds a bounded exception-context capture: for each cap exception it retains only the exception row and at most one preceding/following row, including both `fundingRate` and `relativeFundingRate`. It does not retain the full API response. Code/test commits: [9c9beaa](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/9c9beaa75455c0fab7e7c5885ce1367332e3723e) and [6ba9616](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/6ba961667adaafc08589dc4c93af453555eb16aa). Final CI and the refreshed manifest are pending.
+
+**Decision:** all four Kraken series remain `PROVISIONAL_NOT_ACCEPTED`. No Kraken backtest, cross-venue merge or empirical performance claim is authorized. API timestamp semantics and complete payable-settlement population remain independent hard blockers.
