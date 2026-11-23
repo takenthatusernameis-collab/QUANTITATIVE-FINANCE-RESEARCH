@@ -149,7 +149,9 @@ def validate_product(payload: Any, product_id: str) -> dict[str, Any]:
     base = item.get("base_currency")
     quote = item.get("quote_currency")
     status = str(item.get("status") or "").lower()
-    trading_disabled = bool(item.get("trading_disabled", False))
+    trading_disabled_value = item.get("trading_disabled")
+    trading_disabled_known = isinstance(trading_disabled_value, bool)
+    trading_disabled = trading_disabled_value if trading_disabled_known else None
     errors: list[str] = []
     if observed_id != product_id:
         errors.append("product_id_mismatch")
@@ -159,7 +161,9 @@ def validate_product(payload: Any, product_id: str) -> dict[str, Any]:
         errors.append("quote_currency_mismatch")
     if status != "online":
         errors.append("product_not_online")
-    if trading_disabled:
+    if not trading_disabled_known:
+        errors.append("trading_disabled_flag_missing_or_invalid")
+    elif trading_disabled:
         errors.append("trading_disabled")
     return {
         "product_id": product_id,
@@ -168,8 +172,9 @@ def validate_product(payload: Any, product_id: str) -> dict[str, Any]:
         "quote_currency": quote,
         "status": status or None,
         "trading_disabled": trading_disabled,
+        "trading_disabled_known": trading_disabled_known,
         "identity_valid": not any(e.endswith("_mismatch") for e in errors),
-        "online_control_passed": status == "online" and not trading_disabled,
+        "online_control_passed": status == "online" and trading_disabled_known and trading_disabled is False,
         "errors": errors,
     }
 
