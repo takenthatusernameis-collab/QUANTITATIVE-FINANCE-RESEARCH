@@ -1,6 +1,6 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-23 09:33 UTC  
+**Updated:** 2026-11-23 09:34 UTC  
 **Canonical active-task pointer:** [Preregistered ETH/BTC spot relative-momentum rotation](ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md).
 
 ## Current cycle plan — 2026-11-23 09:33 UTC
@@ -10,7 +10,7 @@
 - **P2:** Kraken PI timestamp mapping is sample-corroborated: relativeFundingRate at T−1h matched the last Tardis pre-event rate 24/24 for both PI symbols on 2026-10-01. Cap exceptions and payable-event completeness remain unresolved; Kraken stays PROVISIONAL_NOT_ACCEPTED.
 - **P4:** Funding-data architecture screen completed. Market History is primary historical candidate at $5 one-time minimum; purchase/key authorization is not present. Prospective capture is future-only; no further provider search.
 - **P5:** Run the separate frozen ETH/BTC spot relative-momentum hypothesis using accepted spot data; don't reinterpret the NO-GO mean-reversion result.
-- **Hygiene:** Preserve all 70 tracked files, six branches and draft control PR #2; no raw data or disposable artifacts retained.
+- **Hygiene (verified):** 78 tracked blobs; complete tree; seven branches (six non-main); control PR #2 remains open with 61 comments. No raw-data files tracked; the only file over 100 KB is research code (133,555 bytes). No deletion was needed.
 
 - **P0:** Keep all four Kraken series and the original Binance funding input unaccepted. No synthetic/zero-filled events, clipping, venue merges, paid data, credentials, backtests or trading.
 - **P1:** Stop repeating the no-key Tardis route after the 10 HTTP-401 failures; preserve exact errors and source digests.
