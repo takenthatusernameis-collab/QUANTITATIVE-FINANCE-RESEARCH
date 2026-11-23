@@ -1,9 +1,19 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-23 05:18 UTC  
-**Canonical active-task pointer:** [Resolve Kraken PI cap exceptions, API timestamp semantics and settlement-population completeness](KRAKEN-PI-API-SEMANTICS-AND-SETTLEMENT-COMPLETENESS.md).
+**Updated:** 2026-11-23 09:17 UTC  
+**Canonical active-task pointer:** [ETH/BTC funding-data architecture pivot after independent source failures](ETH-BTC-FUNDING-ARCHITECTURE-PIVOT.md).
 
-## Current session plan — 2026-11-23 05:10 UTC
+## Current cycle plan — 2026-11-23 09:17 UTC
+
+- **P0:** Keep all four Kraken series and the original Binance funding input unaccepted. No synthetic/zero-filled events, clipping, venue merges, paid data, credentials, backtests or trading.
+- **P1:** Stop repeating the no-key Tardis route after the 10 HTTP-401 failures; preserve exact errors and source digests.
+- **P2:** Timestamp mapping is now sample-corroborated for Kraken PI: API `relativeFundingRate` at T−1h matches the last Tardis pre-event rate 24/24 for each symbol on 2026-10-01. This does not validate settled-rate equivalence or completeness.
+- **P2:** Close the Kraken source-validation cycle as partially resolved/blocked; its cap exceptions and payable-event population are still unresolved.
+- **P4:** Begin a one-cycle funding-data architecture pivot: compare commercial full-history, prospective capture, restricted 8h-only sensitivity and separate-venue routes. No repeat of failed providers or access methods.
+- **Hygiene:** Preserve the 70 tracked files and all six branches/draft control PR #2; no disposable or raw data found in this task.
+- **CI:** Documentation/report/task-only atomic commit; verify the documentation regression workflow before handoff.
+
+## Previous session plan — 2026-11-23 05:10 UTC
 
 - **P0:** Preserve exact instrument/venue identity, raw-data ephemerality, source provenance, no synthetic funding and fail-closed research status. No clipping, interpolation, zero insertion, backtest, credentials, paid data or access-restriction bypass.
 - **P1 meta-process:** Convert the Coinbase end-boundary failure into a deterministic request-boundary regression. Commit code and test atomically rather than generating per-file CI fan-out. Code CI [45115907842](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45115907842) passed 209 tests and synthetic smoke; the consolidated handoff CI [45116863947](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45116863947) also passed 209 tests and synthetic smoke.
@@ -51,9 +61,9 @@ Apply the single authoritative [seven-level adaptive decision hierarchy](../docs
 - The current inverse specification states ±0.25% per hour and n=24. No PI-specific cap change appears in the published parameters changelog; the effective cap on 2026-08-20 remains unverified. The PI delisting window is compatible at a high level with the CME CF ETHUSD_RR 15:00–16:00 London reference-rate methodology, but the exact historical benchmark value was not reconstructed.
 - Full evidence: [PI price/terms validation report](../reports/ETH-BTC-KRAKEN-PI-PRICE-VALIDATION-2026-11-23.md). The diagnostic task is complete, but all four Kraken funding series remain PROVISIONAL_NOT_ACCEPTED.
 
-## Current active task — resolve Kraken PI cap exceptions, API timestamp semantics and settlement-population completeness
+## Current active task — ETH/BTC funding-data architecture pivot
 
-Execute [KRAKEN-PI-API-SEMANTICS-AND-SETTLEMENT-COMPLETENESS.md](KRAKEN-PI-API-SEMANTICS-AND-SETTLEMENT-COMPLETENESS.md). Resolve effective-dated PI cap terms, API timestamp-to-accrual semantics, exact CME CF delisting reference where accessible, and the complete payable-event population. If public evidence cannot resolve a requirement, state the exact external prerequisite and keep the data unaccepted. Continue separate provider work only under the MEXC-first, Bitget-second policy; do not merge venue histories or repeat completed probes.
+Execute [ETH-BTC-FUNDING-ARCHITECTURE-PIVOT.md](ETH-BTC-FUNDING-ARCHITECTURE-PIVOT.md) within one research cycle. Compare the four materially different routes, choose a primary/fallback or record the exact owner authorization prerequisite, and stop. The Kraken PI task is partially resolved/blocked: timestamp mapping is sample-corroborated; cap exceptions and payable-event completeness remain unaccepted. See [timestamp/gap report](../reports/ETH-BTC-KRAKEN-PI-TIMESTAMP-AND-GAP-PROBE-2026-11-23.md). Do not repeat the Tardis gap-date requests (HTTP 401), Coinbase windows, Kraken archive download, or failed provider/API routes unchanged.
 
 ## Completed historical follow-up — OKX funding metadata and symbol search (2026-11-22)
 

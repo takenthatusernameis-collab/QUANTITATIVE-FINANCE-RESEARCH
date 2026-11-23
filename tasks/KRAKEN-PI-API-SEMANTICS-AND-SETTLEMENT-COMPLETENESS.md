@@ -1,6 +1,6 @@
 # Resolve Kraken PI cap exceptions, API timestamp semantics, and settlement-population completeness
 
-**Status:** PENDING — 2026-11-23 05:10 UTC  
+**Status:** PARTIALLY RESOLVED / BLOCKED — 2026-11-23 09:17 UTC. Timestamp mapping is sample-corroborated; PI cap exceptions and complete payable-event population remain unresolved. All four Kraken funding series remain PROVISIONAL_NOT_ACCEPTED.  
 **Priority:** P1 data-integrity / research-acceptance blocker  
 **Research gate:** all four Kraken funding series remain PROVISIONAL_NOT_ACCEPTED; no backtest or cross-venue merge.
 
@@ -13,6 +13,27 @@
 - **P2 settlement route:** Reuse Kraken's published PI_ETHUSD $2,235.76 settlement and 15:00–16:00 London window. The exact historical CME CF ETHUSD_RR value is not exposed on the public index page; do not substitute a Coinbase close or purchase licensed data.
 - **P2 population route:** Do not repeat the Kraken archive download or completed Coinbase windows. The API schema still has no documented pagination, retention or refresh policy; a one-day ticker sample cannot establish the complete payable-event population or resolve the five common two-hour gaps.
 - **Hygiene preflight:** 68 tracked files, no tracked raw market data, cache payloads, scratch or build outputs. Preserve all six branches and draft control PR #2; no cleanup deletion is warranted.
+
+## Latest probe outcome — 2026-11-23 09:17 UTC
+
+### Timestamp mapping: sample-corroborated
+
+Successful no-key run [45122891576](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45122891576) and manifest-only artifact [14795015222](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45122891576/artifacts/14795015222) used Tardis `derivative_ticker` data for 2026-10-01 and the public Kraken histories for PI_XBTUSD/PI_ETHUSD.
+
+- 24/24 hourly next-funding events per symbol had usable pre-event ticker observations (each within 300 seconds).
+- For both symbols, Kraken API `relativeFundingRate` at T−1 hour matched the last Tardis pre-event `funding_rate` exactly for 24/24 events. At T (the event boundary), none matched; the one-hour-prior median absolute difference was exactly zero.
+- This supports the API timestamp being **PERIOD_START / rate-setting-window start**, with the funding event at T+1h, for this sampled day. The Kraken API itself does not document this field mapping. Tardis documents that its funding fields describe the next event and that its final pre-event value can differ from the rate actually settled, so this is timing corroboration—not proof of settled rates or global semantics.
+- The public Kraken API returned 8,283 rows per PI symbol from 2025-11-19 09:00 UTC through 2026-10-30 16:00 UTC; timestamp duplicates, out-of-order rows and invalid rates were zero in this probe.
+
+Manifest/source digests are in the report. Tardis compressed source SHA-256: PI_XBTUSD `44cff2c5000e203f850cfd2cc3b36bddc9c420a74715b267b5549c496fe404fc`, PI_ETHUSD `f6541638b277dfd6cdc1c68362544aba969477e1b3a1005be8c222f6ae107269`. Kraken API response hashes: PI_XBTUSD `13d76ff117b43b733be60fcbce61b650b5b7646c302602139ede3d090c4b45d1`, PI_ETHUSD `ae37e148cdd8b9eb79304dcfef37fcb77d64444a259d7efcb62c8621571f2`.
+
+### Gap-event route: blocked
+
+The bounded Tardis gap/delisting audit [45128398130](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45128398130) returned HTTP 401 for all 10 Tardis requests (five dates × two symbols). No gap events were retrieved, and the manifest contains no gap results. Stop this route; do not repeat it unchanged. The five common two-hour gaps, the payable settlement outcomes, and population completeness remain unverified.
+
+The nine PI rate-cap exceptions still exceed the published ±0.25% hourly cap. No effective-dated PI-specific cap source was found; observed prices, rate arithmetic, or another instrument's override cannot justify acceptance. Kraken's published PI_ETHUSD delisting settlement ($2,235.76) remains verified, but the exact CME CF reference value and Kraken's specific deviation safeguards were not reconstructed.
+
+**Disposition:** timestamp mapping is partially resolved; PI cap and settlement-population gates are blocked. Do not backtest, merge Kraken with Binance, clip rates, insert zeroes, interpolate, retain raw data, use credentials or paid data. The current task is handed off to the bounded [funding-data architecture pivot](ETH-BTC-FUNDING-ARCHITECTURE-PIVOT.md).
 
 ## Objective
 
