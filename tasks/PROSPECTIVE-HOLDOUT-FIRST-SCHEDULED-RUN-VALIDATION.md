@@ -34,7 +34,7 @@ Verify that the scheduled capture appends a new, complete snapshot, validates an
 - The ZIP now embeds the unique sidecar asset name before it is published. The ZIP's own post-upload ID/digest is stored in the sidecar, avoiding a self-referential ZIP checksum.
 - Release-asset reuse requires exact GitHub digest, size and identity metadata. Previous snapshot restore now fails closed if the GitHub digest or asset size is missing/mismatched.
 - The capture workflow conditionally corrects the legacy release description only when it exactly matches the old "immutable" wording and the release API says the release is not immutable. No permissions or protection settings are changed.
-- Added deterministic tests for sidecar structure, previous-snapshot backfill, current-snapshot publication, idempotent reuse, collision rejection, digest requirements and release-description correction. First full CI run [45247197778](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45247197778) ran 264 tests and found one orchestration-test argument mismatch; the production ZIP upload now passes `application/zip` explicitly. A fresh full CI run is pending.
+- Added deterministic tests for sidecar structure, previous-snapshot backfill, current-snapshot publication, idempotent reuse, collision rejection, digest requirements and release-description correction. The first full CI run [45247197778](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45247197778) found one test-harness argument mismatch; the ZIP upload now passes `application/zip` explicitly. Follow-up CI run [45247539131](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45247539131) passed **264 deterministic tests** and the synthetic plumbing smoke test.
 
 ## Acceptance criteria
 
@@ -42,10 +42,11 @@ Verify that the scheduled capture appends a new, complete snapshot, validates an
 - [ ] New snapshot reconciles the previous release asset and preserves every prior observation unless a source correction is explicitly recorded.
 - [ ] Both symbols have exact identity, closed hourly bars, UTC ordering and complete or explicitly rejected coverage.
 - [ ] Release assets are append-only by workflow policy; no prior snapshot is overwritten or deleted.
-- [ ] Durable manifest/provenance is complete, or a concrete limitation and safe remedy are recorded.
+- [x] Durable sidecar implementation, strict digest/size checks, idempotency/collision tests and the `immutable=false` retention limitation are committed and documented.
+- [ ] Live sidecar backfill/publication for the first ZIP and the next ZIP is verified by the scheduled run.
 - [ ] Retention claims distinguish no automatic TTL from protection against manual deletion.
 - [ ] Queue guardian handoff is successful and no orphaned/duplicate active run remains.
-- [ ] CI passes if implementation changes are made; no raw market data is committed.
+- [x] CI passes after implementation changes: 264 deterministic tests and the synthetic plumbing smoke test succeeded; no raw market data is committed.
 - [ ] No empirical strategy evaluation, funding research or live trading occurs.
 
 ## Stop conditions
