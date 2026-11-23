@@ -14,6 +14,7 @@ from kraken_funding_export_probe import (
     asset_from_instrument,
     crosscheck_archive_api,
     compare_archive_anomalies_to_api,
+    compact_instrument,
     expected_interval_hours,
     extract_api_extrema,
     extract_archive_interval_anomalies,
@@ -30,6 +31,19 @@ class KrakenFundingExportProbeTests(unittest.TestCase):
         self.assertEqual(parse_timestamp_ms("1767225600000"), 1767225600000)
         self.assertEqual(parse_timestamp_ms("1767225600"), 1767225600000)
         self.assertIsNone(parse_timestamp_ms("not-a-timestamp"))
+
+    def test_compact_instrument_flags_expired_but_tradeable_api_conflict(self):
+        inverse = compact_instrument({
+            "symbol": "PI_XBTUSD", "isExpired": True, "tradeable": True,
+        })
+        linear = compact_instrument({
+            "symbol": "PF_XBTUSD", "isExpired": False, "tradeable": True,
+        })
+        self.assertEqual(inverse["lifecycle_status"], "EXPIRED")
+        self.assertTrue(inverse["lifecycle_flag_conflict"])
+        self.assertIn("official contract delisting", inverse["lifecycle_interpretation"])
+        self.assertEqual(linear["lifecycle_status"], "ACTIVE")
+        self.assertFalse(linear["lifecycle_flag_conflict"])
 
     def test_instrument_classification_keeps_btc_and_eth_perpetuals_distinct(self):
         inverse = {"symbol": "PI_XBTUSD", "base": "XBT", "type": "futures_inverse"}
