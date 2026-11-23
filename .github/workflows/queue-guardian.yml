@@ -8,6 +8,7 @@ on:
     workflows:
       - ETH-BTC networked empirical research
       - Trusted Binance archive cache warmer
+      - Prospective Binance Spot holdout capture
     types:
       - completed
   issue_comment:
@@ -38,6 +39,12 @@ jobs:
           (github.event_name == 'workflow_run' &&
            github.event.workflow_run.name == 'Trusted Binance archive cache warmer' &&
            contains(fromJSON('["push","schedule","workflow_dispatch"]'), github.event.workflow_run.event) &&
+           github.event.workflow_run.head_branch == github.event.repository.default_branch &&
+           github.event.workflow_run.head_repository.full_name == github.repository &&
+           github.event.workflow_run.actor.login == 'takenthatusernameis-collab') ||
+          (github.event_name == 'workflow_run' &&
+           github.event.workflow_run.name == 'Prospective Binance Spot holdout capture' &&
+           contains(fromJSON('["schedule","workflow_dispatch","issue_comment"]'), github.event.workflow_run.event) &&
            github.event.workflow_run.head_branch == github.event.repository.default_branch &&
            github.event.workflow_run.head_repository.full_name == github.repository &&
            github.event.workflow_run.actor.login == 'takenthatusernameis-collab') ||

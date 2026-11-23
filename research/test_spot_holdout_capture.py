@@ -1,0 +1,260 @@
+from __future__ import annotations
+
+import io
+import json
+import tempfile
+import unittest
+import zipfile
+from pathlib import Path
+from unittest.mock import Mock
+
+import requests
+
+from spot_holdout_capture import (
+    API_URL,
+    COLUMNS,
+    HOUR_MS,
+    CAPTURE_START_MS,
+    fetch_klines,
+    latest_closed_hour_open_ms,
+    load_previous_snapshot,
+    merge_rows,
+    publish_release_asset,
+    read_csv_rows,
+    rows_to_csv,
+    sha256_bytes,
+    validate_rows,
+)
+
+
+def make_row(open_ms: int, close: str = "2000", volume: str = "10") -> list[str]:
+    return [
+        str(open_ms), "1990", "2010", "1980", close, volume,
+        str(open_ms + HOUR_MS - 1), "20000", "100", "5", "10000", "0",
+    ]
+
+
+class Response:
+    def __init__(self, payload=None, status=200, content=b""):
+        self._payload = payload
+        self.status_code = status
+        self.content = content
+        self.headers = {}
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            error = requests.HTTPError(f"HTTP {self.status_code}")
+            error.response = self
+            raise error
+
+    def json(self):
+        return self._payload
+
+
+class SpotHoldoutCaptureTests(unittest.TestCase):
+    def test_latest_closed_hour_excludes_current_open_hour(self):
+        now = CAPTURE_START_MS + 10 * HOUR_MS + 15 * 60_000
+        self.assertEqual(latest_closed_hour_open_ms(now), CAPTURE_START_MS + 9 * HOUR_MS)
+
+    def test_validate_rows_accepts_sorted_closed_utc_bars(self):
+        start = CAPTURE_START_MS
+        rows = [make_row(start), make_row(start + HOUR_MS)]
+        quality = validate_rows(rows, "ETHUSDT", start, start + HOUR_MS, start + 2 * HOUR_MS)
+        self.assertTrue(quality["complete"])
+        self.assertEqual(quality["observed_rows"], 2)
+        self.assertEqual(quality["missing_hour_count"], 0)
+
+    def test_gap_detection_does_not_fill_missing_hours(self):
+        start = CAPTURE_START_MS
+        rows = [make_row(start), make_row(start + 2 * HOUR_MS)]
+        quality = validate_rows(rows, "BTCUSDT", start, start + 2 * HOUR_MS, start + 3 * HOUR_MS)
+        self.assertFalse(quality["complete"])
+        self.assertEqual(quality["missing_hour_count"], 1)
+        self.assertEqual(quality["missing_hour_utc"], [
+            "2026-11-01T01:00:00Z"
+        ])
+
+    def test_duplicate_timestamps_fail_closed(self):
+        start = CAPTURE_START_MS
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            validate_rows([make_row(start), make_row(start)], "ETHUSDT", start, start, start + HOUR_MS)
+
+    def test_unsorted_timestamps_fail_closed(self):
+        start = CAPTURE_START_MS
+        with self.assertRaisesRegex(ValueError, "not sorted"):
+            validate_rows([make_row(start + HOUR_MS), make_row(start)], "ETHUSDT",
+                          start, start + HOUR_MS, start + 2 * HOUR_MS)
+
+    def test_unclosed_bar_is_rejected(self):
+        start = CAPTURE_START_MS
+        with self.assertRaisesRegex(ValueError, "unclosed"):
+            validate_rows([make_row(start)], "ETHUSDT", start, start, start + HOUR_MS - 1)
+
+    def test_invalid_ohlc_is_rejected(self):
+        start = CAPTURE_START_MS
+        row = make_row(start)
+        row[2] = "1970"
+        with self.assertRaisesRegex(ValueError, "high"):
+            validate_rows([row], "ETHUSDT", start, start, start + HOUR_MS)
+
+    def test_merge_is_sorted_idempotent_and_records_corrections(self):
+        start = CAPTURE_START_MS
+        old = make_row(start + HOUR_MS, close="2000")
+        first = make_row(start, close="1900")
+        revised = make_row(start + HOUR_MS, close="2001")
+        later = make_row(start + 2 * HOUR_MS)
+        merged, corrections = merge_rows([old, first], [revised, later])
+        self.assertEqual([int(row[0]) for row in merged],
+                         [start, start + HOUR_MS, start + 2 * HOUR_MS])
+        self.assertEqual(merged[1], revised)
+        self.assertEqual(len(corrections), 1)
+        self.assertEqual(merge_rows(merged, [revised, later])[0], merged)
+
+    def test_csv_round_trip_preserves_schema_and_rows(self):
+        rows = [make_row(CAPTURE_START_MS), make_row(CAPTURE_START_MS + HOUR_MS)]
+        payload = rows_to_csv(rows)
+        self.assertEqual(read_csv_rows(payload), rows)
+        self.assertEqual(sha256_bytes(payload), sha256_bytes(payload))
+
+    def test_fetch_klines_uses_exact_symbol_and_paginates(self):
+        start = CAPTURE_START_MS
+        first_page = [make_row(start + i * HOUR_MS) for i in range(1000)]
+        second_page = [make_row(start + 1000 * HOUR_MS)]
+        session = Mock()
+        session.get.side_effect = [Response(first_page), Response(second_page)]
+        rows = fetch_klines(session, "ETHUSDT", start, start + 1000 * HOUR_MS)
+        self.assertEqual(len(rows), 1001)
+        self.assertEqual(session.get.call_count, 2)
+        first_call = session.get.call_args_list[0]
+        self.assertEqual(first_call.args[0], API_URL)
+        self.assertEqual(first_call.kwargs["params"]["symbol"], "ETHUSDT")
+        self.assertEqual(first_call.kwargs["params"]["interval"], "1h")
+
+    def test_empty_partial_acquisition_is_returned_for_gap_flagging(self):
+        session = Mock()
+        session.get.return_value = Response([])
+        rows = fetch_klines(session, "BTCUSDT", CAPTURE_START_MS, CAPTURE_START_MS)
+        self.assertEqual(rows, [])
+
+    def test_http_451_is_not_retried_or_routed_to_an_alternative_host(self):
+        session = Mock()
+        session.get.return_value = Response(status=451)
+        with self.assertRaises(requests.HTTPError):
+            fetch_klines(session, "ETHUSDT", CAPTURE_START_MS, CAPTURE_START_MS)
+        self.assertEqual(session.get.call_count, 1)
+
+    def test_previous_snapshot_manifest_and_file_hashes_are_verified(self):
+        start = CAPTURE_START_MS
+        rows = [make_row(start), make_row(start + HOUR_MS)]
+        csv_bytes = rows_to_csv(rows)
+        manifest = {
+            "schema_version": 1,
+            "capture_type": "prospective_binance_spot_hourly",
+            "market": "spot",
+            "interval": "1h",
+            "status": "COMPLETE",
+            "data_quality_complete": True,
+            "requested_start_utc": "2026-11-01T00:00:00Z",
+            "requested_end_open_utc": "2026-11-01T01:00:00Z",
+            "files": {
+                "spot_ETHUSDT_1h.csv": {"sha256": sha256_bytes(csv_bytes)},
+                "spot_BTCUSDT_1h.csv": {"sha256": sha256_bytes(csv_bytes)},
+            },
+        }
+        stream = io.BytesIO()
+        with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("spot_ETHUSDT_1h.csv", csv_bytes)
+            archive.writestr("spot_BTCUSDT_1h.csv", csv_bytes)
+            archive.writestr("manifest.json", json.dumps(manifest))
+        payload = stream.getvalue()
+        release = {"assets": [{
+            "name": "snapshot-old-attempt-1.zip",
+            "id": 12,
+            "state": "uploaded",
+            "created_at": "2026-11-23T00:00:00Z",
+            "browser_download_url": "https://example.invalid/snapshot.zip",
+            "digest": "sha256:" + sha256_bytes(payload),
+        }]}
+        session = Mock()
+        session.get.side_effect = [Response(release), Response(content=payload)]
+        previous = load_previous_snapshot(
+            session, "owner/repo", "spot-holdout-2026", "snapshot-current-attempt-1.zip"
+        )
+        self.assertEqual(previous["asset_id"], 12)
+        self.assertEqual(previous["rows"]["ETHUSDT"], rows)
+
+    def test_release_storage_failure_is_reported(self):
+        session = Mock()
+        session.get.return_value = Response(status=404)
+        session.post.return_value = Response(status=403)
+        with self.assertRaises(requests.HTTPError):
+            publish_release_asset(
+                session, "owner/repo", "token", "tag", "snapshot-1-attempt-1.zip", b"zip"
+            )
+
+    def test_release_upload_is_verified_and_immutable(self):
+        zip_bytes = b"test-zip-bytes"
+        digest = "sha256:" + sha256_bytes(zip_bytes)
+        release = {
+            "upload_url": "https://uploads.github.com/repos/owner/repo/releases/7/assets{?name,label}",
+            "assets": [],
+        }
+        uploaded = {
+            "id": 9, "name": "snapshot-1-attempt-1.zip",
+            "browser_download_url": "https://github.com/owner/repo/releases/download/tag/snapshot.zip",
+            "digest": digest,
+        }
+        verified = {"assets": [{**uploaded, "size": len(zip_bytes)}]}
+        session = Mock()
+        session.get.side_effect = [Response(release), Response(verified)]
+        session.post.return_value = Response(uploaded, status=201)
+        result = publish_release_asset(
+            session, "owner/repo", "token", "tag", "snapshot-1-attempt-1.zip", zip_bytes
+        )
+        self.assertEqual(result["asset_id"], 9)
+        self.assertEqual(result["asset_digest"], digest)
+        self.assertFalse(result["idempotent_reuse"])
+        self.assertEqual(session.post.call_count, 1)
+
+    def test_release_asset_collision_is_not_overwritten(self):
+        zip_bytes = b"new-bytes"
+        session = Mock()
+        session.get.return_value = Response({
+            "upload_url": "https://uploads.github.com/upload",
+            "assets": [{
+                "name": "snapshot-1-attempt-1.zip",
+                "digest": "sha256:" + "0" * 64,
+            }],
+        })
+        with self.assertRaisesRegex(RuntimeError, "collision"):
+            publish_release_asset(
+                session, "owner/repo", "token", "tag", "snapshot-1-attempt-1.zip", zip_bytes
+            )
+        session.post.assert_not_called()
+
+    def test_workflow_is_scheduled_gated_and_manifest_only(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github" / "workflows" / "spot-holdout-capture.yml").read_text(encoding="utf-8")
+        self.assertIn("schedule:", workflow)
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertIn("issue_comment:", workflow)
+        self.assertIn('"/qfr-capture-spot-holdout"', workflow)
+        self.assertIn("takenthatusernameis-collab", workflow)
+        self.assertIn("ref: main", workflow)
+        self.assertIn("permissions: {}", workflow)
+        capture_job = workflow.split("  capture:", 1)[1]
+        self.assertIn("permissions:\n      contents: write", capture_job)
+        self.assertNotIn("pull_request_target", workflow)
+        self.assertNotIn("actions/cache", workflow)
+        artifact = workflow.split("      - name: Upload manifest only", 1)[1]
+        self.assertIn("manifest.json", artifact)
+        self.assertNotIn(".csv", artifact)
+        self.assertNotIn(".zip", artifact)
+        guardian = (root / ".github" / "workflows" / "queue-guardian.yml").read_text(encoding="utf-8")
+        self.assertIn("Prospective Binance Spot holdout capture", guardian)
+        self.assertIn("github.event.workflow_run.name == 'Prospective Binance Spot holdout capture'", guardian)
+        self.assertIn('["schedule","workflow_dispatch","issue_comment"]', guardian)
+
+
+if __name__ == "__main__":
+    unittest.main()
