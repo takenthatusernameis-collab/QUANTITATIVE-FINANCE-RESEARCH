@@ -102,7 +102,7 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         self.assertIn('COMMAND="kraken-pi-price-validation"', workflow)
         self.assertIn("command == 'kraken-pi-price-validation'", workflow)
         self.assertIn("kraken-pi-price-validation:", workflow)
-        job = workflow.split("  kraken-pi-price-validation:", 1)[1].split("\\n  okx-funding-button-probe:", 1)[0]
+        job = workflow.split("  kraken-pi-price-validation:", 1)[1].split("\n  okx-funding-button-probe:", 1)[0]
         self.assertIn("python research/kraken_pi_price_validation.py", job)
         self.assertIn("granularity", (ROOT / "research" / "kraken_pi_price_validation.py").read_text(encoding="utf-8"))
         self.assertIn("/manifest.json", job)
