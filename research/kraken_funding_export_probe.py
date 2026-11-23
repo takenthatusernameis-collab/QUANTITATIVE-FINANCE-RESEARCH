@@ -37,6 +37,7 @@ EXPECTED_ARCHIVE_SIZE_BYTES = 109_980_750
 EXPECTED_ARCHIVE_SHA256 = "65ba6712a6ab657389d2795d3ed77bedb4270841dfe711147ae9df16e366edab"
 TARGETED_SYMBOLS = ("PF_XBTUSD", "PF_ETHUSD", "PI_XBTUSD", "PI_ETHUSD")
 HISTORICAL_CUTOVER_MS = 1_664_452_800_000  # 2022-09-29 12:00:00 UTC
+PI_DELISTING_OBSERVATION_START_MS = int(datetime(2026, 10, 30, 15, 0, tzinfo=timezone.utc).timestamp() * 1000)
 PI_DELISTING_MS = int(datetime(2026, 10, 30, 16, 0, tzinfo=timezone.utc).timestamp() * 1000)
 RATE_FIELD_NAMES = ("fundingRate", "relativeFundingRate", "absolute_rate", "relative_rate")
 # CSV absolute_rate and relative_rate are kept separate; only overlap comparison tests their API-field correspondence.
@@ -741,9 +742,13 @@ def rate_cap_assessment(
         if abs(value) > cap + 1e-12
         else "WITHIN_DOCUMENTED_CAP"
     )
-    if symbol.startswith("PI_") and timestamp_ms >= PI_DELISTING_MS:
-        result["delisting_boundary_review"] = "AT_OR_AFTER_2026-10-30T16:00:00Z"
+    if symbol.startswith("PI_") and timestamp_ms >= PI_DELISTING_OBSERVATION_START_MS:
+        result["delisting_observation_window_review"] = (
+            "AT_OR_AFTER_2026-10-30T15:00:00Z; timestamp-to-accrual mapping remains unresolved"
+        )
         result["delisting_evidence_url"] = "https://support.kraken.com/articles/7526425887508-derivatives-contracts-trading-suspensions-delistings"
+    if symbol.startswith("PI_") and timestamp_ms >= PI_DELISTING_MS:
+        result["delisting_settlement_boundary_review"] = "AT_OR_AFTER_2026-10-30T16:00:00Z"
     return result
 
 
@@ -823,14 +828,16 @@ def timestamp_semantics_assessment() -> dict[str, Any]:
     """Separate documented rate-period mechanics from undocumented API timestamp mapping."""
     return {
         "official_contract_mechanics": (
-            "The rate for the next funding period is calculated over the current rate-setting "
-            "window and applies continuously during the next period; hourly settlement occurs "
-            "at the period boundary."
+            "The inverse contract specification describes a one-hour rate-setting window, "
+            "next-period application, continuous accrual and hourly settlement. Its examples "
+            "describe the mechanics but do not explicitly bind a historical API row's timestamp "
+            "to the accrual interval."
         ),
         "api_reference_scope": (
             "The historical-funding API documents the symbol parameter and ascending timestamp "
             "order, but does not define whether each returned timestamp labels the start or end "
-            "of the rate's accrual interval."
+            "of the rate's accrual interval. Therefore the API field-to-period mapping remains "
+            "unresolved even though the contract's rate-setting mechanics are described."
         ),
         "evidence_urls": {
             "historical_funding_api": "https://docs.kraken.com/api-reference/historical-funding-rates/historical-funding-rates",
@@ -1393,6 +1400,21 @@ def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
                                             }
                                             for item in manifest["api_extrema"]
                                         }
+                                        manifest["api_rate_cap_exceptions"] = [
+                                            {
+                                                "symbol": item.get("symbol"),
+                                                "field": field,
+                                                "extreme": extreme,
+                                                "value": row.get("value"),
+                                                "timestamp": row.get("timestamp"),
+                                                "cap_assessment": row.get("cap_assessment"),
+                                            }
+                                            for item in manifest["api_extrema"]
+                                            for field in ("relativeFundingRate",)
+                                            for extreme in ("min", "max")
+                                            for row in (item.get("extrema", {}).get(field, {}).get(extreme) or {}).get("matches", [])
+                                            if row.get("cap_assessment", {}).get("cap_status") == "EXCEEDS_DOCUMENTED_CAP"
+                                        ]
                                     manifest["public_api_crosschecks"] = []
                                     for item in archive_summary["perpetual_csv_summaries"]:
                                         symbol = str(item.get("symbol") or "").upper()
