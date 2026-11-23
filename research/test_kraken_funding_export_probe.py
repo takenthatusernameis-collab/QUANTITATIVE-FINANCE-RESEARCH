@@ -272,7 +272,7 @@ class KrakenFundingExportProbeTests(unittest.TestCase):
             result["endpoint_checks"]["left_record"]["rate_comparisons"]["absolute_rate"]["equal_with_tolerance"]
         )
         self.assertTrue(result["missing_boundary_checks"][0]["api_row_present"])
-        self.assertIn("does not prove", result["interpretation"])
+        self.assertIn("neither source's absence proves", result["interpretation"])
 
     def test_rate_cap_assessment_is_contract_and_date_specific(self):
         pre_cutover = parse_timestamp_ms("2022-09-29T11:00:00Z")
