@@ -13,7 +13,7 @@ The prior Binance Spot ETH/BTC mean-reversion study concluded **NO-GO on 2026-11
 
 **Latest model conclusion:** [ETH/BTC Spot Relative-Momentum Rotation — NO-GO (2026-11-23)](reports/ETH-BTC-SPOT-MOMENTUM-EMPIRICAL-RESULT-2026-11-23.md). The exact gated empirical run completed successfully; all six promotion criteria failed. This experiment is closed after cycle 1/4. Do not tune on the same OOS sample.
 
-Read and follow the [mandatory timebox policy](docs/MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md) and [current Spot Momentum preregistration](tasks/ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md) before acting.
+Read and follow the [mandatory timebox policy](docs/MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md) and [pending prospective holdout-capture task](tasks/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-CAPTURE.md) before acting. The Spot Momentum preregistration is concluded; see the [empirical result](reports/ETH-BTC-SPOT-MOMENTUM-EMPIRICAL-RESULT-2026-11-23.md).
 
 # General Repository Operating Mindset
 

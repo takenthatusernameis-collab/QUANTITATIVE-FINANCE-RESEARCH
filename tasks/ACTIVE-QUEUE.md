@@ -1,7 +1,7 @@
 # Active Repository Queue
 
 **Updated:** 2026-11-23 17:25 UTC  
-**Canonical active-task pointer:** [Preregistered ETH/BTC spot relative-momentum rotation](ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md).
+**Canonical active-task pointer:** [Prospective Binance Spot Holdout Capture](PROSPECTIVE-BINANCE-SPOT-HOLDOUT-CAPTURE.md).
 
 ## Current cycle plan — 2026-11-23 17:20 UTC
 
@@ -13,7 +13,7 @@
 - **Timebox:** closed early after cycle 1 of 4 because a valid preregistered terminal conclusion was obtained. The unused cycles/deadline are not a reason to continue or tune this experiment.
 - **Data/cache:** accepted Binance Spot history for both symbols; 82/82 monthly archives checksum-verified per symbol; 31 missing hourly bars per symbol confirmed no-trade and left unsynthesized. The low-trust run restored a 164,742-byte warm cache and could not write a new archive cache; this is an operational cache limitation, not a research-result blocker.
 - **Hygiene:** raw hourly CSVs were not uploaded or committed. A compact terminal report with source hashes, metrics, bootstrap intervals and run/artifact provenance is now committed at [reports/ETH-BTC-SPOT-MOMENTUM-EMPIRICAL-RESULT-2026-11-23.md](../reports/ETH-BTC-SPOT-MOMENTUM-EMPIRICAL-RESULT-2026-11-23.md). The full generated output remains in the run artifact.
-- **Next:** close this model and move to hypothesis selection only. Any new candidate must be a separate preregistration with a new identity/timebox and independent/later holdout; the original funding-aware study remains separately INCONCLUSIVE.
+- **Next:** execute [Prospective Binance Spot Holdout Capture](PROSPECTIVE-BINANCE-SPOT-HOLDOUT-CAPTURE.md) as one bounded P1 cycle (deadline 2026-11-24 17:30 UTC). Backfill 2026-11-01 through the latest closed hour and establish verified storage/retention for a later independent holdout; no strategy backtests or parameter selection. If 180-day retention cannot be secured without owner-only access, preserve a safe partial capture and mark BLOCKED/INFEASIBLE. The original funding-aware study remains separately INCONCLUSIVE.
 - **Process deviation:** this documentation/report/preregistration/policy handoff used sequential Contents-API commits, creating per-file CI fan-out. Future multi-file handoffs should use an atomic Git Data commit when available.
 
 
