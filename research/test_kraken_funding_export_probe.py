@@ -274,8 +274,8 @@ class KrakenFundingExportProbeTests(unittest.TestCase):
                 for symbol in ("PI_XBTUSD", "PI_ETHUSD", "PF_SOLUSD"):
                     archive.writestr(
                         f"{symbol}.csv",
-                        "timestamp,fundingRate,relativeFundingRate\\n"
-                        "2026-01-01T00:00:00Z,0.001,0.01\\n",
+                        "timestamp,fundingRate,relativeFundingRate\n"
+                        "2026-01-01T00:00:00Z,0.001,0.01\n",
                     )
             result = analyze_archive(
                 archive_path, instruments, target_symbols={"PI_XBTUSD"}
