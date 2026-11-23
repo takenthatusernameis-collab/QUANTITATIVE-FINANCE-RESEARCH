@@ -204,8 +204,8 @@ def parse_candle_payload(
             low, high, open_price, close, volume = (Decimal(str(x)) for x in row[1:])
             if not all(x.is_finite() for x in (low, high, open_price, close, volume)):
                 raise ValueError("non_finite_value")
-            if min(low, high, open_price, close) <= 0 or volume < 0:
-                raise ValueError("non_positive_price_or_negative_volume")
+            if min(low, high, open_price, close) <= 0 or volume <= 0:
+                raise ValueError("non_positive_price_or_non_positive_volume")
             if low > min(open_price, close) or high < max(open_price, close) or low > high:
                 raise ValueError("ohlc_invariant")
             if timestamp % GRANULARITY_SECONDS:
