@@ -890,6 +890,32 @@ def _interval_metrics(timestamps: list[int]) -> dict[str, Any]:
     }
 
 
+def _compact_rate_context_row(symbol: str, row: Any) -> dict[str, Any] | None:
+    """Retain one API row's timestamp and two rate fields, never unrelated payload."""
+    if not isinstance(row, dict):
+        return None
+    timestamp_ms = parse_timestamp_ms(row.get("timestamp"))
+    if timestamp_ms is None:
+        return None
+    rates: dict[str, float | None] = {}
+    for field in ("fundingRate", "relativeFundingRate"):
+        try:
+            value = float(row.get(field))
+            rates[field] = value if math.isfinite(value) else None
+        except (TypeError, ValueError):
+            rates[field] = None
+    relative = rates["relativeFundingRate"]
+    return {
+        "timestamp": row.get("timestamp"),
+        "timestamp_ms": timestamp_ms,
+        "rates": rates,
+        "relative_rate_cap_assessment": (
+            rate_cap_assessment(symbol, "relativeFundingRate", timestamp_ms, relative)
+            if relative is not None else None
+        ),
+    }
+
+
 def analyze_api_rows(api_record: dict[str, Any]) -> dict[str, Any]:
     """Quality-check every returned Kraken API row without claiming history completeness."""
     raw_rows = api_record.get("rates")
@@ -920,7 +946,7 @@ def analyze_api_rows(api_record: dict[str, Any]) -> dict[str, Any]:
     seen: set[int] = set()
     previous_timestamp: int | None = None
 
-    for row in rows:
+    for row_index, row in enumerate(rows):
         if not isinstance(row, dict):
             invalid_row_count += 1
             for field in fields:
@@ -973,9 +999,24 @@ def analyze_api_rows(api_record: dict[str, Any]) -> dict[str, Any]:
                 cap_status_counts[cap_status] += 1
                 cap_assessed_count += 1
                 if cap_status == "EXCEEDS_DOCUMENTED_CAP":
+                    absolute_rate = None
+                    try:
+                        candidate_absolute = float(row.get("fundingRate"))
+                        if math.isfinite(candidate_absolute):
+                            absolute_rate = candidate_absolute
+                    except (TypeError, ValueError):
+                        pass
+                    adjacent_context = [
+                        compact
+                        for neighbor_index in range(max(0, row_index - 1), min(len(rows), row_index + 2))
+                        if (compact := _compact_rate_context_row(symbol, rows[neighbor_index])) is not None
+                    ]
                     cap_exception_rows.append({
                         "timestamp": raw_timestamp,
                         "timestamp_utc": assessment.get("timestamp_utc"),
+                        "fundingRate": absolute_rate,
+                        "relativeFundingRate": relative_value,
+                        "adjacent_context_records": adjacent_context,
                         "value": relative_value,
                         "applicable_absolute_cap": assessment.get("applicable_absolute_cap"),
                         "cap_status": cap_status,
