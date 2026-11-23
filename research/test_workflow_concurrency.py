@@ -113,6 +113,8 @@ class WorkflowConcurrencyPolicyTests(unittest.TestCase):
         job = workflow.split("  kraken-tardis-timestamp-probe:", 1)[1].split("\n\n  kraken-pi-price-validation:", 1)[0]
         self.assertIn("python research/kraken_tardis_timestamp_probe.py", job)
         self.assertIn("/manifest.json", job)
+        self.assertNotIn(r"\\${{", job)
+        self.assertIn("if: ${{ needs.authorize.outputs.authorized", job)
         self.assertNotIn("*.csv", job.lower())
         self.assertNotIn("*.gz", job.lower())
         probe = (ROOT / "research" / "kraken_tardis_timestamp_probe.py").read_text(encoding="utf-8")

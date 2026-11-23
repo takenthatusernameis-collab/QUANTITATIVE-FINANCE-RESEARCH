@@ -22,7 +22,7 @@ KRAKEN_API_DOCS = "https://docs.kraken.com/api-reference/historical-funding-rate
 KRAKEN_WS_DOCS = "https://docs.kraken.com/api/docs/futures-api/websocket/ticker"
 TARDIS_DOCS = "https://docs.tardis.dev/downloadable-csv-files/data-types"
 MAX_COMPRESSED, MAX_CSV, MAX_API, MAX_ROWS = 50_000_000, 150_000_000, 25_000_000, 500_000
-MAX_AGE_SECONDS, MIN_EVENTS = 300, 20
+MAX_AGE_SECONDS, MIN_EVENTS = 3600, 20
 RATE_FIELDS = ("fundingRate", "relativeFundingRate")
 UTC = timezone.utc
 
@@ -79,7 +79,7 @@ def parse_tardis(payload, symbol, sample_date):
         if row.get("exchange") != EXCHANGE or row.get("symbol") != symbol:
             raise ValueError(f"Unexpected Tardis exchange/symbol at line {line}")
         exchange_us, local_us = int(row["timestamp"]), int(row["local_timestamp"])
-        if exchange_us <= 0 or local_us <= 0 or not start - 300_000_000 <= exchange_us < end + 300_000_000:
+        if min(exchange_us, local_us) < 1_000_000_000_000_000 or not start - 300_000_000 <= exchange_us < end + 300_000_000:
             raise ValueError(f"Invalid/out-of-window Tardis timestamp at line {line}")
         if previous_local is not None and local_us < previous_local:
             out_of_order += 1
@@ -90,6 +90,8 @@ def parse_tardis(payload, symbol, sample_date):
             missing_event += 1
             continue
         event_us = int(raw_event)
+        if event_us < 1_000_000_000_000_000:
+            raise ValueError(f"funding_timestamp is not in microseconds at line {line}")
         rate = _finite(row.get("funding_rate"), "funding_rate")
         if rate is None:
             missing_rate += 1
@@ -311,6 +313,7 @@ def run_probe(output_dir, sample_date="2026-10-01"):
                 for item in results
             )
             and len({item["candidate_timestamp_to_accrual_mapping"] for item in results}) == 1
+            and len({item["best_matching_api_rate_field"] for item in results}) == 1
         )
         if valid:
             manifest["timestamp_to_accrual_mapping"] = results[0]["candidate_timestamp_to_accrual_mapping"]
