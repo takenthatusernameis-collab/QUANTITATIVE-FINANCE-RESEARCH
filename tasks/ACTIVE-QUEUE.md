@@ -1,9 +1,16 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-23 09:17 UTC  
+**Updated:** 2026-11-23 09:33 UTC  
 **Canonical active-task pointer:** [Preregistered ETH/BTC spot relative-momentum rotation](ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md).
 
-## Current cycle plan — 2026-11-23 09:17 UTC
+## Current cycle plan — 2026-11-23 09:33 UTC
+
+- **P0:** Keep all unaccepted funding data rejected. No zero-filled events, rate clipping, venue merges, paid access, credentials, backtests on unaccepted funding or live trading.
+- **P1:** Stop the Tardis gap-date route after its 10 HTTP-401 responses. Do not repeat it unchanged.
+- **P2:** Kraken PI timestamp mapping is sample-corroborated: relativeFundingRate at T−1h matched the last Tardis pre-event rate 24/24 for both PI symbols on 2026-10-01. Cap exceptions and payable-event completeness remain unresolved; Kraken stays PROVISIONAL_NOT_ACCEPTED.
+- **P4:** Funding-data architecture screen completed. Market History is primary historical candidate at $5 one-time minimum; purchase/key authorization is not present. Prospective capture is future-only; no further provider search.
+- **P5:** Run the separate frozen ETH/BTC spot relative-momentum hypothesis using accepted spot data; don't reinterpret the NO-GO mean-reversion result.
+- **Hygiene:** Preserve all 70 tracked files, six branches and draft control PR #2; no raw data or disposable artifacts retained.
 
 - **P0:** Keep all four Kraken series and the original Binance funding input unaccepted. No synthetic/zero-filled events, clipping, venue merges, paid data, credentials, backtests or trading.
 - **P1:** Stop repeating the no-key Tardis route after the 10 HTTP-401 failures; preserve exact errors and source digests.
@@ -254,4 +261,6 @@ The completed issue-comment research run could restore cache but was denied cach
 - Artifact [14754934492](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45026416957/artifacts/14754934492) (383,523 bytes) SHA-256 verified: `e1f37cc2d20863682d75ab43bb788d8f27514a02a3b4dff9e783c6a97351ef89`. Contains manifest and two screenshots only; no raw data.
 - Exact Funding rate Download button was uniquely identified, visible, enabled, and unobstructed, then clicked. A modal opened; no direct download event occurred. Modal state: Instrument Perpetual; Symbol (up to 4), none selected; grouping Daily; default range 11/20/2026–11/20/2026; Confirm disabled; Field information available; table headings Period/Instrument/Symbols/Export time/Size/Action; no records found. No cookie consent, symbol/date change, Confirm, or download.
 - Report: [ETH-BTC-OKX-FUNDING-BUTTON-PROBE-2026-11-22.md](../reports/ETH-BTC-OKX-FUNDING-BUTTON-PROBE-2026-11-22.md). This proves only modal entry and visible controls—not symbol/date coverage, schema, file size, or completeness. OKX remains a separate venue, not Binance substitute; Binance funding gate remains PROVISIONAL_NOT_ACCEPTED.
-- **Disposition:** The pending OKX modal-field-information UI probe is deprioritized after the symbol/date modal returned no records. The canonical next task is the one-cycle funding-data architecture pivot; do not continue UI exploration unless that pivot identifies a materially new route.
+- ## Current active task — preregistered spot relative-momentum rotation
+
+Execute [ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md](ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md) using accepted Binance Spot data only. The one-cycle funding-data architecture screen is complete: Market History is the primary historical candidate, but its $5 one-time minimum purchase/API key is not authorized and no keyless funding sample exists. The original funding-aware study remains INCONCLUSIVE. Do not repeat providers, purchase data, use credentials, bypass HTTP 451/401 restrictions, or run perps until the funding gate passes.
