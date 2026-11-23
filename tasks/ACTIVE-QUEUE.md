@@ -3,18 +3,21 @@
 **Updated:** 2026-11-23 09:34 UTC  
 **Canonical active-task pointer:** [Preregistered ETH/BTC spot relative-momentum rotation](ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md).
 
-## Current cycle plan — 2026-11-23 13:45 UTC
+## Current cycle plan — 2026-11-23 17:20 UTC
 
-- **P0:** Keep the original USDⓈ-M funding-aware study INCONCLUSIVE. Do not use provisional Kraken/Binance funding, paid vendor data, credentials, regional workarounds, perpetual backtests or live trading.
-- **P1:** No open queue-guardian incidents were found at cycle start. Preserve the existing default-branch-only control PR and exact-actor authorization.
-- **P5:** ETH/BTC Spot Relative-Momentum implementation cycle **1 of 4** is committed. Hosted CI passed **240 deterministic tests** in [run 45190529404](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45190529404). The new runner is isolated from funding and mean-reversion code, uses accepted Spot provenance, next-observed-open execution, 5–50 bps per-leg costs, four benchmarks, recovery periods and paired 3/7/14-day bootstrap inference.
-- **Next action:** dispatch the exact gated command `/qfr-run-eth-btc-spot-momentum` on open control PR #2. Inspect the full workflow, artifact, data acceptance, source hashes and empirical report. Do not call CI or synthetic validation a strategy result.
-- **Timebox:** implementation deadline 2026-11-26 18:00 UTC; final conclusion deadline 2026-11-28 18:00 UTC; four substantive cycles maximum. No automatic extension.
-- **Hygiene:** no raw data or temporary files are committed; workflow artifacts contain reports/manifests only.
+- **P0:** Keep the original USDⓈ-M funding-aware study **INCONCLUSIVE**. All provisional funding inputs remain rejected; no credentials, paid data, perps backtests or trading.
+- **P1:** Verify the queue guardian after this handoff and preserve the exact-actor/default-branch-only control PR #2. No queue-guardian incident was identified in the latest recorded guardian run.
+- **P2/P5 completed:** The preregistered **ETH/BTC Spot Relative-Momentum Rotation** was triggered by the exact gated command on PR #2. [Run 45190869167](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45190869167) completed successfully; authorization, research job and artifact upload passed. Artifact [14832209111](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45190869167/artifacts/14832209111), 6,620,925 bytes, SHA-256 `a31b520c65705520269062ae7f7cd5f7619aa5aa6a38e1e6b006c6cda2659547.
+- **Terminal result:** **NO-GO**. At 10 bps/leg the strategy net total return was +6.66%, CAGR +1.34%, Sharpe 0.024 and max drawdown -77.98%, versus BTC +67.46%, 11.26% CAGR, 0.213 Sharpe and -67.38% drawdown. All six frozen promotion criteria failed. The paired 3/7/14-day bootstrap lower excess-CAGR bounds were -27.32%, -28.04% and -28.20%. Do not tune on this OOS sample.
+- **Validation:** independently recalculated baseline total returns, elapsed-time CAGR, continuous Sharpe, max drawdown and interval count from the artifact's OOS-return CSV; results matched the metrics CSV to floating-point precision. 240 deterministic tests had passed before the run in [CI 45190529404](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45190529404).
+- **Timebox:** closed early after cycle 1 of 4 because a valid preregistered terminal conclusion was obtained. The unused cycles/deadline are not a reason to continue or tune this experiment.
+- **Data/cache:** accepted Binance Spot history for both symbols; 82/82 monthly archives checksum-verified per symbol; 31 missing hourly bars per symbol confirmed no-trade and left unsynthesized. The low-trust run restored a 164,742-byte warm cache and could not write a new archive cache; this is an operational cache limitation, not a research-result blocker.
+- **Hygiene:** raw hourly CSVs were not uploaded or committed. A compact terminal report with source hashes, metrics, bootstrap intervals and run/artifact provenance is now committed at [reports/ETH-BTC-SPOT-MOMENTUM-EMPIRICAL-RESULT-2026-11-23.md](../reports/ETH-BTC-SPOT-MOMENTUM-EMPIRICAL-RESULT-2026-11-23.md). The full generated output remains in the run artifact.
+- **Next:** close this model and move to hypothesis selection only. Any new candidate must be a separate preregistration with a new identity/timebox and independent/later holdout; the original funding-aware study remains separately INCONCLUSIVE.
 
 
 
-## Current cycle plan — 2026-11-23 09:33 UTC
+## Previous cycle plan — 2026-11-23 09:33 UTC
 
 - **P0:** Keep all unaccepted funding data rejected. No zero-filled events, rate clipping, venue merges, paid access, credentials, backtests on unaccepted funding or live trading.
 - **P1:** Stop the Tardis gap-date route after its 10 HTTP-401 responses. Do not repeat it unchanged.
@@ -79,9 +82,11 @@ Apply the single authoritative [seven-level adaptive decision hierarchy](../docs
 - The current inverse specification states ±0.25% per hour and n=24. No PI-specific cap change appears in the published parameters changelog; the effective cap on 2026-08-20 remains unverified. The PI delisting window is compatible at a high level with the CME CF ETHUSD_RR 15:00–16:00 London reference-rate methodology, but the exact historical benchmark value was not reconstructed.
 - Full evidence: [PI price/terms validation report](../reports/ETH-BTC-KRAKEN-PI-PRICE-VALIDATION-2026-11-23.md). The diagnostic task is complete, but all four Kraken funding series remain PROVISIONAL_NOT_ACCEPTED.
 
-## Current active task — preregistered spot relative-momentum rotation
+## Completed task — preregistered spot relative-momentum rotation (NO-GO)
 
-Execute [ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md](ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md) using the already-accepted spot data only. The architecture screen selected Market History as the primary historical funding candidate, but the $5 one-time minimum purchase/key remains unauthorized and no keyless funding sample exists. The original funding-aware study is INCONCLUSIVE. Do not repeat provider routes, purchase data, use credentials, or run perps until authorized.
+The frozen 200-day Spot relative-momentum hypothesis was executed on accepted Binance Spot data using the exact gated command. Run [45190869167](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45190869167) completed successfully; artifact [14832209111](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45190869167/artifacts/14832209111). All six GO criteria failed; terminal **NO-GO**. The full report, metrics, bootstrap, source hashes and independent metric-check details are committed in [ETH-BTC-SPOT-MOMENTUM-EMPIRICAL-RESULT-2026-11-23.md](../reports/ETH-BTC-SPOT-MOMENTUM-EMPIRICAL-RESULT-2026-11-23.md). This experiment is closed after cycle 1 of 4; do not tune or rerun on the same OOS sample. A future model requires a new preregistration and independent/later holdout.
+
+The funding-aware USDⓈ-M study remains separately INCONCLUSIVE; its acceptance restrictions continue unchanged.
 
 ## Completed historical follow-up — OKX funding metadata and symbol search (2026-11-22)
 
