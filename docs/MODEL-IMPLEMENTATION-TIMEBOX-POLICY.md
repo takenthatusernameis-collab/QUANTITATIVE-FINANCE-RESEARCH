@@ -61,7 +61,7 @@ This is the first model governed by the activated policy.
 - **Experiment:** `ETH-BTC-SPOT-MOMENTUM`
 - **Difficulty:** MEDIUM.
 - **Rationale:** The hypothesis and signal are simple and frozen (daily ETH/BTC ratio versus a 200-day SMA); accepted Binance Spot observations and an event-time research path already exist. Moderate work remains to integrate the model into the repository, verify causal next-hour execution and elapsed-time accounting, reproduce benchmarks/costs/bootstrap inference, and complete tests/reporting. No new venue or funding source is authorized or required.
-- **Start:** 2026-11-23 UTC, when this timebox was frozen in the preregistration.
+- **Start:** 2026-11-23T13:14:44Z, the commit timestamp at which the model-specific timebox was frozen in the preregistration.
 - **Maximum budget:** 4 substantive agent cycles total.
 - **Implementation deadline:** 2026-11-26 18:00 UTC.
 - **Final empirical conclusion deadline:** 2026-11-28 18:00 UTC.
