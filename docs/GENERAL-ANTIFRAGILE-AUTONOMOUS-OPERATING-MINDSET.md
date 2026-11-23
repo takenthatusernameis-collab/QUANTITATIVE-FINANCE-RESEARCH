@@ -42,6 +42,10 @@ Every provider or architecture must pass a bounded pilot: product inception and 
 
 If the original formulation is infeasible after reasonable, distinct provider and architecture alternatives, formally preserve it as **INCONCLUSIVE/INFEASIBLE** with its evidence and rejection reasons. Move to a different hypothesis/model only as a new experiment with a distinct identity, frozen preregistration, independent acceptance criteria, costs, controls and data provenance. A spot-only result must never be presented as evidence of perpetual profitability; a changed timeframe or signal representation is also a distinct specification when it changes the research question or inference.
 
+### Deferred model-implementation discipline (activation-gated)
+
+After the current ETH/BTC strategy reaches a documented terminal conclusion, all new model candidates must follow the [Bounded Model Implementation and Research Timebox](BOUNDED-MODEL-IMPLEMENTATION-AND-RESEARCH-TIMEBOX.md). It assigns a fixed 2/4/7/10-calendar-day implementation budget by pre-assessed difficulty and forbids empirical strategy research until technical acceptance and research-data gates both pass. This policy is **dormant** until the final ETH/BTC report and canonical queue satisfy its activation conditions; it does not retroactively timebox the ongoing ETH/BTC study. Its deadline discipline is a bounded feasibility control, not permission to weaken Priority 0 scientific or safety invariants.
+
 ### Priority 6 — Local optimization and cosmetic polish
 
 Only after higher-priority uncertainties and bottlenecks are addressed should isolated polish, one-off convenience or cosmetic cleanup be prioritized. Hygiene that protects review clarity and reproducibility remains part of the mandatory session preflight under Priority 1.
