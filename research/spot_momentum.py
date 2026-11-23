@@ -152,9 +152,10 @@ def build_daily_signals(
         & daily["close_staleness_hours"].le(max_close_staleness_hours)
     )
     daily.loc[~eligible, "ratio"] = np.nan
-    daily["sma_200"] = daily["ratio"].rolling(
+    valid_ratio = daily.loc[daily["ratio"].notna(), "ratio"]
+    daily["sma_200"] = valid_ratio.rolling(
         window=SMA_DAYS, min_periods=SMA_DAYS
-    ).mean()
+    ).mean().reindex(daily.index)
     valid = daily["ratio"].notna() & daily["sma_200"].notna()
     daily["signal"] = pd.Series(pd.NA, index=daily.index, dtype="object")
     daily.loc[valid & (daily["ratio"] > daily["sma_200"]), "signal"] = "ETH"
@@ -240,7 +241,7 @@ def benchmark_target_schedule(index: pd.DatetimeIndex, variant: str) -> pd.DataF
     elif variant == "50_50_ETH_BTC_buy_hold":
         targets.iloc[0] = (0.5, 0.5)
     elif variant == "50_50_ETH_BTC_monthly_rebalanced":
-        months = index.to_period("M")
+        months = index.tz_convert("UTC").tz_localize(None).to_period("M")
         first_in_month = np.r_[True, months[1:] != months[:-1]]
         targets.loc[index[first_in_month], ["w_eth", "w_btc"]] = (0.5, 0.5)
     else:
@@ -689,7 +690,7 @@ def write_report(
         "",
         bootstrap_table,
         "",
-        "Bootstrap uses paired strategy/BTC returns, identical contiguous UTC-time blocks, block starts weighted by the first interval's elapsed duration, 1,000 replications per block length, 95% percentile intervals and seed 20261123. The initial zero-duration entry cost is compounded into the first positive-duration return before resampling.",
+        "Bootstrap uses paired strategy/BTC returns, identical contiguous UTC-time blocks, block starts weighted by the first interval's elapsed duration, 1,000 replications per block length, 95% percentile intervals and per-block seeds equal to base seed 20261123 plus the block length. The initial zero-duration entry cost is compounded into the first positive-duration return before resampling.",
         "",
         "## GO criteria",
         "",

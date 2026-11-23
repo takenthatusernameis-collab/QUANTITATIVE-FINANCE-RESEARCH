@@ -49,6 +49,24 @@ class SpotMomentumTests(unittest.TestCase):
         self.assertTrue(pd.isna(row["ratio"]))
         self.assertTrue(pd.isna(row["signal"]))
 
+    def test_stale_day_does_not_reset_200_valid_close_sma_window(self):
+        index = pd.date_range("2020-01-01T00:00:00Z", periods=24 * 205, freq="h")
+        missing = pd.to_datetime([
+            "2020-07-19T22:00:00Z", "2020-07-19T23:00:00Z"
+        ])
+        index = index[~index.isin(missing)]
+        frame = make_frame(index)
+        daily = momentum.build_daily_signals(frame)
+        stale = daily.loc[
+            daily["utc_date"] == pd.Timestamp("2020-07-19T00:00:00Z")
+        ].iloc[0]
+        next_day = daily.loc[
+            daily["utc_date"] == pd.Timestamp("2020-07-20T00:00:00Z")
+        ].iloc[0]
+        self.assertTrue(pd.isna(stale["ratio"]))
+        self.assertTrue(pd.notna(next_day["sma_200"]))
+        self.assertIn(next_day["signal"], ("ETH", "BTC"))
+
     def test_signal_executes_at_first_observed_open_after_midnight(self):
         index = pd.date_range("2020-01-01T00:00:00Z", periods=24 * 230, freq="h")
         missing_open = pd.Timestamp("2020-07-19T00:00:00Z")
@@ -159,6 +177,14 @@ class SpotMomentumTests(unittest.TestCase):
             "total_return",
         ] = -0.01
         self.assertEqual(momentum.evaluate_decision(metrics, bootstrap)["status"], "NO-GO")
+
+    def test_control_workflow_allowlists_spot_momentum_as_default_branch_only(self):
+        workflow = Path(".github/workflows/eth-btc-research.yml").read_text()
+        self.assertIn('"/qfr-run-eth-btc-spot-momentum"', workflow)
+        self.assertIn('COMMAND="spot-momentum"', workflow)
+        self.assertIn("needs.authorize.outputs.command == 'spot-momentum'", workflow)
+        self.assertIn("python research/spot_momentum.py", workflow)
+        self.assertIn("persist-credentials: false", workflow)
 
     def test_data_preparation_is_spot_only(self):
         with patch.object(momentum, "download_klines") as download, patch.object(
