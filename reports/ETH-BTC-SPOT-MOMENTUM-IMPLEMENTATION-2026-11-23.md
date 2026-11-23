@@ -1,7 +1,7 @@
 # ETH/BTC Spot Relative-Momentum — implementation handoff
 
 **Date:** 2026-11-23 13:45 UTC  
-**Status:** IMPLEMENTATION COMMITTED; EMPIRICAL RUN NOT YET DISPATCHED  
+**Status:** IMPLEMENTATION COMMITTED; HOSTED CI PASSED; EMPIRICAL RUN NOT YET DISPATCHED  
 **Timebox:** MEDIUM difficulty; substantive cycle 1 of 4; implementation deadline 2026-11-26 18:00 UTC; final conclusion deadline 2026-11-28 18:00 UTC.
 
 ## Scope and safety
@@ -23,7 +23,7 @@ The frozen 200-day ETH/BTC Spot relative-momentum hypothesis now has a dedicated
 
 ## Validation status
 
-The source and tests are committed together with the workflow wiring and preregistration conventions. Hosted CI must pass before dispatch. No market-data backtest or empirical result has been produced by this implementation handoff. A passing unit test or synthetic test is engineering evidence only.
+The source, tests, workflow wiring and preregistration conventions are committed. Hosted CI passed 240 deterministic tests in [run 45190529404](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45190529404), including the 200-valid-close stale-day handling, next-observed-open execution, paired bootstrap, exact command allowlist and Spot-only preparation tests. Commit: [9776801](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/97768010c23bf0850e9ceaeb90f3105e64943067). No market-data backtest or empirical result has been produced by this implementation handoff. Passing CI is engineering evidence only.
 
 ## Next action
 

@@ -7,7 +7,7 @@
 
 - **P0:** Keep the original USDⓈ-M funding-aware study INCONCLUSIVE. Do not use provisional Kraken/Binance funding, paid vendor data, credentials, regional workarounds, perpetual backtests or live trading.
 - **P1:** No open queue-guardian incidents were found at cycle start. Preserve the existing default-branch-only control PR and exact-actor authorization.
-- **P5:** ETH/BTC Spot Relative-Momentum implementation cycle **1 of 4** is committed. The new runner is isolated from funding and mean-reversion code, uses accepted Spot provenance, next-observed-open execution, 5–50 bps per-leg costs, four benchmarks, recovery periods and paired 3/7/14-day bootstrap inference.
+- **P5:** ETH/BTC Spot Relative-Momentum implementation cycle **1 of 4** is committed. Hosted CI passed **240 deterministic tests** in [run 45190529404](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45190529404). The new runner is isolated from funding and mean-reversion code, uses accepted Spot provenance, next-observed-open execution, 5–50 bps per-leg costs, four benchmarks, recovery periods and paired 3/7/14-day bootstrap inference.
 - **Next action:** dispatch the exact gated command `/qfr-run-eth-btc-spot-momentum` on open control PR #2. Inspect the full workflow, artifact, data acceptance, source hashes and empirical report. Do not call CI or synthetic validation a strategy result.
 - **Timebox:** implementation deadline 2026-11-26 18:00 UTC; final conclusion deadline 2026-11-28 18:00 UTC; four substantive cycles maximum. No automatic extension.
 - **Hygiene:** no raw data or temporary files are committed; workflow artifacts contain reports/manifests only.

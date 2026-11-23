@@ -77,7 +77,7 @@ Queue guardian [45116064442](https://github.com/takenthatusernameis-collab/QUANT
 
 ## Spot momentum implementation — 2026-11-23
 
-The separately preregistered **ETH/BTC Spot Relative-Momentum Rotation** has entered implementation under the mandatory MEDIUM-difficulty timebox. The first substantive cycle is committed: a dedicated Spot-only runner, deterministic tests, next-observed-open execution, all-in per-leg cost accounting, BTC/ETH/50-50 benchmarks, recovery-period reporting, and paired 3/7/14-day calendar-time bootstrap inference. This is implementation evidence only; the empirical study has not yet run.
+The separately preregistered **ETH/BTC Spot Relative-Momentum Rotation** has entered implementation under the mandatory MEDIUM-difficulty timebox. The first substantive cycle is committed and hosted CI passed **240 deterministic tests**: a dedicated Spot-only runner, 200-valid-close SMA handling, next-observed-open execution, all-in per-leg cost accounting, BTC/ETH/50-50 benchmarks, recovery-period reporting, and paired 3/7/14-day calendar-time bootstrap inference. [Inspect CI run](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45190529404). This is implementation evidence only; the empirical study has not yet run.
 
 The runner downloads and validates only Binance Spot ETHUSDT/BTCUSDT data, verifies monthly archive checksums and the existing no-trade gap provenance gate, and never accesses funding data. It is wired to the exact gated control-PR command `/qfr-run-eth-btc-spot-momentum`. See [implementation handoff](reports/ETH-BTC-SPOT-MOMENTUM-IMPLEMENTATION-2026-11-23.md), [preregistration](tasks/ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md), and [active queue](tasks/ACTIVE-QUEUE.md).
 
