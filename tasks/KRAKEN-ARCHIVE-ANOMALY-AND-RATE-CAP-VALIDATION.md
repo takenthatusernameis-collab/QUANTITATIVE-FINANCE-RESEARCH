@@ -1,6 +1,6 @@
 # Kraken archive residual anomalies and PI rate-cap audit
 
-**Status:** ARCHIVE/API DIAGNOSTIC COMPLETE; FULL-ROW CAP CENSUS IN PROGRESS — 2026-11-23 02:02 UTC  
+**Status:** ARCHIVE/API DIAGNOSTIC AND FULL-ROW CAP CENSUS COMPLETE; EXCEPTION-CONTEXT FOLLOW-UP IN PROGRESS — 2026-11-23 02:46 UTC  
 **Priority:** P1 data-integrity / event-population gate  
 **Current gate:** PROVISIONAL_NOT_ACCEPTED; no Kraken backtest or Binance merge.
 
@@ -55,7 +55,46 @@ The previous audit inspected extrema only. That is insufficient to count every c
 - Adds exact command `/qfr-audit-kraken-rate-cap-census`, authorized through PR #2, with manifest-only output and no raw API rows retained or uploaded.
 - Adds deterministic regression tests for full-row cap counts, exact threshold handling, API-only execution, archive anomaly timestamps, incident scopes and causal restraint.
 
-After this commit's hosted CI passes, dispatch the API-only command once, verify the run and artifact, and update this task/report with the actual full-row violation counts. Do not repeat the archive download.
+### Completed API-only full-row cap census
+
+The exact command completed successfully on default-branch code: [run 45100276868](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45100276868), manifest-only artifact [14784609201](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45100276868/artifacts/14784609201). Artifact ZIP SHA-256: `053108fa092b053c99f511b262dae51098461ddcc282de313bdac615ffc4ff20`. The run queried only the four exact public API histories; it did not download the historical archive, use credentials/account access, attest a region, bypass CAPTCHA, use a proxy/network workaround, purchase data, trade, retain raw rows, upload raw rows, or commit raw rows.
+
+All **34,256** returned rows were assessed (zero unassessed):
+- PF_XBTUSD: 8,845 within cap; 0 exceptions.
+- PF_ETHUSD: 8,845 within cap; 0 exceptions.
+- PI_XBTUSD: 8,282 within cap; **1 exception**.
+- PI_ETHUSD: 8,275 within cap; **8 exceptions**.
+
+The nine PI exceptions are:
+| Symbol | Timestamp (UTC) | relativeFundingRate | Current documented cap |
+|---|---|---:|---:|
+| PI_XBTUSD | 2026-08-20 09:00 | +0.005 | ±0.0025 |
+| PI_ETHUSD | 2026-08-20 07:00 | +0.005 | ±0.0025 |
+| PI_ETHUSD | 2026-08-20 08:00 | +0.005 | ±0.0025 |
+| PI_ETHUSD | 2026-08-20 11:00 | -0.003835161729166667 | ±0.0025 |
+| PI_ETHUSD | 2026-10-29 09:00 | +0.003261576116071429 | ±0.0025 |
+| PI_ETHUSD | 2026-10-30 13:00 | +0.003248896366666667 | ±0.0025 |
+| PI_ETHUSD | 2026-10-30 14:00 | +0.005 | ±0.0025 |
+| PI_ETHUSD | 2026-10-30 15:00 | +0.005 | ±0.0025 |
+| PI_ETHUSD | 2026-10-30 16:00 | +0.005 | ±0.0025 |
+
+The August 20 anomalies are not delisting-boundary observations. The October 29/30 observations cluster near the inverse-contract delisting, but timestamp-to-accrual mapping is unresolved. The reviewed public parameter changelog contains no PI-specific funding-cap change; this cannot exclude unpublished or omitted changes. Do not clip, normalize, or accept any exception.
+
+All four responses passed mechanical integrity checks: zero invalid timestamps, duplicates, out-of-order rows, required-field nulls, or gaps over four hours. Each response still has five two-hour intervals whose settlement interpretation is unknown. The API history begins at 2025-11-19 09:00 UTC, and the endpoint's retention/refresh/completeness policy is undocumented. The census therefore does **not** prove a complete payable-settlement population.
+
+CI [45100169673](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45100169673) passed 153 deterministic tests and the synthetic plumbing smoke test on census commit `08092b73`.
+
+### New bounded exception-context follow-up
+
+The census artifact counted every exception but did not preserve the absolute `fundingRate` field and immediate neighboring rows for every exception. A follow-up implementation now adds only the exception row plus at most one preceding and one following row, with timestamps and both rate fields; it does not retain or upload the full API history. Code/test commits: [9c9beaa](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/9c9beaa75455c0fab7e7c5885ce1367332e3723e) and [6ba9616](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/6ba961667adaafc08589dc4c93af453555eb16aa). Hosted CI runs [45102101816](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45102101816) and [45102120458](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45102120458) were still pending/in progress at this handoff.
+
+After the final CI run passes, post the exact command `/qfr-audit-kraken-rate-cap-census` once on control PR #2 to execute the new bounded-context code. Inspect the nine exception rows and adjacent records for:
+- Whether absolute and relative rates are mutually consistent with inverse-contract semantics.
+- Whether each exception is an isolated spike or part of a sustained sequence.
+- Whether pre-delisting October 29/30 observations differ from the final settlement-boundary rows.
+- Whether the API response hash and exact symbol remain attached to each compact exception record.
+
+Do not download the archive again. Keep the funding gate provisional even if the context is internally consistent; independent settlement-population completeness and API timestamp-to-accrual semantics remain separate blockers.
 
 ## Remaining acceptance blockers
 
