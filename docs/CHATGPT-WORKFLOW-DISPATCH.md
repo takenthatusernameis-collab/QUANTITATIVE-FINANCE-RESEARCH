@@ -213,6 +213,12 @@ Use the durable task/incident ledger for status tags `CANCELLATION_BLOCKED / ORP
 - The queue guardian report is uploaded as a 30-day artifact. The issue is the durable task handoff; the artifact is supplementary execution evidence.
 
 
+## Kraken PI cap-anomaly independent spot-price check
+
+The default-branch workflow accepts the exact command `/qfr-audit-kraken-pi-price-validation` on open control PR #2 from the verified actor. It queries only the Coinbase Exchange public product metadata for `BTC-USD` and `ETH-USD`, plus four fixed hourly windows around the nine pre-identified Kraken PI exception timestamps. Each window is well below the API's 300-candle request limit.
+
+The runner validates product identity/status, candle timestamps, OHLCV invariants, duplicates, and exact-hour plus adjacent-hour coverage. It uploads only a compact manifest with selected candle summaries and response SHA-256 hashes; raw response arrays remain ephemeral. The comparison is a spot-price plausibility check only: it cannot prove Kraken index identity, funding-cap compliance, API timestamp-to-accrual semantics, or complete settlement-event population. All Kraken funding remains `PROVISIONAL_NOT_ACCEPTED`; no backtest or cross-venue merge is authorized.
+
 ## Official references
 
 - [Workflow events: issue_comment, workflow_dispatch, repository_dispatch](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)
@@ -234,6 +240,7 @@ The default-branch workflow `.github/workflows/eth-btc-research.yml` now accepts
   - `/qfr-control-smoke` — harmless smoke test;
   - `/qfr-run-eth-btc-data-audit` — audit all four price series and both funding histories, and reconcile missing ETH Spot hours against Binance REST and daily archives.
   - `/qfr-probe-eth-btc-funding-2024-01` — run a bounded January 2024 audit-only probe across all six inputs with Spot gap reconciliation disabled; it does not run an empirical backtest.
+  - `/qfr-audit-kraken-pi-price-validation` — compare the nine pre-identified Kraken PI funding-cap exceptions with four bounded Coinbase BTC-USD/ETH-USD hourly windows; no Kraken archive/API re-download, raw-candle upload, backtest, or cross-venue merge.
   - `/qfr-run-eth-btc-empirical` — agent-triggered historical backtest, preserving all code/data/methodology gates; no routine human confirmation.
 
 The workflow uses repository-level `contents: read` permissions only. The issue-comment event executes the workflow from `main`; the research job explicitly checks out `github.event.repository.default_branch`. It never checks out, imports, executes, or trusts the control PR head or its contents. No `pull_request_target` trigger is used. The smoke job performs no checkout and no data access.
