@@ -645,7 +645,7 @@ jobs:
       - name: Fetch bounded Coinbase BTC-USD and ETH-USD hourly spot candles
         run: |
           set -euo pipefail
-          python research/kraken_pi_price_validation.py \\
+          python research/kraken_pi_price_validation.py \
             --output-dir "reports/generated/kraken-pi-price-validation-${{ github.run_id }}"
 
       - name: Upload compact manifest only (no raw candle arrays)
