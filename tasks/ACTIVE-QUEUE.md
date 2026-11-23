@@ -1,15 +1,15 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-23 05:10 UTC  
+**Updated:** 2026-11-23 05:18 UTC  
 **Canonical active-task pointer:** [Resolve Kraken PI cap exceptions, API timestamp semantics and settlement-population completeness](KRAKEN-PI-API-SEMANTICS-AND-SETTLEMENT-COMPLETENESS.md).
 
 ## Current session plan — 2026-11-23 05:10 UTC
 
 - **P0:** Preserve exact instrument/venue identity, raw-data ephemerality, source provenance, no synthetic funding and fail-closed research status. No clipping, interpolation, zero insertion, backtest, credentials, paid data or access-restriction bypass.
-- **P1 meta-process:** Convert the Coinbase end-boundary failure into a deterministic request-boundary regression. Commit code and test atomically rather than generating per-file CI fan-out. CI passed 209 tests and synthetic smoke.
+- **P1 meta-process:** Convert the Coinbase end-boundary failure into a deterministic request-boundary regression. Commit code and test atomically rather than generating per-file CI fan-out. Code CI [45115907842](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45115907842) passed 209 tests and synthetic smoke; the consolidated handoff CI [45116863947](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45116863947) also passed 209 tests and synthetic smoke.
 - **P2:** The bounded Coinbase spot plausibility and authoritative-terms diagnostic is complete. All nine exception timestamps have clean three-hour external spot windows; the nine rows remain unaccepted because no PI-specific historical cap change was found.
 - **P2 remaining blocker:** Resolve the effective-dated PI cap, API timestamp-to-accrual mapping and full payable-event population. Do not repeat the completed Coinbase probe or re-download the Kraken archive unchanged.
-- **Hygiene preflight:** The pre-handoff tracked tree had 72 paths and no raw market data, cache, scratch or build outputs. This handoff adds exactly one report and one pending task; no generated market data are committed. Preserve all six branches and draft control PR #2.
+- **Hygiene preflight:** The pre-handoff tree had 68 tracked files (70 after this handoff, plus seven tree directories). No raw market data, cache payloads, scratch or build outputs are tracked. This handoff adds exactly one report and one pending task. Preserve all six branches and draft control PR #2.
 - **Queue guardian:** [Run 45116064442](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45116064442) enumerated 402/402 runs completely, with zero enforcement actions and zero errors. No open standalone issues or active Actions runs remained at inspection.
 - **Scientific gate:** All four Kraken funding series remain PROVISIONAL_NOT_ACCEPTED. No Kraken/Binance perpetual backtest, cross-venue merge or live deployment is authorized.
 
