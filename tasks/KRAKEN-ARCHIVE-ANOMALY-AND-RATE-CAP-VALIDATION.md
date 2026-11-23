@@ -1,6 +1,6 @@
 # Kraken archive residual anomalies and PI rate-cap audit
 
-**Status:** ARCHIVE/API DIAGNOSTIC AND FULL-ROW CAP CENSUS COMPLETE; EXCEPTION-CONTEXT FOLLOW-UP IN PROGRESS — 2026-11-23 02:46 UTC  
+**Status:** ARCHIVE/API DIAGNOSTIC, FULL-ROW CENSUS AND EXCEPTION-CONTEXT FOLLOW-UP COMPLETE; INDEPENDENT VALIDATION REQUIRED — 2026-11-23 02:52 UTC  
 **Priority:** P1 data-integrity / event-population gate  
 **Current gate:** PROVISIONAL_NOT_ACCEPTED; no Kraken backtest or Binance merge.
 
@@ -84,21 +84,41 @@ All four responses passed mechanical integrity checks: zero invalid timestamps, 
 
 CI [45100169673](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45100169673) passed 153 deterministic tests and the synthetic plumbing smoke test on census commit `08092b73`.
 
-### New bounded exception-context follow-up
+### Completed bounded exception-context follow-up
 
-The census artifact counted every exception but did not preserve the absolute `fundingRate` field and immediate neighboring rows for every exception. A follow-up implementation now adds only the exception row plus at most one preceding and one following row, with timestamps and both rate fields; it does not retain or upload the full API history. Code/test commits: [9c9beaa](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/9c9beaa75455c0fab7e7c5885ce1367332e3723e) and [6ba9616](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/6ba961667adaafc08589dc4c93af453555eb16aa). Hosted CI runs [45102101816](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45102101816) and [45102120458](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45102120458) were still pending/in progress at this handoff.
+The updated code/test revision passed CI [45102432282](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45102432282): 199 deterministic tests and synthetic plumbing smoke test. The exact API-only command then completed successfully in [run 45102646438](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45102646438), with manifest-only artifact [14786345447](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45102646438/artifacts/14786345447). Artifact ZIP SHA-256: `56923db469f03d70285999684af1c72c90c9e65d2d9423d63b92543b557e85d3`. The run queried the four exact public API histories, did not download the archive, and uploaded only the compact manifest.
 
-After the final CI run passes, post the exact command `/qfr-audit-kraken-rate-cap-census` once on control PR #2 to execute the new bounded-context code. Inspect the nine exception rows and adjacent records for:
-- Whether absolute and relative rates are mutually consistent with inverse-contract semantics.
-- Whether each exception is an isolated spike or part of a sustained sequence.
-- Whether pre-delisting October 29/30 observations differ from the final settlement-boundary rows.
-- Whether the API response hash and exact symbol remain attached to each compact exception record.
+All nine exception rows now retain both `fundingRate` and `relativeFundingRate`, plus at most one preceding/following row. The two fields are arithmetically consistent with Kraken's inverse formula: `implied_index = relativeFundingRate / fundingRate`. The derived levels are plausible but are **not** independent market-price observations and do not establish cap compliance.
 
-Do not download the archive again. Keep the funding gate provisional even if the context is internally consistent; independent settlement-population completeness and API timestamp-to-accrual semantics remain separate blockers.
+Sequence findings:
+- PI_XBTUSD 2026-08-20 09:00 is isolated; 08:00 and 10:00 are within cap.
+- PI_ETHUSD 2026-08-20 07:00 and 08:00 are consecutive +0.5% observations; 09:00 is within cap. The 11:00 negative exception is isolated between in-cap neighbors.
+- PI_ETHUSD 2026-10-29 09:00 is isolated between in-cap neighbors.
+- PI_ETHUSD 2026-10-30 13:00 and 14:00–16:00 form a consecutive out-of-cap sequence ending at the official settlement boundary.
+
+| Symbol | Timestamp (UTC) | Implied USD index level |
+|---|---|---:|
+| PI_XBTUSD | 2026-08-20 09:00 | 71,523.85 |
+| PI_ETHUSD | 2026-08-20 07:00 | 2,260.87 |
+| PI_ETHUSD | 2026-08-20 08:00 | 2,250.08 |
+| PI_ETHUSD | 2026-08-20 11:00 | 2,284.98 |
+| PI_ETHUSD | 2026-10-29 09:00 | 2,316.17 |
+| PI_ETHUSD | 2026-10-30 13:00 | 2,231.70 |
+| PI_ETHUSD | 2026-10-30 14:00 | 2,222.47 |
+| PI_ETHUSD | 2026-10-30 15:00 | 2,234.23 |
+| PI_ETHUSD | 2026-10-30 16:00 | 2,224.13 |
+
+The response hashes are retained in the same manifest per exact symbol and can be joined to exception rows by symbol. The full list is in the new [independent price/terms validation task](KRAKEN-PI-CAP-ANOMALY-INDEPENDENT-PRICE-VALIDATION.md).
+
+The latest queue guardian [45102678816](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45102678816) enumerated 369 workflow runs with complete enumeration, zero enforcement actions and zero errors. No active research/test runs or open standalone issues remained at that check.
+
+**Decision:** diagnostic work is complete, but Kraken funding remains `PROVISIONAL_NOT_ACCEPTED`. The cap contradiction, API timestamp-to-accrual semantics and full payable-settlement population are still independent blockers. Do not backtest or merge venues.
+
+Next, execute [Kraken PI cap-anomaly independent price and terms validation](KRAKEN-PI-CAP-ANOMALY-INDEPENDENT-PRICE-VALIDATION.md). Start with a bounded Coinbase BTC-USD/ETH-USD spot cross-check; this is a plausibility check, not a substitute for authoritative Kraken funding terms or settlement completeness.
 
 ## Remaining acceptance blockers
 
-1. **PI cap anomalies:** identify every out-of-cap API row from the API-only census. Reconcile the August 20 values and pre-settlement October 30 values with date-specific contract parameters or independent evidence. Do not clip or normalize them away.
+1. **PI cap anomalies:** all nine out-of-cap rows are now identified and locally contextualized. Reconcile the August 20 and October 29/30 observations with independent spot evidence and authoritative historical contract parameters. Do not clip or normalize them away.
 2. **Timestamp boundary semantics:** Kraken's contract specification describes next-period rate setting and hourly accrual, but the historical API reference does not explicitly define whether a row timestamp labels the beginning or end of the applicable accrual period. Keep `api_timestamp_boundary_semantics=UNRESOLVED` and `backtest_alignment_status=BLOCKED_PENDING_API_FIELD_MAPPING` unless official evidence resolves it.
 3. **Funding-event population:** the API's observed start is 2025-11-19 09:00 UTC, with no documented retention/refresh/pagination policy. The archive/API union and incident correlations do not prove a complete payable-settlement population. Preserve all missing events as unknown; never substitute zero or interpolate.
 4. **Archive residuals:** the July 10, August 31 and November 19 gaps overlap service incidents, but the November 1, November 2 and December 4 gaps have no matching API/derivatives incident in the inspected history. No incident overlap proves a skipped settlement.

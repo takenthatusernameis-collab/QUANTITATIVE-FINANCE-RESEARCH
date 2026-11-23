@@ -119,7 +119,7 @@ The API exposes two distinct rates: fundingRate is the absolute rate per contrac
 
 Kraken's linear example (2 BTC short, 0.03378375% per hour, USD index 37,000) yields USD 24.999975, rounded by Kraken to USD 25.00. Its inverse example (100,000 USD contracts short, 0.00595% per hour, index USD 7,000) yields 0.00085 BTC. These are encoded as Decimal regression tests.
 
-**Unresolved PI rate-cap anomaly:** the compact API manifest records PI_XBTUSD relativeFundingRate minimum -0.000862892604166667 and maximum +0.005; PI_ETHUSD minimum -0.003835161729166667 and maximum +0.005. The positive maxima (0.50%) and PI_ETH minimum (-0.3835%) exceed the current inverse ±0.25% hourly cap. The artifact retained extrema but not their timestamps. They may reflect a delisting/settlement event, a date-specific parameter exception, or malformed data; the evidence does not distinguish these. Do not clip or accept them. The next task must fetch only the public API rows needed to identify the extrema timestamps and compare them with the parameter changelog and instrument lifecycle.
+**Unresolved PI rate-cap anomaly:** the API-only full-row census found nine PI rows above the currently documented inverse ±0.25% hourly cap (one PI_XBTUSD, eight PI_ETHUSD). A bounded follow-up retained both rate fields and immediate neighboring rows for all nine. Their absolute/relative values are arithmetically consistent with Kraken's inverse formula, but this does not explain the cap discrepancy or establish settlement validity. Exact timestamps, sequence patterns, response hashes and implied index levels are in the [completed context audit and next independent validation task](../tasks/KRAKEN-PI-CAP-ANOMALY-INDEPENDENT-PRICE-VALIDATION.md).
 
 The public API reference says the rates array is sorted ascending but does not explicitly define whether each timestamp labels the start or end of the applicable accrual period. The contract specification says the next period's rate is calculated over the current period and applied from the next boundary. Exact timestamp alignment should be reconciled before a backtest.
 
@@ -128,10 +128,9 @@ Implementation: [8114a18](https://github.com/takenthatusernameis-collab/QUANTITA
 
 ## Decision and next task
 
-**Keep all four Kraken series PROVISIONAL_NOT_ACCEPTED.** The five common API gaps are now classified by status-history overlap, but no incident proves that a funding settlement was skipped or omitted. Four intervals overlap service incidents; December 4 remains unexplained. The historical four-hour schedule is explained by the 2022-09-29 cutover. The official API retention/refresh policy remains undocumented, and the PI API tail contains relative-rate extrema above the current inverse cap with no timestamps in the compact artifact. The archive also retains five two-hour and one three-hour anomalies whose exact timestamps were not retained.
+**Keep all four Kraken series `PROVISIONAL_NOT_ACCEPTED`.** The archive/API anomaly diagnostics, full-row cap census and bounded exception-context audit are complete. Nine PI rows still exceed the currently documented cap. The inverse rate fields are internally coherent under the documented conversion formula, but the cap discrepancy remains unexplained. API timestamp-to-accrual semantics and full settlement-event population remain unresolved.
 
-Next, execute [Kraken archive residual-anomaly and PI rate-cap audit](../tasks/KRAKEN-ARCHIVE-ANOMALY-AND-RATE-CAP-VALIDATION.md): extract exact archive gap timestamps and timestamped API extrema; reconcile PI cap values against date-specific specifications, changelog and delisting; and determine historical timestamp-boundary semantics. Use only a targeted checksum-verified ephemeral archive read if required. Do not clip, interpolate, or backtest while any of these issues remain unresolved. No Kraken-to-Binance merge, live trading, credentials, paid service, access restriction bypass, or holdout relaxation.
-
+Next, execute [Kraken PI cap-anomaly independent price and terms validation](../tasks/KRAKEN-PI-CAP-ANOMALY-INDEPENDENT-PRICE-VALIDATION.md). Use a bounded independent Coinbase BTC-USD/ETH-USD spot cross-check for plausibility, and search authoritative dated Kraken terms. Do not backtest, clip, interpolate, or merge venues.
 
 ## Targeted residual-anomaly and PI rate-cap audit — 2026-11-23
 
@@ -204,3 +203,34 @@ Every returned row passed mechanical timestamp/order/duplicate/null checks; no i
 The new implementation adds a bounded exception-context capture: for each cap exception it retains only the exception row and at most one preceding/following row, including both `fundingRate` and `relativeFundingRate`. It does not retain the full API response. Code/test commits: [9c9beaa](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/9c9beaa75455c0fab7e7c5885ce1367332e3723e) and [6ba9616](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/6ba961667adaafc08589dc4c93af453555eb16aa). Final CI and the refreshed manifest are pending.
 
 **Decision:** all four Kraken series remain `PROVISIONAL_NOT_ACCEPTED`. No Kraken backtest, cross-venue merge or empirical performance claim is authorized. API timestamp semantics and complete payable-settlement population remain independent hard blockers.
+
+
+## Bounded PI exception-context audit — 2026-11-23
+
+The follow-up completed in [run 45102646438](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45102646438), manifest-only artifact [14786345447](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45102646438/artifacts/14786345447). Artifact SHA-256: `56923db469f03d70285999684af1c72c90c9e65d2d9423d63b92543b557e85d3`. CI [45102432282](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45102432282) passed 199 deterministic tests and synthetic smoke. No archive download or raw-row upload occurred.
+
+The nine exception rows now include both API rate fields and at most one adjacent row on either side. Their ratio `relativeFundingRate / fundingRate` yields the following implied USD index levels under the documented inverse formula:
+
+| Symbol | Timestamp (UTC) | Implied USD index level |
+|---|---|---:|
+| PI_XBTUSD | 2026-08-20 09:00 | 71,523.85 |
+| PI_ETHUSD | 2026-08-20 07:00 | 2,260.87 |
+| PI_ETHUSD | 2026-08-20 08:00 | 2,250.08 |
+| PI_ETHUSD | 2026-08-20 11:00 | 2,284.98 |
+| PI_ETHUSD | 2026-10-29 09:00 | 2,316.17 |
+| PI_ETHUSD | 2026-10-30 13:00 | 2,231.70 |
+| PI_ETHUSD | 2026-10-30 14:00 | 2,222.47 |
+| PI_ETHUSD | 2026-10-30 15:00 | 2,234.23 |
+| PI_ETHUSD | 2026-10-30 16:00 | 2,224.13 |
+
+This demonstrates arithmetic consistency between the absolute and relative API fields; it does **not** independently validate the implied market/index prices or establish that the relative rates complied with the documented cap.
+
+The adjacent-row pattern shows isolated PI_XBTUSD 2026-08-20 09:00 and PI_ETHUSD 2026-08-20 11:00 exceptions; consecutive PI_ETHUSD 07:00/08:00 exceptions on August 20; an isolated PI_ETHUSD 2026-10-29 09:00 exception; and a consecutive PI_ETHUSD 13:00–16:00 sequence on October 30 ending at the delisting boundary. The August anomalies are not delisting events. The October timestamp-to-accrual mapping remains unresolved.
+
+The response hashes are retained per exact symbol in the same manifest and joinable to exceptions by symbol:
+- PF_XBTUSD: `6b7df2d3860f0b116b4b90482ac7c7f203fdf7bb5c43aaa090f00a3d55262340`
+- PF_ETHUSD: `50ab8de1d6bd84626c448d5a7f933dacdcbd89d33a2fce676228e7a83b04bd44`
+- PI_XBTUSD: `de1a8cfbadec23b563696de4a2c6ee5d8d404e7a5f423198ea39dac9b545b547`
+- PI_ETHUSD: `7f781d0b37d4f695717f0a5092a9a7ce9b601bdbf2a29105663a96c432621907`
+
+The public inverse specification still states ±0.25% per hour. The reviewed public parameter changelog contains no PI-specific funding-cap change, but cannot exclude unpublished/omitted terms. All four series remain `PROVISIONAL_NOT_ACCEPTED`; event-population completeness and API timestamp semantics remain separate hard blockers. See [the next independent validation task](../tasks/KRAKEN-PI-CAP-ANOMALY-INDEPENDENT-PRICE-VALIDATION.md).
