@@ -1,15 +1,15 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-23 02:02 UTC  
+**Updated:** 2026-11-23 02:46 UTC  
 **Canonical active-task pointer:** [Kraken archive residual anomalies and PI rate-cap audit](KRAKEN-ARCHIVE-ANOMALY-AND-RATE-CAP-VALIDATION.md).
 
-## Current session plan — 2026-11-23 02:02 UTC
+## Current session plan — 2026-11-23 02:46 UTC
 
 - **P0:** Preserve exact Kraken instrument/venue identity, raw-data ephemerality, source provenance and fail-closed research status. No rate clipping, interpolation, synthetic settlements, backtest, credentials, paid data or access-restriction bypass.
-- **P1:** Inspect the latest completed diagnostic run, artifact, CI, active Actions queue, issues, PRs, branches and recursive tree before dispatch. The residual-anomaly audit run [45096561519](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45096561519) succeeded; artifact [14783079210](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45096561519/artifacts/14783079210) contains the compact manifest. Latest pre-follow-up CI [45097476971](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45097476971) passed 192 deterministic tests.
-- **Hygiene preflight:** Recursive main tree has 72 entries and no tracked raw market data, cache, scratch/build outputs or disposable clutter. Six branches remain; no branch deletion is justified. No active Actions runs or open standalone issues were present. The only open PR is the draft control PR #2; preserve it. Queue guardian [45096806308](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45096806308) enumerated 352 runs with enumeration complete, zero actions and zero errors; its detailed inventory is intentionally truncated.
-- **Primary objective:** Complete the archive incident correlation and implement a materially different API-only, all-row PI/PF rate-cap census. Do not repeat the 110 MB archive download. After CI, dispatch the exact API-only command once and inspect the manifest.
-- **Scientific gate:** Kraken funding remains PROVISIONAL_NOT_ACCEPTED. The API timestamp-to-accrual mapping and event-population completeness are unresolved; no backtest or Binance merge.
+- **P1/P2:** The archive residual-anomaly diagnostic [45096561519](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45096561519) and API-only all-row cap census [45100276868](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45100276868) both completed successfully. Census artifact [14784609201](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45100276868/artifacts/14784609201) contains only the compact manifest. CI [45100169673](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45100169673) passed 153 deterministic tests and synthetic smoke. Guardian [45100311255](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45100311255) succeeded.
+- **Hygiene preflight:** No tracked raw market data, cache, scratch/build outputs or disposable clutter; no cleanup deletion justified. Preserve all six branches and the sole open draft control PR #2. No open standalone queue-guardian issues were found. The latest guardian reported no active research/test runs; the two new code/test CI runs were initiated after the census.
+- **Primary objective:** Record the nine PI cap exceptions and extend the API-only manifest with each exception plus at most one adjacent row on either side, including both fundingRate and relativeFundingRate. Do not re-download the historical archive.
+- **Scientific gate:** 34,256 API rows assessed; nine PI rows exceed the current documented cap. Kraken remains PROVISIONAL_NOT_ACCEPTED because timestamp-to-accrual semantics and full settlement-population completeness remain unresolved. No backtest or Binance merge.
 
 ## Governing priority
 
@@ -41,11 +41,13 @@ Apply the single authoritative [seven-level adaptive decision hierarchy](../docs
 - **New material warning:** the PI API summary includes relativeFundingRate extrema above the current ±0.25% cap (PI_XBTUSD max +0.005; PI_ETHUSD max +0.005/min -0.003835161729166667). Exact row timestamps were not retained. Do not clip or accept; investigate against date-specific contract changes and delisting.
 - Evidence: [Kraken API-tail and payout-semantics report](../reports/ETH-BTC-KRAKEN-API-TAIL-QUALITY-2026-11-23.md). All four Kraken series remain PROVISIONAL_NOT_ACCEPTED; no backtest or Binance merge.
 
-## Current active task — Kraken archive residual anomalies and PI rate-cap audit
+## Current active task — Kraken PI cap-exception context and semantics
 
-The targeted archive/API diagnostic is complete, but acceptance remains blocked. The six exact archive intervals are identical across PF_XBTUSD, PF_ETHUSD, PI_XBTUSD and PI_ETHUSD. Three overlap recorded service incidents; three have no matching API/derivatives incident in the inspected history. The PI extrema are timestamped and exceed the documented ±0.25% hourly cap, including three August 20 values well before the inverse-contract delisting. Both PI instrument records contain the contradictory flags isExpired=true and tradeable=true. See the updated [Kraken API-tail report](../reports/ETH-BTC-KRAKEN-API-TAIL-QUALITY-2026-11-23.md).
+The API-only census is complete: 34,256 rows were assessed, with nine PI exceptions (one PI_XBTUSD and eight PI_ETHUSD) above the current documented ±0.25% hourly cap; both PF symbols had zero exceptions. Exact timestamps and values are in the canonical [Kraken API-tail report](../reports/ETH-BTC-KRAKEN-API-TAIL-QUALITY-2026-11-23.md). The census did not download the archive or retain/upload raw API rows.
 
-The current code adds a full-row cap census and a separate API-only execution path. After CI passes, post exactly `/qfr-audit-kraken-rate-cap-census` to open control PR #2, verify the new run and manifest, and record every out-of-cap row. Do not repeat the historical ZIP download. Even a complete diagnostic does not resolve the undocumented API timestamp boundary or prove a complete settlement population; preserve PROVISIONAL_NOT_ACCEPTED and do not backtest.
+A bounded code enhancement now retains each exception row plus at most one preceding/following row, with both absolute `fundingRate` and relative `relativeFundingRate`. After final CI passes, post the exact command `/qfr-audit-kraken-rate-cap-census` once on control PR #2 and inspect the refreshed manifest for field consistency, spike persistence and delisting-boundary behavior. Do not repeat the historical ZIP download.
+
+The API timestamp-to-accrual mapping and full settlement-population completeness remain unresolved. Keep all Kraken series PROVISIONAL_NOT_ACCEPTED; no backtest or Binance merge.
 
 ## Completed historical follow-up — OKX funding metadata and symbol search (2026-11-22)
 
