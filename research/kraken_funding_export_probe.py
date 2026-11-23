@@ -673,6 +673,7 @@ def rate_cap_assessment(
         "applicable_absolute_cap": None,
         "cap_status": "NOT_APPLICABLE",
         "evidence_scope": "absolute fundingRate is not the relative hourly rate",
+        "evidence_url": None,
     }
     if field != "relativeFundingRate":
         return result
@@ -691,18 +692,25 @@ def rate_cap_assessment(
                 if timestamp_ms < HISTORICAL_CUTOVER_MS
                 else "current inverse cap ±0.25% per hour"
             ),
+            "evidence_url": (
+                "https://support.mtf.kraken.com/hc/en-us/articles/7009378818333-Inverse-Perpetual-Contracts-Funding-Rate-Method-Prior-to-September-29-2022"
+                if timestamp_ms < HISTORICAL_CUTOVER_MS
+                else "https://support.kraken.com/articles/360022835911-inverse-crypto-collateral-perpetual-contract-specifications-derivatives"
+            ),
         })
     elif symbol.startswith("PF_"):
         if timestamp_ms < HISTORICAL_CUTOVER_MS:
             result.update({
                 "cap_status": "HISTORICAL_LINEAR_CAP_UNVERIFIED",
                 "evidence_scope": "pre-cutover PF cadence is observed, but PF-specific historical cap is not established",
+                "evidence_url": None,
             })
             return result
         cap = 0.005
         result.update({
             "applicable_absolute_cap": cap,
             "evidence_scope": "current linear cap ±0.50% per hour",
+            "evidence_url": "https://support.kraken.com/articles/4844359082772-linear-multi-collateral-derivatives-contract-specifications",
         })
     else:
         result.update({
@@ -718,6 +726,7 @@ def rate_cap_assessment(
     )
     if symbol.startswith("PI_") and timestamp_ms >= PI_DELISTING_MS:
         result["delisting_boundary_review"] = "AT_OR_AFTER_2026-10-30T16:00:00Z"
+        result["delisting_evidence_url"] = "https://support.kraken.com/articles/7526425887508-derivatives-contracts-trading-suspensions-delistings"
     return result
 
 
@@ -1329,6 +1338,21 @@ def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
                                             extract_api_extrema(item) for item in api_records
                                         ]
                                         manifest["timestamp_semantics_assessment"] = timestamp_semantics_assessment()
+                                        manifest["parameter_changelog_review"] = {
+                                            "source_url": "https://support.kraken.com/ro/articles/13049711807636-derivatives-platform-parameters-changelog",
+                                            "page_last_updated": "2026-10-01",
+                                            "finding": (
+                                                "The reviewed public changelog contains a PF_OGNUSD-specific maximum relative funding-rate change "
+                                                "in 2023 and PI_XBTUSD/PI_ETHUSD margin-class entries in 2024; no PI_XBTUSD or PI_ETHUSD funding-cap "
+                                                "change was found in the reviewed entries. This is not proof that no unpublished or omitted parameter "
+                                                "change ever occurred."
+                                            ),
+                                        }
+                                        manifest["delisting_reference"] = {
+                                            "source_url": "https://support.kraken.com/articles/7526425887508-derivatives-contracts-trading-suspensions-delistings",
+                                            "settlement_date": "2026-10-30",
+                                            "inverse_btc_eth_settlement_time_utc": "16:00",
+                                        }
                                         manifest["api_rate_cap_assessment"] = {
                                             item.get("symbol"): {
                                                 field: {
@@ -1387,6 +1411,19 @@ def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
                                             item.get("symbol"): len(item.get("residual_interval_anomalies") or [])
                                             for item in archive_summary["perpetual_csv_summaries"]
                                         }
+                                        anomaly_distributions = {
+                                            item.get("symbol"): dict(Counter(
+                                                str(anomaly.get("actual_interval_hours"))
+                                                for anomaly in item.get("residual_interval_anomalies") or []
+                                            ))
+                                            for item in archive_summary["perpetual_csv_summaries"]
+                                        }
+                                        expected_distribution = {"2.0": 5, "3.0": 1}
+                                        anomaly_distribution_match = (
+                                            set(anomaly_distributions) == set(TARGETED_SYMBOLS)
+                                            and all(distribution == expected_distribution
+                                                    for distribution in anomaly_distributions.values())
+                                        )
                                         hash_ok = archive_summary.get("archive_sha256") == EXPECTED_ARCHIVE_SHA256
                                         manifest["targeted_acceptance_checks"] = {
                                             "all_four_exact_csvs_found": found == set(TARGETED_SYMBOLS),
@@ -1395,11 +1432,14 @@ def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
                                             "known_archive_size_matches": archive_path.stat().st_size == EXPECTED_ARCHIVE_SIZE_BYTES,
                                             "known_archive_sha256_matches": hash_ok,
                                             "archive_anomaly_counts_by_symbol": anomaly_counts,
+                                            "archive_anomaly_distribution_by_symbol": anomaly_distributions,
                                             "expected_anomaly_count_per_symbol": 6,
+                                            "expected_anomaly_distribution_per_symbol": expected_distribution,
                                             "anomaly_counts_match_expected": (
                                                 set(anomaly_counts) == set(TARGETED_SYMBOLS)
                                                 and all(count == 6 for count in anomaly_counts.values())
                                             ),
+                                            "anomaly_distribution_matches_expected": anomaly_distribution_match,
                                             "funding_acceptance": "PROVISIONAL_NOT_ACCEPTED",
                                         }
                                         manifest["status"] = (
@@ -1412,6 +1452,7 @@ def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
                                                 and archive_path.stat().st_size == EXPECTED_ARCHIVE_SIZE_BYTES
                                                 and set(anomaly_counts) == set(TARGETED_SYMBOLS)
                                                 and all(count == 6 for count in anomaly_counts.values())
+                                                and anomaly_distribution_match
                                             )
                                             else "targeted_anomaly_audit_incomplete"
                                         )
