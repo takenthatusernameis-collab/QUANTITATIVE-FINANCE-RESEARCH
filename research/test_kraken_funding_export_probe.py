@@ -13,6 +13,7 @@ from kraken_funding_export_probe import (
     analyze_csv_stream,
     asset_from_instrument,
     crosscheck_archive_api,
+    compare_archive_anomalies_to_api,
     expected_interval_hours,
     extract_api_extrema,
     extract_archive_interval_anomalies,
@@ -234,6 +235,44 @@ class KrakenFundingExportProbeTests(unittest.TestCase):
             result["extrema"]["fundingRate"]["max"]["matches"][0]["cap_assessment"]["cap_status"],
             "NOT_APPLICABLE",
         )
+
+    def test_archive_anomaly_comparison_checks_api_endpoints_and_missing_boundaries(self):
+        left_ms = parse_timestamp_ms("2026-01-01T00:00:00Z")
+        right_ms = parse_timestamp_ms("2026-01-01T02:00:00Z")
+        anomaly = {
+            "from_utc": "2026-01-01T00:00:00+00:00",
+            "to_utc": "2026-01-01T02:00:00+00:00",
+            "actual_interval_hours": 2.0,
+            "expected_interval_hours": 1,
+            "missing_hourly_boundaries": ["2026-01-01T01:00:00+00:00"],
+            "left_record": {
+                "timestamp": "2026-01-01T00:00:00+00:00",
+                "timestamp_ms": left_ms,
+                "rates": {"absolute_rate": 0.1, "relative_rate": 0.01},
+            },
+            "right_record": {
+                "timestamp": "2026-01-01T02:00:00+00:00",
+                "timestamp_ms": right_ms,
+                "rates": {"absolute_rate": 0.2, "relative_rate": 0.02},
+            },
+        }
+        api = {
+            "symbol": "PF_XBTUSD",
+            "response_sha256": "b" * 64,
+            "rates": [
+                {"timestamp": "2026-01-01T00:00:00Z", "fundingRate": 0.1, "relativeFundingRate": 0.01},
+                {"timestamp": "2026-01-01T01:00:00Z", "fundingRate": 0.15, "relativeFundingRate": 0.015},
+                {"timestamp": "2026-01-01T02:00:00Z", "fundingRate": 0.2, "relativeFundingRate": 0.02},
+            ],
+        }
+        result = compare_archive_anomalies_to_api([anomaly], api)[0]["api_comparison"]
+        self.assertEqual(result["comparison_status"], "API_CONTAINS_ARCHIVE_MISSING_BOUNDARIES")
+        self.assertTrue(result["endpoint_checks"]["left_record"]["api_row_present"])
+        self.assertTrue(
+            result["endpoint_checks"]["left_record"]["rate_comparisons"]["absolute_rate"]["equal_with_tolerance"]
+        )
+        self.assertTrue(result["missing_boundary_checks"][0]["api_row_present"])
+        self.assertIn("does not prove", result["interpretation"])
 
     def test_rate_cap_assessment_is_contract_and_date_specific(self):
         pre_cutover = parse_timestamp_ms("2022-09-29T11:00:00Z")
