@@ -336,6 +336,29 @@ class KrakenFundingExportProbeTests(unittest.TestCase):
         )
         self.assertEqual(assessment["status_counts"]["WITHIN_DOCUMENTED_CAP"], 2)
         self.assertEqual(assessment["status_counts"]["EXCEEDS_DOCUMENTED_CAP"], 2)
+        first_exception, second_exception = assessment["exceeds_documented_cap_rows"]
+        self.assertEqual(first_exception["fundingRate"], 0.1)
+        self.assertEqual(first_exception["relativeFundingRate"], 0.005)
+        self.assertEqual(
+            [row["timestamp"] for row in first_exception["adjacent_context_records"]],
+            ["2026-08-20T07:00:00Z", "2026-08-20T08:00:00Z"],
+        )
+        self.assertEqual(
+            [row["timestamp"] for row in second_exception["adjacent_context_records"]],
+            [
+                "2026-08-20T08:00:00Z",
+                "2026-08-20T09:00:00Z",
+                "2026-08-20T10:00:00Z",
+            ],
+        )
+        self.assertEqual(
+            second_exception["adjacent_context_records"][1]["rates"]["fundingRate"],
+            0.1,
+        )
+        self.assertEqual(
+            second_exception["adjacent_context_records"][2]["relative_rate_cap_assessment"]["cap_status"],
+            "WITHIN_DOCUMENTED_CAP",
+        )
 
     def test_api_cap_audit_is_api_only_manifest_and_counts_all_rows(self):
         symbols = ("PF_XBTUSD", "PF_ETHUSD", "PI_XBTUSD", "PI_ETHUSD")
@@ -380,6 +403,10 @@ class KrakenFundingExportProbeTests(unittest.TestCase):
             "PF_XBTUSD": 0, "PF_ETHUSD": 0, "PI_XBTUSD": 1, "PI_ETHUSD": 1,
         })
         self.assertEqual(len(manifest["api_rate_cap_exceptions"]), 2)
+        self.assertTrue(all(
+            "adjacent_context_records" in row and "fundingRate" in row
+            for row in manifest["api_rate_cap_exceptions"]
+        ))
         self.assertTrue(manifest["targeted_acceptance_checks"]["all_relative_rate_rows_cap_assessed"])
         self.assertEqual(len(manifest["target_instrument_lifecycle"]), 4)
         self.assertTrue(manifest["target_instrument_lifecycle"][2]["lifecycle_flag_conflict"])
