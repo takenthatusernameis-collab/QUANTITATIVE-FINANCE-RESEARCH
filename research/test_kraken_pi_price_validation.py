@@ -106,6 +106,7 @@ class KrakenPiPriceValidationTests(unittest.TestCase):
         start = epoch_seconds("2026-01-01T00:00:00Z")
         end = epoch_seconds("2026-01-01T03:00:00Z")
         payload = [
+            [start - 3600, 99, 101, 100, 100, 5],
             [start, 99, 101, 100, 100, 5],
             [start, 99, 101, 100, 100, 5],
             [start + 3600, 99, 98, 100, 100, 5],
@@ -116,6 +117,7 @@ class KrakenPiPriceValidationTests(unittest.TestCase):
         self.assertEqual(validation["duplicate_timestamp_count"], 1)
         self.assertEqual(validation["invalid_row_count"], 2)
         self.assertEqual(validation["out_of_window_count"], 1)
+        self.assertEqual(validation["pre_start_extra_count"], 1)
         self.assertIn("ohlc_invariant", validation["errors"])
         self.assertIn("out_of_window", validation["errors"])
 
