@@ -4,6 +4,16 @@
 **Priority:** P1 data-integrity / research-acceptance blocker  
 **Research gate:** all four Kraken funding series remain PROVISIONAL_NOT_ACCEPTED; no backtest or cross-venue merge.
 
+## Session plan — 2026-11-23 05:52 UTC
+
+- **P0 invariants:** No cap clipping, synthetic funding, zero insertion, paid data, credentials, raw-data commits, backtest or cross-venue merge. Keep all four Kraken series PROVISIONAL_NOT_ACCEPTED.
+- **P1 meta-process:** Batch the new probe, tests, allowlist and handoff change into one atomic Git tree/commit, then run one hosted CI cycle; avoid per-file push fan-out.
+- **P2 timestamp route:** Use the public no-key Tardis Kraken Futures \`derivative_ticker\` sample for 2026-10-01 and the matching public Kraken PI_XBTUSD/PI_ETHUSD histories. Compare each last pre-event ticker rate with API rows at T and T−1h, checking both API rate fields. The Tardis schema explicitly warns that its final pre-event rate can differ from the exchange-settled rate; treat this as a diagnostic, not automatic acceptance.
+- **P2 cap route:** Recheck current Kraken sources and archived pages. The English inverse-spec URL now redirects to the generic delistings article; the current parameter changelog has no PI funding-cap entry, while its PF_OGNUSD exception proves instrument-specific caps can exist. Without an effective-dated PI source, leave all nine exceptions unaccepted.
+- **P2 settlement route:** Reuse Kraken's published PI_ETHUSD $2,235.76 settlement and 15:00–16:00 London window. The exact historical CME CF ETHUSD_RR value is not exposed on the public index page; do not substitute a Coinbase close or purchase licensed data.
+- **P2 population route:** Do not repeat the Kraken archive download or completed Coinbase windows. The API schema still has no documented pagination, retention or refresh policy; a one-day ticker sample cannot establish the complete payable-event population or resolve the five common two-hour gaps.
+- **Hygiene preflight:** 68 tracked files, no tracked raw market data, cache payloads, scratch or build outputs. Preserve all six branches and draft control PR #2; no cleanup deletion is warranted.
+
 ## Objective
 
 Resolve the remaining reasons the Kraken PF/PI funding histories cannot be accepted: effective-dated PI funding-cap terms for the nine exceptions, the public API timestamp-to-accrual mapping, and completeness of the payable funding-event population. Reconcile the exact PI delisting settlement reference where possible.

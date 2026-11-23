@@ -94,6 +94,26 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         self.assertIn("rows_unassessed", probe)
         self.assertIn("exceeds_documented_cap_rows", probe)
 
+    def test_kraken_tardis_timestamp_probe_is_bounded_and_manifest_only(self):
+        workflow = (WORKFLOW_DIR / "eth-btc-research.yml").read_text(encoding="utf-8")
+        command = "/qfr-audit-kraken-tardis-timestamp-mapping"
+        self.assertIn(f'"{command}"', workflow)
+        self.assertIn(f'"{command}")', workflow)
+        self.assertIn('COMMAND="kraken-tardis-timestamp-audit"', workflow)
+        self.assertIn("command == 'kraken-tardis-timestamp-audit'", workflow)
+        self.assertIn("kraken-tardis-timestamp-probe:", workflow)
+        job = workflow.split("  kraken-tardis-timestamp-probe:", 1)[1].split("\n\n  kraken-pi-price-validation:", 1)[0]
+        self.assertIn("python research/kraken_tardis_timestamp_probe.py", job)
+        self.assertIn("2026-10-01", job)
+        self.assertIn("/manifest.json", job)
+        self.assertIn("retention-days: 30", job)
+        self.assertNotIn("*.csv", job.lower())
+        self.assertNotIn("*.gz", job.lower())
+        probe = (ROOT / "research" / "kraken_tardis_timestamp_probe.py").read_text(encoding="utf-8")
+        for required in ("funding_timestamp", "relativeFundingRate", "settlement_population_complete",
+                         "raw_data_uploaded", "historical_archive_downloaded", "MAX_AGE_SECONDS"):
+            self.assertIn(required, probe)
+
     def test_kraken_pi_price_validation_job_is_bounded_and_manifest_only(self):
         workflow = (WORKFLOW_DIR / "eth-btc-research.yml").read_text(encoding="utf-8")
         command = "/qfr-audit-kraken-pi-price-validation"

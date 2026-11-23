@@ -99,6 +99,27 @@ class WorkflowConcurrencyPolicyTests(unittest.TestCase):
         self.assertNotIn("*.zip", artifact_block.lower())
         self.assertNotIn("*.csv", artifact_block.lower())
 
+    def test_kraken_tardis_timestamp_probe_is_allowlisted_and_bounded(self):
+        workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+        command = "/qfr-audit-kraken-tardis-timestamp-mapping"
+        block = workflow.split(f'"{command}")', 1)[1].split(";;", 1)[0]
+        self.assertIn('COMMAND="kraken-tardis-timestamp-audit"', block)
+        self.assertIn('START="2026-10-01"', block)
+        self.assertIn('END="2026-10-01"', block)
+        self.assertIn('MARKET="both"', block)
+        self.assertIn('RECONCILE="false"', block)
+        self.assertIn(command, workflow.split('case "$COMMENT_BODY" in', 1)[0])
+        self.assertIn("needs.authorize.outputs.command == 'kraken-tardis-timestamp-audit'", workflow)
+        job = workflow.split("  kraken-tardis-timestamp-probe:", 1)[1].split("\n\n  kraken-pi-price-validation:", 1)[0]
+        self.assertIn("python research/kraken_tardis_timestamp_probe.py", job)
+        self.assertIn("/manifest.json", job)
+        self.assertNotIn("*.csv", job.lower())
+        self.assertNotIn("*.gz", job.lower())
+        probe = (ROOT / "research" / "kraken_tardis_timestamp_probe.py").read_text(encoding="utf-8")
+        self.assertIn("PI_XBTUSD", probe)
+        self.assertIn("PI_ETHUSD", probe)
+        self.assertIn("settlement_population_complete", probe)
+
     def test_kraken_pi_price_validation_is_allowlisted_and_bounded(self):
         workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
         command = "/qfr-audit-kraken-pi-price-validation"

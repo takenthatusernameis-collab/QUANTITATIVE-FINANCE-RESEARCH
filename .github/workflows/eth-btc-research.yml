@@ -42,7 +42,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.event_name == 'issue_comment' && (github.event.action != 'created' || github.event.issue.number != 2 || github.event.issue.pull_request == null || github.event.issue.state != 'open' || github.event.comment.user.login != 'takenthatusernameis-collab' || !contains(fromJSON('["/qfr-control-smoke","/qfr-run-eth-btc-data-audit","/qfr-probe-eth-btc-funding-2024-01","/qfr-probe-tardis-funding-2024-01-01","/qfr-probe-tardis-funding-2020-06-01","/qfr-probe-tardis-funding-2025-06-01","/qfr-probe-tardis-funding-2025-10-01","/qfr-probe-tardis-funding-2026-02-01","/qfr-probe-tardis-funding-2026-03-01","/qfr-probe-mexc-funding-history","/qfr-probe-bybit-funding-history","/qfr-probe-bitget-funding-download","/qfr-probe-okx-funding-download","/qfr-probe-okx-funding-button","/qfr-probe-okx-funding-field-info","/qfr-probe-okx-funding-symbols","/qfr-probe-kraken-funding-export","/qfr-audit-kraken-residual-anomalies","/qfr-audit-kraken-rate-cap-census","/qfr-audit-kraken-pi-price-validation","/qfr-run-eth-btc-empirical","/qfr-run-eth-btc-spot-empirical","/qfr-run-eth-btc-um-empirical"]'), github.event.comment.body)) && format('eth-btc-research-ignored-{0}', github.event.comment.id) || 'eth-btc-research-main' }}
+  group: ${{ github.event_name == 'issue_comment' && (github.event.action != 'created' || github.event.issue.number != 2 || github.event.issue.pull_request == null || github.event.issue.state != 'open' || github.event.comment.user.login != 'takenthatusernameis-collab' || !contains(fromJSON('["/qfr-control-smoke","/qfr-run-eth-btc-data-audit","/qfr-probe-eth-btc-funding-2024-01","/qfr-probe-tardis-funding-2024-01-01","/qfr-probe-tardis-funding-2020-06-01","/qfr-probe-tardis-funding-2025-06-01","/qfr-probe-tardis-funding-2025-10-01","/qfr-probe-tardis-funding-2026-02-01","/qfr-probe-tardis-funding-2026-03-01","/qfr-probe-mexc-funding-history","/qfr-probe-bybit-funding-history","/qfr-probe-bitget-funding-download","/qfr-probe-okx-funding-download","/qfr-probe-okx-funding-button","/qfr-probe-okx-funding-field-info","/qfr-probe-okx-funding-symbols","/qfr-probe-kraken-funding-export","/qfr-audit-kraken-residual-anomalies","/qfr-audit-kraken-rate-cap-census","/qfr-audit-kraken-tardis-timestamp-mapping","/qfr-audit-kraken-pi-price-validation","/qfr-run-eth-btc-empirical","/qfr-run-eth-btc-spot-empirical","/qfr-run-eth-btc-um-empirical"]'), github.event.comment.body)) && format('eth-btc-research-ignored-{0}', github.event.comment.id) || 'eth-btc-research-main' }}
   queue: max
   cancel-in-progress: false
 
@@ -236,6 +236,14 @@ jobs:
                 COMMAND="kraken-api-cap-audit"
                 START="2018-01-01"
                 END="2026-11-23"
+                MARKET="both"
+                RECONCILE="false"
+                ;;
+              "/qfr-audit-kraken-tardis-timestamp-mapping")
+                # One no-key Tardis first-of-month PI sample plus matching public Kraken API histories; no archive or raw-data artifact.
+                COMMAND="kraken-tardis-timestamp-audit"
+                START="2026-10-01"
+                END="2026-10-01"
                 MARKET="both"
                 RECONCILE="false"
                 ;;
@@ -622,6 +630,39 @@ jobs:
         with:
           name: kraken-api-cap-audit-${{ github.run_id }}
           path: reports/generated/kraken-api-cap-audit-${{ github.run_id }}/manifest.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  kraken-tardis-timestamp-probe:
+    name: Compare Kraken historical rows with Tardis next-funding events (no-key sample)
+    needs: authorize
+    if: \${{ needs.authorize.outputs.authorized == 'true' && needs.authorize.outputs.command == 'kraken-tardis-timestamp-audit' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository default branch only
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: \${{ github.event.repository.default_branch }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.11'
+
+      - name: Compare no-key Tardis sample with public Kraken histories
+        run: |
+          set -euo pipefail
+          python research/kraken_tardis_timestamp_probe.py \
+            --sample-date 2026-10-01 \
+            --output-dir "reports/generated/kraken-tardis-timestamp-\${{ github.run_id }}"
+
+      - name: Upload derived manifest only (never raw CSV or API payloads)
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: kraken-tardis-timestamp-\${{ github.run_id }}
+          path: reports/generated/kraken-tardis-timestamp-\${{ github.run_id }}/manifest.json
           if-no-files-found: warn
           retention-days: 30
 
