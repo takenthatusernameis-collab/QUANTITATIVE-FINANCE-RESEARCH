@@ -105,6 +105,17 @@ class KrakenPiPriceValidationTests(unittest.TestCase):
         self.assertIn("product_not_online", eth["errors"])
         self.assertFalse(manifest["research_gate"]["cap_exceptions_accepted"])
 
+    def test_zero_volume_candle_is_not_a_price_observation(self):
+        start = epoch_seconds("2026-01-01T00:00:00Z")
+        candles, validation = parse_candle_payload(
+            [[start, 99, 101, 100, 100, 0]],
+            start,
+            start + 3600,
+        )
+        self.assertEqual(candles, [])
+        self.assertEqual(validation["invalid_row_count"], 1)
+        self.assertIn("non_positive_price_or_non_positive_volume", validation["errors"])
+
     def test_missing_trading_disabled_flag_fails_closed(self):
         validation = validate_product(
             {"id": "BTC-USD", "base_currency": "BTC", "quote_currency": "USD", "status": "online"},
