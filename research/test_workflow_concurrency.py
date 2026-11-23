@@ -65,6 +65,25 @@ class WorkflowConcurrencyPolicyTests(unittest.TestCase):
         self.assertIn("MAX_RECORDS: '200000'", workflow)
         self.assertIn("Upload MEXC manifests (never raw pages)", workflow)
 
+    def test_kraken_residual_anomaly_audit_is_allowlisted_exact_and_manifest_only(self):
+        workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+        command = "/qfr-audit-kraken-residual-anomalies"
+        block = workflow.split(f'"{command}")', 1)[1].split(";;", 1)[0]
+        self.assertIn('COMMAND="kraken-anomaly-audit"', block)
+        self.assertIn('START="2018-01-01"', block)
+        self.assertIn('END="2026-11-23"', block)
+        self.assertIn('RECONCILE="false"', block)
+        self.assertIn(command, workflow.split("case \"$COMMENT_BODY\" in", 1)[0])
+        self.assertIn("needs.authorize.outputs.command == 'kraken-anomaly-audit'", workflow)
+        self.assertIn("MODE=anomaly-audit", workflow)
+        self.assertIn('kraken_funding_export_probe.py --mode "$MODE"', workflow)
+        self.assertIn("target_symbols=set(TARGETED_SYMBOLS)", (ROOT / "research" / "kraken_funding_export_probe.py").read_text(encoding="utf-8"))
+        artifact_block = workflow.split("name: Upload compact evidence only (never raw ZIP or CSV)", 1)[1].split("\n\n", 1)[0]
+        self.assertIn("/manifest.json", artifact_block)
+        self.assertIn("/*.png", artifact_block)
+        self.assertNotIn("*.zip", artifact_block.lower())
+        self.assertNotIn("*.csv", artifact_block.lower())
+
     def test_bybit_probe_is_allowlisted_and_bounded(self):
         workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
         block = workflow.split('"/qfr-probe-bybit-funding-history")', 1)[1].split(";;", 1)[0]
