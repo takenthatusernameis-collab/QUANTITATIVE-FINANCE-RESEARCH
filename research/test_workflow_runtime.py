@@ -83,7 +83,7 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         self.assertIn('COMMAND="kraken-api-cap-audit"', workflow)
         self.assertIn("kraken-api-cap-audit:", workflow)
         self.assertIn("--mode api-cap-audit", workflow)
-        job = workflow.split("  kraken-api-cap-audit:", 1)[1].split("\n  okx-funding-button-probe:", 1)[0]
+        job = workflow.split("  kraken-api-cap-audit:", 1)[1].split("\n\n  okx-funding-button-probe:", 1)[0]
         self.assertNotIn("playwright", job.lower())
         self.assertNotIn("zip", job.lower())
         self.assertIn("Install HTTP client only", job)
