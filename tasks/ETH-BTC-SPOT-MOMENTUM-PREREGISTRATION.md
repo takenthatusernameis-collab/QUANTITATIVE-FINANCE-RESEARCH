@@ -1,6 +1,6 @@
 # Preregistered ETH/BTC spot relative-momentum rotation
 
-**Status:** PENDING — 2026-11-23  
+**Status:** COMPLETE — NO-GO, 2026-11-23  
 **Priority:** P5 hypothesis/model replacement after original funding-data architecture screen  
 **Scope:** Separate spot-only experiment. No leverage, shorting, funding data, venue merge or live deployment.
 
@@ -17,6 +17,13 @@
 - **Completion evidence:** repository-committed implementation, deterministic tests, accepted source/provenance checks, reproducible empirical outputs, complete report and terminal decision. An uncommitted local prototype or synthetic test alone does not satisfy completion.
 
 See [the governing timebox policy](../docs/MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md). These dates and limits are frozen.
+
+## Final empirical conclusion — 2026-11-23
+
+**NO-GO.** The exact gated command completed successfully in [Actions run 45190869167](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45190869167), artifact [14832209111](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45190869167/artifacts/14832209111). All six preregistered GO criteria failed. Baseline 10-bps/leg net CAGR was 1.34% versus BTC 11.26%; Sharpe 0.024 versus 0.213; max drawdown -77.98% versus -67.38%. All three bootstrap lower bounds were negative. Do not tune or reinterpret the OOS sample.
+
+The experiment is closed after substantive cycle 1 of 4 because a valid terminal conclusion was reached. The compact committed report is [ETH-BTC-SPOT-MOMENTUM-EMPIRICAL-RESULT-2026-11-23.md](../reports/ETH-BTC-SPOT-MOMENTUM-EMPIRICAL-RESULT-2026-11-23.md). A new strategy requires a distinct preregistration, timebox and independent/later holdout.
+
 
 ## Hypothesis
 
