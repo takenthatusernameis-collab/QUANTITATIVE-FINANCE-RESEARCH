@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import io
+import json
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 from kraken_funding_export_probe import (
     analyze_api_rows,
@@ -21,6 +23,7 @@ from kraken_funding_export_probe import (
     is_perpetual_instrument,
     parse_timestamp_ms,
     rate_cap_assessment,
+    run_api_cap_audit,
     timestamp_semantics_assessment,
 )
 
@@ -311,6 +314,76 @@ class KrakenFundingExportProbeTests(unittest.TestCase):
             rate_cap_assessment("PF_ETHUSD", "relativeFundingRate", post_cutover, 0.004)["cap_status"],
             "WITHIN_DOCUMENTED_CAP",
         )
+
+    def test_api_quality_counts_every_relative_rate_cap_violation(self):
+        api = {
+            "symbol": "PI_XBTUSD",
+            "rates": [
+                {"timestamp": "2026-08-20T07:00:00Z", "fundingRate": "0.1", "relativeFundingRate": "0.005"},
+                {"timestamp": "2026-08-20T08:00:00Z", "fundingRate": "0.1", "relativeFundingRate": "0.0025"},
+                {"timestamp": "2026-08-20T09:00:00Z", "fundingRate": "0.1", "relativeFundingRate": "-0.003"},
+                {"timestamp": "2026-08-20T10:00:00Z", "fundingRate": "0.1", "relativeFundingRate": "-0.0025"},
+            ],
+        }
+        result = analyze_api_rows(api)
+        assessment = result["relative_rate_cap_assessment"]
+        self.assertEqual(assessment["rows_assessed"], 4)
+        self.assertEqual(assessment["rows_unassessed"], 0)
+        self.assertEqual(assessment["exceeds_documented_cap_count"], 2)
+        self.assertEqual(
+            [row["timestamp"] for row in assessment["exceeds_documented_cap_rows"]],
+            ["2026-08-20T07:00:00Z", "2026-08-20T09:00:00Z"],
+        )
+        self.assertEqual(assessment["status_counts"]["WITHIN_DOCUMENTED_CAP"], 2)
+        self.assertEqual(assessment["status_counts"]["EXCEEDS_DOCUMENTED_CAP"], 2)
+
+    def test_api_cap_audit_is_api_only_manifest_and_counts_all_rows(self):
+        symbols = ("PF_XBTUSD", "PF_ETHUSD", "PI_XBTUSD", "PI_ETHUSD")
+        instruments = [
+            {"symbol": "PF_XBTUSD", "pair": "BTC:USD", "base": "BTC", "type": "flexible_futures", "isExpired": False, "tradeable": True},
+            {"symbol": "PF_ETHUSD", "pair": "ETH:USD", "base": "ETH", "type": "flexible_futures", "isExpired": False, "tradeable": True},
+            {"symbol": "PI_XBTUSD", "pair": "BTC:USD", "base": "BTC", "type": "futures_inverse", "isExpired": True, "tradeable": True},
+            {"symbol": "PI_ETHUSD", "pair": "ETH:USD", "base": "ETH", "type": "futures_inverse", "isExpired": True, "tradeable": True},
+        ]
+        api_records = []
+        for index, symbol in enumerate(symbols):
+            api_records.append({
+                "symbol": symbol,
+                "url": f"https://futures.kraken.com/derivatives/api/v3/historical-funding-rates?symbol={symbol}",
+                "status": 200, "content_type": "application/json",
+                "response_sha256": str(index) * 64, "result": "success",
+                "serverTime": "2026-11-23T02:00:00Z",
+                "rates": [
+                    {"timestamp": "2026-08-20T07:00:00Z", "fundingRate": "0.001", "relativeFundingRate": "0.005"},
+                    {"timestamp": "2026-08-20T08:00:00Z", "fundingRate": "0.002", "relativeFundingRate": "0.001"},
+                ],
+            })
+        with tempfile.TemporaryDirectory() as directory:
+            with patch(
+                "kraken_funding_export_probe.fetch_instruments",
+                return_value={
+                    "requests": [{"status": 200, "expired_filter": False}, {"status": 200, "expired_filter": True}],
+                    "instruments": instruments,
+                    "perpetual_btc_eth": [compact_instrument(item) for item in instruments],
+                },
+            ), patch(
+                "kraken_funding_export_probe.fetch_historical_funding",
+                side_effect=api_records,
+            ):
+                result = run_api_cap_audit(Path(directory))
+            manifest = json.loads((Path(directory) / "manifest.json").read_text())
+        self.assertEqual(result["status"], "api_cap_audit_complete")
+        self.assertFalse(manifest["archive_download_attempted"])
+        self.assertFalse(manifest["raw_api_rows_uploaded"])
+        self.assertFalse(manifest["raw_api_rows_committed"])
+        self.assertEqual(manifest["api_rate_cap_exception_count_by_symbol"], {
+            "PF_XBTUSD": 0, "PF_ETHUSD": 0, "PI_XBTUSD": 1, "PI_ETHUSD": 1,
+        })
+        self.assertEqual(len(manifest["api_rate_cap_exceptions"]), 2)
+        self.assertTrue(manifest["targeted_acceptance_checks"]["all_relative_rate_rows_cap_assessed"])
+        self.assertEqual(len(manifest["target_instrument_lifecycle"]), 4)
+        self.assertTrue(manifest["target_instrument_lifecycle"][2]["lifecycle_flag_conflict"])
+        self.assertTrue(all("rates" not in item for item in manifest["public_api_responses"]))
 
     def test_api_timestamp_mapping_remains_unresolved_without_explicit_field_semantics(self):
         result = timestamp_semantics_assessment()

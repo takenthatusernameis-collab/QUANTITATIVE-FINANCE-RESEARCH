@@ -76,6 +76,24 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         self.assertIn("relativefundingrate", probe.lower())
         self.assertIn("TemporaryDirectory", probe)
 
+    def test_kraken_api_rate_cap_census_is_separate_and_archive_free(self):
+        workflow = (WORKFLOW_DIR / "eth-btc-research.yml").read_text(encoding="utf-8")
+        command = "/qfr-audit-kraken-rate-cap-census"
+        self.assertIn(f'"{command}"', workflow)
+        self.assertIn('COMMAND="kraken-api-cap-audit"', workflow)
+        self.assertIn("kraken-api-cap-audit:", workflow)
+        self.assertIn("--mode api-cap-audit", workflow)
+        job = workflow.split("  kraken-api-cap-audit:", 1)[1].split("\n  okx-funding-button-probe:", 1)[0]
+        self.assertNotIn("playwright", job.lower())
+        self.assertNotIn("zip", job.lower())
+        self.assertIn("Install HTTP client only", job)
+        self.assertIn("/manifest.json", job)
+        probe = (ROOT / "research" / "kraken_funding_export_probe.py").read_text(encoding="utf-8")
+        self.assertIn('"api-cap-audit"', probe)
+        self.assertIn("def run_api_cap_audit", probe)
+        self.assertIn("rows_unassessed", probe)
+        self.assertIn("exceeds_documented_cap_rows", probe)
+
     def test_okx_funding_button_probe_is_exactly_allowlisted(self):
         workflow = (WORKFLOW_DIR / "eth-btc-research.yml").read_text(encoding="utf-8")
         command = "/qfr-probe-okx-funding-button"

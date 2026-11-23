@@ -93,6 +93,22 @@ INCIDENTS = (
 )
 
 
+ARCHIVE_GAPS = (
+    {"start_utc": "2025-07-10T21:00:00Z", "end_utc": "2025-07-10T23:00:00Z", "symbols": ("PF_XBTUSD", "PF_ETHUSD", "PI_XBTUSD", "PI_ETHUSD")},
+    {"start_utc": "2025-08-31T03:00:00Z", "end_utc": "2025-08-31T05:00:00Z", "symbols": ("PF_XBTUSD", "PF_ETHUSD", "PI_XBTUSD", "PI_ETHUSD")},
+    {"start_utc": "2025-11-01T15:00:00Z", "end_utc": "2025-11-01T18:00:00Z", "symbols": ("PF_XBTUSD", "PF_ETHUSD", "PI_XBTUSD", "PI_ETHUSD")},
+    {"start_utc": "2025-11-02T03:00:00Z", "end_utc": "2025-11-02T05:00:00Z", "symbols": ("PF_XBTUSD", "PF_ETHUSD", "PI_XBTUSD", "PI_ETHUSD")},
+    {"start_utc": "2025-11-19T04:00:00Z", "end_utc": "2025-11-19T06:00:00Z", "symbols": ("PF_XBTUSD", "PF_ETHUSD", "PI_XBTUSD", "PI_ETHUSD")},
+    {"start_utc": "2025-12-04T08:00:00Z", "end_utc": "2025-12-04T10:00:00Z", "symbols": ("PF_XBTUSD", "PF_ETHUSD", "PI_XBTUSD", "PI_ETHUSD")},
+)
+
+ARCHIVE_INCIDENTS = (
+    {"id": "futures-api-connectivity-2025-07-10", "title": "Futures Exchange Connectivity Issues - Web, Mobile & API (REST & WebSockets)", "start_utc": "2025-07-10T21:27:00Z", "end_utc": "2025-07-10T23:03:00Z", "api_affected": True, "derivatives_affected": True, "source_type": "independent_status_history_mirror", "source_url": "https://sevanalysis.com/vendors/kraken/"},
+    {"id": "derivatives-connectivity-2025-08-31", "title": "Connectivity Issues - Derivatives", "start_utc": "2025-08-31T03:51:00Z", "end_utc": "2025-08-31T04:47:00Z", "api_affected": False, "derivatives_affected": True, "source_type": "independent_status_history_mirror", "source_url": "https://sevanalysis.com/vendors/kraken/"},
+    {"id": "spot-futures-web-mobile-connectivity-2025-11-19", "title": "Connectivity Issues (Spot & Futures) - Web & Mobile", "start_utc": "2025-11-19T03:26:00Z", "end_utc": "2025-11-19T06:10:00Z", "api_affected": False, "derivatives_affected": True, "source_type": "independent_status_history_mirror", "source_url": "https://sevanalysis.com/vendors/kraken/"},
+)
+
+
 def _parse_utc(value: str) -> datetime:
     text = value[:-1] + "+00:00" if value.endswith("Z") else value
     parsed = datetime.fromisoformat(text)
@@ -156,3 +172,21 @@ def correlate_gap(gap: dict[str, Any], incidents: tuple[dict[str, Any], ...] = I
 
 def audit_all_gaps() -> list[dict[str, Any]]:
     return [correlate_gap(gap) for gap in GAPS]
+
+
+def audit_archive_anomalies() -> list[dict[str, Any]]:
+    """Correlate exact archive interval anomalies with independently mirrored incident phases."""
+    results = []
+    for gap in ARCHIVE_GAPS:
+        result = correlate_gap(gap, incidents=ARCHIVE_INCIDENTS)
+        result["symbols"] = list(gap["symbols"])
+        result["archive_interval_hours"] = (
+            _parse_utc(gap["end_utc"]) - _parse_utc(gap["start_utc"])
+        ).total_seconds() / 3600
+        result["archive_anomaly_status"] = (
+            "INCIDENT_OVERLAP_NOT_CAUSAL_PROOF"
+            if result["incident_matches"]
+            else "NO_MATCHING_RECORDED_INCIDENT_FOUND"
+        )
+        results.append(result)
+    return results

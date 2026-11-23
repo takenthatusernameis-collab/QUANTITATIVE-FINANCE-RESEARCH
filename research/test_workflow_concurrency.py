@@ -84,6 +84,21 @@ class WorkflowConcurrencyPolicyTests(unittest.TestCase):
         self.assertNotIn("*.zip", artifact_block.lower())
         self.assertNotIn("*.csv", artifact_block.lower())
 
+    def test_kraken_api_rate_cap_census_is_allowlisted_exact_and_manifest_only(self):
+        workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+        command = "/qfr-audit-kraken-rate-cap-census"
+        block = workflow.split(f'"{command}")', 1)[1].split(";;", 1)[0]
+        self.assertIn('COMMAND="kraken-api-cap-audit"', block)
+        self.assertIn('START="2018-01-01"', block)
+        self.assertIn('END="2026-11-23"', block)
+        self.assertIn('RECONCILE="false"', block)
+        self.assertIn(command, workflow.split("case \"$COMMENT_BODY\" in", 1)[0])
+        self.assertIn("needs.authorize.outputs.command == 'kraken-api-cap-audit'", workflow)
+        artifact_block = workflow.split("name: Upload manifest only (never raw API rows)", 1)[1].split("\n\n", 1)[0]
+        self.assertIn("/manifest.json", artifact_block)
+        self.assertNotIn("*.zip", artifact_block.lower())
+        self.assertNotIn("*.csv", artifact_block.lower())
+
     def test_bybit_probe_is_allowlisted_and_bounded(self):
         workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
         block = workflow.split('"/qfr-probe-bybit-funding-history")', 1)[1].split(";;", 1)[0]

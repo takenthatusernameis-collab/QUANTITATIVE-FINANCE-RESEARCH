@@ -131,3 +131,45 @@ Implementation: [8114a18](https://github.com/takenthatusernameis-collab/QUANTITA
 **Keep all four Kraken series PROVISIONAL_NOT_ACCEPTED.** The five common API gaps are now classified by status-history overlap, but no incident proves that a funding settlement was skipped or omitted. Four intervals overlap service incidents; December 4 remains unexplained. The historical four-hour schedule is explained by the 2022-09-29 cutover. The official API retention/refresh policy remains undocumented, and the PI API tail contains relative-rate extrema above the current inverse cap with no timestamps in the compact artifact. The archive also retains five two-hour and one three-hour anomalies whose exact timestamps were not retained.
 
 Next, execute [Kraken archive residual-anomaly and PI rate-cap audit](../tasks/KRAKEN-ARCHIVE-ANOMALY-AND-RATE-CAP-VALIDATION.md): extract exact archive gap timestamps and timestamped API extrema; reconcile PI cap values against date-specific specifications, changelog and delisting; and determine historical timestamp-boundary semantics. Use only a targeted checksum-verified ephemeral archive read if required. Do not clip, interpolate, or backtest while any of these issues remain unresolved. No Kraken-to-Binance merge, live trading, credentials, paid service, access restriction bypass, or holdout relaxation.
+
+
+## Targeted residual-anomaly and PI rate-cap audit — 2026-11-23
+
+**Diagnostic run:** [45096561519](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45096561519), successful. **Manifest artifact:** [14783079210](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45096561519/artifacts/14783079210). The run re-downloaded the official 109,980,750-byte export once, verified the prior archive SHA-256 `65ba6712a6ab657389d2795d3ed77bedb4270841dfe711147ae9df16e366edab`, inspected only the four exact PF/PI BTC/ETH perpetual CSVs, and deleted raw ZIP/CSV data from runner-local temporary storage. The artifact retained only a compact manifest; no raw market data were uploaded or committed.
+
+### Exact archive residual intervals
+
+The same six intervals occur in all four exact symbols:
+
+| Interval (UTC) | Duration | Missing hourly boundary/boundaries |
+|---|---:|---|
+| 2025-07-10 21:00–23:00 | 2h | 22:00 |
+| 2025-08-31 03:00–05:00 | 2h | 04:00 |
+| 2025-11-01 15:00–18:00 | 3h | 16:00, 17:00 |
+| 2025-11-02 03:00–05:00 | 2h | 04:00 |
+| 2025-11-19 04:00–06:00 | 2h | 05:00 |
+| 2025-12-04 08:00–10:00 | 2h | 09:00 |
+
+An independent status-history mirror records three exact service-incident overlaps: (1) July 10, 21:27–23:03 UTC, “Futures Exchange Connectivity Issues - Web, Mobile & API (REST & WebSockets)” (explicit API scope); (2) August 31, 03:51–04:47 UTC, “Connectivity Issues - Derivatives” (API scope not specified); and (3) November 19, 03:26–06:10 UTC, “Connectivity Issues (Spot & Futures) - Web & Mobile” (API scope not specified). No matching API/derivatives incident was found in the inspected history for November 1, November 2 or December 4. These are contemporaneous service overlaps, not causal evidence about whether a funding settlement occurred. Sources: [Kraken incident history mirror](https://sevanalysis.com/vendors/kraken/) and [Kraken's status API documentation](https://status.kraken.com/api).
+
+The public historical API begins at 2025-11-19 09:00 UTC, so it cannot cross-check the 05:00 November 19 boundary or earlier anomalies. On December 4, API and archive both contain the 08:00 and 10:00 endpoints but omit 09:00. The missing event population remains unresolved.
+
+### Timestamped PI relative-rate extrema
+
+| Symbol | Extreme | Value | Timestamp (UTC) | Current cap |
+|---|---|---:|---|---:|
+| PI_XBTUSD | Max | +0.005 | 2026-08-20 09:00 | ±0.0025 |
+| PI_ETHUSD | Max | +0.005 | 2026-08-20 07:00 | ±0.0025 |
+| PI_ETHUSD | Max | +0.005 | 2026-08-20 08:00 | ±0.0025 |
+| PI_ETHUSD | Min | -0.003835161729166667 | 2026-08-20 11:00 | ±0.0025 |
+| PI_ETHUSD | Max | +0.005 | 2026-10-30 14:00 | ±0.0025 |
+| PI_ETHUSD | Max | +0.005 | 2026-10-30 15:00 | ±0.0025 |
+| PI_ETHUSD | Max | +0.005 | 2026-10-30 16:00 | ±0.0025 |
+
+The official inverse specification states an hourly relative-rate range of ±0.25% and a 24-hour multiplier of 24. The August 20 extrema are not delisting-boundary events. The October 30 14:00 and 15:00 values precede the 16:00 UTC inverse settlement; the 16:00 value is at that boundary. The reviewed public parameter changelog shows no PI_XBTUSD/PI_ETHUSD funding-cap change, but this does not prove that no unpublished or omitted parameter change exists. Both PI instruments' current metadata simultaneously says `isExpired=true` and `tradeable=true`; this is a flagged lifecycle conflict, not proof of continued tradability. The official notice says inverse BTC/ETH contracts settled at 16:00 UTC on October 30.
+
+Sources: [Kraken inverse contract specification](https://support.kraken.com/articles/360022835911-inverse-crypto-collateral-perpetual-contract-specifications-derivatives), [Kraken derivatives parameter changelog](https://support.kraken.com/ro/articles/13049711807636-derivatives-platform-parameters-changelog), and [Kraken delisting notice](https://support.kraken.com/articles/7526425887508-derivatives-contracts-trading-suspensions-delistings).
+
+The listed rows are the extrema, not yet the complete count of every out-of-cap API row. The new code adds an all-row cap census and an API-only mode so the next probe does not repeat the 110 MB archive download. The exact command is `/qfr-audit-kraken-rate-cap-census` on control PR #2; it records every cap-exception timestamp and per-symbol count while uploading only a manifest. The API timestamp-to-accrual boundary remains undocumented; `api_timestamp_boundary_semantics=UNRESOLVED` and backtest alignment remains blocked.
+
+**Decision:** retain all four Kraken series as `PROVISIONAL_NOT_ACCEPTED`. No Kraken backtest, cross-venue merge or empirical performance claim is authorized by this diagnostic.

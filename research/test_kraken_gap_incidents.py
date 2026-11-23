@@ -1,6 +1,9 @@
 import unittest
 
-from kraken_gap_incidents import GAPS, INCIDENTS, audit_all_gaps, correlate_gap
+from kraken_gap_incidents import (
+    ARCHIVE_GAPS, ARCHIVE_INCIDENTS, GAPS, INCIDENTS,
+    audit_all_gaps, audit_archive_anomalies, correlate_gap,
+)
 
 
 class KrakenGapIncidentTests(unittest.TestCase):
@@ -73,6 +76,58 @@ class KrakenGapIncidentTests(unittest.TestCase):
             self.assertEqual(result["funding_settlement_status"], "UNVERIFIED")
             self.assertEqual(result["causal_claim"], "NOT_ESTABLISHED")
             self.assertFalse(result["scheduled_funding_pause_evidence"])
+
+    def test_six_archive_anomalies_are_exact_and_common_to_all_four_symbols(self):
+        results = audit_archive_anomalies()
+        self.assertEqual(len(ARCHIVE_GAPS), 6)
+        self.assertEqual(len(results), 6)
+        expected_symbols = {"PF_XBTUSD", "PF_ETHUSD", "PI_XBTUSD", "PI_ETHUSD"}
+        for gap, result in zip(ARCHIVE_GAPS, results):
+            self.assertEqual(set(gap["symbols"]), expected_symbols)
+            self.assertEqual(set(result["symbols"]), expected_symbols)
+        self.assertEqual([item["archive_interval_hours"] for item in results], [2.0, 2.0, 3.0, 2.0, 2.0, 2.0])
+        self.assertEqual(
+            [item["missing_expected_hourly_timestamps"] for item in results],
+            [
+                ["2025-07-10T22:00:00Z"], ["2025-08-31T04:00:00Z"],
+                ["2025-11-01T16:00:00Z", "2025-11-01T17:00:00Z"],
+                ["2025-11-02T04:00:00Z"], ["2025-11-19T05:00:00Z"],
+                ["2025-12-04T09:00:00Z"],
+            ],
+        )
+
+    def test_archive_anomalies_correlate_only_with_exact_overlapping_incident_phases(self):
+        results = audit_archive_anomalies()
+        self.assertEqual(
+            [item["classification"] for item in results],
+            [
+                "DERIVATIVES_CONNECTIVITY_INCIDENT_OVERLAP",
+                "DERIVATIVES_CONNECTIVITY_INCIDENT_OVERLAP",
+                "UNEXPLAINED_NO_MATCHING_API_OR_DERIVATIVES_INCIDENT",
+                "UNEXPLAINED_NO_MATCHING_API_OR_DERIVATIVES_INCIDENT",
+                "DERIVATIVES_CONNECTIVITY_INCIDENT_OVERLAP",
+                "UNEXPLAINED_NO_MATCHING_API_OR_DERIVATIVES_INCIDENT",
+            ],
+        )
+        self.assertEqual(
+            [item["incident_matches"][0]["overlap_minutes"] if item["incident_matches"] else 0 for item in results],
+            [93, 56, 0, 0, 120, 0],
+        )
+        self.assertTrue(results[0]["incident_matches"][0]["api_affected"])
+        self.assertFalse(results[1]["incident_matches"][0]["api_affected"])
+        self.assertFalse(results[4]["incident_matches"][0]["api_affected"])
+        self.assertEqual(len(ARCHIVE_INCIDENTS), 3)
+
+    def test_archive_incident_overlap_never_establishes_settlement_causality(self):
+        for result in audit_archive_anomalies():
+            self.assertEqual(result["funding_settlement_status"], "UNVERIFIED")
+            self.assertEqual(result["causal_claim"], "NOT_ESTABLISHED")
+            self.assertFalse(result["scheduled_funding_pause_evidence"])
+            self.assertEqual(
+                result["archive_anomaly_status"],
+                "INCIDENT_OVERLAP_NOT_CAUSAL_PROOF" if result["incident_matches"]
+                else "NO_MATCHING_RECORDED_INCIDENT_FOUND",
+            )
 
     def test_invalid_gap_order_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "after"):

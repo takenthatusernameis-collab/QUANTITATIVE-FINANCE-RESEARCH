@@ -42,7 +42,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.event_name == 'issue_comment' && (github.event.action != 'created' || github.event.issue.number != 2 || github.event.issue.pull_request == null || github.event.issue.state != 'open' || github.event.comment.user.login != 'takenthatusernameis-collab' || !contains(fromJSON('["/qfr-control-smoke","/qfr-run-eth-btc-data-audit","/qfr-probe-eth-btc-funding-2024-01","/qfr-probe-tardis-funding-2024-01-01","/qfr-probe-tardis-funding-2020-06-01","/qfr-probe-tardis-funding-2025-06-01","/qfr-probe-tardis-funding-2025-10-01","/qfr-probe-tardis-funding-2026-02-01","/qfr-probe-tardis-funding-2026-03-01","/qfr-probe-mexc-funding-history","/qfr-probe-bybit-funding-history","/qfr-probe-bitget-funding-download","/qfr-probe-okx-funding-download","/qfr-probe-okx-funding-button","/qfr-probe-okx-funding-field-info","/qfr-probe-okx-funding-symbols","/qfr-probe-kraken-funding-export","/qfr-audit-kraken-residual-anomalies","/qfr-run-eth-btc-empirical","/qfr-run-eth-btc-spot-empirical","/qfr-run-eth-btc-um-empirical"]'), github.event.comment.body)) && format('eth-btc-research-ignored-{0}', github.event.comment.id) || 'eth-btc-research-main' }}
+  group: ${{ github.event_name == 'issue_comment' && (github.event.action != 'created' || github.event.issue.number != 2 || github.event.issue.pull_request == null || github.event.issue.state != 'open' || github.event.comment.user.login != 'takenthatusernameis-collab' || !contains(fromJSON('["/qfr-control-smoke","/qfr-run-eth-btc-data-audit","/qfr-probe-eth-btc-funding-2024-01","/qfr-probe-tardis-funding-2024-01-01","/qfr-probe-tardis-funding-2020-06-01","/qfr-probe-tardis-funding-2025-06-01","/qfr-probe-tardis-funding-2025-10-01","/qfr-probe-tardis-funding-2026-02-01","/qfr-probe-tardis-funding-2026-03-01","/qfr-probe-mexc-funding-history","/qfr-probe-bybit-funding-history","/qfr-probe-bitget-funding-download","/qfr-probe-okx-funding-download","/qfr-probe-okx-funding-button","/qfr-probe-okx-funding-field-info","/qfr-probe-okx-funding-symbols","/qfr-probe-kraken-funding-export","/qfr-audit-kraken-residual-anomalies","/qfr-audit-kraken-rate-cap-census","/qfr-run-eth-btc-empirical","/qfr-run-eth-btc-spot-empirical","/qfr-run-eth-btc-um-empirical"]'), github.event.comment.body)) && format('eth-btc-research-ignored-{0}', github.event.comment.id) || 'eth-btc-research-main' }}
   queue: max
   cancel-in-progress: false
 
@@ -226,6 +226,14 @@ jobs:
               "/qfr-audit-kraken-residual-anomalies")
                 # Inspect only four exact BTC/ETH perpetual CSVs and timestamped API extrema; raw data stay ephemeral.
                 COMMAND="kraken-anomaly-audit"
+                START="2018-01-01"
+                END="2026-11-23"
+                MARKET="both"
+                RECONCILE="false"
+                ;;
+              "/qfr-audit-kraken-rate-cap-census")
+                # Query all four public API histories only; no archive download, browser, or raw-row artifact.
+                COMMAND="kraken-api-cap-audit"
                 START="2018-01-01"
                 END="2026-11-23"
                 MARKET="both"
@@ -570,6 +578,42 @@ jobs:
           path: |
             reports/generated/kraken-funding-${{ needs.authorize.outputs.command }}-${{ github.run_id }}/manifest.json
             reports/generated/kraken-funding-${{ needs.authorize.outputs.command }}-${{ github.run_id }}/*.png
+          if-no-files-found: warn
+          retention-days: 30
+
+  kraken-api-cap-audit:
+    name: Census every Kraken public API relative-rate row against date-specific caps
+    needs: authorize
+    if: ${{ needs.authorize.outputs.authorized == 'true' && needs.authorize.outputs.command == 'kraken-api-cap-audit' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository default branch only
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.11'
+
+      - name: Install HTTP client only
+        run: python -m pip install --no-cache-dir "requests>=2.31"
+
+      - name: Query four exact public Kraken funding histories without archive download
+        run: |
+          set -euo pipefail
+          python research/kraken_funding_export_probe.py \
+            --mode api-cap-audit \
+            --output-dir "reports/generated/kraken-api-cap-audit-${{ github.run_id }}"
+
+      - name: Upload manifest only (never raw API rows)
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: kraken-api-cap-audit-${{ github.run_id }}
+          path: reports/generated/kraken-api-cap-audit-${{ github.run_id }}/manifest.json
           if-no-files-found: warn
           retention-days: 30
 

@@ -894,6 +894,10 @@ def analyze_api_rows(api_record: dict[str, Any]) -> dict[str, Any]:
     """Quality-check every returned Kraken API row without claiming history completeness."""
     raw_rows = api_record.get("rates")
     rows = raw_rows if isinstance(raw_rows, list) else []
+    symbol = str(api_record.get("symbol") or "").upper()
+    cap_status_counts = Counter()
+    cap_exception_rows = []
+    cap_assessed_count = 0
     required_fields = ("timestamp", "fundingRate", "relativeFundingRate")
     observed_fields = {
         str(key)
@@ -959,6 +963,30 @@ def analyze_api_rows(api_record: dict[str, Any]) -> dict[str, Any]:
             except (ValueError, TypeError):
                 stats["invalid_count"] += 1
 
+        if timestamp_ms is not None:
+            try:
+                relative_value = float(row.get("relativeFundingRate"))
+                if not math.isfinite(relative_value):
+                    raise ValueError("nonfinite")
+                assessment = rate_cap_assessment(symbol, "relativeFundingRate", timestamp_ms, relative_value)
+                cap_status = assessment.get("cap_status", "UNKNOWN")
+                cap_status_counts[cap_status] += 1
+                cap_assessed_count += 1
+                if cap_status == "EXCEEDS_DOCUMENTED_CAP":
+                    cap_exception_rows.append({
+                        "timestamp": raw_timestamp,
+                        "timestamp_utc": assessment.get("timestamp_utc"),
+                        "value": relative_value,
+                        "applicable_absolute_cap": assessment.get("applicable_absolute_cap"),
+                        "cap_status": cap_status,
+                        "evidence_scope": assessment.get("evidence_scope"),
+                        "evidence_url": assessment.get("evidence_url"),
+                        "delisting_observation_window_review": assessment.get("delisting_observation_window_review"),
+                        "delisting_settlement_boundary_review": assessment.get("delisting_settlement_boundary_review"),
+                    })
+            except (ValueError, TypeError):
+                pass
+
     unique_timestamps = sorted(set(valid_timestamps))
     intervals = _interval_metrics(unique_timestamps)
     return {
@@ -978,6 +1006,15 @@ def analyze_api_rows(api_record: dict[str, Any]) -> dict[str, Any]:
         "max_timestamp_utc": _utc_iso(unique_timestamps[-1]) if unique_timestamps else None,
         "null_counts": null_counts,
         "rate_fields": rate_fields,
+        "relative_rate_cap_assessment": {
+            "symbol": symbol,
+            "field": "relativeFundingRate",
+            "rows_assessed": cap_assessed_count,
+            "rows_unassessed": len(rows) - cap_assessed_count,
+            "status_counts": dict(cap_status_counts),
+            "exceeds_documented_cap_count": len(cap_exception_rows),
+            "exceeds_documented_cap_rows": cap_exception_rows,
+        },
         **intervals,
         "history_completeness_status": "PROVISIONAL_NOT_ACCEPTED",
         "history_completeness_claim": "not_established_by_endpoint_response",
@@ -1200,6 +1237,140 @@ def crosscheck_archive_api(
     }
 
 
+
+def run_api_cap_audit(output_dir: Path) -> dict[str, Any]:
+    """Audit every public API relative-rate row without downloading the historical ZIP."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    manifest: dict[str, Any] = {
+        "probe": "kraken_public_historical_funding_api_rate_cap_census",
+        "mode": "api-cap-audit",
+        "started_utc": datetime.now(timezone.utc).isoformat(),
+        "access_mode": "anonymous_public_api",
+        "auth_used": False,
+        "account_access_used": False,
+        "region_attestation_used": False,
+        "captcha_bypass_used": False,
+        "proxy_or_network_workaround_used": False,
+        "purchase_or_payment_used": False,
+        "trading_action_used": False,
+        "archive_download_attempted": False,
+        "raw_api_rows_retained": False,
+        "raw_api_rows_uploaded": False,
+        "raw_api_rows_committed": False,
+        "funding_acceptance_status": "PROVISIONAL_NOT_ACCEPTED",
+        "status": "not_started",
+    }
+    try:
+        instruments = fetch_instruments()
+        manifest["instrument_api"] = {
+            "requests": instruments.get("requests", []),
+            "instrument_count": len(instruments.get("instruments") or []),
+        }
+        manifest["target_instrument_lifecycle"] = [
+            compact_instrument(item)
+            for item in instruments.get("instruments", [])
+            if str(item.get("symbol") or "").upper() in TARGETED_SYMBOLS
+        ]
+        api_records = [fetch_historical_funding(symbol) for symbol in TARGETED_SYMBOLS]
+        manifest["public_api_quality"] = [
+            {"symbol": item.get("symbol"), **analyze_api_rows(item)}
+            for item in api_records
+        ]
+        manifest["api_extrema"] = [extract_api_extrema(item) for item in api_records]
+        quality_by_symbol = {item.get("symbol"): item for item in manifest["public_api_quality"]}
+        manifest["api_rate_cap_status_counts_by_symbol"] = {
+            symbol: (quality.get("relative_rate_cap_assessment") or {}).get("status_counts", {})
+            for symbol, quality in quality_by_symbol.items()
+        }
+        manifest["api_rate_cap_exception_count_by_symbol"] = {
+            symbol: (quality.get("relative_rate_cap_assessment") or {}).get("exceeds_documented_cap_count", 0)
+            for symbol, quality in quality_by_symbol.items()
+        }
+        manifest["api_rate_cap_exceptions"] = [
+            {"symbol": symbol, **row}
+            for symbol, quality in quality_by_symbol.items()
+            for row in (quality.get("relative_rate_cap_assessment") or {}).get("exceeds_documented_cap_rows", [])
+        ]
+        manifest["api_rate_cap_extrema_exceptions"] = [
+            {
+                "symbol": item.get("symbol"), "field": field, "extreme": extreme,
+                "value": row.get("value"), "timestamp": row.get("timestamp"),
+                "cap_assessment": row.get("cap_assessment"),
+            }
+            for item in manifest["api_extrema"]
+            for field in ("relativeFundingRate",)
+            for extreme in ("min", "max")
+            for row in (item.get("extrema", {}).get(field, {}).get(extreme) or {}).get("matches", [])
+            if row.get("cap_assessment", {}).get("cap_status") == "EXCEEDS_DOCUMENTED_CAP"
+        ]
+        manifest["public_api_responses"] = [
+            {key: value for key, value in item.items() if key != "rates"}
+            for item in api_records
+        ]
+        manifest["timestamp_semantics_assessment"] = timestamp_semantics_assessment()
+        manifest["parameter_changelog_review"] = {
+            "source_url": "https://support.kraken.com/ro/articles/13049711807636-derivatives-platform-parameters-changelog",
+            "page_last_updated": "2026-10-01",
+            "finding": (
+                "The reviewed public changelog contains a PF_OGNUSD-specific maximum relative funding-rate change "
+                "in 2023 and PI_XBTUSD/PI_ETHUSD margin-class entries in 2024; no PI_XBTUSD or PI_ETHUSD funding-cap "
+                "change was found in the reviewed entries. This is not proof that no unpublished or omitted parameter "
+                "change ever occurred."
+            ),
+        }
+        manifest["delisting_reference"] = {
+            "source_url": "https://support.kraken.com/articles/7526425887508-derivatives-contracts-trading-suspensions-delistings",
+            "settlement_date": "2026-10-30",
+            "inverse_btc_eth_settlement_time_utc": "16:00",
+        }
+        api_ok = (
+            len(api_records) == len(TARGETED_SYMBOLS)
+            and all(item.get("status") == 200 and item.get("rates") for item in api_records)
+            and set(quality_by_symbol) == set(TARGETED_SYMBOLS)
+        )
+        api_integrity_ok = api_ok and all(
+            quality.get("invalid_row_count") == 0
+            and quality.get("invalid_timestamp_count") == 0
+            and quality.get("duplicate_timestamp_count") == 0
+            and quality.get("out_of_order_timestamp_count") == 0
+            and all(count == 0 for count in quality.get("null_counts", {}).values())
+            and all(stats.get("invalid_count") == 0 for stats in quality.get("rate_fields", {}).values())
+            for quality in quality_by_symbol.values()
+        )
+        all_cap_rows_assessed = api_ok and all(
+            (quality.get("relative_rate_cap_assessment") or {}).get("rows_unassessed") == 0
+            for quality in quality_by_symbol.values()
+        )
+        lifecycle_symbols = {
+            str(item.get("symbol") or "").upper()
+            for item in manifest["target_instrument_lifecycle"]
+        }
+        lifecycle_ok = lifecycle_symbols == set(TARGETED_SYMBOLS)
+        manifest["targeted_acceptance_checks"] = {
+            "all_four_api_responses_nonempty": api_ok,
+            "all_four_api_rows_pass_integrity": api_integrity_ok,
+            "all_four_instrument_lifecycle_records_found": lifecycle_ok,
+            "all_relative_rate_rows_cap_assessed": all_cap_rows_assessed,
+            "cap_violation_count_by_symbol": manifest["api_rate_cap_exception_count_by_symbol"],
+            "funding_acceptance": "PROVISIONAL_NOT_ACCEPTED",
+        }
+        manifest["status"] = (
+            "api_cap_audit_complete"
+            if api_ok and api_integrity_ok and lifecycle_ok and all_cap_rows_assessed
+            else "api_cap_audit_incomplete"
+        )
+    except Exception as exc:
+        manifest["status"] = "api_cap_audit_error"
+        manifest["error"] = f"{type(exc).__name__}: {str(exc)[:500]}"
+    manifest["finished_utc"] = datetime.now(timezone.utc).isoformat()
+    (output_dir / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False, default=str) + "\n",
+        encoding="utf-8",
+    )
+    return manifest
+
+
+
 def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
     if mode not in {"export", "anomaly-audit"}:
         raise ValueError("mode must be 'export' or 'anomaly-audit'")
@@ -1364,6 +1535,26 @@ def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
                                         {"symbol": item.get("symbol"), **analyze_api_rows(item)}
                                         for item in api_records
                                     ]
+                                    quality_by_symbol = {
+                                        item.get("symbol"): item for item in manifest["public_api_quality"]
+                                    }
+                                    manifest["api_rate_cap_status_counts_by_symbol"] = {
+                                        symbol: (quality.get("relative_rate_cap_assessment") or {}).get("status_counts", {})
+                                        for symbol, quality in quality_by_symbol.items()
+                                    }
+                                    manifest["api_rate_cap_exception_count_by_symbol"] = {
+                                        symbol: (quality.get("relative_rate_cap_assessment") or {}).get(
+                                            "exceeds_documented_cap_count", 0
+                                        )
+                                        for symbol, quality in quality_by_symbol.items()
+                                    }
+                                    manifest["api_rate_cap_exceptions"] = [
+                                        {"symbol": symbol, **row}
+                                        for symbol, quality in quality_by_symbol.items()
+                                        for row in (quality.get("relative_rate_cap_assessment") or {}).get(
+                                            "exceeds_documented_cap_rows", []
+                                        )
+                                    ]
                                     if targeted:
                                         manifest["api_extrema"] = [
                                             extract_api_extrema(item) for item in api_records
@@ -1400,7 +1591,7 @@ def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
                                             }
                                             for item in manifest["api_extrema"]
                                         }
-                                        manifest["api_rate_cap_exceptions"] = [
+                                        manifest["api_rate_cap_extrema_exceptions"] = [
                                             {
                                                 "symbol": item.get("symbol"),
                                                 "field": field,
@@ -1480,6 +1671,14 @@ def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
                                             "all_four_instrument_lifecycle_records_found": lifecycle_symbols == set(TARGETED_SYMBOLS),
                                             "all_four_api_responses_nonempty": api_ok,
                                             "all_four_api_rows_pass_integrity": api_integrity_ok,
+                                            "all_relative_rate_rows_cap_assessed": (
+                                                set(api_quality_by_symbol) == set(TARGET_SYMBOLS)
+                                                and all((quality.get("relative_rate_cap_assessment") or {}).get("rows_unassessed") == 0
+                                                        for quality in api_quality_by_symbol.values())
+                                            ),
+                                            "relative_rate_cap_exception_count_by_symbol": manifest.get(
+                                                "api_rate_cap_exception_count_by_symbol", {}
+                                            ),
                                             "known_archive_size_matches": archive_path.stat().st_size == EXPECTED_ARCHIVE_SIZE_BYTES,
                                             "known_archive_sha256_matches": hash_ok,
                                             "archive_anomaly_counts_by_symbol": anomaly_counts,
@@ -1500,6 +1699,7 @@ def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
                                                 and lifecycle_symbols == set(TARGETED_SYMBOLS)
                                                 and api_ok
                                                 and api_integrity_ok
+                                                and manifest["targeted_acceptance_checks"]["all_relative_rate_rows_cap_assessed"]
                                                 and hash_ok
                                                 and archive_path.stat().st_size == EXPECTED_ARCHIVE_SIZE_BYTES
                                                 and set(anomaly_counts) == set(TARGETED_SYMBOLS)
@@ -1536,9 +1736,9 @@ def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--mode", choices=("export", "anomaly-audit"), default="export")
+    parser.add_argument("--mode", choices=("export", "anomaly-audit", "api-cap-audit"), default="export")
     args = parser.parse_args()
-    result = run_probe(args.output_dir, mode=args.mode)
+    result = run_api_cap_audit(args.output_dir) if args.mode == "api-cap-audit" else run_probe(args.output_dir, mode=args.mode)
     print(json.dumps({
         "status": result.get("status"),
         "page_http_status": result.get("page_http_status"),
@@ -1552,6 +1752,9 @@ def main() -> None:
             for item in result.get("api_extrema", [])
         ],
         "timestamp_semantics_assessment": result.get("timestamp_semantics_assessment"),
+        "api_rate_cap_exception_count_by_symbol": result.get("api_rate_cap_exception_count_by_symbol"),
+        "api_rate_cap_exceptions": result.get("api_rate_cap_exceptions"),
+        "targeted_acceptance_checks": result.get("targeted_acceptance_checks"),
         "perpetual_csv_summaries": [
             {
                 "member": item.get("member"),

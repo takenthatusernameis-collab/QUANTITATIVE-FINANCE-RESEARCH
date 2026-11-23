@@ -271,3 +271,8 @@ The exact audit command has now been proven end to end as an activation path: th
 - The public Binance data issue [#517](https://github.com/binance/binance-public-data/issues/517) remains open with no Binance-team clarification visible. Keep funding settlement-population semantics provisional and fail-closed.
 
 The next agent must resolve comment 7073695430 to its run, inspect the bounded probe artifact and update the funding manifests. Do not start another full audit or any empirical backtest until the Spot gap and funding acceptance gates are resolved.
+
+
+## Kraken API-only rate-cap census — 2026-11-23
+
+The exact command `/qfr-audit-kraken-rate-cap-census` on the open control PR #2 is authorized only for the verified actor `takenthatusernameis-collab`. It checks the four exact public Kraken funding-history symbols and every returned `relativeFundingRate` row against the date-appropriate contract cap. It does not download the historical ZIP, launch a browser, use credentials, or run a backtest. The runner retains API rows only in memory and uploads a compact manifest with response hashes, row-integrity counts, every cap exception and adjacent extrema context. The task remains `PROVISIONAL_NOT_ACCEPTED`; diagnostic completion does not authorize event-time alignment or strategy use.
