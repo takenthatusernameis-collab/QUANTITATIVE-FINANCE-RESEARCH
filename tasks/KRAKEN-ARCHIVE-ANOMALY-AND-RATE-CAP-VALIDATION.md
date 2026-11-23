@@ -1,6 +1,6 @@
 # Kraken archive residual anomalies and PI rate-cap audit
 
-**Status:** PENDING — next autonomous research cycle  
+**Status:** IN PROGRESS — 2026-11-23 03:33 UTC  
 **Priority:** P1 data-integrity / event-population gate  
 **Current gate:** PROVISIONAL_NOT_ACCEPTED; no Kraken backtest or Binance merge.
 
