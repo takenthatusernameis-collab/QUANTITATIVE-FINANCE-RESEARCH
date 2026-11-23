@@ -76,6 +76,8 @@ class KrakenPiPriceValidationTests(unittest.TestCase):
         self.assertTrue(all(item["control_passed"] for item in manifest["known_active_controls"]))
         self.assertEqual(saved["retention"]["raw_coinbase_responses_retained"], False)
         self.assertTrue(all("candles" not in item for item in saved["candle_windows"]))
+        self.assertEqual(saved["bar_convention"]["timestamp"], "UTC bucket-start Unix seconds")
+        self.assertIn("never zero-filled or forward-filled", saved["bar_convention"]["no_tick_intervals"])
         self.assertEqual(saved["research_gate"]["kraken_funding_status"], "PROVISIONAL_NOT_ACCEPTED")
         self.assertFalse(saved["research_gate"]["backtest_authorized"])
 
