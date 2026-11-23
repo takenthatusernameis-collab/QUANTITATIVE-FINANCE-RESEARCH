@@ -561,6 +561,102 @@ def extract_archive_interval_anomalies(rows: list[dict[str, Any]]) -> list[dict[
     return anomalies
 
 
+def compare_archive_anomalies_to_api(
+    anomalies: list[dict[str, Any]],
+    api_record: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Compare exact archive gap endpoints and missing hourly boundaries with the API tail."""
+    api_by_timestamp = {}
+    for row in api_record.get("rates") or []:
+        if not isinstance(row, dict):
+            continue
+        stamp = parse_timestamp_ms(row.get("timestamp"))
+        if stamp is not None:
+            api_by_timestamp[stamp] = row
+
+    compared = []
+    for anomaly in anomalies:
+        item = dict(anomaly)
+        endpoint_checks = {}
+        for label in ("left_record", "right_record"):
+            archive_row = anomaly.get(label) or {}
+            stamp = archive_row.get("timestamp_ms")
+            try:
+                stamp = int(stamp)
+            except (TypeError, ValueError):
+                stamp = None
+            api_row = api_by_timestamp.get(stamp)
+            comparisons = {}
+            archive_rates = archive_row.get("rates") or {}
+            if api_row is not None:
+                for archive_field, api_field in (
+                    ("absolute_rate", "fundingRate"),
+                    ("relative_rate", "relativeFundingRate"),
+                ):
+                    try:
+                        archive_value = float(archive_rates.get(archive_field))
+                        api_value = float(api_row.get(api_field))
+                        equal = (
+                            math.isfinite(archive_value)
+                            and math.isfinite(api_value)
+                            and math.isclose(archive_value, api_value, rel_tol=1e-10, abs_tol=1e-12)
+                        )
+                    except (TypeError, ValueError):
+                        archive_value = archive_rates.get(archive_field)
+                        api_value = api_row.get(api_field)
+                        equal = False
+                    comparisons[archive_field] = {
+                        "api_field": api_field,
+                        "archive_value": archive_value,
+                        "api_value": api_value,
+                        "equal_with_tolerance": equal,
+                    }
+            endpoint_checks[label] = {
+                "timestamp": archive_row.get("timestamp"),
+                "api_row_present": api_row is not None,
+                "rate_comparisons": comparisons,
+            }
+
+        missing_boundaries = []
+        for timestamp in anomaly.get("missing_hourly_boundaries") or []:
+            stamp = parse_timestamp_ms(timestamp)
+            api_row = api_by_timestamp.get(stamp)
+            missing_boundaries.append({
+                "timestamp": timestamp,
+                "api_row_present": api_row is not None,
+                "api_rates": {
+                    field: api_row.get(field)
+                    for field in ("fundingRate", "relativeFundingRate")
+                } if api_row is not None else None,
+            })
+        endpoint_present = all(
+            value["api_row_present"] for value in endpoint_checks.values()
+        )
+        boundary_present = [value["api_row_present"] for value in missing_boundaries]
+        if not endpoint_present:
+            comparison_status = "API_ENDPOINT_COVERAGE_INCOMPLETE"
+        elif boundary_present and all(boundary_present):
+            comparison_status = "API_CONTAINS_ARCHIVE_MISSING_BOUNDARIES"
+        elif boundary_present and not any(boundary_present):
+            comparison_status = "BOTH_SOURCES_OMIT_ARCHIVE_MISSING_BOUNDARIES"
+        elif any(boundary_present):
+            comparison_status = "PARTIAL_API_BOUNDARY_COVERAGE"
+        else:
+            comparison_status = "ENDPOINTS_PRESENT_NO_HOURLY_BOUNDARY_EXPECTED"
+        item["api_comparison"] = {
+            "api_symbol": api_record.get("symbol"),
+            "api_response_sha256": api_record.get("response_sha256"),
+            "endpoint_checks": endpoint_checks,
+            "missing_boundary_checks": missing_boundaries,
+            "comparison_status": comparison_status,
+            "interpretation": (
+                "Source-row presence comparison only; neither source's absence proves no payable funding event."
+            ),
+        }
+        compared.append(item)
+    return compared
+
+
 def rate_cap_assessment(
     symbol: str,
     field: str,
@@ -710,6 +806,11 @@ def timestamp_semantics_assessment() -> dict[str, Any]:
             "order, but does not define whether each returned timestamp labels the start or end "
             "of the rate's accrual interval."
         ),
+        "evidence_urls": {
+            "historical_funding_api": "https://docs.kraken.com/api-reference/historical-funding-rates/historical-funding-rates",
+            "inverse_contract_specs": "https://support.kraken.com/articles/360022835911-inverse-crypto-collateral-perpetual-contract-specifications-derivatives",
+            "linear_contract_specs": "https://support.kraken.com/articles/4844359082772-linear-multi-collateral-derivatives-contract-specifications",
+        },
         "rate_period_mechanics": "NEXT_PERIOD_RATE_SET_AT_PRIOR_BOUNDARY",
         "api_timestamp_boundary_semantics": "UNRESOLVED",
         "backtest_alignment_status": "BLOCKED_PENDING_API_FIELD_MAPPING",
@@ -1252,6 +1353,11 @@ def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
                                             manifest["public_api_crosschecks"].append(
                                                 crosscheck_archive_api(item, api_record)
                                             )
+                                            if targeted:
+                                                item["residual_interval_anomalies"] = compare_archive_anomalies_to_api(
+                                                    item.get("residual_interval_anomalies") or [],
+                                                    api_record,
+                                                )
                                         (item.get("data_summary") or {}).pop("_api_crosscheck_rows", None)
                                     manifest["public_api_responses"] = [
                                         {key: value for key, value in item.items() if key != "rates"}
