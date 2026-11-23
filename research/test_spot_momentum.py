@@ -100,6 +100,36 @@ class SpotMomentumTests(unittest.TestCase):
         self.assertAlmostEqual(result.iloc[1]["cost"], 0.002)
         self.assertAlmostEqual(result.iloc[-1]["turnover"], 1.0)
 
+    def test_transaction_costs_are_multiplicative_and_nav_weighted(self):
+        index = pd.date_range("2022-01-01T00:00:00Z", periods=3, freq="h")
+        frame = make_frame(
+            index,
+            eth_open=[100.0, 110.0, 110.0],
+            btc_open=[100.0, 100.0, 100.0],
+        )
+        targets = pd.DataFrame(
+            {"w_eth": [1.0, 0.0, 0.0], "w_btc": [0.0, 1.0, 0.0]},
+            index=index,
+        )
+        result = momentum.portfolio_backtest(frame, targets, 10.0)
+        self.assertAlmostEqual(result.iloc[0]["cost"], 0.001)
+        self.assertAlmostEqual(result.iloc[1]["gross_return"], 0.10)
+        self.assertAlmostEqual(result.iloc[1]["cost"], 0.002)
+        self.assertAlmostEqual(result.iloc[1]["net_return"], 1.10 * 0.998 - 1.0)
+        self.assertAlmostEqual(
+            result.iloc[1]["cost_amount_initial_nav"],
+            result.iloc[0]["nav"] * 1.10 * 0.002,
+        )
+        self.assertAlmostEqual(
+            result.iloc[-1]["cost_amount_initial_nav"],
+            result.iloc[-2]["nav"] * 0.001,
+        )
+        metrics = momentum.portfolio_metrics(result, "test", 10.0)
+        self.assertAlmostEqual(
+            metrics["total_transaction_cost"],
+            result["cost_amount_initial_nav"].sum(),
+        )
+
     def test_buy_and_hold_does_not_rebalance_after_price_drift(self):
         index = pd.date_range("2022-01-01T00:00:00Z", periods=4, freq="h")
         frame = make_frame(

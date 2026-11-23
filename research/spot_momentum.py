@@ -289,6 +289,7 @@ def portfolio_backtest(
     btc_open = frame["btc_open"].astype(float).to_numpy()
     previous_eth = 0.0
     previous_btc = 0.0
+    nav = 1.0
     rows = []
 
     for ordinal, timestamp in enumerate(index):
@@ -317,20 +318,26 @@ def portfolio_backtest(
 
         turnover = abs(target_eth - drift_eth) + abs(target_btc - drift_btc)
         cost = turnover * cost_bps_per_leg / 10_000.0
-        net_return = gross_return - cost
-        if net_return <= -1.0:
-            raise RuntimeError("Portfolio net return reached -100% or less")
+        gross_nav = nav * pretrade_nav
+        cost_amount_initial_nav = gross_nav * cost
+        net_nav = gross_nav - cost_amount_initial_nav
+        net_return = net_nav / nav - 1.0
+        if not np.isfinite(net_nav) or net_nav <= 0.0:
+            raise RuntimeError("Portfolio net NAV became non-positive or non-finite")
         rows.append({
             "elapsed_seconds": float(elapsed[ordinal]),
             "gross_return": float(gross_return),
             "cost": float(cost),
+            "cost_amount_initial_nav": float(cost_amount_initial_nav),
             "net_return": float(net_return),
             "turnover": float(turnover),
             "w_eth": float(target_eth),
             "w_btc": float(target_btc),
             "held_w_eth": float(previous_eth),
             "held_w_btc": float(previous_btc),
+            "nav": float(net_nav),
         })
+        nav = net_nav
         previous_eth, previous_btc = target_eth, target_btc
 
     return pd.DataFrame(rows, index=index)
@@ -422,7 +429,7 @@ def portfolio_metrics(
         "Calmar": float(stats["Calmar"]),
         "turnover_per_year": float(stats["turnover_per_year"]),
         "total_turnover": float(backtest["turnover"].sum()),
-        "total_transaction_cost": float(backtest["cost"].sum()),
+        "total_transaction_cost": float(backtest["cost_amount_initial_nav"].sum()),
         "time_in_ETH_pct": float(np.sum(held_eth * duration) / total_duration),
         "time_in_BTC_pct": float(np.sum(held_btc * duration) / total_duration),
         "rotation_count": rotations,
@@ -621,16 +628,22 @@ def write_report(
         metrics_frame["variant"] == "ETH_BTC_momentum_200d"
     ].sort_values("cost_bps_per_leg")
     metric_table = _markdown_table(
-        ["Cost bps/leg", "Net total return", "Net CAGR", "Sharpe", "Max drawdown", "Turnover/year", "Time ETH", "Time BTC"],
+        ["Cost bps/leg", "Net total return", "Net CAGR", "Sharpe", "Max drawdown", "Calmar", "Total turnover", "Turnover/year", "Total transaction costs", "Time ETH", "Time BTC", "Max recovery days", "Recovery episodes", "Unrecovered episodes"],
         [[
             f"{row.cost_bps_per_leg:.0f}",
             _format_pct(row.total_return),
             _format_pct(row.CAGR),
             _format_num(row.Sharpe),
             _format_pct(row.max_drawdown),
+            _format_num(row.Calmar),
+            _format_num(row.total_turnover, 2),
             _format_num(row.turnover_per_year, 2),
+            _format_pct(row.total_transaction_cost),
             _format_pct(row.time_in_ETH_pct),
             _format_pct(row.time_in_BTC_pct),
+            _format_num(row.max_recovery_days, 1),
+            str(int(row.recovery_episode_count)),
+            str(int(row.unrecovered_episode_count)),
         ] for row in strategy_rows.itertuples(index=False)],
     )
     benchmark_rows = metrics_frame[
@@ -638,14 +651,22 @@ def write_report(
         & metrics_frame["variant"].isin(VARIANTS)
     ]
     benchmark_table = _markdown_table(
-        ["Variant", "Net total return", "Net CAGR", "Sharpe", "Max drawdown", "Turnover/year"],
+        ["Variant", "Net total return", "Net CAGR", "Sharpe", "Max drawdown", "Calmar", "Total turnover", "Turnover/year", "Total transaction costs", "Time ETH", "Time BTC", "Max recovery days", "Recovery episodes", "Unrecovered episodes"],
         [[
             row.variant,
             _format_pct(row.total_return),
             _format_pct(row.CAGR),
             _format_num(row.Sharpe),
             _format_pct(row.max_drawdown),
+            _format_num(row.Calmar),
+            _format_num(row.total_turnover, 2),
             _format_num(row.turnover_per_year, 2),
+            _format_pct(row.total_transaction_cost),
+            _format_pct(row.time_in_ETH_pct),
+            _format_pct(row.time_in_BTC_pct),
+            _format_num(row.max_recovery_days, 1),
+            str(int(row.recovery_episode_count)),
+            str(int(row.unrecovered_episode_count)),
         ] for row in benchmark_rows.itertuples(index=False)],
     )
     bootstrap_table = _markdown_table(
@@ -676,7 +697,8 @@ def write_report(
         "- A UTC day's close is its last observed hourly close only when it is no more than one hour stale at midnight. No price is forward-filled or synthesized; a stale day generates no new signal.",
         "- A signal is known at the next UTC midnight and executes at the first observed hourly open at or after that time. A missing 00:00 bar therefore delays execution to the next observed open.",
         "- The portfolio is 100% long ETH when the ratio is above its SMA and 100% long BTC otherwise. No leverage, shorts, funding or venue mixing.",
-        "- Costs are all-in bps per one-way leg. ETH-to-BTC rotation pays both the ETH sale and BTC purchase legs.",
+        "- Costs are all-in bps per one-way leg. ETH-to-BTC rotation pays both the ETH sale and BTC purchase legs; initial entry and final liquidation each pay one leg.",
+        "- At each open, the cost fraction is applied multiplicatively to post-return pre-trade NAV. Cumulative transaction costs are NAV-weighted and reported as a fraction of initial NAV.",
         "",
         "## Baseline-cost benchmarks (10 bps per leg)",
         "",
@@ -685,6 +707,10 @@ def write_report(
         "## Strategy cost sensitivity",
         "",
         metric_table,
+        "",
+        "## Recovery periods",
+        "",
+        "The tables above summarize maximum recovery duration and episode counts. Individual peak, trough and recovery timestamps, including drawdowns still unrecovered at the OOS end, are retained in spot_momentum_recovery_periods.csv.",
         "",
         "## Paired block-bootstrap excess CAGR versus BTC",
         "",
@@ -816,6 +842,7 @@ def run_research(
             returns_output[f"{variant}_net_return"] = backtest["net_return"]
             returns_output[f"{variant}_gross_return"] = backtest["gross_return"]
             returns_output[f"{variant}_cost"] = backtest["cost"]
+        returns_output[f"{variant}_cost_initial_nav"] = backtest["cost_amount_initial_nav"]
         returns_output.to_csv(
             output_dir / "spot_momentum_oos_returns.csv", index_label="timestamp"
         )
@@ -887,6 +914,8 @@ def run_research(
                 },
                 "paired_benchmark": "BTC_buy_hold",
                 "initial_entry_cost": "compounded into first positive-duration interval",
+            "final_exit_cost": "charged at the final observed OOS open",
+            "transaction_cost_accounting": "per-leg cost is applied to post-return pre-trade NAV; cumulative costs are NAV-weighted and expressed in initial-NAV units",
             },
             "decision_criteria": decision,
             "safety": {
