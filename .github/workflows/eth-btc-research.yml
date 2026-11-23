@@ -636,14 +636,14 @@ jobs:
   kraken-tardis-timestamp-probe:
     name: Compare Kraken historical rows with Tardis next-funding events (no-key sample)
     needs: authorize
-    if: \${{ needs.authorize.outputs.authorized == 'true' && needs.authorize.outputs.command == 'kraken-tardis-timestamp-audit' }}
+    if: ${{ needs.authorize.outputs.authorized == 'true' && needs.authorize.outputs.command == 'kraken-tardis-timestamp-audit' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: Checkout repository default branch only
         uses: actions/checkout@v7.0.1
         with:
-          ref: \${{ github.event.repository.default_branch }}
+          ref: ${{ github.event.repository.default_branch }}
 
       - name: Set up Python
         uses: actions/setup-python@v7.1.0
@@ -655,14 +655,14 @@ jobs:
           set -euo pipefail
           python research/kraken_tardis_timestamp_probe.py \
             --sample-date 2026-10-01 \
-            --output-dir "reports/generated/kraken-tardis-timestamp-\${{ github.run_id }}"
+            --output-dir "reports/generated/kraken-tardis-timestamp-${{ github.run_id }}"
 
       - name: Upload derived manifest only (never raw CSV or API payloads)
         if: always()
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: kraken-tardis-timestamp-\${{ github.run_id }}
-          path: reports/generated/kraken-tardis-timestamp-\${{ github.run_id }}/manifest.json
+          name: kraken-tardis-timestamp-${{ github.run_id }}
+          path: reports/generated/kraken-tardis-timestamp-${{ github.run_id }}/manifest.json
           if-no-files-found: warn
           retention-days: 30
 

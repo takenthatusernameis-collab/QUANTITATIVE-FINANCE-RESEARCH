@@ -107,7 +107,7 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         self.assertIn("2026-10-01", job)
         self.assertIn("/manifest.json", job)
         self.assertIn("retention-days: 30", job)
-        self.assertNotIn(r"\\${{", job)
+        self.assertNotIn(r"\${{", job)
         self.assertIn("if: ${{ needs.authorize.outputs.authorized", job)
         self.assertIn("ref: ${{ github.event.repository.default_branch }}", job)
         self.assertNotIn("*.csv", job.lower())
