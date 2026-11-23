@@ -14,6 +14,7 @@ from kraken_pi_price_validation import (
     epoch_seconds,
     parse_candle_payload,
     run_probe,
+    validate_product,
 )
 
 
@@ -101,6 +102,16 @@ class KrakenPiPriceValidationTests(unittest.TestCase):
         self.assertFalse(eth["online_control_passed"])
         self.assertIn("product_not_online", eth["errors"])
         self.assertFalse(manifest["research_gate"]["cap_exceptions_accepted"])
+
+    def test_missing_trading_disabled_flag_fails_closed(self):
+        validation = validate_product(
+            {"id": "BTC-USD", "base_currency": "BTC", "quote_currency": "USD", "status": "online"},
+            "BTC-USD",
+        )
+        self.assertTrue(validation["identity_valid"])
+        self.assertFalse(validation["trading_disabled_known"])
+        self.assertFalse(validation["online_control_passed"])
+        self.assertIn("trading_disabled_flag_missing_or_invalid", validation["errors"])
 
     def test_candle_parser_detects_duplicates_invalid_ohlc_and_out_of_window_rows(self):
         start = epoch_seconds("2026-01-01T00:00:00Z")
