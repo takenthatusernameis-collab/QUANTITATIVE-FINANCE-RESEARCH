@@ -1,6 +1,6 @@
 # Prospective Spot Holdout — First Scheduled Run and Recovery Validation
 
-**Status:** PENDING — next bounded task  
+**Status:** IN PROGRESS — durable sidecar implementation committed; scheduled-run validation pending  
 **Priority:** P1 research-enabling infrastructure  
 **Task budget:** 1 substantive cycle; hard deadline **2026-11-25 17:30 UTC**. No automatic extension.
 
@@ -20,12 +20,21 @@ Verify that the scheduled capture appends a new, complete snapshot, validates an
 2. Find the first run triggered by `schedule` after 2026-11-24 04:23 UTC. Confirm the authorization and capture jobs completed, the capture used `main`, and the 20-minute timeout was respected.
 3. Verify the new release asset and manifest: exact ETHUSDT/BTCUSDT identity, 1h interval, UTC bounds, latest fully closed bar, expected/observed counts, no duplicates, ordering, missing hours, overlap corrections and source errors. A missing hour must remain unresolved and fail closed; never synthesize or forward-fill.
 4. Confirm the new snapshot's `previous_snapshot` points to the preceding asset and that the previous ZIP digest and both CSV hashes were verified before merge. Check that both snapshots remain in the same release and no prior asset was overwritten.
-5. Inspect the durable ZIP manifest and the 30-day Actions manifest artifact. The first implementation writes the ZIP before attaching post-upload storage metadata, so the embedded `storage` field is null while the Actions manifest has the asset ID/digest. Decide whether a durable JSON sidecar should be published; if implementing one, use a unique append-only name, include the ZIP asset ID/URL/digest and per-file hashes, add deterministic idempotency/collision tests, and validate it without exposing raw data in Actions artifacts or Git.
+5. Verify the implemented durable JSON sidecar. Each capture now publishes a unique `snapshot-<run>-attempt-<n>.manifest.json` Release asset containing the ZIP asset ID/URL/size/digest and per-file SHA-256 hashes; the next run also backfills a sidecar for the first ZIP before appending the next snapshot. Deterministic tests cover sidecar validation, idempotent reuse, collision rejection, previous-snapshot backfill and current-snapshot publication. Confirm the sidecar contains metadata only, is not uploaded as an Actions artifact, and its own ID/digest is available from Release API metadata.
 6. Review the release's `immutable` metadata and retention behavior. The first release reported `immutable=false`; describe retention as no automatic artifact TTL, not write-once protection. Do not claim protection from deliberate deletion. Do not change repository or release permissions.
 7. Verify the queue guardian's `workflow_run` handoff after the scheduled capture: no orphaned/duplicate runs, no enforcement action without a policy violation, no errors. Confirm no queued, requested or in-progress workflow runs remain.
 8. Review the configured `workflow_dispatch` fallback. If an authorized direct dispatch can be exercised through an available owner-authorized path, validate it once; otherwise record that the event itself remains untested and do not impersonate the owner or weaken the exact-actor gate.
 9. Run the relevant deterministic tests and full CI if code changes are made. Commit one atomic Git Data handoff to `main`; update the report, README and canonical queue in the same commit.
 10. Do not run any strategy backtest, optimize the closed Spot Momentum model, inspect signals/performance, access unaccepted funding, purchase data, add credentials, use other venues or authorize live trading.
+
+## Implementation progress — 2026-11-23
+
+- Added a durable, append-only JSON Release sidecar for each ZIP. The sidecar records the ZIP asset ID, URL, size, GitHub SHA-256 digest, archive SHA-256, release immutability state and per-file SHA-256 hashes.
+- Added automatic backfill of the previous ZIP's sidecar before the next snapshot is published. The first snapshot's sidecar is therefore expected to be created during the first scheduled run.
+- The ZIP now embeds the unique sidecar asset name before it is published. The ZIP's own post-upload ID/digest is stored in the sidecar, avoiding a self-referential ZIP checksum.
+- Release-asset reuse requires exact GitHub digest, size and identity metadata. Previous snapshot restore now fails closed if the GitHub digest or asset size is missing/mismatched.
+- The capture workflow conditionally corrects the legacy release description only when it exactly matches the old "immutable" wording and the release API says the release is not immutable. No permissions or protection settings are changed.
+- Added deterministic tests for sidecar structure, previous-snapshot backfill, current-snapshot publication, idempotent reuse, collision rejection, digest requirements and release-description correction. Full hosted CI result is pending this commit.
 
 ## Acceptance criteria
 

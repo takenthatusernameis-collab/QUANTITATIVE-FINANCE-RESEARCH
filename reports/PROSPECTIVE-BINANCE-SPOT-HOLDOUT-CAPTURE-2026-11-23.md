@@ -37,7 +37,7 @@
 
 The snapshot is stored as a GitHub Release asset rather than an Actions artifact, so it has no 30-day Actions-artifact expiry. The release API reported `immutable=false`; therefore this is **not** write-once storage and can be removed by someone with sufficient repository permissions. Under normal operation there is no automatic 180-day expiry, but deliberate deletion/repository removal is not prevented.
 
-The ZIP is assembled before the upload response exists, so its embedded `manifest.json` has `storage: null`. The separate Actions manifest artifact records the post-upload asset ID, URL and digest, but expires after 30 days; GitHub Release API metadata also records the asset identity and digest. The next task must verify the next snapshot and decide whether to add a durable sidecar manifest. Do not describe the release as platform-immutable.
+The ZIP is assembled before its own upload response exists, so it cannot contain its own post-upload asset ID/digest without a self-reference. The implementation now embeds a unique sidecar-name pointer in the ZIP and publishes a separate durable JSON sidecar after upload. The sidecar contains the ZIP asset ID, URL, size, GitHub digest, archive SHA-256 and both per-file SHA-256 hashes. The next capture also backfills this sidecar for the first snapshot before it appends the next ZIP. The sidecar's own asset ID/digest is recorded in Release API metadata and the expiring Actions manifest. GitHub reports `immutable=false`; append-only behavior is enforced by workflow collision checks, not platform write-once protection. The first snapshot remains without its sidecar until the next capture succeeds.
 
 ## Automation and governance
 
@@ -49,6 +49,14 @@ The ZIP is assembled before the upload response exists, so its embedded `manifes
 - The same issue comment also triggered the ETH/BTC research workflow, but every research execution job was skipped by its exact-command authorization gate; no model or funding job ran.
 - Queue guardian [run 45242393950](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45242393950) completed with zero actions and zero errors.
 - At handoff: zero queued, requested or in-progress workflow runs; PR #2 remains open/draft; seven branches remain; the complete recursive tree contains 87 tracked files and no committed raw market-data files. Main branch protection is disabled; no settings were changed.
+
+## Durable sidecar improvement — 2026-11-23
+
+The capture implementation now creates a durable metadata-only JSON sidecar for each ZIP. It records the ZIP asset ID, URL, size, GitHub digest, archive SHA-256 and per-file hashes. The next capture first reconstructs and publishes a sidecar for the previous ZIP, so the initial asset will be backfilled before a second snapshot is appended. Sidecar assets use unique run/attempt names; exact digest/size matches are reused idempotently, while name collisions with different bytes fail closed.
+
+The ZIP embeds the expected sidecar name, but its own post-upload digest remains in the sidecar to avoid a self-referential checksum. The sidecar's own asset ID/digest is held by GitHub Release API metadata and copied into the expiring Actions manifest. The release's immutable=false property is explicitly recorded; no platform write-once guarantee is claimed. The workflow will also correct the old release description's "immutable" wording on the next authorized capture if it still matches the exact legacy text.
+
+The code and deterministic regression tests are included in the current atomic handoff. The next scheduled run must verify live sidecar backfill/publication and the previous ZIP restore. The first snapshot does not yet have a sidecar until that run succeeds.
 
 ## Scientific and safety boundary
 

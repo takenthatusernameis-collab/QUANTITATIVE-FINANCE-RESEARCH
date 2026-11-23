@@ -36,6 +36,22 @@ MAX_LIMIT = 1000
 MAX_ATTEMPTS = 4
 RETRYABLE = {429, 500, 502, 503, 504}
 SCHEMA_VERSION = 1
+RETENTION_POLICY = (
+    "GitHub Release asset; no automatic Actions-artifact expiry; not platform-immutable; "
+    "may be deleted with the release or repository"
+)
+LEGACY_RELEASE_BODY = (
+    "Append-only, immutable snapshots of public Binance Spot 1h ETHUSDT/BTCUSDT data. "
+    "Each ZIP includes per-symbol CSVs and a SHA-256 manifest. No strategy evaluation "
+    "or trading is performed by this archive."
+)
+RELEASE_BODY = (
+    "Append-only by workflow policy: public Binance Spot 1h ETHUSDT/BTCUSDT snapshots. "
+    "Each ZIP contains per-symbol CSVs; a separate JSON sidecar records the post-upload "
+    "ZIP asset ID, URL, digest and per-file hashes. GitHub Release assets have no automatic "
+    "Actions-artifact expiry but are not platform-immutable and may be deleted by repository "
+    "maintainers. No strategy evaluation or trading is performed by this archive."
+)
 COLUMNS = (
     "open_time", "open", "high", "low", "close", "volume", "close_time",
     "quote_volume", "trade_count", "taker_buy_base", "taker_buy_quote", "ignore",
@@ -53,6 +69,14 @@ def latest_closed_hour_open_ms(now_ms: int) -> int:
 
 def sha256_bytes(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
+
+
+def is_sha256_hex(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
 
 
 def parse_utc_ms(value: str) -> int:
@@ -268,13 +292,18 @@ def load_previous_snapshot(
     if not candidates:
         return None
     asset = max(candidates, key=lambda item: (item.get("created_at", ""), item.get("id", 0)))
+    if not asset.get("id") or not asset.get("browser_download_url") or not asset.get("created_at"):
+        raise ValueError("Previous release asset metadata is incomplete")
+    expected_digest = asset.get("digest")
+    if not isinstance(expected_digest, str) or not expected_digest.startswith("sha256:"):
+        raise ValueError("Previous release asset has no GitHub SHA-256 digest")
     download = session.get(asset["browser_download_url"], timeout=60)
     download.raise_for_status()
     payload = download.content
-    expected_digest = asset.get("digest")
-    if expected_digest and expected_digest.startswith("sha256:"):
-        if sha256_bytes(payload) != expected_digest.split(":", 1)[1]:
-            raise ValueError("Previous release asset digest does not match GitHub metadata")
+    if asset.get("size") is None or len(payload) != asset["size"]:
+        raise ValueError("Previous release asset size does not match GitHub metadata")
+    if sha256_bytes(payload) != expected_digest.split(":", 1)[1]:
+        raise ValueError("Previous release asset digest does not match GitHub metadata")
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
         manifest = json.loads(archive.read("manifest.json").decode("utf-8"))
         if manifest.get("schema_version") != SCHEMA_VERSION:
@@ -310,13 +339,41 @@ def load_previous_snapshot(
             previous_rows[symbol] = rows
     return {
         "asset_name": asset["name"],
-        "asset_id": asset.get("id"),
-        "asset_created_at": asset.get("created_at"),
+        "asset_id": asset["id"],
+        "asset_url": asset["browser_download_url"],
+        "asset_size_bytes": asset["size"],
+        "asset_created_at": asset["created_at"],
         "asset_digest": expected_digest,
         "archive_sha256": sha256_bytes(payload),
+        "platform_immutable": bool(release.get("immutable", False)),
         "manifest": manifest,
         "rows": previous_rows,
     }
+
+
+def build_durable_sidecar(manifest: dict[str, Any]) -> bytes:
+    """Serialize a compact manifest only after ZIP identity and every file hash are known."""
+    storage = manifest.get("storage")
+    required_storage = ("asset_id", "asset_name", "asset_url", "asset_digest", "archive_sha256")
+    if not isinstance(storage, dict) or any(storage.get(key) in (None, "") for key in required_storage):
+        raise ValueError("Durable sidecar requires verified ZIP asset ID, URL and digest")
+    if not isinstance(storage.get("asset_id"), int) or storage["asset_id"] <= 0:
+        raise ValueError("Durable sidecar requires a positive GitHub asset ID")
+    if not isinstance(storage.get("asset_url"), str) or not storage["asset_url"].startswith("https://"):
+        raise ValueError("Durable sidecar requires an HTTPS ZIP asset URL")
+    archive_sha = storage.get("archive_sha256")
+    asset_digest = storage.get("asset_digest")
+    if not is_sha256_hex(archive_sha) or asset_digest != f"sha256:{archive_sha}":
+        raise ValueError("Durable sidecar ZIP digest fields are invalid or inconsistent")
+    files = manifest.get("files")
+    if not isinstance(files, dict) or not files:
+        raise ValueError("Durable sidecar requires per-file SHA-256 records")
+    if any(
+        not isinstance(record, dict) or not is_sha256_hex(record.get("sha256"))
+        for record in files.values()
+    ):
+        raise ValueError("Durable sidecar contains a missing or invalid per-file SHA-256 hash")
+    return (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
 
 def publish_release_asset(
@@ -326,8 +383,9 @@ def publish_release_asset(
     release_tag: str,
     asset_name: str,
     zip_bytes: bytes,
+    content_type: str = "application/zip",
 ) -> dict[str, Any]:
-    """Create the durable release if needed, append one immutable snapshot and verify it."""
+    """Create or reuse a uniquely named release asset with exact size/digest verification."""
     if not token:
         raise RuntimeError("GITHUB_TOKEN is required for release-asset storage")
     headers = {
@@ -345,11 +403,7 @@ def publish_release_asset(
                 "tag_name": release_tag,
                 "target_commitish": "main",
                 "name": "Prospective Binance Spot ETH/BTC holdout — 2026",
-                "body": (
-                    "Append-only, immutable snapshots of public Binance Spot 1h ETHUSDT/BTCUSDT data. "
-                    "Each ZIP includes per-symbol CSVs and a SHA-256 manifest. No strategy evaluation "
-                    "or trading is performed by this archive."
-                ),
+                "body": RELEASE_BODY,
                 "draft": False,
                 "prerelease": False,
             },
@@ -360,6 +414,15 @@ def publish_release_asset(
     else:
         response.raise_for_status()
         release = response.json()
+        if release.get("body") == LEGACY_RELEASE_BODY and not release.get("immutable", False):
+            patch = session.patch(
+                f"{API_ROOT}/repos/{repo}/releases/{release['id']}",
+                headers=headers,
+                json={"body": RELEASE_BODY},
+                timeout=30,
+            )
+            patch.raise_for_status()
+            release = patch.json()
 
     existing = next(
         (asset for asset in release.get("assets", []) if asset.get("name") == asset_name),
@@ -367,15 +430,24 @@ def publish_release_asset(
     )
     expected_sha = sha256_bytes(zip_bytes)
     if existing:
-        if existing.get("digest") == f"sha256:{expected_sha}":
+        if (
+            existing.get("digest") == f"sha256:{expected_sha}"
+            and existing.get("size") == len(zip_bytes)
+            and existing.get("id")
+            and existing.get("browser_download_url")
+            and existing.get("created_at")
+        ):
             return {
-                "asset_id": existing.get("id"),
-                "asset_name": existing.get("name"),
-                "asset_url": existing.get("browser_download_url"),
-                "asset_digest": existing.get("digest"),
+                "asset_id": existing["id"],
+                "asset_name": existing["name"],
+                "asset_url": existing["browser_download_url"],
+                "asset_size_bytes": existing["size"],
+                "asset_created_at": existing["created_at"],
+                "asset_digest": existing["digest"],
+                "platform_immutable": bool(release.get("immutable", False)),
                 "idempotent_reuse": True,
             }
-        raise RuntimeError(f"Release asset name collision with different bytes: {asset_name}")
+        raise RuntimeError(f"Release asset name collision or incomplete metadata: {asset_name}")
 
     upload_url = release.get("upload_url", "").split("{", 1)[0]
     if not upload_url:
@@ -383,7 +455,7 @@ def publish_release_asset(
     upload = session.post(
         upload_url,
         params={"name": asset_name},
-        headers={**headers, "Content-Type": "application/zip"},
+        headers={**headers, "Content-Type": content_type},
         data=zip_bytes,
         timeout=120,
     )
@@ -392,24 +464,66 @@ def publish_release_asset(
 
     verify = session.get(release_url, headers=headers, timeout=30)
     verify.raise_for_status()
+    verified_release = verify.json()
     verified_asset = next(
-        (asset for asset in verify.json().get("assets", []) if asset.get("name") == asset_name),
+        (asset for asset in verified_release.get("assets", []) if asset.get("name") == asset_name),
         None,
     )
     if not verified_asset:
         raise RuntimeError("Uploaded release asset is not visible after upload")
     if verified_asset.get("size") != len(zip_bytes):
-        raise RuntimeError("Uploaded release asset size differs from local ZIP")
+        raise RuntimeError("Uploaded release asset size differs from local bytes")
     digest = verified_asset.get("digest")
-    if digest and digest != f"sha256:{expected_sha}":
-        raise RuntimeError("Uploaded release asset digest differs from local ZIP")
+    if digest != f"sha256:{expected_sha}":
+        raise RuntimeError("Uploaded release asset GitHub SHA-256 digest is missing or differs")
+    if not verified_asset.get("id") or not verified_asset.get("browser_download_url") or not verified_asset.get("created_at"):
+        raise RuntimeError("Uploaded release asset metadata is incomplete")
     return {
-        "asset_id": verified_asset.get("id", uploaded.get("id")),
+        "asset_id": verified_asset["id"] or uploaded.get("id"),
         "asset_name": asset_name,
-        "asset_url": verified_asset.get("browser_download_url"),
-        "asset_digest": digest or f"sha256:{expected_sha}",
+        "asset_url": verified_asset["browser_download_url"],
+        "asset_size_bytes": verified_asset["size"],
+        "asset_created_at": verified_asset["created_at"],
+        "asset_digest": digest,
+        "platform_immutable": bool(verified_release.get("immutable", False)),
         "idempotent_reuse": False,
     }
+
+
+def publish_snapshot_sidecar(
+    session: requests.Session,
+    repo: str,
+    token: str,
+    previous: dict[str, Any],
+) -> dict[str, Any]:
+    """Backfill a durable metadata sidecar for an already-published ZIP snapshot."""
+    sidecar_name = previous["asset_name"].removesuffix(".zip") + ".manifest.json"
+    previous_manifest = dict(previous["manifest"])
+    previous_manifest["storage"] = {
+        "asset_id": previous["asset_id"],
+        "asset_name": previous["asset_name"],
+        "asset_url": previous["asset_url"],
+        "asset_size_bytes": previous["asset_size_bytes"],
+        "asset_created_at": previous["asset_created_at"],
+        "asset_digest": previous["asset_digest"],
+        "archive_sha256": previous["archive_sha256"],
+        "verified_at_utc": previous.get("asset_created_at") or previous_manifest.get("acquired_at_utc"),
+        "release_tag": RELEASE_TAG,
+        "retention_policy": RETENTION_POLICY,
+        "minimum_retention_days": 180,
+        "platform_immutable": previous.get("platform_immutable", False),
+        "sidecar_asset_name": sidecar_name,
+    }
+    payload = build_durable_sidecar(previous_manifest)
+    return publish_release_asset(
+        session=session,
+        repo=repo,
+        token=token,
+        release_tag=RELEASE_TAG,
+        asset_name=sidecar_name,
+        zip_bytes=payload,
+        content_type="application/json",
+    )
 
 
 def write_snapshot(
@@ -427,7 +541,9 @@ def write_snapshot(
     if end_open_ms < CAPTURE_START_MS:
         raise ValueError("Current time precedes the prospective capture start")
     asset_name = f"snapshot-{run_id}-attempt-{run_attempt}.zip"
+    sidecar_name = f"snapshot-{run_id}-attempt-{run_attempt}.manifest.json"
     previous = load_previous_snapshot(session, repo, RELEASE_TAG, asset_name)
+    previous_sidecar = publish_snapshot_sidecar(session, repo, token, previous) if previous else None
 
     manifest: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -454,14 +570,24 @@ def write_snapshot(
         "run_attempt": str(run_attempt),
         "commit_sha": commit_sha or None,
         "files": {},
-        "storage": None,
+        "storage": {
+            "release_tag": RELEASE_TAG,
+            "asset_name": asset_name,
+            "sidecar_asset_name": sidecar_name,
+            "retention_policy": RETENTION_POLICY,
+            "minimum_retention_days": 180,
+            "platform_immutable": previous.get("platform_immutable", False) if previous else False,
+        },
     }
     if previous:
         manifest["previous_snapshot"] = {
             "asset_name": previous["asset_name"],
             "asset_id": previous["asset_id"],
+            "asset_url": previous["asset_url"],
+            "asset_digest": previous["asset_digest"],
             "asset_created_at": previous["asset_created_at"],
             "archive_sha256": previous["archive_sha256"],
+            "sidecar_asset": previous_sidecar,
         }
 
     all_complete = True
@@ -545,10 +671,30 @@ def write_snapshot(
         **storage,
         "release_tag": RELEASE_TAG,
         "archive_sha256": sha256_bytes(zip_bytes),
-        "verified_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-        "retention_policy": "GitHub Release asset; no Actions-artifact expiry; retained until explicitly deleted with the release or repository",
+        "verified_at_utc": storage.get("asset_created_at") or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "retention_policy": RETENTION_POLICY,
         "minimum_retention_days": 180,
+        "platform_immutable": storage.get("platform_immutable", False),
+        "sidecar_asset_name": sidecar_name,
     }
+    sidecar_bytes = build_durable_sidecar(manifest)
+    sidecar_storage = publish_release_asset(
+        session=session,
+        repo=repo,
+        token=token,
+        release_tag=RELEASE_TAG,
+        asset_name=sidecar_name,
+        zip_bytes=sidecar_bytes,
+        content_type="application/json",
+    )
+    manifest["storage"].update({
+        "sidecar_asset_id": sidecar_storage["asset_id"],
+        "sidecar_asset_name": sidecar_storage["asset_name"],
+        "sidecar_asset_url": sidecar_storage["asset_url"],
+        "sidecar_asset_size_bytes": sidecar_storage["asset_size_bytes"],
+        "sidecar_asset_digest": sidecar_storage["asset_digest"],
+        "sidecar_idempotent_reuse": sidecar_storage["idempotent_reuse"],
+    })
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return manifest
 

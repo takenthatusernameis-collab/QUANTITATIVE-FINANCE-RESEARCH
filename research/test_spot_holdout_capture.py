@@ -6,13 +6,16 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import requests
 
 from spot_holdout_capture import (
     API_URL,
     COLUMNS,
+    LEGACY_RELEASE_BODY,
+    RELEASE_BODY,
+    build_durable_sidecar,
     HOUR_MS,
     CAPTURE_START_MS,
     fetch_klines,
@@ -20,10 +23,12 @@ from spot_holdout_capture import (
     load_previous_snapshot,
     merge_rows,
     publish_release_asset,
+    publish_snapshot_sidecar,
     read_csv_rows,
     rows_to_csv,
     sha256_bytes,
     validate_rows,
+    write_snapshot,
 )
 
 
@@ -173,6 +178,7 @@ class SpotHoldoutCaptureTests(unittest.TestCase):
             "state": "uploaded",
             "created_at": "2026-11-23T00:00:00Z",
             "browser_download_url": "https://example.invalid/snapshot.zip",
+            "size": len(payload),
             "digest": "sha256:" + sha256_bytes(payload),
         }]}
         session = Mock()
@@ -192,7 +198,7 @@ class SpotHoldoutCaptureTests(unittest.TestCase):
                 session, "owner/repo", "token", "tag", "snapshot-1-attempt-1.zip", b"zip"
             )
 
-    def test_release_upload_is_verified_and_immutable(self):
+    def test_release_upload_is_verified_with_exact_content_type(self):
         zip_bytes = b"test-zip-bytes"
         digest = "sha256:" + sha256_bytes(zip_bytes)
         release = {
@@ -200,21 +206,25 @@ class SpotHoldoutCaptureTests(unittest.TestCase):
             "assets": [],
         }
         uploaded = {
-            "id": 9, "name": "snapshot-1-attempt-1.zip",
-            "browser_download_url": "https://github.com/owner/repo/releases/download/tag/snapshot.zip",
+            "id": 9, "name": "snapshot-1-attempt-1.manifest.json",
+            "browser_download_url": "https://github.com/owner/repo/releases/download/tag/snapshot.manifest.json",
+            "created_at": "2026-11-23T00:00:00Z",
             "digest": digest,
         }
-        verified = {"assets": [{**uploaded, "size": len(zip_bytes)}]}
+        verified = {"assets": [{**uploaded, "size": len(zip_bytes)}], "immutable": False}
         session = Mock()
         session.get.side_effect = [Response(release), Response(verified)]
         session.post.return_value = Response(uploaded, status=201)
         result = publish_release_asset(
-            session, "owner/repo", "token", "tag", "snapshot-1-attempt-1.zip", zip_bytes
+            session, "owner/repo", "token", "tag", "snapshot-1-attempt-1.manifest.json",
+            zip_bytes, content_type="application/json"
         )
         self.assertEqual(result["asset_id"], 9)
         self.assertEqual(result["asset_digest"], digest)
         self.assertFalse(result["idempotent_reuse"])
+        self.assertFalse(result["platform_immutable"])
         self.assertEqual(session.post.call_count, 1)
+        self.assertEqual(session.post.call_args.kwargs["headers"]["Content-Type"], "application/json")
 
     def test_release_asset_collision_is_not_overwritten(self):
         zip_bytes = b"new-bytes"
@@ -231,6 +241,198 @@ class SpotHoldoutCaptureTests(unittest.TestCase):
                 session, "owner/repo", "token", "tag", "snapshot-1-attempt-1.zip", zip_bytes
             )
         session.post.assert_not_called()
+
+    def test_durable_sidecar_requires_verified_zip_metadata_and_file_hashes(self):
+        manifest = {
+            "files": {
+                "spot_ETHUSDT_1h.csv": {"sha256": "a" * 64},
+                "spot_BTCUSDT_1h.csv": {"sha256": "b" * 64},
+            },
+            "storage": {
+                "asset_id": 9,
+                "asset_name": "snapshot-9-attempt-1.zip",
+                "asset_url": "https://example.invalid/snapshot.zip",
+                "asset_digest": "sha256:" + "c" * 64,
+                "archive_sha256": "c" * 64,
+            },
+        }
+        payload = build_durable_sidecar(manifest)
+        decoded = json.loads(payload.decode("utf-8"))
+        self.assertEqual(decoded["storage"]["asset_id"], 9)
+        self.assertEqual(decoded["storage"]["asset_url"], "https://example.invalid/snapshot.zip")
+        self.assertEqual(decoded["storage"]["asset_digest"], "sha256:" + "c" * 64)
+        self.assertEqual(decoded["files"]["spot_ETHUSDT_1h.csv"]["sha256"], "a" * 64)
+        with self.assertRaisesRegex(ValueError, "verified ZIP asset"):
+            build_durable_sidecar({"files": manifest["files"], "storage": None})
+        with self.assertRaisesRegex(ValueError, "per-file SHA-256"):
+            build_durable_sidecar({
+                "files": {"spot_ETHUSDT_1h.csv": {}},
+                "storage": manifest["storage"],
+            })
+
+    def test_previous_snapshot_sidecar_is_append_only_and_provenance_complete(self):
+        previous = {
+            "manifest": {
+                "schema_version": 1,
+                "files": {
+                    "spot_ETHUSDT_1h.csv": {"sha256": "1" * 64},
+                    "spot_BTCUSDT_1h.csv": {"sha256": "2" * 64},
+                },
+            },
+            "asset_name": "snapshot-old-attempt-1.zip",
+            "asset_id": 12,
+            "asset_url": "https://example.invalid/snapshot-old.zip",
+            "asset_size_bytes": 123,
+            "asset_created_at": "2026-11-23T00:00:00Z",
+            "asset_digest": "sha256:" + "b" * 64,
+            "archive_sha256": "b" * 64,
+            "platform_immutable": False,
+        }
+        published = {
+            "asset_id": 13,
+            "asset_name": "snapshot-old-attempt-1.manifest.json",
+            "asset_url": "https://example.invalid/snapshot-old.manifest.json",
+            "asset_size_bytes": 900,
+            "asset_digest": "sha256:" + "c" * 64,
+            "idempotent_reuse": False,
+        }
+        with patch("spot_holdout_capture.publish_release_asset", return_value=published) as publish:
+            result = publish_snapshot_sidecar(Mock(), "owner/repo", "token", previous)
+        self.assertEqual(result["asset_id"], 13)
+        kwargs = publish.call_args.kwargs
+        self.assertEqual(kwargs["asset_name"], "snapshot-old-attempt-1.manifest.json")
+        self.assertEqual(kwargs["content_type"], "application/json")
+        sidecar = json.loads(kwargs["zip_bytes"].decode("utf-8"))
+        self.assertEqual(sidecar["storage"]["asset_id"], 12)
+        self.assertEqual(sidecar["storage"]["asset_url"], previous["asset_url"])
+        self.assertEqual(sidecar["storage"]["asset_digest"], previous["asset_digest"])
+        self.assertEqual(sidecar["files"]["spot_BTCUSDT_1h.csv"]["sha256"], "2" * 64)
+
+    def test_write_snapshot_publishes_zip_and_durable_sidecar(self):
+        rows = [make_row(CAPTURE_START_MS + i * HOUR_MS) for i in range(3)]
+        captured_sidecars = []
+
+        def fake_publish(**kwargs):
+            payload = kwargs["zip_bytes"]
+            digest = sha256_bytes(payload)
+            if kwargs["content_type"] == "application/zip":
+                return {
+                    "asset_id": 101,
+                    "asset_name": kwargs["asset_name"],
+                    "asset_url": "https://example.invalid/snapshot.zip",
+                    "asset_size_bytes": len(payload),
+                    "asset_created_at": "2026-11-01T03:10:00Z",
+                    "asset_digest": "sha256:" + digest,
+                    "platform_immutable": False,
+                    "idempotent_reuse": False,
+                }
+            captured_sidecars.append(json.loads(payload.decode("utf-8")))
+            return {
+                "asset_id": 102,
+                "asset_name": kwargs["asset_name"],
+                "asset_url": "https://example.invalid/snapshot.manifest.json",
+                "asset_size_bytes": len(payload),
+                "asset_created_at": "2026-11-01T03:10:01Z",
+                "asset_digest": "sha256:" + digest,
+                "platform_immutable": False,
+                "idempotent_reuse": False,
+            }
+
+        with tempfile.TemporaryDirectory() as directory:
+            with patch("spot_holdout_capture.load_previous_snapshot", return_value=None), \
+                 patch("spot_holdout_capture.fetch_klines", return_value=rows), \
+                 patch("spot_holdout_capture.publish_release_asset", side_effect=fake_publish) as publish:
+                manifest = write_snapshot(
+                    Path(directory), "owner/repo", "42", "1", "commit-sha",
+                    CAPTURE_START_MS + 3 * HOUR_MS + 10 * 60_000, Mock(), "token",
+                )
+            self.assertEqual(publish.call_count, 2)
+            self.assertEqual(publish.call_args_list[0].kwargs["content_type"], "application/zip")
+            self.assertEqual(publish.call_args_list[1].kwargs["content_type"], "application/json")
+            sidecar = captured_sidecars[0]
+            self.assertEqual(sidecar["storage"]["asset_id"], 101)
+            self.assertEqual(
+                sidecar["files"]["spot_ETHUSDT_1h.csv"]["sha256"],
+                manifest["files"]["spot_ETHUSDT_1h.csv"]["sha256"],
+            )
+            self.assertEqual(
+                sidecar["storage"]["asset_digest"],
+                "sha256:" + sidecar["storage"]["archive_sha256"],
+            )
+            self.assertEqual(manifest["storage"]["sidecar_asset_id"], 102)
+            zip_path = Path(directory) / "snapshot-42-attempt-1.zip"
+            with zipfile.ZipFile(zip_path) as archive:
+                embedded = json.loads(archive.read("manifest.json").decode("utf-8"))
+            self.assertEqual(embedded["storage"]["sidecar_asset_name"], "snapshot-42-attempt-1.manifest.json")
+            self.assertFalse(embedded["storage"]["platform_immutable"])
+
+    def test_release_asset_idempotent_reuse_requires_exact_digest_and_size(self):
+        payload = b"same-manifest"
+        asset = {
+            "id": 22,
+            "name": "snapshot-22-attempt-1.manifest.json",
+            "size": len(payload),
+            "created_at": "2026-11-23T00:00:00Z",
+            "browser_download_url": "https://example.invalid/sidecar.json",
+            "digest": "sha256:" + sha256_bytes(payload),
+        }
+        session = Mock()
+        session.get.return_value = Response({"assets": [asset], "immutable": False})
+        result = publish_release_asset(
+            session, "owner/repo", "token", "tag",
+            "snapshot-22-attempt-1.manifest.json", payload, content_type="application/json",
+        )
+        self.assertTrue(result["idempotent_reuse"])
+        self.assertEqual(result["asset_id"], 22)
+        self.assertEqual(result["asset_size_bytes"], len(payload))
+        session.post.assert_not_called()
+
+    def test_legacy_release_description_is_corrected_without_changing_immutability(self):
+        legacy = {
+            "id": 7,
+            "body": LEGACY_RELEASE_BODY,
+            "upload_url": "https://uploads.github.com/repos/owner/repo/releases/7/assets{?name,label}",
+            "assets": [],
+            "immutable": False,
+        }
+        corrected = {**legacy, "body": RELEASE_BODY}
+        payload = b"new-sidecar"
+        digest = "sha256:" + sha256_bytes(payload)
+        uploaded = {
+            "id": 8,
+            "name": "snapshot-8-attempt-1.manifest.json",
+            "browser_download_url": "https://example.invalid/snapshot.manifest.json",
+            "created_at": "2026-11-23T00:00:00Z",
+            "digest": digest,
+        }
+        verified = {"assets": [{**uploaded, "size": len(payload)}], "immutable": False}
+        session = Mock()
+        session.get.side_effect = [Response(legacy), Response(verified)]
+        session.patch.return_value = Response(corrected)
+        session.post.return_value = Response(uploaded, status=201)
+        publish_release_asset(
+            session, "owner/repo", "token", "tag",
+            "snapshot-8-attempt-1.manifest.json", payload, content_type="application/json",
+        )
+        session.patch.assert_called_once()
+        self.assertIn("/releases/7", session.patch.call_args.args[0])
+        self.assertEqual(session.patch.call_args.kwargs["json"]["body"], RELEASE_BODY)
+
+    def test_previous_snapshot_without_github_digest_fails_closed(self):
+        session = Mock()
+        session.get.return_value = Response({"assets": [{
+            "name": "snapshot-old-attempt-1.zip",
+            "id": 12,
+            "state": "uploaded",
+            "created_at": "2026-11-23T00:00:00Z",
+            "browser_download_url": "https://example.invalid/snapshot.zip",
+            "size": 100,
+        }]})
+        with self.assertRaisesRegex(ValueError, "no GitHub SHA-256 digest"):
+            load_previous_snapshot(
+                session, "owner/repo", "spot-holdout-2026", "snapshot-current-attempt-1.zip"
+            )
+        self.assertEqual(session.get.call_count, 1)
 
     def test_workflow_is_scheduled_gated_and_manifest_only(self):
         root = Path(__file__).resolve().parents[1]
@@ -250,6 +452,7 @@ class SpotHoldoutCaptureTests(unittest.TestCase):
         self.assertIn("manifest.json", artifact)
         self.assertNotIn(".csv", artifact)
         self.assertNotIn(".zip", artifact)
+        self.assertNotIn(".manifest.json", artifact)
         guardian = (root / ".github" / "workflows" / "queue-guardian.yml").read_text(encoding="utf-8")
         self.assertIn("Prospective Binance Spot holdout capture", guardian)
         self.assertIn("github.event.workflow_run.name == 'Prospective Binance Spot holdout capture'", guardian)
