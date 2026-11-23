@@ -485,6 +485,8 @@ def _interval_metrics(timestamps: list[int]) -> dict[str, Any]:
     ordered = sorted(set(timestamps))
     gaps = Counter()
     gap_samples = []
+    non_hourly_gap_samples = []
+    non_hourly_gap_count = 0
     max_gap_hours: float | None = None
     for left, right in zip(ordered, ordered[1:]):
         hours = round((right - left) / 3_600_000, 6)
@@ -492,12 +494,17 @@ def _interval_metrics(timestamps: list[int]) -> dict[str, Any]:
             continue
         gaps[hours] += 1
         max_gap_hours = hours if max_gap_hours is None else max(max_gap_hours, hours)
+        sample = {
+            "from_utc": _utc_iso(left),
+            "to_utc": _utc_iso(right),
+            "hours": hours,
+        }
         if hours > 4 and len(gap_samples) < 20:
-            gap_samples.append({
-                "from_utc": _utc_iso(left),
-                "to_utc": _utc_iso(right),
-                "hours": hours,
-            })
+            gap_samples.append(sample)
+        if not math.isclose(hours, 1.0, rel_tol=0.0, abs_tol=1e-6):
+            non_hourly_gap_count += 1
+            if len(non_hourly_gap_samples) < 20:
+                non_hourly_gap_samples.append(sample)
     return {
         "cadence_hours_top": [
             {"hours": hours, "count": count}
@@ -505,6 +512,8 @@ def _interval_metrics(timestamps: list[int]) -> dict[str, Any]:
         ],
         "gaps_over_4h_count": sum(count for hours, count in gaps.items() if hours > 4),
         "gaps_over_4h_samples": gap_samples,
+        "non_hourly_gap_count": non_hourly_gap_count,
+        "non_hourly_gap_samples": non_hourly_gap_samples,
         "max_positive_gap_hours": max_gap_hours,
     }
 
