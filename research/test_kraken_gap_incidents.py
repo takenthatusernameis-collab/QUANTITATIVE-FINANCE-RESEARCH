@@ -44,7 +44,7 @@ class KrakenGapIncidentTests(unittest.TestCase):
             if item["incident_matches"] else 0
             for item in results
         ]
-        self.assertEqual(durations, [0, 84, 51, 110, 60])
+        self.assertEqual(durations, [0, 84, 51, 67, 60])
 
     def test_december_unichain_incident_is_nearby_but_not_relevant_or_overlapping(self):
         result = correlate_gap(GAPS[0])
@@ -53,6 +53,20 @@ class KrakenGapIncidentTests(unittest.TestCase):
         self.assertFalse(incident["api_affected"])
         self.assertFalse(incident["derivatives_affected"])
         self.assertEqual(incident["end_utc"], "2025-12-04T05:52:00Z")
+
+    def test_may_incident_api_phase_is_not_confused_with_later_payment_issue(self):
+        result = audit_all_gaps()[3]
+        self.assertEqual(result["incident_matches"][0]["overlap_minutes"], 67)
+        self.assertEqual(
+            result["incident_matches"][0]["statuspage_overall_end_utc"],
+            "2026-05-11T18:15:00Z",
+        )
+        self.assertFalse(result["incident_matches"][0]["derivatives_affected"])
+
+    def test_february_4_incident_does_not_claim_api_scope(self):
+        incident = next(item for item in INCIDENTS if item["id"] == "spot-futures-connectivity-2026-02-04")
+        self.assertFalse(incident["api_affected"])
+        self.assertTrue(incident["derivatives_affected"])
 
     def test_status_overlap_never_proves_funding_was_paused_or_settled(self):
         for result in audit_all_gaps():

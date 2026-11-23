@@ -54,7 +54,7 @@ INCIDENTS = (
         "title": "Connectivity and Trading Issues (Spot & Futures) - Web & Mobile",
         "start_utc": "2026-02-04T11:36:00Z",
         "end_utc": "2026-02-04T13:18:00Z",
-        "api_affected": True,
+        "api_affected": False,
         "derivatives_affected": True,
         "source_type": "independent_status_history_mirror",
         "source_url": "https://sevanalysis.com/vendors/kraken/",
@@ -73,7 +73,8 @@ INCIDENTS = (
         "id": "api-web-mobile-connectivity-2026-05-09",
         "title": "Connectivity Issues - Web & Mobile",
         "start_utc": "2026-05-09T05:10:00Z",
-        "end_utc": "2026-05-11T18:15:00Z",
+        "end_utc": "2026-05-09T06:17:00Z",
+        "statuspage_overall_end_utc": "2026-05-11T18:15:00Z",
         "api_affected": True,
         "derivatives_affected": False,
         "source_type": "official_status_page",
@@ -125,6 +126,7 @@ def correlate_gap(gap: dict[str, Any], incidents: tuple[dict[str, Any], ...] = I
                 "derivatives_affected": bool(incident.get("derivatives_affected")),
                 "source_type": incident["source_type"],
                 "source_url": incident["source_url"],
+                "statuspage_overall_end_utc": incident.get("statuspage_overall_end_utc"),
             })
 
     missing_expected = []
