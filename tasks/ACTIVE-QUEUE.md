@@ -3,6 +3,17 @@
 **Updated:** 2026-11-23 09:34 UTC  
 **Canonical active-task pointer:** [Preregistered ETH/BTC spot relative-momentum rotation](ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md).
 
+## Current cycle plan — 2026-11-23 13:45 UTC
+
+- **P0:** Keep the original USDⓈ-M funding-aware study INCONCLUSIVE. Do not use provisional Kraken/Binance funding, paid vendor data, credentials, regional workarounds, perpetual backtests or live trading.
+- **P1:** No open queue-guardian incidents were found at cycle start. Preserve the existing default-branch-only control PR and exact-actor authorization.
+- **P5:** ETH/BTC Spot Relative-Momentum implementation cycle **1 of 4** is committed. The new runner is isolated from funding and mean-reversion code, uses accepted Spot provenance, next-observed-open execution, 5–50 bps per-leg costs, four benchmarks, recovery periods and paired 3/7/14-day bootstrap inference.
+- **Next action:** dispatch the exact gated command `/qfr-run-eth-btc-spot-momentum` on open control PR #2. Inspect the full workflow, artifact, data acceptance, source hashes and empirical report. Do not call CI or synthetic validation a strategy result.
+- **Timebox:** implementation deadline 2026-11-26 18:00 UTC; final conclusion deadline 2026-11-28 18:00 UTC; four substantive cycles maximum. No automatic extension.
+- **Hygiene:** no raw data or temporary files are committed; workflow artifacts contain reports/manifests only.
+
+
+
 ## Current cycle plan — 2026-11-23 09:33 UTC
 
 - **P0:** Keep all unaccepted funding data rejected. No zero-filled events, rate clipping, venue merges, paid access, credentials, backtests on unaccepted funding or live trading.

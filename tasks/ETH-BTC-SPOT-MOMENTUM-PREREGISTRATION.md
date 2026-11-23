@@ -56,6 +56,19 @@ GO only if the net pooled OOS strategy:
 
 Otherwise report NO-GO. A GO is research-only, not authorization to trade.
 
+## Frozen implementation conventions
+
+The following operational details are fixed before any empirical result is inspected:
+
+- A UTC day's close is the last observed hourly close in that day, but it is eligible only if its close timestamp is no more than one hour before the UTC midnight boundary. A stale or absent daily close generates no new signal; the existing target is retained. No price is forward-filled or synthesized.
+- The 200-day SMA is the arithmetic mean of the current completed daily ratio and the preceding 199 valid daily closes. A signal is known at the next UTC midnight.
+- Execution occurs at the first observed hourly open at or after the signal-known timestamp. If the exact 00:00 bar is absent, execution is delayed to the next observed open and the delay is recorded.
+- The OOS interval is the observed hourly-open sample from 2022-01-01 00:00 UTC inclusive through 2026-11-01 00:00 UTC exclusive. The final observed OOS open is liquidated to cash at that open.
+- Transaction-cost inputs are all-in bps per one-way leg. Initial entry and final exit each incur one leg; a full ETH-to-BTC rotation incurs two legs. Benchmarks use the same cost convention.
+- Sharpe is computed using the repository's continuous-time elapsed-UTC estimator because the accepted hourly Spot index can contain provenance-confirmed no-trade gaps.
+- Paired moving-block bootstrap resamples strategy and BTC returns with identical contiguous observed-time blocks. Block starts are weighted by the elapsed duration of their first interval. Use 1,000 replications for each 3-, 7- and 14-calendar-day block, 95% percentile intervals, base seed 20261123 and per-block seed = base seed + block length. Compound the zero-duration initial entry cost into the first positive-duration interval before resampling.
+- The bootstrap gate is conservative: the 95% lower confidence bound for excess CAGR must be above zero for all three preregistered block lengths. The 15 and 20 bps stress cases must remain profitable and preserve the point-estimate decision versus BTC (CAGR, Sharpe and drawdown criteria).
+
 ## Execution and stop conditions
 
 - This is one frozen model with no parameter grid, no optimization or post-result rule changes.

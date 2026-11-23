@@ -75,6 +75,14 @@ Full evidence and the remaining blockers are in the [PI price/terms validation r
 
 Queue guardian [45116064442](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45116064442) enumerated 402/402 repository runs completely, with zero actions and zero errors. The six branches and draft control PR #2 were preserved; there are no open standalone issues or active runs.
 
+## Spot momentum implementation — 2026-11-23
+
+The separately preregistered **ETH/BTC Spot Relative-Momentum Rotation** has entered implementation under the mandatory MEDIUM-difficulty timebox. The first substantive cycle is committed: a dedicated Spot-only runner, deterministic tests, next-observed-open execution, all-in per-leg cost accounting, BTC/ETH/50-50 benchmarks, recovery-period reporting, and paired 3/7/14-day calendar-time bootstrap inference. This is implementation evidence only; the empirical study has not yet run.
+
+The runner downloads and validates only Binance Spot ETHUSDT/BTCUSDT data, verifies monthly archive checksums and the existing no-trade gap provenance gate, and never accesses funding data. It is wired to the exact gated control-PR command `/qfr-run-eth-btc-spot-momentum`. See [implementation handoff](reports/ETH-BTC-SPOT-MOMENTUM-IMPLEMENTATION-2026-11-23.md), [preregistration](tasks/ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md), and [active queue](tasks/ACTIVE-QUEUE.md).
+
+The original Binance USDⓈ-M funding-aware study remains **INCONCLUSIVE**. No paid data, API credentials, regional workarounds, perpetual backtest or live trading is authorized.
+
 ## Next task — preregister a separate spot ETH/BTC momentum rotation
 
 Execute the single-hypothesis [spot momentum preregistration](tasks/ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md) using the already-accepted spot data only. Do not access paid funding data or run a Binance perpetual backtest while the funding gate remains closed.

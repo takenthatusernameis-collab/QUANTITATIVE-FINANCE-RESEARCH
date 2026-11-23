@@ -1,4 +1,4 @@
-# ETH/BTC mean-reversion research pipeline
+# ETH/BTC quantitative research pipeline
 
 
 **Repository-wide operating rules:** follow the [General Antifragile Autonomous Operating Mindset](../docs/GENERAL-ANTIFRAGILE-AUTONOMOUS-OPERATING-MINDSET.md), [Adaptive Execution Standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md), and [Repository Hygiene preflight](../docs/REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md). The single current task pointer is [tasks/ACTIVE-QUEUE.md](../tasks/ACTIVE-QUEUE.md).
@@ -65,6 +65,22 @@ The Spot gate remains fail-closed: both symbols must have synchronized gap inven
 The event-time path writes `<market>_<interval>_oos_returns.csv` and `<market>_<interval>_pooled_oos_summary.csv`. The pooled file reports all-fold 1.0x, 1.5x and 2.0x cost point estimates. The primary 1.0x case also receives 95% percentile intervals from a fold-stratified moving-block bootstrap using seven-calendar-day blocks and 1,000 replications; blocks are sampled by elapsed time and never cross fold boundaries. The 1.5x and 2.0x rows are point estimates only. The seven-day block is aligned with the strategy's maximum holding horizon, but alternative block-length sensitivity and verified historical Spot borrow costs remain necessary before strong inference.
 
 Deterministic integration tests cover the irregular Spot walk-forward outputs, benchmarks, continuous-time metrics, pooled OOS aggregation, deterministic calendar-time bootstrap, diagnostics labeling, no-trade evidence, and fail-closed manifest checks. These tests validate implementation behavior, not full-history strategy performance. The original strict hourly representation remains incomplete, and the empirical result remains **INCONCLUSIVE** until the authorized Spot-only run completes and its real-data artifacts and out-of-sample outputs are reviewed.
+
+## Preregistered Spot relative-momentum rotation
+
+The frozen experiment is implemented in `research/spot_momentum.py` and is intentionally separate from the earlier mean-reversion study. Run from the repository root:
+
+```bash
+python research/spot_momentum.py --start 2020-01-01 --end 2026-10-31 --data-dir data --output-dir reports/generated/spot-momentum
+```
+
+The runner downloads only Binance Spot ETHUSDT/BTCUSDT monthly hourly archives, verifies their checksum/provenance, reconciles missing hours against official daily aggregate-trade archives and positive controls, then fails closed unless the existing Spot event-time gate accepts the exact source files. It does not download or read funding data.
+
+The signal is the daily UTC-close ETH/BTC ratio versus its 200-valid-daily-observation SMA. A signal is known at the next UTC midnight and executes at the first observed hourly open at or after that time. The last observed close in a UTC day is used only when no more than one hour stale at midnight; otherwise no new signal is generated. No missing price is forward-filled or synthesized. The target is 100% ETH above the SMA and 100% BTC otherwise.
+
+The model is long-only, unlevered and Spot-only. All-in transaction-cost scenarios are 5, 10, 15, 20, 25 and 50 bps per one-way leg; a full ETH-to-BTC rotation pays both legs. Benchmarks are BTC buy-and-hold, ETH buy-and-hold, 50/50 buy-and-hold and 50/50 monthly rebalanced. Outputs include net OOS metrics, turnover, time allocation, recovery periods, equity/cost charts, exact source SHA-256 values and paired 3/7/14-day block-bootstrap confidence intervals for excess CAGR versus BTC. The bootstrap uses 1,000 replications per block length and fixed deterministic seeds.
+
+The runner is connected to the default-branch-only control workflow using the exact command `/qfr-run-eth-btc-spot-momentum` on open control PR #2. The workflow uploads reports and manifests only, never raw market CSVs. Passing CI or synthetic tests is not evidence of profitability; a GO remains research-only.
 
 ## Important caveats
 

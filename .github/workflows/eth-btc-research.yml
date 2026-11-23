@@ -42,7 +42,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.event_name == 'issue_comment' && (github.event.action != 'created' || github.event.issue.number != 2 || github.event.issue.pull_request == null || github.event.issue.state != 'open' || github.event.comment.user.login != 'takenthatusernameis-collab' || !contains(fromJSON('["/qfr-control-smoke","/qfr-run-eth-btc-data-audit","/qfr-probe-eth-btc-funding-2024-01","/qfr-probe-tardis-funding-2024-01-01","/qfr-probe-tardis-funding-2020-06-01","/qfr-probe-tardis-funding-2025-06-01","/qfr-probe-tardis-funding-2025-10-01","/qfr-probe-tardis-funding-2026-02-01","/qfr-probe-tardis-funding-2026-03-01","/qfr-probe-mexc-funding-history","/qfr-probe-bybit-funding-history","/qfr-probe-bitget-funding-download","/qfr-probe-okx-funding-download","/qfr-probe-okx-funding-button","/qfr-probe-okx-funding-field-info","/qfr-probe-okx-funding-symbols","/qfr-probe-kraken-funding-export","/qfr-audit-kraken-residual-anomalies","/qfr-audit-kraken-rate-cap-census","/qfr-audit-kraken-tardis-timestamp-mapping","/qfr-audit-kraken-tardis-gap-events","/qfr-audit-kraken-pi-price-validation","/qfr-run-eth-btc-empirical","/qfr-run-eth-btc-spot-empirical","/qfr-run-eth-btc-um-empirical"]'), github.event.comment.body)) && format('eth-btc-research-ignored-{0}', github.event.comment.id) || 'eth-btc-research-main' }}
+  group: ${{ github.event_name == 'issue_comment' && (github.event.action != 'created' || github.event.issue.number != 2 || github.event.issue.pull_request == null || github.event.issue.state != 'open' || github.event.comment.user.login != 'takenthatusernameis-collab' || !contains(fromJSON('["/qfr-control-smoke","/qfr-run-eth-btc-data-audit","/qfr-probe-eth-btc-funding-2024-01","/qfr-probe-tardis-funding-2024-01-01","/qfr-probe-tardis-funding-2020-06-01","/qfr-probe-tardis-funding-2025-06-01","/qfr-probe-tardis-funding-2025-10-01","/qfr-probe-tardis-funding-2026-02-01","/qfr-probe-tardis-funding-2026-03-01","/qfr-probe-mexc-funding-history","/qfr-probe-bybit-funding-history","/qfr-probe-bitget-funding-download","/qfr-probe-okx-funding-download","/qfr-probe-okx-funding-button","/qfr-probe-okx-funding-field-info","/qfr-probe-okx-funding-symbols","/qfr-probe-kraken-funding-export","/qfr-audit-kraken-residual-anomalies","/qfr-audit-kraken-rate-cap-census","/qfr-audit-kraken-tardis-timestamp-mapping","/qfr-audit-kraken-tardis-gap-events","/qfr-audit-kraken-pi-price-validation","/qfr-run-eth-btc-empirical","/qfr-run-eth-btc-spot-empirical","/qfr-run-eth-btc-um-empirical","/qfr-run-eth-btc-spot-momentum"]'), github.event.comment.body)) && format('eth-btc-research-ignored-{0}', github.event.comment.id) || 'eth-btc-research-main' }}
   queue: max
   cancel-in-progress: false
 
@@ -266,6 +266,14 @@ jobs:
               "/qfr-run-eth-btc-empirical") COMMAND="empirical" ;;
               "/qfr-run-eth-btc-spot-empirical") COMMAND="empirical"; MARKET="spot" ;;
               "/qfr-run-eth-btc-um-empirical") COMMAND="empirical"; MARKET="um" ;;
+              "/qfr-run-eth-btc-spot-momentum")
+                # Frozen Spot-only momentum study; no funding data or PR-head code is used.
+                COMMAND="spot-momentum"
+                START="2020-01-01"
+                END="2026-10-31"
+                MARKET="spot"
+                RECONCILE="true"
+                ;;
               *) echo "Rejected non-allowlisted command"; exit 0 ;;
             esac
           else
@@ -407,6 +415,63 @@ jobs:
             data/raw/spot_*_gap_reconciliation.json
           if-no-files-found: warn
           retention-days: 30
+  spot-momentum-research:
+    name: Run preregistered Spot momentum research
+    needs: authorize
+    if: ${{ needs.authorize.outputs.authorized == 'true' && needs.authorize.outputs.command == 'spot-momentum' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout repository default branch only
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: research/requirements.txt
+
+      - name: Restore verified Binance Spot archive cache
+        uses: actions/cache@v6.1.0
+        with:
+          path: data/cache/
+          key: binance-archives-momentum-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            binance-archives-warm-
+            binance-archives-run-
+            binance-archives-
+
+      - name: Install research dependencies
+        run: python -m pip install --disable-pip-version-check -r research/requirements.txt
+
+      - name: Run frozen Spot-only momentum study
+        env:
+          START_DATE: ${{ needs.authorize.outputs.start }}
+          END_DATE: ${{ needs.authorize.outputs.end }}
+        run: |
+          set -euo pipefail
+          python research/spot_momentum.py \
+            --start "$START_DATE" \
+            --end "$END_DATE" \
+            --data-dir data \
+            --output-dir reports/generated/spot-momentum
+
+      - name: Upload momentum outputs and Spot provenance only
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: eth-btc-spot-momentum-${{ github.run_number }}
+          path: |
+            reports/generated/spot-momentum/
+            data/raw/spot_*_archive_manifest.json
+            data/raw/spot_*_gap_reconciliation.json
+          if-no-files-found: warn
+          retention-days: 30
+
   tardis-funding-probe:
     name: Probe Tardis free funding schedule sample
     needs: authorize
