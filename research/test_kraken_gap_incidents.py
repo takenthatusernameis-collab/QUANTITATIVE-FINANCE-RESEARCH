@@ -1,0 +1,69 @@
+import unittest
+
+from kraken_gap_incidents import GAPS, INCIDENTS, audit_all_gaps, correlate_gap
+
+
+class KrakenGapIncidentTests(unittest.TestCase):
+    def test_all_five_gaps_are_common_to_all_four_exact_symbols(self):
+        self.assertEqual(len(GAPS), 5)
+        expected_symbols = {"PF_XBTUSD", "PF_ETHUSD", "PI_XBTUSD", "PI_ETHUSD"}
+        for gap in GAPS:
+            self.assertEqual(set(gap["symbols"]), expected_symbols)
+            self.assertEqual(len(gap["symbols"]), 4)
+
+    def test_four_gaps_overlap_relevant_connectivity_incidents(self):
+        results = audit_all_gaps()
+        self.assertEqual(
+            [item["classification"] for item in results],
+            [
+                "UNEXPLAINED_NO_MATCHING_API_OR_DERIVATIVES_INCIDENT",
+                "DERIVATIVES_CONNECTIVITY_INCIDENT_OVERLAP",
+                "DERIVATIVES_CONNECTIVITY_INCIDENT_OVERLAP",
+                "GENERAL_API_CONNECTIVITY_INCIDENT_OVERLAP",
+                "DERIVATIVES_CONNECTIVITY_INCIDENT_OVERLAP",
+            ],
+        )
+
+    def test_missing_hourly_event_times_are_exact(self):
+        results = audit_all_gaps()
+        self.assertEqual(
+            [item["missing_expected_hourly_timestamps"] for item in results],
+            [
+                ["2025-12-04T09:00:00Z"],
+                ["2026-02-04T12:00:00Z"],
+                ["2026-02-13T18:00:00Z"],
+                ["2026-05-09T06:00:00Z"],
+                ["2026-10-30T03:00:00Z"],
+            ],
+        )
+
+    def test_overlap_durations_match_source_incident_windows(self):
+        results = audit_all_gaps()
+        durations = [
+            item["incident_matches"][0]["overlap_minutes"]
+            if item["incident_matches"] else 0
+            for item in results
+        ]
+        self.assertEqual(durations, [0, 84, 51, 110, 60])
+
+    def test_december_unichain_incident_is_nearby_but_not_relevant_or_overlapping(self):
+        result = correlate_gap(GAPS[0])
+        self.assertEqual(result["incident_matches"], [])
+        incident = next(item for item in INCIDENTS if item["id"] == "unichain-funding-2025-12-04")
+        self.assertFalse(incident["api_affected"])
+        self.assertFalse(incident["derivatives_affected"])
+        self.assertEqual(incident["end_utc"], "2025-12-04T05:52:00Z")
+
+    def test_status_overlap_never_proves_funding_was_paused_or_settled(self):
+        for result in audit_all_gaps():
+            self.assertEqual(result["funding_settlement_status"], "UNVERIFIED")
+            self.assertEqual(result["causal_claim"], "NOT_ESTABLISHED")
+            self.assertFalse(result["scheduled_funding_pause_evidence"])
+
+    def test_invalid_gap_order_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "after"):
+            correlate_gap({"start_utc": "2026-01-01T02:00:00Z", "end_utc": "2026-01-01T01:00:00Z"})
+
+
+if __name__ == "__main__":
+    unittest.main()
