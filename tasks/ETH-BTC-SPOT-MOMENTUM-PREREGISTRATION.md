@@ -4,6 +4,20 @@
 **Priority:** P5 hypothesis/model replacement after original funding-data architecture screen  
 **Scope:** Separate spot-only experiment. No leverage, shorting, funding data, venue merge or live deployment.
 
+## Mandatory timebox — frozen before implementation
+
+- **Policy activation:** the preceding Binance Spot ETH/BTC mean-reversion study reached NO-GO on 2026-11-22. This new, separately preregistered model is the first model subject to the activated deadline policy. The unresolved USDⓈ-M funding-aware study is separate and does not defer this requirement.
+- **Expected implementation difficulty:** MEDIUM.
+- **Rationale:** the model is a single frozen 200-day relative-momentum rule and accepted Spot data/event-time infrastructure already exist; moderate integration, next-hour execution/elapsed-time verification, benchmark/cost/bootstrap validation, tests and reporting remain.
+- **Timebox start:** 2026-11-23 UTC.
+- **Maximum budget:** 4 substantive agent cycles total, including implementation, valid empirical execution, analysis and final reporting.
+- **Hard implementation deadline:** 2026-11-26 18:00 UTC.
+- **Hard final conclusion deadline:** 2026-11-28 18:00 UTC.
+- **Deadline rule:** if all data/code/methodology gates pass, report GO or NO-GO using the frozen criteria. If a valid empirical conclusion is not available by the final deadline, close as INCONCLUSIVE/INFEASIBLE with the exact blocker. Expiry is not a performance NO-GO. Do not weaken gates, reset the clock or extend the deadline automatically.
+- **Completion evidence:** repository-committed implementation, deterministic tests, accepted source/provenance checks, reproducible empirical outputs, complete report and terminal decision. An uncommitted local prototype or synthetic test alone does not satisfy completion.
+
+See [the governing timebox policy](../docs/MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md). These dates and limits are frozen.
+
 ## Hypothesis
 
 A simple long-only regime rotation using the ETH/BTC relative trend can outperform BTC buy-and-hold over a multi-year out-of-sample period after trading costs, with a better risk-adjusted return and no worse maximum drawdown. This is a new hypothesis, not a reinterpretation of the NO-GO spot mean-reversion results.
