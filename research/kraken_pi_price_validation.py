@@ -134,10 +134,14 @@ def product_url(product_id: str) -> str:
 
 
 def candle_url(window: dict[str, str]) -> str:
+    # Coinbase's observed Exchange API behavior includes the bucket whose
+    # start equals the supplied end parameter. Keep the analytical interval
+    # end-exclusive by requesting through the final second before that bound.
+    api_end = iso_utc(epoch_seconds(window["end"]) - 1)
     params = urlencode({
         "granularity": str(GRANULARITY_SECONDS),
         "start": window["start"],
-        "end": window["end"],
+        "end": api_end,
     })
     return f"{API_BASE}/products/{window['product_id']}/candles?{params}"
 
@@ -377,9 +381,9 @@ def run_probe(
             "window_id": f"W{index}",
             "product_id": product_id,
             "requested_start_utc": window["start"],
-            "requested_end_utc": window["end"],
             "analysis_start_utc_inclusive": window["start"],
             "analysis_end_utc_exclusive": window["end"],
+            "api_end_parameter_utc": iso_utc(end_epoch - 1),
             "granularity_seconds": GRANULARITY_SECONDS,
             "request": response,
             "validation": validation,
@@ -467,6 +471,7 @@ def run_probe(
             "no_tick_intervals": "omitted by Coinbase; never zero-filled or forward-filled",
             "pre_start_extra_buckets": "may be returned by Coinbase; counted and ignored",
             "analysis_window": "start-inclusive, end-exclusive",
+            "api_end_parameter": "inclusive Coinbase end is set one second before the exclusive analysis bound",
         },
         "product_controls": product_records,
         "candle_windows": window_records,

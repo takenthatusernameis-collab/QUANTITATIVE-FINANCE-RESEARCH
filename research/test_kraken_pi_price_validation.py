@@ -11,6 +11,7 @@ from kraken_pi_price_validation import (
     EXCEPTIONS,
     PRODUCTS,
     WINDOWS,
+    candle_url,
     epoch_seconds,
     parse_candle_payload,
     run_probe,
@@ -55,6 +56,14 @@ class KrakenPiPriceValidationTests(unittest.TestCase):
                 "error": None, "raw_response_retained": False,
             }, rows
         return fetch
+
+    def test_candle_request_excludes_inclusive_api_end_bucket(self):
+        for window in WINDOWS:
+            query = parse_qs(urlparse(candle_url(window)).query)
+            api_end = epoch_seconds(query["end"][0])
+            analysis_end = epoch_seconds(window["end"])
+            self.assertEqual(api_end, analysis_end - 1)
+            self.assertLess(api_end, analysis_end)
 
     def test_all_nine_exception_windows_and_both_positive_controls_complete(self):
         with tempfile.TemporaryDirectory() as directory:
