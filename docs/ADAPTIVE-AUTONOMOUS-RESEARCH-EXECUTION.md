@@ -26,6 +26,15 @@ This standard is governed by the [General Antifragile Autonomous Operating Minds
 
 The general mindset is authoritative. This document implements it; project tasks may add stricter gates but cannot reorder priorities or contradict hard invariants. Process improvements require a causal rationale, measurable verification, bounded cost, reversibility where practical and a stop condition.
 
+
+### Mandatory quantitative-model timebox
+
+Before starting a new model's substantive implementation or inspecting empirical model results, apply [the Model Implementation Timebox and Research Conclusion Deadline Policy](MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md). Record the difficulty tier and rationale, UTC start, cycle cap, implementation deadline, final conclusion deadline, milestones and deadline outcome rule in that model's preregistration and the active queue. Do not begin an untimeboxed model.
+
+The limit is the earlier of the tier's cycle cap or calendar deadline. It includes ordinary debugging, data retrieval, CI/runner delays, empirical execution and reporting; agents must adapt routes rather than reset the clock. Keep hard acceptance and safety gates intact. Deadline expiry without valid empirical evidence means **INCONCLUSIVE/INFEASIBLE**, never an invented NO-GO. No automatic extension or rollover is allowed. A materially changed experiment requires a distinct identity and a new preregistration/timebox.
+
+The deferred activation condition was met by the prior Spot mean-reversion NO-GO on 2026-11-22. The current Spot Momentum assignment is MEDIUM: four substantive cycles maximum, implementation by **2026-11-26 18:00 UTC**, and a final research conclusion by **2026-11-28 18:00 UTC**. The separate unresolved USDⓈ-M funding study does not suspend this policy.
+
 Before any substantive action, brainstorm a compact adaptive antifragile plan from the live context: current tasks, run/incident state, recent failures, available tools and permissions, costs, independent work and long-term impact. Generate at least three materially different approaches for a significant blocker where applicable; rank them and define success criteria. Record the plan in the existing task handoff, not a new per-session document.
 
 Then perform the mandatory conservative repository cleanup in [Repository Hygiene and Context Compaction](REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md), before the primary meta-improvement or research task. Keep one canonical active task pointer. Remove disposable scratch/build clutter and stale active instructions, but preserve historical evidence, source data needed for reproducibility, checksums, manifests, run logs, incident records and research conclusions. Never delete active work or force a clean tree at the expense of provenance.
