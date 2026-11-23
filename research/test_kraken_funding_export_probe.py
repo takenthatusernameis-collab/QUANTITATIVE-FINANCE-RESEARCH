@@ -13,8 +13,13 @@ from kraken_funding_export_probe import (
     analyze_csv_stream,
     asset_from_instrument,
     crosscheck_archive_api,
+    expected_interval_hours,
+    extract_api_extrema,
+    extract_archive_interval_anomalies,
     is_perpetual_instrument,
     parse_timestamp_ms,
+    rate_cap_assessment,
+    timestamp_semantics_assessment,
 )
 
 
@@ -161,6 +166,126 @@ class KrakenFundingExportProbeTests(unittest.TestCase):
         self.assertFalse(result["rate_values_merged"])
         self.assertEqual(result["union_gaps_over_4h_count"], 4)
         self.assertEqual(result["history_completeness_status"], "PROVISIONAL_NOT_ACCEPTED")
+
+    def test_archive_anomaly_extraction_respects_historical_cutover_and_keeps_adjacent_rows(self):
+        values = [
+            "2022-09-29T08:00:00Z",
+            "2022-09-29T12:00:00Z",
+            "2022-09-29T13:00:00Z",
+            "2022-09-29T15:00:00Z",
+            "2022-09-29T18:00:00Z",
+            "2022-09-29T19:00:00Z",
+        ]
+        rows = [
+            {
+                "timestamp": value,
+                "timestamp_ms": parse_timestamp_ms(value),
+                "rates": {"absolute_rate": str(index), "relative_rate": str(index / 1000)},
+            }
+            for index, value in enumerate(values)
+        ]
+        self.assertEqual(expected_interval_hours(rows[0]["timestamp_ms"]), 4)
+        self.assertEqual(expected_interval_hours(rows[2]["timestamp_ms"]), 1)
+        anomalies = extract_archive_interval_anomalies(rows)
+        self.assertEqual(len(anomalies), 2)
+        self.assertEqual(
+            [(item["from_utc"], item["to_utc"], item["actual_interval_hours"],
+              item["expected_interval_hours"]) for item in anomalies],
+            [
+                ("2022-09-29T13:00:00+00:00", "2022-09-29T15:00:00+00:00", 2.0, 1),
+                ("2022-09-29T15:00:00+00:00", "2022-09-29T18:00:00+00:00", 3.0, 1),
+            ],
+        )
+        self.assertEqual(len(anomalies[0]["adjacent_context_records"]), 4)
+        self.assertEqual(anomalies[0]["missing_hourly_boundaries"], ["2022-09-29T14:00:00+00:00"])
+
+    def test_api_extrema_keep_timestamped_matches_and_adjacent_rows(self):
+        api = {
+            "symbol": "PI_XBTUSD",
+            "status": 200,
+            "result": "success",
+            "url": "https://futures.kraken.com/derivatives/api/v3/historical-funding-rates?symbol=PI_XBTUSD",
+            "serverTime": "2026-10-30T16:05:00Z",
+            "response_sha256": "a" * 64,
+            "rates": [
+                {"timestamp": "2026-10-30T13:00:00Z", "fundingRate": "0.1", "relativeFundingRate": "0.001"},
+                {"timestamp": "2026-10-30T14:00:00Z", "fundingRate": "0.2", "relativeFundingRate": "0.005"},
+                {"timestamp": "2026-10-30T15:00:00Z", "fundingRate": "0.05", "relativeFundingRate": "-0.003"},
+                {"timestamp": "2026-10-30T16:00:00Z", "fundingRate": "0.2", "relativeFundingRate": "0.005"},
+            ],
+        }
+        result = extract_api_extrema(api)
+        self.assertEqual(result["response_sha256"], "a" * 64)
+        relative = result["extrema"]["relativeFundingRate"]
+        self.assertEqual(relative["max"]["value"], 0.005)
+        self.assertEqual(relative["max"]["match_count"], 2)
+        self.assertEqual(relative["min"]["value"], -0.003)
+        self.assertEqual(relative["max"]["matches"][0]["timestamp"], "2026-10-30T14:00:00Z")
+        self.assertEqual(len(relative["max"]["matches"][0]["adjacent_context_records"]), 3)
+        self.assertEqual(
+            relative["max"]["matches"][0]["cap_assessment"]["cap_status"],
+            "EXCEEDS_DOCUMENTED_CAP",
+        )
+        self.assertEqual(
+            relative["max"]["matches"][1]["cap_assessment"]["delisting_boundary_review"],
+            "AT_OR_AFTER_2026-10-30T16:00:00Z",
+        )
+        self.assertEqual(
+            result["extrema"]["fundingRate"]["max"]["matches"][0]["cap_assessment"]["cap_status"],
+            "NOT_APPLICABLE",
+        )
+
+    def test_rate_cap_assessment_is_contract_and_date_specific(self):
+        pre_cutover = parse_timestamp_ms("2022-09-29T11:00:00Z")
+        post_cutover = parse_timestamp_ms("2026-10-30T15:00:00Z")
+        self.assertEqual(
+            rate_cap_assessment("PI_XBTUSD", "relativeFundingRate", pre_cutover, 0.0015)["applicable_absolute_cap"],
+            0.001,
+        )
+        self.assertEqual(
+            rate_cap_assessment("PI_ETHUSD", "relativeFundingRate", post_cutover, 0.003)["cap_status"],
+            "EXCEEDS_DOCUMENTED_CAP",
+        )
+        self.assertEqual(
+            rate_cap_assessment("PF_XBTUSD", "relativeFundingRate", pre_cutover, 0.004)["cap_status"],
+            "HISTORICAL_LINEAR_CAP_UNVERIFIED",
+        )
+        self.assertEqual(
+            rate_cap_assessment("PF_ETHUSD", "relativeFundingRate", post_cutover, 0.004)["cap_status"],
+            "WITHIN_DOCUMENTED_CAP",
+        )
+
+    def test_api_timestamp_mapping_remains_unresolved_without_explicit_field_semantics(self):
+        result = timestamp_semantics_assessment()
+        self.assertEqual(result["rate_period_mechanics"], "NEXT_PERIOD_RATE_SET_AT_PRIOR_BOUNDARY")
+        self.assertEqual(result["api_timestamp_boundary_semantics"], "UNRESOLVED")
+        self.assertEqual(result["backtest_alignment_status"], "BLOCKED_PENDING_API_FIELD_MAPPING")
+        self.assertTrue(result["inference_prohibited"])
+
+    def test_archive_target_filter_inspects_only_the_exact_requested_symbols(self):
+        instruments = [
+            {"symbol": "PI_XBTUSD", "base": "XBT", "quote": "USD", "type": "futures_inverse"},
+            {"symbol": "PI_ETHUSD", "base": "ETH", "quote": "USD", "type": "futures_inverse"},
+            {"symbol": "PF_SOLUSD", "base": "SOL", "quote": "USD", "type": "flexible_futures"},
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            archive_path = Path(directory) / "fixture.zip"
+            with zipfile.ZipFile(archive_path, "w", zipfile.ZIP_DEFLATED) as archive:
+                for symbol in ("PI_XBTUSD", "PI_ETHUSD", "PF_SOLUSD"):
+                    archive.writestr(
+                        f"{symbol}.csv",
+                        "timestamp,fundingRate,relativeFundingRate\\n"
+                        "2026-01-01T00:00:00Z,0.001,0.01\\n",
+                    )
+            result = analyze_archive(
+                archive_path, instruments, target_symbols={"PI_XBTUSD"}
+            )
+        self.assertEqual(
+            [item["symbol"] for item in result["perpetual_csv_summaries"]],
+            ["PI_XBTUSD"],
+        )
+        self.assertEqual(result["target_symbols_found"], ["PI_XBTUSD"])
+        self.assertEqual(result["target_symbols_missing"], [])
 
     def test_archive_only_analyzes_identified_perpetual_csvs(self):
         instruments = [
