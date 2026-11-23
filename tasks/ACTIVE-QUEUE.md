@@ -264,3 +264,21 @@ The completed issue-comment research run could restore cache but was denied cach
 - ## Current active task — preregistered spot relative-momentum rotation
 
 Execute [ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md](ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md) using accepted Binance Spot data only. The one-cycle funding-data architecture screen is complete: Market History is the primary historical candidate, but its $5 one-time minimum purchase/API key is not authorized and no keyless funding sample exists. The original funding-aware study remains INCONCLUSIVE. Do not repeat providers, purchase data, use credentials, bypass HTTP 451/401 restrictions, or run perps until the funding gate passes.
+
+## Mandatory model timebox — activated 2026-11-23
+
+The prior Binance Spot ETH/BTC mean-reversion study reached **NO-GO on 2026-11-22**, activating the repository-wide timebox policy for subsequent models. The unresolved USDⓈ-M funding-aware study is independent and remains INCONCLUSIVE; it does not suspend this policy.
+
+**Current task:** [ETH/BTC Spot Relative-Momentum Rotation](ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md)
+
+| Control | Frozen assignment |
+|---|---|
+| Expected difficulty | MEDIUM |
+| Rationale | Frozen single-SMA signal; accepted Spot data/event-time path exists; moderate integration, execution accounting, benchmarks, costs, inference and reporting remain |
+| Maximum effort | 4 substantive agent cycles total |
+| Implementation deadline | 2026-11-26 18:00 UTC |
+| Final conclusion deadline | 2026-11-28 18:00 UTC |
+| Expiry outcome | INCONCLUSIVE/INFEASIBLE if valid empirical evidence is not ready; never infer NO-GO from a failed implementation |
+
+The next agent must execute within this frozen budget, inspect the canonical policy [here](../docs/MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md), and publish a terminal report by the conclusion deadline. No clock reset, automatic extension, weakened gate or open-ended continuation. The policy applies to every subsequent quantitative model before implementation begins.
+
