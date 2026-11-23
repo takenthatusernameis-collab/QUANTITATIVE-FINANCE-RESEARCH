@@ -1,6 +1,6 @@
 # ETH/BTC funding-data architecture pivot after independent source failures
 
-**Status:** PENDING — 2026-11-23  
+**Status:** COMPLETED — 2026-11-23 09:25 UTC (decision reached; owner authorization remains external)  
 **Priority:** P2 unblock existing research / P4 architecture replacement  
 **Time budget:** One research cycle. Produce a decision, not an open-ended provider hunt.  
 **Research gate:** The original Binance USD-M funding dataset remains PROVISIONAL_NOT_ACCEPTED; no perpetual backtest or venue merge.
@@ -31,6 +31,18 @@ Evaluate no more than these four materially different routes and rank by probabi
 4. **Separate-venue dataset:** Reuse existing MEXC/Bitget evidence only. If feasible, formulate a separate venue-specific question; never combine or substitute its funding rates for Binance.
 
 Do not add more providers unless the one-cycle screen finds a genuinely new route with a clear reason. No paid access, credentialed access, access-restriction bypass, raw-data commit, backtest, or live trading.
+
+## One-cycle decision — 2026-11-23
+
+Report: [ETH/BTC funding-data architecture pivot](../reports/ETH-BTC-FUNDING-DATA-ARCHITECTURE-PIVOT-2026-11-23.md).
+
+**Primary route:** Market History's paid historical Binance-perpetual funding dataset. Official docs claim complete event rows from inception, delisted contracts included, interval metadata (1h/4h/8h), nightly updates, and monthly row-by-row validation. Funding requests are paginated by cursor. The minimum one-time purchase is 1M bars for $5, with purchased bars never expiring. The docs contain no keyless funding sample, and exact BTCUSDT/ETHUSDT funding coverage cannot be independently sample-verified. No key or purchase is authorized.
+
+**Fallback:** Prospective event capture only if an official source is legally/regionally available to an authorized runner; it cannot backfill the original 2020–2026 study. The previous direct Binance funding REST route returned HTTP 451; do not retry or evade. If it is unavailable, the next feasible research is a separate spot-only hypothesis using accepted spot data.
+
+**Rejected as substitutes:** Binance Vision's 8h-only archive is not a complete settlement population; MEXC (~540 days), Bitget (90 days), Bybit (403), OKX (no symbol records in the prior probe), and Kraken (different venue, provisional) do not satisfy the original full-history Binance gate. Do not repeat those probes or merge venues.
+
+Decision complete: the original funding-aware study remains INCONCLUSIVE pending owner authorization for the $5 minimum purchase and a subsequent bounded sample-validation gate. The next task is a preregistered, separate spot-only ETH/BTC momentum experiment.
 
 ## Acceptance criteria
 

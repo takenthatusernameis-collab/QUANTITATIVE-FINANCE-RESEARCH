@@ -1,7 +1,7 @@
 # Active Repository Queue
 
 **Updated:** 2026-11-23 09:17 UTC  
-**Canonical active-task pointer:** [ETH/BTC funding-data architecture pivot after independent source failures](ETH-BTC-FUNDING-ARCHITECTURE-PIVOT.md).
+**Canonical active-task pointer:** [Preregistered ETH/BTC spot relative-momentum rotation](ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md).
 
 ## Current cycle plan — 2026-11-23 09:17 UTC
 
@@ -61,9 +61,9 @@ Apply the single authoritative [seven-level adaptive decision hierarchy](../docs
 - The current inverse specification states ±0.25% per hour and n=24. No PI-specific cap change appears in the published parameters changelog; the effective cap on 2026-08-20 remains unverified. The PI delisting window is compatible at a high level with the CME CF ETHUSD_RR 15:00–16:00 London reference-rate methodology, but the exact historical benchmark value was not reconstructed.
 - Full evidence: [PI price/terms validation report](../reports/ETH-BTC-KRAKEN-PI-PRICE-VALIDATION-2026-11-23.md). The diagnostic task is complete, but all four Kraken funding series remain PROVISIONAL_NOT_ACCEPTED.
 
-## Current active task — ETH/BTC funding-data architecture pivot
+## Current active task — preregistered spot relative-momentum rotation
 
-Execute [ETH-BTC-FUNDING-ARCHITECTURE-PIVOT.md](ETH-BTC-FUNDING-ARCHITECTURE-PIVOT.md) within one research cycle. Compare the four materially different routes, choose a primary/fallback or record the exact owner authorization prerequisite, and stop. The Kraken PI task is partially resolved/blocked: timestamp mapping is sample-corroborated; cap exceptions and payable-event completeness remain unaccepted. See [timestamp/gap report](../reports/ETH-BTC-KRAKEN-PI-TIMESTAMP-AND-GAP-PROBE-2026-11-23.md). Do not repeat the Tardis gap-date requests (HTTP 401), Coinbase windows, Kraken archive download, or failed provider/API routes unchanged.
+Execute [ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md](ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md) using the already-accepted spot data only. The architecture screen selected Market History as the primary historical funding candidate, but the $5 one-time minimum purchase/key remains unauthorized and no keyless funding sample exists. The original funding-aware study is INCONCLUSIVE. Do not repeat provider routes, purchase data, use credentials, or run perps until authorized.
 
 ## Completed historical follow-up — OKX funding metadata and symbol search (2026-11-22)
 

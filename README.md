@@ -45,6 +45,12 @@ Current empirical status: the Binance Spot-only walk-forward run [44998434437](h
 
 ## Latest automated evidence — 2026-11-23
 
+### Funding-data architecture decision — 2026-11-23
+
+The one-cycle screen concluded that **Market History is the primary historical-data candidate**, but it requires owner authorization: the vendor claims Binance USD-margined perpetual funding events from inception (including delisted contracts), records the applicable 1h/4h/8h interval, and validates monthly against Binance archives. Its funding API is cursor-paginated, but there is no keyless funding sample. The minimum one-time purchase is 1 million bars for **$5**, and bought bars do not expire. Claims are not independently verified; no key or purchase was made. Prospective capture is only a fallback for future data and cannot backfill 2020–2026; Binance's direct REST route previously returned HTTP 451, and no bypass is attempted. The 8-hour-only archive and separate-venue histories remain insufficient substitutes. See [architecture decision report](reports/ETH-BTC-FUNDING-DATA-ARCHITECTURE-PIVOT-2026-11-23.md).
+
+The original funding-aware study remains **INCONCLUSIVE** until the vendor sample (or another authorized complete-event source) passes coverage, interval, identity, pagination, provenance and archive reconciliation checks.
+
 ### Kraken PI timestamp semantics corroborated; gap audit blocked — 2026-11-23
 
 A bounded no-key Tardis `derivative_ticker` sample for 2026-10-01 and matching Kraken public histories corroborated that the Kraken PI historical API timestamp labels the **rate-setting window start**, with the next funding event one hour later. Both `PI_XBTUSD` and `PI_ETHUSD` had 24 usable pre-event observations; the API `relativeFundingRate` at T−1h matched Tardis's last pre-event rate exactly for 24/24 events, while the event-time row did not match. This is sample-level timing evidence only, not settled-rate validation or completeness. See [timestamp/gap probe report](reports/ETH-BTC-KRAKEN-PI-TIMESTAMP-AND-GAP-PROBE-2026-11-23.md), successful run [45122891576](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45122891576), artifact [14795015222](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45122891576/artifacts/14795015222).
@@ -61,9 +67,9 @@ Full evidence and the remaining blockers are in the [PI price/terms validation r
 
 Queue guardian [45116064442](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45116064442) enumerated 402/402 repository runs completely, with zero actions and zero errors. The six branches and draft control PR #2 were preserved; there are no open standalone issues or active runs.
 
-## Next task — funding-data architecture pivot
+## Next task — preregister a separate spot ETH/BTC momentum rotation
 
-Kraken PI validation is now partially resolved and blocked by missing historical cap authority and settlement-population evidence. Move to the bounded [ETH/BTC funding-data architecture pivot](tasks/ETH-BTC-FUNDING-ARCHITECTURE-PIVOT.md); do not repeat the completed Tardis October 1 sample, the five Tardis gap-date requests (HTTP 401), Coinbase windows, or Kraken archive/API downloads unchanged.
+Execute the single-hypothesis [spot momentum preregistration](tasks/ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md) using the already-accepted spot data only. Do not access paid funding data or run a Binance perpetual backtest while the funding gate remains closed.
 
 ## Previous automated evidence — 2026-11-22
 
