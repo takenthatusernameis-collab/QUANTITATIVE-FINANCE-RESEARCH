@@ -6,6 +6,13 @@ START HERE — repository wake-up sequence
 
 At every cycle start, first inspect open `[QFR queue guardian]` issues and resolve orphaned/cancelled-run handoffs using the repository-wide adaptive recovery contract before dispatching new overlapping work.
 
+
+<badge color="warning">MANDATORY MODEL TIMEBOX ACTIVE</badge>
+
+The prior Binance Spot ETH/BTC mean-reversion study concluded **NO-GO on 2026-11-22**. Every subsequent quantitative model must have a preregistered difficulty tier, finite implementation budget and exact final-conclusion deadline before substantive implementation or empirical-result inspection. The current Spot Momentum model is MEDIUM difficulty: **4 substantive cycles maximum**, implementation by **2026-11-26 18:00 UTC**, and final conclusion by **2026-11-28 18:00 UTC**. Expiry without valid empirical evidence means INCONCLUSIVE/INFEASIBLE, never an automatic performance NO-GO. The separate funding-aware USDⓈ-M study remains INCONCLUSIVE but does not defer this policy.
+
+Read and follow the [mandatory timebox policy](docs/MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md) and [current Spot Momentum preregistration](tasks/ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md) before acting.
+
 # General Repository Operating Mindset
 
 ### Decision-to-execution invariant: replace in the same session
@@ -21,6 +28,7 @@ Before substantive work, brainstorm an adaptive antifragile session plan from th
 Canonical guiding documents:
 - [General Antifragile Autonomous Operating Mindset](docs/GENERAL-ANTIFRAGILE-AUTONOMOUS-OPERATING-MINDSET.md) — governing philosophy and higher-order meta-process priority.
 - [Adaptive Autonomous Research Execution Standard](docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md) — operational rules, failover and safe autonomy.
+- [Model Implementation Timebox Policy](docs/MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md) — mandatory difficulty-based implementation budgets and hard conclusion deadlines.
 - [Repository Hygiene and Context Compaction](docs/REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md) — mandatory cleanup before substantive execution.
 - [Active Task Queue](tasks/ACTIVE-QUEUE.md) — single current task pointer, incidents and next actions.
 
