@@ -94,6 +94,29 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         self.assertIn("rows_unassessed", probe)
         self.assertIn("exceeds_documented_cap_rows", probe)
 
+    def test_kraken_pi_price_validation_job_is_bounded_and_manifest_only(self):
+        workflow = (WORKFLOW_DIR / "eth-btc-research.yml").read_text(encoding="utf-8")
+        command = "/qfr-audit-kraken-pi-price-validation"
+        self.assertIn(f'"{command}"', workflow)
+        self.assertIn(f'"{command}")', workflow)
+        self.assertIn('COMMAND="kraken-pi-price-validation"', workflow)
+        self.assertIn("command == 'kraken-pi-price-validation'", workflow)
+        self.assertIn("kraken-pi-price-validation:", workflow)
+        job = workflow.split("  kraken-pi-price-validation:", 1)[1].split("\\n  okx-funding-button-probe:", 1)[0]
+        self.assertIn("python research/kraken_pi_price_validation.py", job)
+        self.assertIn("granularity", (ROOT / "research" / "kraken_pi_price_validation.py").read_text(encoding="utf-8"))
+        self.assertIn("/manifest.json", job)
+        self.assertIn("retention-days: 30", job)
+        self.assertNotIn("playwright", job.lower())
+        self.assertNotIn("*.zip", job.lower())
+        self.assertNotIn("*.csv", job.lower())
+        probe = (ROOT / "research" / "kraken_pi_price_validation.py").read_text(encoding="utf-8")
+        self.assertIn("raw_response_retained", probe)
+        self.assertIn("raw_candle_arrays_uploaded", probe)
+        self.assertIn("pre_start_extra_count", probe)
+        self.assertIn("no missing hour is filled", probe)
+
+
     def test_okx_funding_button_probe_is_exactly_allowlisted(self):
         workflow = (WORKFLOW_DIR / "eth-btc-research.yml").read_text(encoding="utf-8")
         command = "/qfr-probe-okx-funding-button"
