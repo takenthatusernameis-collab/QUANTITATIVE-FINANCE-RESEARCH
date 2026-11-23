@@ -39,6 +39,12 @@ Then perform the mandatory conservative repository cleanup in [Repository Hygien
 5. **Evidence before status claims.** A configured workflow is not a successful run; an accepted comment is not proof of a triggered run; a synthetic test is not empirical evidence; and a missing result is not a negative research finding.
 6. **Learn from every failure.** Preserve the exact error, diagnosed cause, attempted route, observed result, and next alternative. Do not force the next agent to rediscover the same limitation.
 
+## Deferred model-implementation timebox policy
+
+The [Bounded Model Implementation and Research Timebox](BOUNDED-MODEL-IMPLEMENTATION-AND-RESEARCH-TIMEBOX.md) is a repository-wide future policy, but it is **DORMANT** until the current ETH/BTC strategy has a documented terminal conclusion and the [Active Task Queue](../tasks/ACTIVE-QUEUE.md) marks that original experiment closed with no same-experiment research task remaining. A partial Spot result or temporary unresolved funding/data gate does not activate it. The policy is prospective and does not timebox or interrupt current ETH/BTC work.
+
+After the activation gate is met, every new model candidate must receive a difficulty tier, committed UTC start/deadline and technical acceptance checklist before implementation begins. The fixed initial budgets are 2, 4, 7 or 10 calendar days by tier. Empirical strategy research must not begin until the implementation passes its mandatory deterministic, causal, synthetic and reproducibility checks **and** the empirical data/preregistration gates pass. Missed deadlines require an explicit timeout/simplification/abandonment decision, not indefinite exploration or research on incomplete code. Follow the linked policy for the only permitted extension and all detailed criteria.
+
 ## Mandatory autonomy: research must not wait for routine human intervention
 
 **Default rule: execute.** Historical backtests, data audits, public-market-data retrieval, parser repairs, provider comparisons, hypothesis tests, synthetic tests, CI, artifact retrieval, reporting, and repository changes within the connected agent's existing authorized scope are ordinary research operations. The agent must perform them without asking the user to click a button, confirm a routine step, approve a known-safe rerun, or manually start a workflow.
