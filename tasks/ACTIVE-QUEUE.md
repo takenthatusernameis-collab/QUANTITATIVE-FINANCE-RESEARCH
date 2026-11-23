@@ -1,19 +1,20 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-23 09:34 UTC  
+**Updated:** 2026-11-23 17:25 UTC  
 **Canonical active-task pointer:** [Preregistered ETH/BTC spot relative-momentum rotation](ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md).
 
 ## Current cycle plan — 2026-11-23 17:20 UTC
 
 - **P0:** Keep the original USDⓈ-M funding-aware study **INCONCLUSIVE**. All provisional funding inputs remain rejected; no credentials, paid data, perps backtests or trading.
 - **P1:** Verify the queue guardian after this handoff and preserve the exact-actor/default-branch-only control PR #2. No queue-guardian incident was identified in the latest recorded guardian run.
-- **P2/P5 completed:** The preregistered **ETH/BTC Spot Relative-Momentum Rotation** was triggered by the exact gated command on PR #2. [Run 45190869167](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45190869167) completed successfully; authorization, research job and artifact upload passed. Artifact [14832209111](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45190869167/artifacts/14832209111), 6,620,925 bytes, SHA-256 `a31b520c65705520269062ae7f7cd5f7619aa5aa6a38e1e6b006c6cda2659547.
+- **P2/P5 completed:** The preregistered **ETH/BTC Spot Relative-Momentum Rotation** was triggered by the exact gated command on PR #2. [Run 45190869167](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45190869167) completed successfully; authorization, research job and artifact upload passed. Artifact [14832209111](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45190869167/artifacts/14832209111), 6,620,925 bytes, SHA-256 `a31b520c65705520269062ae7f7cd5f7619aa5aa6a38e1e6b006c6cda2659547`.
 - **Terminal result:** **NO-GO**. At 10 bps/leg the strategy net total return was +6.66%, CAGR +1.34%, Sharpe 0.024 and max drawdown -77.98%, versus BTC +67.46%, 11.26% CAGR, 0.213 Sharpe and -67.38% drawdown. All six frozen promotion criteria failed. The paired 3/7/14-day bootstrap lower excess-CAGR bounds were -27.32%, -28.04% and -28.20%. Do not tune on this OOS sample.
 - **Validation:** independently recalculated baseline total returns, elapsed-time CAGR, continuous Sharpe, max drawdown and interval count from the artifact's OOS-return CSV; results matched the metrics CSV to floating-point precision. 240 deterministic tests had passed before the run in [CI 45190529404](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45190529404).
 - **Timebox:** closed early after cycle 1 of 4 because a valid preregistered terminal conclusion was obtained. The unused cycles/deadline are not a reason to continue or tune this experiment.
 - **Data/cache:** accepted Binance Spot history for both symbols; 82/82 monthly archives checksum-verified per symbol; 31 missing hourly bars per symbol confirmed no-trade and left unsynthesized. The low-trust run restored a 164,742-byte warm cache and could not write a new archive cache; this is an operational cache limitation, not a research-result blocker.
 - **Hygiene:** raw hourly CSVs were not uploaded or committed. A compact terminal report with source hashes, metrics, bootstrap intervals and run/artifact provenance is now committed at [reports/ETH-BTC-SPOT-MOMENTUM-EMPIRICAL-RESULT-2026-11-23.md](../reports/ETH-BTC-SPOT-MOMENTUM-EMPIRICAL-RESULT-2026-11-23.md). The full generated output remains in the run artifact.
 - **Next:** close this model and move to hypothesis selection only. Any new candidate must be a separate preregistration with a new identity/timebox and independent/later holdout; the original funding-aware study remains separately INCONCLUSIVE.
+- **Process deviation:** this documentation/report/preregistration/policy handoff used sequential Contents-API commits, creating per-file CI fan-out. Future multi-file handoffs should use an atomic Git Data commit when available.
 
 
 
