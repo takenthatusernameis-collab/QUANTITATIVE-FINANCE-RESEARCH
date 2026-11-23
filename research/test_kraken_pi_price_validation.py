@@ -9,6 +9,7 @@ from urllib.parse import parse_qs, urlparse
 from kraken_pi_price_validation import (
     CONTROL_TIMESTAMP,
     EXCEPTIONS,
+    PRODUCTS,
     WINDOWS,
     epoch_seconds,
     parse_candle_payload,
@@ -133,14 +134,13 @@ class KrakenPiPriceValidationTests(unittest.TestCase):
                 and epoch_seconds(window["start"]) <= timestamp < epoch_seconds(window["end"])
             ]
             self.assertEqual(len(matching), 1, exception)
-        self.assertTrue(any(
-            item["product_id"] == "BTC-USD"
-            and item["timestamp"] == CONTROL_TIMESTAMP
-            for item in (
-                {"product_id": product, "timestamp": CONTROL_TIMESTAMP}
-                for product in ("BTC-USD", "ETH-USD")
-            )
-        ))
+        control_ts = epoch_seconds(CONTROL_TIMESTAMP)
+        for product_id in PRODUCTS:
+            self.assertTrue(any(
+                window["product_id"] == product_id
+                and epoch_seconds(window["start"]) <= control_ts < epoch_seconds(window["end"])
+                for window in WINDOWS
+            ))
 
 
 if __name__ == "__main__":
