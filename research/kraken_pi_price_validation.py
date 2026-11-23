@@ -488,7 +488,8 @@ def run_probe(
         },
         "interpretation": (
             "Coinbase BTC-USD and ETH-USD are independent spot references, not Kraken derivatives index values. "
-            "Coinbase documents that historical candle responses may omit no-tick intervals and may include extra candles before the requested start; pre-start extras are ignored and no missing hour is filled. Hourly bars are timestamped by Coinbase bucket start. The three-hour comparison explicitly spans 
+            "Coinbase documents that historical candle responses may omit no-tick intervals and may include extra candles before the requested start; pre-start extras are ignored and no missing hour is filled. "
+            "Hourly bars are timestamped by Coinbase bucket start. The three-hour comparison explicitly spans "
             "the Kraken timestamp and adjacent hours because Kraken API start/end accrual semantics remain unresolved. "
             "Price proximity cannot validate a funding cap, settlement event, or payable-event population."
         ),
