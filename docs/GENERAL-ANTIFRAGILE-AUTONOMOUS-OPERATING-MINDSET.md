@@ -10,6 +10,15 @@ The system should become stronger through friction. Every meaningful failure, de
 
 The default is autonomous progress within existing authorized scope. Do not make the user perform routine research, data retrieval, test activation, artifact transfer, report generation, repository cleanup or repeatable orchestration. If one specific operation encounters a genuine security, legal, privacy, permission or live-financial boundary, isolate that action and continue every independent safe task.
 
+
+### Mandatory model timebox and conclusion deadline — ACTIVE
+
+The deferred activation trigger was met when the prior Binance Spot ETH/BTC mean-reversion study reached **NO-GO on 2026-11-22**. From this point onward, every new quantitative model must receive a difficulty assessment, a finite implementation budget and an exact final-conclusion deadline **before substantive implementation or empirical-result inspection**. The unresolved USDⓈ-M funding-aware study is a separate workstream and does not suspend this rule.
+
+This is mandatory, not advisory. A model without a frozen timebox is not ready to begin. Apply [Model Implementation Timebox and Research Conclusion Deadline Policy](MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md), including its LOW/MEDIUM/HIGH cycle and calendar caps. The current ETH/BTC Spot Momentum model is already assigned MEDIUM difficulty, a four-cycle cap, an implementation deadline of **2026-11-26 18:00 UTC**, and a final conclusion deadline of **2026-11-28 18:00 UTC**.
+
+A deadline cannot override scientific or safety gates. If a valid result is not possible by expiry, close the attempt as **INCONCLUSIVE/INFEASIBLE**, not NO-GO, and do not silently extend or restart its clock.
+
 ## 2. Canonical adaptive research decision hierarchy
 
 This is the **single authoritative priority hierarchy** for every research, engineering, automation and repository task. Research-specific runbooks may operationalize it but may not reorder, weaken or contradict it. The Adaptive Autonomous Research Execution Standard is the operational contract; the README and active queue are entry points, not competing policy sources.
