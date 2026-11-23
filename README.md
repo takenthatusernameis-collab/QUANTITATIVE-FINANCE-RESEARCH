@@ -21,6 +21,7 @@ Before substantive work, brainstorm an adaptive antifragile session plan from th
 Canonical guiding documents:
 - [General Antifragile Autonomous Operating Mindset](docs/GENERAL-ANTIFRAGILE-AUTONOMOUS-OPERATING-MINDSET.md) — governing philosophy and higher-order meta-process priority.
 - [Adaptive Autonomous Research Execution Standard](docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md) — operational rules, failover and safe autonomy.
+- [Bounded Model Implementation and Research Timebox](docs/BOUNDED-MODEL-IMPLEMENTATION-AND-RESEARCH-TIMEBOX.md) — difficulty-adjusted implementation deadlines and a research-entry gate; dormant until the current ETH/BTC study is concluded.
 - [Repository Hygiene and Context Compaction](docs/REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md) — mandatory cleanup before substantive execution.
 - [Active Task Queue](tasks/ACTIVE-QUEUE.md) — single current task pointer, incidents and next actions.
 
