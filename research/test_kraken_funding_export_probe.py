@@ -242,7 +242,11 @@ class KrakenFundingExportProbeTests(unittest.TestCase):
             "EXCEEDS_DOCUMENTED_CAP",
         )
         self.assertEqual(
-            relative["max"]["matches"][1]["cap_assessment"]["delisting_boundary_review"],
+            relative["max"]["matches"][1]["cap_assessment"]["delisting_observation_window_review"],
+            "AT_OR_AFTER_2026-10-30T15:00:00Z; timestamp-to-accrual mapping remains unresolved",
+        )
+        self.assertEqual(
+            relative["max"]["matches"][1]["cap_assessment"]["delisting_settlement_boundary_review"],
             "AT_OR_AFTER_2026-10-30T16:00:00Z",
         )
         self.assertEqual(
