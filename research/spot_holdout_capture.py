@@ -666,6 +666,7 @@ def write_snapshot(
         release_tag=RELEASE_TAG,
         asset_name=asset_name,
         zip_bytes=zip_bytes,
+        content_type="application/zip",
     )
     manifest["storage"] = {
         **storage,

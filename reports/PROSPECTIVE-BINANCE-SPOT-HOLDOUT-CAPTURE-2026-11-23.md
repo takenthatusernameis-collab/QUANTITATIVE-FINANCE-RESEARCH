@@ -56,7 +56,7 @@ The capture implementation now creates a durable metadata-only JSON sidecar for 
 
 The ZIP embeds the expected sidecar name, but its own post-upload digest remains in the sidecar to avoid a self-referential checksum. The sidecar's own asset ID/digest is held by GitHub Release API metadata and copied into the expiring Actions manifest. The release's immutable=false property is explicitly recorded; no platform write-once guarantee is claimed. The workflow will also correct the old release description's "immutable" wording on the next authorized capture if it still matches the exact legacy text.
 
-The code and deterministic regression tests are included in the current atomic handoff. The next scheduled run must verify live sidecar backfill/publication and the previous ZIP restore. The first snapshot does not yet have a sidecar until that run succeeds.
+The code and deterministic regression tests are included in the current atomic handoff. Full CI run [45247197778](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45247197778) executed 264 tests and found one error in the new orchestration test: the test expected an explicit ZIP content-type argument while the call relied on the function default. The ZIP upload now passes `application/zip` explicitly; a fresh full CI run is pending. The next scheduled run must verify live sidecar backfill/publication and the previous ZIP restore. The first snapshot does not yet have a sidecar until that run succeeds.
 
 ## Scientific and safety boundary
 

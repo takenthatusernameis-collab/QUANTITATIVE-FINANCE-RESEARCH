@@ -34,7 +34,7 @@ Verify that the scheduled capture appends a new, complete snapshot, validates an
 - The ZIP now embeds the unique sidecar asset name before it is published. The ZIP's own post-upload ID/digest is stored in the sidecar, avoiding a self-referential ZIP checksum.
 - Release-asset reuse requires exact GitHub digest, size and identity metadata. Previous snapshot restore now fails closed if the GitHub digest or asset size is missing/mismatched.
 - The capture workflow conditionally corrects the legacy release description only when it exactly matches the old "immutable" wording and the release API says the release is not immutable. No permissions or protection settings are changed.
-- Added deterministic tests for sidecar structure, previous-snapshot backfill, current-snapshot publication, idempotent reuse, collision rejection, digest requirements and release-description correction. Full hosted CI result is pending this commit.
+- Added deterministic tests for sidecar structure, previous-snapshot backfill, current-snapshot publication, idempotent reuse, collision rejection, digest requirements and release-description correction. First full CI run [45247197778](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45247197778) ran 264 tests and found one orchestration-test argument mismatch; the production ZIP upload now passes `application/zip` explicitly. A fresh full CI run is pending.
 
 ## Acceptance criteria
 
