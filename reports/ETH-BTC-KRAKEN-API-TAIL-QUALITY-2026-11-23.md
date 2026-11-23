@@ -205,6 +205,24 @@ The new implementation adds a bounded exception-context capture: for each cap ex
 **Decision:** all four Kraken series remain `PROVISIONAL_NOT_ACCEPTED`. No Kraken backtest, cross-venue merge or empirical performance claim is authorized. API timestamp semantics and complete payable-settlement population remain independent hard blockers.
 
 
+## Official delisting-settlement cross-check
+
+Kraken's official delisting notice lists PI_ETHUSD settlement at $2,235.76 for the 15:00–16:00 London-time observation on 2026-10-30. It describes a volume-weighted, time-segmented TWAP with deviation safeguards against spot transactions on constituent exchanges. London was on UTC on that date.
+
+The four consecutive/near-consecutive PI_ETHUSD API exception rows imply:
+| API timestamp (UTC) | Implied USD index | Difference from $2,235.76 settlement |
+|---|---:|---:|
+| 2026-10-30 13:00 | $2,231.70 | -0.1816% |
+| 2026-10-30 14:00 | $2,222.47 | -0.5944% |
+| 2026-10-30 15:00 | $2,234.23 | -0.0684% |
+| 2026-10-30 16:00 | $2,224.13 | -0.5202% |
+
+The 15:00 implied value is close to the official settlement, but the API row may label the start or end of a funding interval and the Kraken index need not equal the settlement TWAP. This is a plausibility clue only; it does not resolve timestamp semantics or explain the cap breaches.
+
+The inverse specification, last updated September 29, 2026, explicitly states the ±0.25% hourly permissible range and defines the absolute/relative inverse-rate relationship. The public parameters changelog was last updated October 1, 2026, but its latest dated entry is September 4, 2025; no PI-specific funding-cap change appears in the published entries. Absence from the changelog does not exclude an unpublished or omitted change.
+
+Sources: [Kraken inverse contract specifications](https://support.kraken.com/articles/360022835911-inverse-crypto-collateral-perpetual-contract-specifications-derivatives), [Kraken delisting notice](https://support.kraken.com/articles/7526425887508-derivatives-contracts-trading-suspensions-delistings), and [Kraken parameters changelog](https://support.kraken.com/articles/13049711807636-derivatives-platform-parameters-changelog).
+
 ## Bounded PI exception-context audit — 2026-11-23
 
 The follow-up completed in [run 45102646438](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45102646438), manifest-only artifact [14786345447](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45102646438/artifacts/14786345447). Artifact SHA-256: `56923db469f03d70285999684af1c72c90c9e65d2d9423d63b92543b557e85d3`. CI [45102432282](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45102432282) passed 199 deterministic tests and synthetic smoke. No archive download or raw-row upload occurred.

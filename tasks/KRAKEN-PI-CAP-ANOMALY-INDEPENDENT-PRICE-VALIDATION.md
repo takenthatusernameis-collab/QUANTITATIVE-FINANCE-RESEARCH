@@ -50,10 +50,26 @@ Response hashes are preserved per exact symbol in the same manifest and joinable
 - PI_XBTUSD: `de1a8cfbadec23b563696de4a2c6ee5d8d404e7a5f423198ea39dac9b545b547`
 - PI_ETHUSD: `7f781d0b37d4f695717f0a5092a9a7ce9b601bdbf2a29105663a96c432621907`
 
+## Official delisting-settlement cross-check
+
+Kraken's official delisting notice states that PI_ETHUSD settled at **$2,235.76**, using a 60-minute observation from 15:00 to 16:00 London time on 2026-10-30. The notice describes a volume-weighted, time-segmented TWAP with deviation safeguards against spot transactions on constituent exchanges. On that date London was on UTC.
+
+The PI_ETHUSD API exception rows imply these index levels from `relativeFundingRate / fundingRate`:
+- 13:00 UTC: $2,231.70 (0.1816% below settlement).
+- 14:00 UTC: $2,222.47 (0.5944% below settlement).
+- 15:00 UTC: $2,234.23 (0.0684% below settlement).
+- 16:00 UTC: $2,224.13 (0.5202% below settlement).
+
+The 15:00 implied level is close to the official settlement value, but the API row may label the start or end of a funding interval and Kraken's index need not equal the settlement TWAP. This is a useful plausibility clue, **not** proof of API timestamp semantics, cap validity or exact settlement-price identity. Compare it with independent spot candles and retain the basis/time uncertainty.
+
+The inverse contract specification was last updated September 29, 2026 and explicitly states the ±0.25% hourly permissible range and the inverse absolute/relative-rate relationship. The public parameter changelog was last updated October 1, 2026, but its latest dated entry is September 4, 2025; no PI-specific funding-cap change appears in the published entries. This does not rule out an unpublished or omitted change.
+
+Sources: [Kraken inverse Coin-M contract specifications](https://support.kraken.com/articles/360022835911-inverse-crypto-collateral-perpetual-contract-specifications-derivatives), [Kraken delisting notice](https://support.kraken.com/articles/7526425887508-derivatives-contracts-trading-suspensions-delistings), and [Kraken derivatives parameters changelog](https://support.kraken.com/articles/13049711807636-derivatives-platform-parameters-changelog).
+
 ## Adaptive execution plan
 
 1. **Inspect before dispatch.** Check the current default-branch head, open PR #2, matching comments/runs, provider policies, and any new official documentation. Do not repeat the cap census or archive download unchanged.
-2. **Independent spot-price pilot — Coinbase first.** Use the public Coinbase Exchange candle endpoint for exact `BTC-USD` and `ETH-USD` windows surrounding the nine exception timestamps. Start with one known-active control and a bounded set of exception windows. Verify product identity, coverage, UTC bar boundaries, OHLCV invariants, duplicates and response provenance. The endpoint limits requests to 300 candles; request only the needed windows.
+2. **Independent spot-price pilot — Coinbase first.** This is a narrow spot-index plausibility check, not a change to the funding-provider priority: the independent funding-source screen remains MEXC first, Bitget second, then Coinbase/Kraken and other verified venues. Use the public Coinbase Exchange candle endpoint for exact `BTC-USD` and `ETH-USD` windows surrounding the nine exception timestamps. Start with one known-active control and a bounded set of exception windows. Verify product identity, coverage, UTC bar boundaries, OHLCV invariants, duplicates and response provenance. The endpoint limits requests to 300 candles; request only the needed windows.
 3. **Compare, do not force equality.** Compare the implied inverse index levels with the independent spot observations. Kraken's derivatives index may be a basket and the API timestamp may label a different boundary, so report basis differences and timing uncertainty. This cross-check can establish plausibility, not exact settlement or cap validity.
 4. **Independent fallback.** If Coinbase coverage or semantics fail, test Kraken Spot historical candles or another lawful, independently verifiable source. Keep each venue separate and do not forward-fill.
 5. **Historical terms investigation.** Search official dated inverse specifications, archived public parameter pages and the derivatives parameter changelog for any PI-specific funding-cap exception effective on 2026-08-20 and 2026-10-29/30. Do not infer a cap change from observed data.
