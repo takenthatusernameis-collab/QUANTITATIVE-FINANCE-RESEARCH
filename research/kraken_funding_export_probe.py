@@ -819,6 +819,7 @@ def timestamp_semantics_assessment() -> dict[str, Any]:
             "historical_funding_api": "https://docs.kraken.com/api-reference/historical-funding-rates/historical-funding-rates",
             "inverse_contract_specs": "https://support.kraken.com/articles/360022835911-inverse-crypto-collateral-perpetual-contract-specifications-derivatives",
             "linear_contract_specs": "https://support.kraken.com/articles/4844359082772-linear-multi-collateral-derivatives-contract-specifications",
+            "historical_inverse_method": "https://support.mtf.kraken.com/hc/en-us/articles/7009378818333-Inverse-Perpetual-Contracts-Funding-Rate-Method-Prior-to-September-29-2022",
         },
         "rate_period_mechanics": "NEXT_PERIOD_RATE_SET_AT_PRIOR_BOUNDARY",
         "api_timestamp_boundary_semantics": "UNRESOLVED",
@@ -1291,6 +1292,12 @@ def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
                                         "instrument_count": len(instruments["instruments"]),
                                         "perpetual_btc_eth": instruments["perpetual_btc_eth"],
                                     }
+                                    if targeted:
+                                        manifest["target_instrument_lifecycle"] = [
+                                            compact_instrument(item)
+                                            for item in instruments["instruments"]
+                                            if str(item.get("symbol") or "").upper() in TARGETED_SYMBOLS
+                                        ]
                                     archive_summary = analyze_archive(
                                         archive_path,
                                         instruments["instruments"],
@@ -1390,6 +1397,10 @@ def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
                                     manifest["status"] = "downloaded_and_inspected"
                                     if targeted:
                                         found = set(archive_summary.get("target_symbols_found") or [])
+                                        lifecycle_symbols = {
+                                            str(item.get("symbol") or "").upper()
+                                            for item in manifest.get("target_instrument_lifecycle", [])
+                                        }
                                         api_ok = all(item.get("status") == 200 and item.get("rates") for item in api_records)
                                         api_quality_by_symbol = {
                                             item.get("symbol"): item
@@ -1427,6 +1438,7 @@ def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
                                         hash_ok = archive_summary.get("archive_sha256") == EXPECTED_ARCHIVE_SHA256
                                         manifest["targeted_acceptance_checks"] = {
                                             "all_four_exact_csvs_found": found == set(TARGETED_SYMBOLS),
+                                            "all_four_instrument_lifecycle_records_found": lifecycle_symbols == set(TARGETED_SYMBOLS),
                                             "all_four_api_responses_nonempty": api_ok,
                                             "all_four_api_rows_pass_integrity": api_integrity_ok,
                                             "known_archive_size_matches": archive_path.stat().st_size == EXPECTED_ARCHIVE_SIZE_BYTES,
@@ -1446,6 +1458,7 @@ def run_probe(output_dir: Path, mode: str = "export") -> dict[str, Any]:
                                             "targeted_anomaly_audit_complete"
                                             if (
                                                 found == set(TARGETED_SYMBOLS)
+                                                and lifecycle_symbols == set(TARGETED_SYMBOLS)
                                                 and api_ok
                                                 and api_integrity_ok
                                                 and hash_ok
