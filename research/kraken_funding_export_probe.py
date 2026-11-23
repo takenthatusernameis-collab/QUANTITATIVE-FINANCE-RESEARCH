@@ -99,7 +99,24 @@ def compact_instrument(instrument: dict[str, Any]) -> dict[str, Any]:
         "tickSize", "settlementCurrency", "openingDate", "lastTradingTime",
         "isExpired", "tradeable", "impactMidSize", "maxPositionSize",
     )
-    return {key: instrument.get(key) for key in keys if key in instrument}
+    compact = {key: instrument.get(key) for key in keys if key in instrument}
+    expired = instrument.get("isExpired")
+    tradeable = instrument.get("tradeable")
+    if expired is True:
+        compact["lifecycle_status"] = "EXPIRED"
+    elif expired is False and tradeable is True:
+        compact["lifecycle_status"] = "ACTIVE"
+    else:
+        compact["lifecycle_status"] = "UNKNOWN"
+    if expired is True and tradeable is True:
+        compact["lifecycle_flag_conflict"] = True
+        compact["lifecycle_interpretation"] = (
+            "isExpired=true conflicts with tradeable=true; use the official contract delisting/settlement notice "
+            "rather than the tradeable flag to determine current lifecycle"
+        )
+    else:
+        compact["lifecycle_flag_conflict"] = False
+    return compact
 
 
 def _find_column(headers: list[str], accepted: set[str]) -> str | None:
