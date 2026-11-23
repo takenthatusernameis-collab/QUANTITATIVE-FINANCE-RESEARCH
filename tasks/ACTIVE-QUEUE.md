@@ -1,6 +1,6 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-22 22:51 UTC  
+**Updated:** 2026-11-23 00:25 UTC  
 **Canonical active-task pointer:** [ETH/BTC ingestion and no-trade validation](ETH-BTC-INGESTION-AND-NO-TRADE-VALIDATION.md).
 
 ## Governing priority
@@ -14,9 +14,19 @@ Apply the single authoritative [seven-level adaptive decision hierarchy](../docs
 - Each exact symbol has 1,767 overlapping archive/API rows from 2025-11-19 through 2026-02-01; timestamps and both rate fields match exactly. API returns 8,841 rows per PF symbol through 2026-11-22 22:00 UTC and 8,283 rows per PI symbol through 2026-10-30 16:00 UTC. The archive is stale at 2026-02-01; API completeness is not established, so the combined data remain provisional.
 - Full evidence and contract-specific rate semantics: [Kraken/Gate/Coinbase screen report](../reports/ETH-BTC-KRAKEN-GATE-COINBASE-FUNDING-SCREEN-2026-11-22.md). No raw data was retained; no credentials, paid service or trading action was used.
 
-## Current next task — Kraken archive/API-tail quality and separate-venue gate
+## Completed task — Kraken archive/API-tail quality and separate-venue gate (2026-11-23)
 
-Extend the existing bounded probe to quality-check every returned API row and calculate the union of the archive and API tail for each exact instrument. Report timestamp validity/order/duplicates, nulls, interval distribution, gaps over four hours, archive/API overlap, API-only tail rows, and merged coverage boundaries. Keep `PF_*` linear/flexible contracts and `PI_*` inverse historical contracts separate. The `tradeable` export column is an instrument-symbol string, not a boolean. Preserve `absolute_rate` and `relative_rate` separately and use the official contract-specific payout formulas. API overlap agreement is not proof of complete API history; keep the data `PROVISIONAL_NOT_ACCEPTED` unless independent completeness evidence passes. Add deterministic tests and run CI. Do not run a backtest or merge Kraken data into Binance. Keep raw market data out of Git and artifacts; retain only provenance-complete manifests and compact reports.
+- The full API response is now checked row-by-row for timestamp validity/order/duplicates, required-field nulls, numeric-rate validity, interval distribution, non-hourly samples and gaps over four hours. Deterministic tests cover these cases and the full archive/API timestamp union.
+- [Run 45088431644](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45088431644) completed successfully on main; artifact [14780177851](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45088431644/artifacts/14780177851) contains only a manifest/screenshot. Raw ZIP/CSV data were inspected in ephemeral storage and deleted. Artifact SHA-256: 49b3237f1102cfef1684d89bfadac3bc555c578f264856a4b0b00dc2112f811c.
+- CI [45088233403](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45088233403) passed 162 deterministic tests and synthetic smoke. Final code/test commit: [a9095a4](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/a9095a4c111606347ea7268bb29e6440cc41e7ad).
+- All four API responses have zero invalid timestamps, duplicates, out-of-order rows or required-field nulls, with no gaps over four hours. Each has five two-hour intervals, and the exact same five intervals occur in PF_XBTUSD, PF_ETHUSD, PI_XBTUSD and PI_ETHUSD: 2025-12-04 08:00–10:00; 2026-02-04 11:00–13:00; 2026-02-13 17:00–19:00; 2026-05-09 05:00–07:00; 2026-10-30 02:00–04:00 (UTC). Their cause is not established.
+- The archive/API shared range has 1,767 exact timestamp matches per symbol and zero mismatches in absolute/relative rate fields. PF timestamp unions contain 37,507 unique timestamps from 2022-03-22 through 2026-11-23; PI unions contain 44,741 from 2018-08-31 through the 2026-10-30 inverse-contract delisting. Union gaps are at most four hours. This is consistency/coverage evidence, not proof of a complete funding-event population.
+- Official docs: [API reference](https://docs.kraken.com/api-reference/historical-funding-rates/historical-funding-rates) documents symbol and ascending rates, but no documented pagination/cursor. [Linear contract specs](https://support.kraken.com/articles/4844359082772-linear-multi-collateral-derivatives-contract-specifications) and [inverse contract specs](https://support.kraken.com/articles/360022835911-inverse-crypto-collateral-perpetual-contract-specifications-derivatives) use different relative payout formulas and funding multipliers. Full details: [Kraken API-tail quality report](../reports/ETH-BTC-KRAKEN-API-TAIL-QUALITY-2026-11-23.md).
+- **Decision:** keep all four Kraken series PROVISIONAL_NOT_ACCEPTED. Do not backtest or merge with Binance.
+
+## Current next task — Kraken common two-hour gap and payout-semantics verification
+
+Investigate the five common two-hour intervals using Kraken's official status/maintenance history and an independent lawful source. Determine whether each is a funding pause, venue-wide interruption, or missing record. Verify the API history boundary/retention without relying on undocumented pagination. Validate fundingRate and relativeFundingRate units and deterministic payout examples separately for PF linear and PI inverse contracts, preserving their distinct payout formulas, multipliers, hourly caps and sign rules. Establish defensible complete coverage for each exact symbol, including PI's 2026-10-30 delisting and active PF tail. Add deterministic tests and update the report. If any interval, retention or semantic issue remains unresolved, keep PROVISIONAL_NOT_ACCEPTED; no Kraken backtest, Binance merge, paid data, credentials, or live trading.
 
 ## Completed historical follow-up — OKX funding metadata and symbol search (2026-11-22)
 
