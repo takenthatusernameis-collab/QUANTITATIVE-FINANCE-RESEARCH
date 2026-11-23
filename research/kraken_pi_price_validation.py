@@ -461,6 +461,13 @@ def run_probe(
         "api_base": API_BASE,
         "scope": "bounded hourly BTC-USD and ETH-USD spot plausibility cross-check for nine Kraken PI funding-rate cap exceptions",
         "granularity_seconds": GRANULARITY_SECONDS,
+        "bar_convention": {
+            "timestamp": "UTC bucket-start Unix seconds",
+            "ohlcv_field_order": ["time", "low", "high", "open", "close", "volume"],
+            "no_tick_intervals": "omitted by Coinbase; never zero-filled or forward-filled",
+            "pre_start_extra_buckets": "may be returned by Coinbase; counted and ignored",
+            "analysis_window": "start-inclusive, end-exclusive",
+        },
         "product_controls": product_records,
         "candle_windows": window_records,
         "known_active_controls": controls,
