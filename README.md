@@ -13,7 +13,23 @@ The prior Binance Spot ETH/BTC mean-reversion study concluded **NO-GO on 2026-11
 
 **Latest model conclusion:** [ETH/BTC Spot Relative-Momentum Rotation — NO-GO (2026-11-23)](reports/ETH-BTC-SPOT-MOMENTUM-EMPIRICAL-RESULT-2026-11-23.md). The exact gated empirical run completed successfully; all six promotion criteria failed. This experiment is closed after cycle 1/4. Do not tune on the same OOS sample.
 
-Read and follow the [mandatory timebox policy](docs/MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md) and [pending prospective holdout-capture task](tasks/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-CAPTURE.md) before acting. The Spot Momentum preregistration is concluded; see the [empirical result](reports/ETH-BTC-SPOT-MOMENTUM-EMPIRICAL-RESULT-2026-11-23.md).
+Read and follow the [mandatory timebox policy](docs/MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md) and the current [first scheduled holdout-run validation task](tasks/PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md) before acting. The Spot Momentum preregistration is concluded; see the [empirical result](reports/ETH-BTC-SPOT-MOMENTUM-EMPIRICAL-RESULT-2026-11-23.md).
+
+## Latest repository execution — 2026-11-23
+
+### Prospective Binance Spot holdout capture — initial end-to-end pass
+
+The first prospective-only capture pipeline is now committed on `main` in [commit 39b1682](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/39b1682baf32ad066af3dec4ec3d57e57c7836f9). The full repository CI [run 45242120532](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45242120532) passed **258 deterministic tests** and the synthetic plumbing smoke test; the capture workflow separately reran all **17 dedicated capture tests**.
+
+The owner-triggered exact command `/qfr-capture-spot-holdout` completed successfully in [capture run 45242319210](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45242319210). It fetched official Binance Spot 1h klines from **2026-11-01 00:00 UTC through 2026-11-23 17:00 UTC** for ETHUSDT and BTCUSDT: **546 rows per symbol**, zero missing hours, duplicates, overlap corrections or source errors; only closed bars were accepted. The manifest sets `research_evaluation_authorized=false`. No strategy evaluation or trading occurred.
+
+The append-only-by-workflow release is [spot-holdout-2026](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/releases/tag/spot-holdout-2026), with snapshot asset [snapshot-45242319210-attempt-1.zip](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/releases/download/spot-holdout-2026/snapshot-45242319210-attempt-1.zip), asset ID `784136576`, size 63,517 bytes and SHA-256 `b1200bdea3a01e56963b8afda0cab497d4396e0eaae21344bfc624d8a518b0cf`. The manifest-only Actions artifact is [14852546156](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45242319210/artifacts/14852546156), 1,363 bytes, with expiry **2026-12-23 18:49 UTC**.
+
+The workflow is scheduled daily at 04:23 UTC, exposes `workflow_dispatch`, and supports the owner-only exact issue-comment command. The issue-comment route has passed end-to-end; the first scheduled event and an actual `workflow_dispatch` event have not yet been observed. GitHub Release assets have no Actions-artifact TTL, but the release metadata reports `immutable=false`: retention is not protected against deliberate asset/release deletion. The ZIP's embedded manifest is written before upload and therefore lacks the post-upload storage block; the 30-day Actions manifest artifact and GitHub release metadata contain the asset ID/digest. The successor task must verify the first scheduled snapshot and decide whether a durable sidecar manifest is warranted.
+
+Queue guardian [run 45242393950](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45242393950) completed after the capture with no enforcement actions or errors. At handoff there are no queued, in-progress or requested workflow runs; PR #2 remains open and draft; seven branches are preserved. The recursive tree contains 87 tracked files and no committed raw market-data files. The `main` branch is currently unprotected; no protection settings were changed.
+
+The Spot Relative-Momentum Rotation remains **NO-GO** and closed. The original USDⓈ-M funding-aware study remains **INCONCLUSIVE**; no provisional funding data were promoted, no paid data or credentials were used, and no perpetual backtest or live trading was authorized.
 
 # General Repository Operating Mindset
 
@@ -85,9 +101,9 @@ The runner downloads and validates only Binance Spot ETHUSDT/BTCUSDT data, verif
 
 The original Binance USDⓈ-M funding-aware study remains **INCONCLUSIVE**. No paid data, API credentials, regional workarounds, perpetual backtest or live trading is authorized.
 
-## Next task — preregister a separate spot ETH/BTC momentum rotation
+## Next task — validate the first scheduled Spot holdout snapshot
 
-Execute the single-hypothesis [spot momentum preregistration](tasks/ETH-BTC-SPOT-MOMENTUM-PREREGISTRATION.md) using the already-accepted spot data only. Do not access paid funding data or run a Binance perpetual backtest while the funding gate remains closed.
+Execute the bounded [first scheduled holdout-run validation](tasks/PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md). Inspect the first daily capture expected after **2026-11-24 04:23 UTC**, verify previous-snapshot hash reconciliation, complete hourly coverage, release-asset retention and the queue guardian handoff. Review the embedded-manifest/storage-metadata discrepancy and whether a durable sidecar manifest is justified. Do not run a strategy backtest, tune the closed Spot Momentum experiment, access unaccepted funding data, or authorize live trading.
 
 ## Previous automated evidence — 2026-11-22
 

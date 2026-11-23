@@ -1,14 +1,14 @@
 # Prospective Binance Spot Holdout Capture
 
-**Status:** PENDING — next bounded task  
+**Status:** IMPLEMENTED — initial end-to-end capture passed; scheduled/manual-event validation transferred to successor  
 **Priority:** P1 research-enabling infrastructure  
-**Task budget:** 1 substantive cycle; hard deadline **2026-11-24 17:30 UTC**. No automatic extension.
+**Task budget:** 1 implementation cycle consumed; no extension. Operational follow-up is a separate bounded task.
 
 ## Context
 
 The frozen ETH/BTC Spot Relative-Momentum Rotation concluded NO-GO on 2026-11-23. Do not tune, re-filter or reinterpret its 2022-01 through 2026-10 OOS sample. Any new strategy must be separately preregistered and evaluated on an independent/later holdout.
 
-The accepted historical Spot archive ends at **2026-10-31**. A prospective holdout can begin **2026-11-01**, with official public data backfilled to the latest closed hour. No prospective-capture workflow is currently listed in the repository's workflow tree.
+The accepted historical Spot archive ends at **2026-10-31**. A prospective holdout begins **2026-11-01**. The initial capture implementation is committed at [39b1682](https://github.com/${repo}/commit/39b1682baf32ad066af3dec4ec3d57e57c7836f9), and the first end-to-end run [45242319210](https://github.com/${repo}/actions/runs/45242319210) completed with 546 closed hourly bars per symbol and no gaps. Scheduled and actual workflow-dispatch event validation remain outstanding.
 
 ## Objective
 
@@ -27,19 +27,31 @@ This is a data/infrastructure task—not a model task. **Do not run backtests, o
 7. **Tests:** add deterministic tests for UTC normalization, closed-hour selection, overlap deduplication, append/merge ordering, gap detection, duplicate detection, checksums, partial/failed acquisition and storage failure. Run CI and one bounded end-to-end capture.
 8. **Report and handoff:** document the chosen retention/storage design, verified limits, exact capture run and artifact links, current coverage, gaps, test results, and whether the holdout can be preserved for at least **180 days**. Do not claim durability beyond verified retention.
 
+## Execution result — 2026-11-23
+
+**Implementation and initial end-to-end capture: PASS.** The workflow, capture module, tests and queue-guardian integration were committed atomically in [39b1682](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/39b1682baf32ad066af3dec4ec3d57e57c7836f9).
+
+- Full CI [45242120532](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45242120532): 258 deterministic tests and synthetic plumbing smoke passed.
+- Capture [45242319210](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45242319210): authorization passed for the owner-only exact command; all 17 dedicated tests passed; the capture and release upload succeeded.
+- Coverage: 2026-11-01 00:00 UTC through 2026-11-23 17:00 UTC, 546 rows each for ETHUSDT/BTCUSDT; zero gaps, duplicates, corrections or source errors; closed bars only.
+- Durable snapshot: [release asset](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/releases/download/spot-holdout-2026/snapshot-45242319210-attempt-1.zip), ID `784136576`, 63,517 bytes, SHA-256 `b1200bdea3a01e56963b8afda0cab497d4396e0eaae21344bfc624d8a518b0cf`. Release assets have no Actions-artifact expiry, but the release is not platform-immutable and can be deleted.
+- Manifest artifact: [14852546156](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45242319210/artifacts/14852546156), 1,363 bytes, 30-day retention through 2026-12-23 18:49 UTC. The ZIP's embedded manifest predates the post-upload storage metadata; the GitHub Release API supplies the asset ID/digest.
+- The exact issue-comment route is end-to-end validated. The scheduled trigger and actual `workflow_dispatch` event have not yet been exercised. The first scheduled-run check is handed to [PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION](PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md).
+- No backtest, model selection, funding access, credentials, paid purchase, raw-data Git commit or live trading occurred.
+
 ## Acceptance criteria
 
-- [ ] No duplicate workflow or storage path created without preflight justification.
-- [ ] Backfill begins at 2026-11-01 and ends only at a verified latest-closed hourly bar.
-- [ ] Public Binance Spot data only; no credentials, trading, funding, other venues or access bypass.
-- [ ] Every accepted bar is timestamp/symbol/interval validated; unresolved gaps are explicitly rejected/flagged.
-- [ ] Overlap/backfill and deterministic deduplication are implemented and tested.
-- [ ] Manifests and hashes are retained; raw market data is outside Git.
-- [ ] Storage retention and recovery behavior are verified. If 180-day retention cannot be achieved with authorized resources, mark the task **BLOCKED/INFEASIBLE**, preserve any safe partial capture, and identify the exact owner-only prerequisite instead of pretending the holdout is durable.
-- [ ] Scheduled workflow, manual fallback, timeout and fail-closed behavior are validated.
-- [ ] CI and one end-to-end capture pass; artifacts contain no raw data unless an approved, explicitly configured storage destination requires it.
-- [ ] No empirical strategy evaluation occurs during this task.
+- [x] No duplicate workflow or storage path created without preflight justification.
+- [x] Backfill begins at 2026-11-01 and ends only at a verified latest-closed hourly bar.
+- [x] Public Binance Spot data only; no credentials, trading, funding, other venues or access bypass.
+- [x] Every accepted bar is timestamp/symbol/interval validated; the initial capture had no unresolved gaps.
+- [x] Overlap/backfill and deterministic deduplication are implemented and tested.
+- [x] Manifests and hashes are retained; raw market data is outside Git.
+- [x] A GitHub Release asset with no automatic Actions-artifact expiry is used; it can still be deliberately deleted because the release is not immutable. Recovery behavior is implemented and unit-tested; scheduled recovery remains in the successor task.
+- [ ] Scheduled and actual workflow-dispatch events are not yet exercised; the owner-only exact issue-comment path, 20-minute timeout configuration and fail-closed paths are validated. See the successor task.
+- [x] CI and one end-to-end capture pass; the Actions artifact contains only the manifest, while the durable release asset contains the required public market-data snapshot.
+- [x] No empirical strategy evaluation occurred during this task.
 
 ## Completion decision
 
-Within the one-cycle deadline, either commit a verified minimal capture system and its evidence, or report **BLOCKED/INFEASIBLE** with the exact storage/permission/retention limitation and a safe partial result. Do not extend the task indefinitely. The next model remains unselected until a new, separate preregistration and timebox are committed.
+The implementation and initial end-to-end capture passed within the consumed cycle. Do not extend this task. Scheduled/manual-event validation and the durable-manifest review are separate bounded follow-up work in [PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md](PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md). The next model remains unselected until a new, separate preregistration and timebox are committed.

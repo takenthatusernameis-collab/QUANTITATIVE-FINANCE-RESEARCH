@@ -1,9 +1,22 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-23 17:25 UTC  
-**Canonical active-task pointer:** [Prospective Binance Spot Holdout Capture](PROSPECTIVE-BINANCE-SPOT-HOLDOUT-CAPTURE.md).
+**Updated:** 2026-11-23 19:04 UTC  
+**Canonical active-task pointer:** [First Scheduled Holdout Run Validation](PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md).
 
-## Current cycle plan — 2026-11-23 17:20 UTC
+## Current cycle plan — 2026-11-23 19:04 UTC
+
+- **P0:** Keep the original Binance USDⓈ-M funding-aware study **INCONCLUSIVE**. All provisional funding inputs remain unaccepted; no paid data, credentials, perpetual backtest, venue merge or trading.
+- **P1 completed:** Prospective Binance Spot holdout capture implementation and first end-to-end run passed. [Main commit 39b1682](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/39b1682baf32ad066af3dec4ec3d57e57c7836f9); full CI [45242120532](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45242120532) passed 258 deterministic tests plus synthetic smoke; capture [45242319210](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45242319210) passed all 17 dedicated tests and published a complete release snapshot.
+- **Capture evidence:** ETHUSDT/BTCUSDT each have 546 closed hourly rows from 2026-11-01 00:00 through 2026-11-23 17:00 UTC, with zero missing hours, duplicates, corrections or source errors. Release asset [784136576](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/releases/download/spot-holdout-2026/snapshot-45242319210-attempt-1.zip), SHA-256 `b1200bdea3a01e56963b8afda0cab497d4396e0eaae21344bfc624d8a518b0cf`. Manifest artifact [14852546156](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45242319210/artifacts/14852546156) expires 2026-12-23 18:49 UTC.
+- **P1 remaining:** Verify the first daily scheduled capture expected after 2026-11-24 04:23 UTC, previous-snapshot reconciliation, release retention and queue guardian. The actual `workflow_dispatch` event is not yet exercised. See [next task](PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md).
+- **Storage caveat:** GitHub Release assets have no Actions-artifact TTL, but the release metadata says `immutable=false` and the asset can be deleted. The ZIP's embedded manifest has `storage: null`; the expiring Actions manifest and GitHub Release API metadata hold the post-upload asset ID/digest. Review a durable sidecar manifest in the next cycle.
+- **P2:** The frozen Spot Relative-Momentum Rotation remains **NO-GO** and closed; do not tune or rerun on its OOS sample. Any new model requires a separate preregistration and independent/later holdout.
+- **Queue guardian:** [Run 45242393950](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45242393950) completed with no enforcement actions or errors. No queued, requested or in-progress runs remain.
+- **Hygiene:** Complete recursive tree: 87 tracked blobs; no raw market data committed. Seven branches preserved; PR #2 remains open/draft; main is unprotected. No deletion was justified.
+- **Next:** Execute [First Scheduled Holdout Run Validation](PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md) as one bounded P1 cycle, deadline 2026-11-25 17:30 UTC. No strategy evaluation, funding access, paid purchases, credentials, or live trading.
+- **Process improvement:** This handoff will use one atomic Git Data commit to avoid sequential Contents-API CI fan-out.
+
+## Completed prior cycle plan — 2026-11-23 17:20 UTC
 
 - **P0:** Keep the original USDⓈ-M funding-aware study **INCONCLUSIVE**. All provisional funding inputs remain rejected; no credentials, paid data, perps backtests or trading.
 - **P1:** Verify the queue guardian after this handoff and preserve the exact-actor/default-branch-only control PR #2. No queue-guardian incident was identified in the latest recorded guardian run.
