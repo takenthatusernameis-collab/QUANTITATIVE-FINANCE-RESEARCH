@@ -7,7 +7,9 @@ import zipfile
 from pathlib import Path
 
 from kraken_funding_export_probe import (
+    analyze_api_rows,
     analyze_archive,
+    analyze_archive_api_union,
     analyze_csv_stream,
     asset_from_instrument,
     crosscheck_archive_api,
@@ -99,6 +101,61 @@ class KrakenFundingExportProbeTests(unittest.TestCase):
         self.assertTrue(result["timestamp_sets_equal"])
         self.assertTrue(result["rate_field_comparisons"]["absolute_rate -> fundingRate"]["all_compared_values_equal_with_tolerance"])
         self.assertTrue(result["rate_field_comparisons"]["relative_rate -> relativeFundingRate"]["all_compared_values_equal_with_tolerance"])
+
+    def test_api_quality_checks_every_row_and_reports_nulls_order_duplicates_and_gaps(self):
+        api = {
+            "status": 200,
+            "result": "success",
+            "rates": [
+                {"timestamp": "2026-01-01T00:00:00Z", "fundingRate": "0.001", "relativeFundingRate": "0.01"},
+                {"timestamp": "2026-01-01T08:00:00Z", "fundingRate": "", "relativeFundingRate": "0.02"},
+                {"timestamp": "2026-01-01T08:00:00Z", "fundingRate": "bad", "relativeFundingRate": "0.03"},
+                {"timestamp": "2026-01-01T04:00:00Z", "fundingRate": "0.004", "relativeFundingRate": "0.04"},
+                {"timestamp": "2026-01-02T00:00:00Z", "fundingRate": "0.005", "relativeFundingRate": None},
+                {"timestamp": "not-a-timestamp", "fundingRate": "0.006", "relativeFundingRate": "0.06"},
+            ],
+        }
+        result = analyze_api_rows(api)
+        self.assertEqual(result["row_count"], 6)
+        self.assertEqual(result["valid_timestamp_count"], 5)
+        self.assertEqual(result["invalid_timestamp_count"], 1)
+        self.assertEqual(result["unique_timestamp_count"], 4)
+        self.assertEqual(result["duplicate_timestamp_count"], 1)
+        self.assertEqual(result["out_of_order_timestamp_count"], 1)
+        self.assertFalse(result["source_order_non_decreasing"])
+        self.assertEqual(result["null_counts"]["fundingRate"], 1)
+        self.assertEqual(result["null_counts"]["relativeFundingRate"], 1)
+        self.assertEqual(result["rate_fields"]["fundingRate"]["invalid_count"], 2)
+        self.assertEqual(result["rate_fields"]["relativeFundingRate"]["invalid_count"], 1)
+        self.assertEqual(result["gaps_over_4h_count"], 1)
+        self.assertEqual(result["max_positive_gap_hours"], 16.0)
+        self.assertEqual(result["history_completeness_status"], "PROVISIONAL_NOT_ACCEPTED")
+
+    def test_archive_api_union_counts_full_api_only_tail_without_merging_contract_values(self):
+        archive_rows = [
+            {"timestamp_ms": 1767225600000},
+            {"timestamp_ms": 1767254400000},
+            {"timestamp_ms": 1767312000000},
+        ]
+        api_rows = [
+            {"timestamp": "2026-01-01T08:00:00Z"},
+            {"timestamp": "2026-01-02T00:00:00Z"},
+            {"timestamp": "2026-01-02T08:00:00Z"},
+            {"timestamp": "2026-01-03T00:00:00Z"},
+        ]
+        result = analyze_archive_api_union(archive_rows, api_rows)
+        self.assertEqual(result["archive_unique_timestamps"], 3)
+        self.assertEqual(result["api_unique_timestamps"], 4)
+        self.assertEqual(result["overlap_timestamps"], 2)
+        self.assertEqual(result["archive_only_timestamps"], 1)
+        self.assertEqual(result["api_only_timestamps"], 2)
+        self.assertEqual(result["api_only_tail_timestamps"], 2)
+        self.assertEqual(result["union_unique_timestamps"], 5)
+        self.assertEqual(result["union_start_utc"], "2026-01-01T00:00:00+00:00")
+        self.assertEqual(result["union_end_utc"], "2026-01-03T00:00:00+00:00")
+        self.assertFalse(result["rate_values_merged"])
+        self.assertEqual(result["union_gaps_over_4h_count"], 4)
+        self.assertEqual(result["history_completeness_status"], "PROVISIONAL_NOT_ACCEPTED")
 
     def test_archive_only_analyzes_identified_perpetual_csvs(self):
         instruments = [
