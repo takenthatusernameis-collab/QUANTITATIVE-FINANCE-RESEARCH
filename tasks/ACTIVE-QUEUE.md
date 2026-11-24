@@ -1,9 +1,9 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-24 10:22 UTC  
+**Updated:** 2026-11-24 10:40 UTC  
 **Canonical queue:** this file remains the single active-work index; it may contain one primary critical-path task plus independently admitted parallel workstreams.  
 **Currently executing workstreams:** none at this checkpoint.  
-**Next ready workstream:** [Post-Holdout Research Environment and Portfolio Review](POST-HOLDOUT-RESEARCH-ENVIRONMENT-AND-PORTFOLIO-REVIEW.md). Its prerequisite is closed; its LOW-tier clock begins on its first substantive action, not while READY.  
+**Next ready workstream:** [Binance Spot Dynamic-Universe and Historical-Coverage Feasibility Audit](BINANCE-SPOT-DYNAMIC-UNIVERSE-AND-HISTORICAL-COVERAGE-AUDIT.md) — READY; MEDIUM; maximum 4 cycles / 5 elapsed days; exact UTC start/expiry to be frozen before its first substantive action; absolute deadline 2026-12-02 17:30 UTC.  
 **Additional admitted parallel workstreams:** none currently.
 
 ## Repository governance upgrade — completed 2026-11-24
@@ -24,6 +24,20 @@ The evidence-first lifecycle, dual-axis retrospectives, tested project-readiness
 - No strategy backtest, empirical strategy evaluation, funding research, paid-data acquisition, venue merge, live trading or capital deployment occurred.
 
 **Residual operating limitation:** the external scheduler, GitHub App dispatch credential and independent watchdog remain `UNCONFIGURED / DEGRADED`. This slot is `RECOVERED` by the agent fallback; this does not promote the external scheduler to `DELIVERY_VERIFIED`. GitHub cron remains non-authoritative.
+
+## Most recent completed portfolio-review assignment — 2026-11-24
+
+**Workstream:** `post-holdout-environment-review`  
+**Disposition:** COMPLETE after **1 of 2** maximum substantive cycles; closed early without resetting or rolling over the unused cycle.  
+**Frozen LOW-tier clock:** 2026-11-24T10:27:16Z to 2026-11-26T10:27:16Z.
+
+- Both predecessor feedback axes were completed. The holdout capture was an infrastructure/data-preservation result, not a strategy return measurement.
+- The environment matrix covers all 11 required dimensions and distinguishes pair-specific VERIFIED evidence from broader SAMPLE_ONLY/UNKNOWN scope.
+- No strategy was selected. The prior Spot mean-reversion and Spot Momentum NO-GO results remain closed; USD-M funding remains INCONCLUSIVE.
+- Two admin-agent calibrations were recorded: scheduled-delivery reliability must be proven end-to-end; source dimensions are VERIFIED only for the exact tested scope and execution environment.
+- The evidence-backed successor is [Binance Spot Dynamic-Universe and Historical-Coverage Feasibility Audit](BINANCE-SPOT-DYNAMIC-UNIVERSE-AND-HISTORICAL-COVERAGE-AUDIT.md), READY / MEDIUM / 4 cycles / 5 days, absolute deadline 2026-12-02 17:30 UTC. Its exact start/expiry must be frozen before substantive work.
+- Full findings: [Post-Holdout Research Environment and Portfolio Review](../reports/POST-HOLDOUT-RESEARCH-ENVIRONMENT-AND-PORTFOLIO-REVIEW-2026-11-24.md).
+
 ## Research-track status
 
 | Workstream | Status | Rule |
@@ -32,10 +46,11 @@ The evidence-first lifecycle, dual-axis retrospectives, tested project-readiness
 | ETH/BTC Spot relative momentum | NO-GO, closed | Do not tune on the same OOS sample. |
 | USD-M funding-aware study | INCONCLUSIVE | Keep funding inputs provisional/unaccepted; no perp backtest. |
 | Prospective Binance Spot capture | COMPLETE / RECOVERED by first-agent fallback | November 24 slot and same-slot replay verified; external scheduler remains UNCONFIGURED. No strategy evaluation. |
+| Binance Spot dynamic-universe feasibility audit | READY | Environment-enabling only; do not start a model until historical point-in-time and archive coverage are VERIFIED. |
 
 ## Successor sequencing
 
-After the active holdout-validation task is closed, execute the queued environment/portfolio review. It must consume both feedback axes from the completed task and the prior empirical conclusions, then establish the verified information and infrastructure envelope. **No successor model is selected in advance.** If no candidate fits verified evidence, queue a bounded environment-enabling project or record that no new model is justified.
+The post-holdout environment/portfolio review is complete. The next ready workstream is the [Binance Spot Dynamic-Universe and Historical-Coverage Feasibility Audit](BINANCE-SPOT-DYNAMIC-UNIVERSE-AND-HISTORICAL-COVERAGE-AUDIT.md). It must dynamically enumerate the current catalogue, test whether official archives can evidence historical/delisted products, and preserve a non-exhaustive bounded sample. **No successor strategy is selected in advance.** If point-in-time membership or archive completeness remains unverified, stop at the exact environment blocker; do not force a cross-sectional model. Freeze the successor's exact start/expiry in this queue before its first substantive action.
 
 All successor work must satisfy:
 - [Evidence-First Project Lifecycle](../docs/RESEARCH-ENVIRONMENT-FIRST-PROJECT-LIFECYCLE.md)
@@ -47,9 +62,9 @@ All successor work must satisfy:
 - **External scheduler:** still UNCONFIGURED / DEGRADED; no independent scheduler, dedicated GitHub App credential or separate watchdog is provisioned. GitHub cron is best-effort only and must never be treated as the primary clock or recovery plan.
 - **First-agent recovery:** exercised successfully for the November 24 holdout slot. The direct-agent route checks due time, live Actions state and Release assets, then uses the exact-owner command only if the stable slot is missing and no capture is active. A second authorized wake-up proved exact ZIP/sidecar reuse; do not duplicate.
 - **Queue guardian:** five-minute cron cadence remains unproven and is not an SLA. Event-driven capture handoffs [45373479882](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373479882), [45373736534](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373736534) and [45373756502](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373756502) completed successfully.
-- **Research CI:** latest full CI [45373689039](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373689039) passed 320 deterministic tests and the synthetic plumbing smoke test on `0316062`.
+- **Research CI:** main CI [45375823583](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45375823583) passed on main; review activation CI [45376533993](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45376533993) passed 324 deterministic tests in 14.153 seconds and the synthetic plumbing smoke test. The final review PR must pass its own CI before merge.
 - **Control PR:** PR #2 remains the exact-owner command surface; do not execute or merge PR-head code. Existing exact actor/ref/event gates remain intact.
-- **Next ready workstream:** Post-Holdout Research Environment and Portfolio Review. Start its clock only when substantive work begins; first inspect predecessor feedback and this completed capture evidence.
+- **Next ready workstream:** Binance Spot Dynamic-Universe and Historical-Coverage Feasibility Audit. It is MEDIUM (4 cycles / 5 days), with an absolute deadline of 2026-12-02 17:30 UTC. Freeze exact UTC start/expiry and `cycles_used=0` before the first substantive action.
 ## Handoff discipline
 
 Keep this file as a concise index, not a chronological transcript. Put reusable policy in `docs/`, project instructions in `tasks/`, dated evidence in `reports/`, and superseded state in `archive/`. Before each successor, record predecessor research/performance feedback, technical-delivery feedback, admin-agent calibration and the next task's difficulty/timebox.
