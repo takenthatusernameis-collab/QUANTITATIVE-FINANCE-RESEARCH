@@ -67,6 +67,21 @@ class WorkflowControlTests(unittest.TestCase):
         self.assertIn("workflow_run.actor.login == 'takenthatusernameis-collab'", workflow)
         self.assertIn("github.event_name != 'workflow_run' &&", workflow)
 
+    def test_binance_spot_universe_completion_event_is_scoped_and_observable(self):
+        workflow_path = (
+            Path(__file__).resolve().parents[1]
+            / ".github" / "workflows" / "queue-guardian.yml"
+        )
+        workflow = workflow_path.read_text(encoding="utf-8")
+        self.assertIn("Binance Spot dynamic-universe feasibility audit", workflow)
+        self.assertIn(
+            "github.event.workflow_run.name == 'Binance Spot dynamic-universe feasibility audit'",
+            workflow,
+        )
+        self.assertIn("github.event.workflow_run.event == 'issue_comment'", workflow)
+        self.assertIn("github.event.workflow_run.head_branch == github.event.repository.default_branch", workflow)
+        self.assertIn("github.event.workflow_run.actor.login == 'takenthatusernameis-collab'", workflow)
+
 class QueueDecisionTests(unittest.TestCase):
     def test_exactly_fifteen_minutes_is_not_over_threshold(self):
         queued = make_run(10, "research-tests", "queued",
@@ -146,6 +161,27 @@ class QueueDecisionTests(unittest.TestCase):
         self.assertEqual(
             inventory[0]["workflow_name"],
             "Trusted Binance archive cache warmer",
+        )
+
+    def test_binance_spot_universe_audit_has_isolated_queue_group_and_is_observable(self):
+        queued = make_run(
+            25, "binance-spot-universe-audit", "queued",
+            NOW - timedelta(minutes=16),
+        )
+        active = make_run(
+            26, "binance-spot-universe-audit", "in_progress",
+            NOW - timedelta(hours=1),
+        )
+        self.assertEqual(group_for(queued), "binance-spot-universe-audit-main")
+        self.assertEqual(queue_decision(queued, [queued], NOW)["action"], "cancel_overdue")
+        self.assertEqual(
+            queue_decision(queued, [active, queued], NOW)["action"],
+            "preserve_same_group_wait",
+        )
+        inventory = build_run_inventory([queued])
+        self.assertEqual(
+            inventory[0]["workflow_name"],
+            "Binance Spot dynamic-universe feasibility audit",
         )
 
     def test_timestamp_must_include_timezone(self):
