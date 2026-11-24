@@ -27,7 +27,7 @@ The first daily Binance Spot capture is scheduled for **2026-11-24 04:23 UTC**. 
 | Field | Current value |
 |---|---|
 | Workstream ID / status | `spot-holdout-first-scheduled-validation` / active |
-| Write scope | `tasks/PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md`; `tasks/ACTIVE-QUEUE.md`; `reports/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-CAPTURE-2026-11-23.md`; `.github/workflows/spot-holdout-capture.yml`; `research/spot_holdout_capture.py`; `research/test_spot_holdout_capture.py` |
+| Write scope | `tasks/PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md`; `tasks/ACTIVE-QUEUE.md`; `README.md`; `reports/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-CAPTURE-2026-11-23.md`; `reports/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-SCHEDULED-VALIDATION-2026-11-24.md`; `.github/workflows/spot-holdout-capture.yml`; `research/spot_holdout_capture.py`; `research/test_spot_holdout_capture.py` |
 | Exclusive resources | `github-actions:spot-holdout-capture`; `github-release:spot-holdout-2026`; `binance-spot-capture:1h` |
 | Confirmatory holdout ID | `binance-spot-1h:prospective-2026-11` |
 
