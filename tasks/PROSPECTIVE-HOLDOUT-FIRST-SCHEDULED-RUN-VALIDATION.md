@@ -1,7 +1,7 @@
-# Prospective Spot Holdout — External Dispatch and Recovery Validation
+# Prospective Spot Holdout — Capture and First-Agent Recovery Validation
 
-**Status:** IN PROGRESS — GitHub cron event due 2026-11-24 04:23 UTC did not create a capture run; use the first authorized agent wake-up after the due time as the direct-execution fallback; stable daily slot idempotency is being added; external scheduler/watchdog remain unprovisioned
-**Latest checkpoint:** [2026-11-24 07:15 UTC scheduled-run checkpoint](../reports/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-SCHEDULED-VALIDATION-2026-11-24.md).  
+**Status:** COMPLETE — November 24 slot RECOVERED by first-authorized-agent wake-up; complete snapshot and sidecars verified; second same-slot wake-up proved idempotent reuse. External scheduler/watchdog remain UNCONFIGURED and are not represented as DELIVERY_VERIFIED.
+**Latest checkpoint:** [2026-11-24 10:22 UTC final recovery checkpoint](../reports/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-SCHEDULED-VALIDATION-2026-11-24.md).  
 **Priority:** P1 research-enabling infrastructure  
 **Task budget:** 1 substantive cycle; hard deadline **2026-11-25 17:30 UTC**. No automatic extension.
 
@@ -13,7 +13,7 @@ The workflow still declares `23 4 * * *` UTC, but GitHub explicitly treats sched
 
 ## Objective
 
-Verify that an independently scheduled and authenticated dispatch appends a new, complete snapshot, validates and reconciles the previous snapshot, preserves provenance and retention, and leaves the queue guardian healthy. Resolve any concrete durability/provenance defect within the same bounded cycle. This is a data-infrastructure task only. Its ETHUSDT/BTCUSDT symbol scope is deliberately specific to this capture validation and must not be copied into a factory-wide asset whitelist, treated as the default future research universe, or used to restrict candidate discovery after this task closes. See [Asset-Universe Discovery and Scope Policy](../docs/ASSET-UNIVERSE-DISCOVERY-AND-SCOPE-POLICY.md).
+Verify the first due prospective capture using either an independently operated authenticated scheduler or, when that is unavailable, the first authorized agent wake-up after the due time. Reconcile the previous snapshot, publish and validate current ZIP/sidecar assets, prove same-slot idempotent reuse, and verify the queue-guardian completion handoff. This is a data-infrastructure task only. Its ETHUSDT/BTCUSDT symbol scope is deliberately specific to this capture validation and must not be copied into a factory-wide asset whitelist, treated as the default future research universe, or used to restrict candidate discovery after this task closes. See [Asset-Universe Discovery and Scope Policy](../docs/ASSET-UNIVERSE-DISCOVERY-AND-SCOPE-POLICY.md).
 
 ## Parallel workstream isolation
 
@@ -26,13 +26,13 @@ Verify that an independently scheduled and authenticated dispatch appends a new,
 ## Required steps
 
 1. Inspect the latest main commit, active queue, open PR #2 comments, workflow runs, queue guardian report and current release assets before any dispatch. Do not duplicate a successful capture or overlap an active run.
-2. After the daily due time, inspect the release for `snapshot-slot-YYYY-MM-DD.zip`, its JSON sidecar, the Actions inventory and active runs. If the slot is absent and no valid capture is active, the first authorized agent wake-up must trigger the existing owner-exact `/qfr-capture-spot-holdout` command on open PR #2 (or use an independently authenticated scheduler if verified). Confirm the resulting event/actor, stable slot ID, `main` ref, authorization job, capture job, actual start time and 20-minute timeout. If the slot already exists, verify and reuse it; do not dispatch again. A GitHub cron run is opportunistic only and cannot satisfy the independent scheduler-reliability criterion.
+2. After the daily due time, inspect the release for `snapshot-slot-YYYY-MM-DD.zip`, its JSON sidecar, the Actions inventory and active runs. If the slot is absent and no valid capture is active, the first authorized agent wake-up must trigger the existing owner-exact `/qfr-capture-spot-holdout` command on open PR #2 (or use an independently authenticated scheduler if verified). Confirm the event/actor, stable slot ID, `main` ref, authorization job, capture job, actual start time and 20-minute timeout. If the slot already exists, verify and reuse it; do not dispatch again. GitHub cron is opportunistic only.
 3. Verify the new release asset and manifest: exact ETHUSDT/BTCUSDT identity, 1h interval, UTC bounds, latest fully closed bar, expected/observed counts, no duplicates, ordering, missing hours, overlap corrections and source errors. A missing hour must remain unresolved and fail closed; never synthesize or forward-fill.
 4. Confirm the new snapshot's `previous_snapshot` points to the preceding asset and that the previous ZIP digest and both CSV hashes were verified before merge. Check that both snapshots remain in the same release and no prior asset was overwritten.
 5. Verify the implemented durable JSON sidecar. Each capture now publishes a deterministic per-slot `snapshot-slot-YYYY-MM-DD.manifest.json` Release asset containing the ZIP asset ID/URL/size/digest and per-file SHA-256 hashes; the next run also backfills a sidecar for the first ZIP before appending the next snapshot. Deterministic tests cover sidecar validation, idempotent reuse, collision rejection, previous-snapshot backfill and current-snapshot publication. Confirm the sidecar contains metadata only, is not uploaded as an Actions artifact, and its own ID/digest is available from Release API metadata.
 6. Review the release's `immutable` metadata and retention behavior. The first release reported `immutable=false`; describe retention as no automatic artifact TTL, not write-once protection. Do not claim protection from deliberate deletion. Do not change repository or release permissions.
 7. Verify the queue guardian's `workflow_run` handoff after the scheduled capture: no orphaned/duplicate runs, no enforcement action without a policy violation, no errors. Confirm no queued, requested or in-progress workflow runs remain.
-8. Provision and verify the independent scheduler/dispatcher when an authorized provider/credential is available. Preferred route: a dedicated GitHub App installation token with repository-scoped `Actions: write`, stored only in the external scheduler's secret manager, calling the existing `workflow_dispatch` endpoint. Verify and explicitly allowlist its exact actor before use; do not accept arbitrary actors. A narrowly scoped owner-bound fine-grained token is a fallback only if explicitly authorized. Dispatch must carry the deterministic capture-slot key, and the scheduler must poll Actions until the expected run is observed. **The absence of this external service is not a stop-work condition:** the first agent waking after the due time must use the already-authorized exact PR-comment route and observe the real run. If neither that route nor another authorized execution surface is available, record the precise owner-only prerequisite and continue independent safe work; never wait for GitHub cron.
+8. Record external scheduler provisioning separately. A dedicated repository-scoped GitHub App and separate watchdog remain the preferred long-term scheduling architecture, but they are not available in this task. Do not weaken actor gates, invent credentials or claim `DELIVERY_VERIFIED`. The November 24 slot is permitted to close as `RECOVERED` because the first-agent fallback was executed through the existing exact-owner route and independently replayed idempotently.
 9. Run the relevant deterministic tests and full CI if code changes are made. Commit one atomic Git Data handoff to `main`; update the report, README and canonical queue in the same commit.
 10. Do not run any strategy backtest, optimize the closed Spot Momentum model, inspect signals/performance, access unaccepted funding, purchase data, add credentials, use other venues or authorize live trading.
 
@@ -67,47 +67,26 @@ The next checkpoint must inspect the actual schedule-triggered capture and its q
 - The capture schedule and queue-guardian schedule are configured on the default branch; no configuration defect was identified in the inspected workflow files. GitHub schedule delivery is best-effort and may be delayed or dropped. **Do not manually dispatch or duplicate the capture** merely because the scheduled event is not yet visible. Recheck the run inventory and release before taking any further action.
 - Latest main CI run [45309054784](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45309054784) completed successfully on this main commit. The preceding full run [45308874842](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45308874842) passed 300 deterministic tests and the synthetic plumbing smoke test. This is engineering validation only; no new holdout data or strategy evidence was produced.
 - No backtest, strategy/performance inspection, funding access, paid-data acquisition, venue merge, credential creation, live trading or capital deployment occurred.
-## Acceptance criteria
+## Acceptance criteria — final disposition 2026-11-24
 
-- [ ] An independently scheduled authenticated dispatch is observed with the exact workstream slot/idempotency key, expected actor, workflow ID, default-branch ref and run timestamps.
-- [ ] New snapshot reconciles the previous release asset and preserves every prior observation unless a source correction is explicitly recorded.
-- [ ] Both symbols have exact identity, closed hourly bars, UTC ordering and complete or explicitly rejected coverage.
-- [ ] Release assets are append-only by workflow policy; no prior snapshot is overwritten or deleted.
-- [x] Durable sidecar implementation, strict digest/size checks, idempotency/collision tests and the `immutable=false` retention limitation are committed and documented.
-- [ ] Live sidecar backfill/publication for the first ZIP and the next ZIP is verified by the scheduled run.
-- [ ] Retention claims distinguish no automatic TTL from protection against manual deletion.
-- [ ] Queue guardian handoff is successful and no orphaned/duplicate active run remains.
-- [x] CI passes after the latest implementation/policy changes: 300 deterministic tests and the synthetic plumbing smoke test succeeded in [run 45308874842](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45308874842); no raw market data is committed.
-- [ ] No empirical strategy evaluation, funding research or live trading occurs.
+- [x] The missing due slot was recovered by the first authorized agent wake-up after 04:23 UTC, through the existing exact-owner PR #2 command. Capture run [45373419544](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373419544) passed the actor gate and capture job.
+- [x] Stable slot `binance-spot-1h:prospective-2026-11:2026-11-24` produced exactly one ZIP and one JSON sidecar, with deterministic names and verified GitHub digests.
+- [x] ETHUSDT and BTCUSDT each have 562 closed, ordered hourly observations from 2026-11-01 00:00 UTC through 2026-11-24 09:00 UTC; zero missing hours, duplicate timestamps, overlap corrections or source errors.
+- [x] The new manifest links the previous ZIP asset 784136576 and its verified digest; the previous snapshot's sidecar was backfilled as asset 786684146.
+- [x] Current ZIP asset 786684218 (65,817 bytes; SHA-256 `22bd362b7c0db51c7a3302f5b09c1a4a2327a4d9553b8ac7259f2a343c5caade`) and sidecar asset 786684257 (5,211 bytes; SHA-256 `57cb7b1d297c15a33aa80784a0b72e010988e3da99a0e65171174ce02e19d284`) are present in Release `spot-holdout-2026`.
+- [x] A second same-slot owner-authorized wake-up [45373703705](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373703705) returned `idempotent_slot_reuse=true`, verified/reused the same asset IDs and did not create additional release assets.
+- [x] Release immutability and retention are described accurately: `immutable=false`; Release assets have no automatic Actions-artifact TTL but can still be deliberately deleted.
+- [x] Queue-guardian event-driven handoffs [45373479882](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373479882), [45373736534](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373736534) and [45373756502](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373756502) succeeded.
+- [x] Main CI [45373689039](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373689039) passed 320 deterministic tests and the synthetic plumbing smoke test; capture workflow tests passed in both capture runs.
+- [x] No strategy backtest, empirical strategy evaluation, funding research, paid-data acquisition, venue merge, live trading or capital deployment occurred.
 
-## Stop conditions
+## Residual factory-wide reliability gap — not a blocker to this recovered slot
 
-- GitHub `schedule` events are not a delivery guarantee. Never park the task until another cron tick. If external dispatch is absent, diagnose the external scheduler's delivery log and GitHub API response; retry only with the same idempotency key after checking whether a run was already created. Keep the holdout closed.
-- If either symbol has missing, revised or malformed rows, publish only an explicitly incomplete snapshot and preserve the gap/correction evidence. Never promote incomplete data to a holdout.
-- If durable retention depends on an unavailable owner-only setting, keep the existing release snapshot, mark the limitation precisely and continue independent safe validation.
-- Do not extend the one-cycle deadline. The next model remains unselected until a separate preregistration and independent holdout are available.
+The independent external scheduler, dedicated GitHub App dispatch credential and watchdog in a separate failure domain remain `UNCONFIGURED / DEGRADED`. Do not claim `DELIVERY_VERIFIED`. The per-slot recovery state is `RECOVERED` because the first-agent fallback succeeded and a second wake-up proved idempotent reuse. These states are deliberately separate. Future time-sensitive work must continue to use the first-authorized-agent fallback when no reliable scheduler is provisioned; an unresolved external scheduler gap must not stall independent safe research.
 
+## Stop conditions and handoff
 
-## Trigger reliability correction — 2026-11-24
-
-The previous plan incorrectly treated GitHub Actions cron as a dependable clock and made the next natural cron boundary the recovery plan. This is explicitly superseded. GitHub documents `schedule` as best-effort and permits delay/drop under load: [official event documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule). The 2026-11-24 04:23 UTC capture event did not create a run; the initial successful capture was owner-authorized via `issue_comment` (run [45242319210](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45242319210)).
-
-The replacement is an independently operated scheduler that actively calls the protected `workflow_dispatch` route, using a dedicated least-privilege GitHub App identity, a deterministic per-slot idempotency key, durable dispatch/run records, bounded retry with duplicate detection, and a watchdog in a separate scheduling/control domain. GitHub cron may remain only as an opportunistic canary or be removed once external dispatch is live; it is never the primary clock or deadline guarantee. Before enabling simultaneous triggers, either disable the cron capture path or prove run-level idempotency across both routes.
-
-**Do not wait for the next GitHub cron tick.** The connected GitHub action catalog currently exposes read operations and repository writes but no direct workflow-dispatch POST; no scheduler provider, GitHub App installation, dispatch credential or external watchdog has been provisioned/verified in this session. The workflow's existing exact-actor gate remains intact. The policy, handoff and regression checks are being committed now; external credential provisioning and end-to-end dispatch delivery remain explicitly unverified. Do not claim the replacement is operational until a real external dispatch is observed and reconciled.
-
-
-## First-agent wake-up fallback — activated 2026-11-24
-
-The November 24 daily slot became due at **2026-11-24 04:23 UTC**. No schedule-triggered capture run or second release asset existed at the inspected checkpoint. Under the factory's new direct-execution fallback, the first authorized agent wake-up after that due time must perform the capture rather than wait for another cron or for an unprovisioned external scheduler.
-
-- Stable slot: `binance-spot-1h:prospective-2026-11:2026-11-24`.
-- Expected durable assets: `snapshot-slot-2026-11-24.zip` and `snapshot-slot-2026-11-24.manifest.json`.
-- Before starting: inspect all Actions attempts and release assets; do not run while an authorized capture for this slot is active or after its verified snapshot exists.
-- Authorized direct fallback: create the exact `/qfr-capture-spot-holdout` comment on open PR #2 only when the connected GitHub identity is verified as `takenthatusernameis-collab`; the workflow's existing exact-actor gate remains unchanged.
-- The capture workflow's concurrency group serializes competing starts. The script must check the stable slot asset and fully verify its ZIP/sidecar digests before any fetch; a second run reuses the existing result. An incomplete snapshot is not overwritten; it is reported for diagnosis and any recovery uses the same prior data plus a separately justified attempt.
-- Execution timestamp and latest closed bar are derived from the actual run, never backdated to 04:23 UTC.
-- The independent watchdog remains required for a future externally scheduled deployment. Until it is provisioned, the direct-agent wake-up fallback checks the live Actions inventory and release state; it does not pretend to provide a continuous heartbeat.
-- After the run, verify the exact event/actor/ref, jobs, ZIP and sidecar metadata, both CSV hashes, prior-snapshot reconciliation and queue-guardian completion. Keep empirical strategy evaluation disabled.
-
-This wake-up fallback restores progress without claiming that an external scheduler is operational. Direct agent execution is a last line of defense, not a replacement for independently monitored scheduling.
+- Never use GitHub Actions cron as the primary clock, deadline guarantee or recovery plan.
+- Before any same-slot retry, inspect Actions, release assets and active runs; reuse a complete verified result, observe a valid active run, or proceed with bounded recovery only if the slot is missing/incomplete.
+- Never overwrite an incomplete or conflicting snapshot, forward-fill missing market observations, backdate acquisition time, weaken authorization gates or bypass external-data restrictions.
+- The external scheduler/watchdog gap remains a separate meta-process improvement; provision only when an authorized provider/identity is available. The next ready workstream is the [Post-Holdout Research Environment and Portfolio Review](POST-HOLDOUT-RESEARCH-ENVIRONMENT-AND-PORTFOLIO-REVIEW.md).

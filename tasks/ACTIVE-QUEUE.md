@@ -1,38 +1,29 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-24 09:24 UTC  
+**Updated:** 2026-11-24 10:22 UTC  
 **Canonical queue:** this file remains the single active-work index; it may contain one primary critical-path task plus independently admitted parallel workstreams.  
-**Primary active workstream:** [First Scheduled Holdout Run Validation](PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md).  
-**Additional admitted parallel workstreams:** none currently. The new policy enables safe parallel work but does not itself create or dispatch another task.  
-**Queued successor (not active until current task closes):** [Post-Holdout Research Environment and Portfolio Review](POST-HOLDOUT-RESEARCH-ENVIRONMENT-AND-PORTFOLIO-REVIEW.md).
+**Currently executing workstreams:** none at this checkpoint.  
+**Next ready workstream:** [Post-Holdout Research Environment and Portfolio Review](POST-HOLDOUT-RESEARCH-ENVIRONMENT-AND-PORTFOLIO-REVIEW.md). Its prerequisite is closed; its LOW-tier clock begins on its first substantive action, not while READY.  
+**Additional admitted parallel workstreams:** none currently.
 
 ## Repository governance upgrade — completed 2026-11-24
 
 The evidence-first lifecycle, dual-axis retrospectives, tested project-readiness gate, documentation index, action SHA pinning, grouped dependency updates, per-ref CI deduplication and parallel-workstream admission/timebox policy are committed. See [governance implementation retrospective](../reports/EVIDENCE-FIRST-RESEARCH-GOVERNANCE-IMPLEMENTATION-2026-11-24.md) and [parallel-workstream policy](../docs/PARALLEL-RESEARCH-WORKSTREAM-AND-EXPIRY-POLICY.md). Latest main CI [45360167229](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45360167229) passed 304 deterministic tests in 14.748 seconds and the synthetic plumbing smoke test on commit `d4a451b`; the two preceding CI attempts [45359822075](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45359822075) and [45359984790](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45359984790) failed on successive authorization-assertion regressions and were superseded by the passing correction. Earlier full run [45327618205](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45327618205) passed 300 deterministic tests in 14.670 seconds.
 
-## Current active assignment
+## Most recent completed critical-path assignment
 
-**Priority:** P1 — prospective research-data infrastructure.  
-**Budget:** one substantive cycle.  
-**Hard deadline:** 2026-11-25 17:30 UTC.
+**Workstream:** `spot-holdout-first-scheduled-validation`  
+**Disposition:** COMPLETE / November 24 slot `RECOVERED` by the first authorized agent wake-up after the due time.  
+**Original budget/deadline:** one substantive cycle; 2026-11-25 17:30 UTC. Closed early without resetting or extending the budget.
 
-The first daily Binance Spot capture's GitHub Actions cron was due **2026-11-24 04:23 UTC** but created no capture run. The latest-100 Actions inventory (536 total runs) contains eight runs created after that time: seven research-test pushes and one queue-guardian schedule run [45334612900](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45334612900); none came from `spot-holdout-capture.yml`. Separate status queries returned zero queued and zero in-progress runs. GitHub documents `schedule` as best-effort, so this cron is not an operational clock, deadline guarantee or recovery plan. The initial owner-authorized capture [45242319210](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45242319210) succeeded via `issue_comment`; release `spot-holdout-2026` still contains only ZIP asset 784136576 (63,517 bytes; SHA-256 `b1200bdea3a01e56963b8afda0cab497d4396e0eaae21344bfc624d8a518b0cf`), with no second snapshot or JSON sidecar and `immutable=false`. An independent authenticated scheduler/dispatcher, per-slot idempotency and a separate watchdog are mandatory. They are not yet provisioned or verified; no connected direct workflow-dispatch API or scheduler credential is available in this execution path. **Do not wait for the next GitHub cron tick.** Keep the holdout closed until a genuinely external dispatch is observed and fully reconciled. Latest main CI [45360167229](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45360167229) passed 304 deterministic tests and the synthetic smoke test on commit `d4a451b`. See [external scheduler policy](../docs/EXTERNAL-SCHEDULER-AND-DISPATCH-RELIABILITY.md), [scheduled-run checkpoint](../reports/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-SCHEDULED-VALIDATION-2026-11-24.md), and the active task.
+- GitHub cron due 2026-11-24 04:23 UTC did not create a run. The first authorized agent wake-up at 10:17:48 UTC inspected Actions/release state and used the existing exact-owner PR #2 command. [Capture run 45373419544](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373419544) passed authorization and capture.
+- Stable slot `binance-spot-1h:prospective-2026-11:2026-11-24` is COMPLETE: 562 hourly rows per symbol, from 2026-11-01 00:00 UTC through the 2026-11-24 09:00 UTC bar; zero missing hours, duplicate timestamps, overlap corrections or source errors.
+- Current ZIP asset 786684218 (65,817 bytes; SHA-256 `22bd362b7c0db51c7a3302f5b09c1a4a2327a4d9553b8ac7259f2a343c5caade`) and current JSON sidecar asset 786684257 (5,211 bytes; SHA-256 `57cb7b1d297c15a33aa80784a0b72e010988e3da99a0e65171174ce02e19d284`) were published. The original ZIP 784136576 was preserved and its sidecar was backfilled as asset 786684146.
+- Same-slot replay [45373703705](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373703705) independently verified and reused the exact ZIP/sidecar (`idempotent_slot_reuse=true`); Release asset count remained four, with no duplicate snapshot.
+- Main CI [45373689039](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373689039) passed 320 deterministic tests and the synthetic plumbing smoke test. Queue-guardian event-driven handoffs [45373479882](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373479882), [45373736534](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373736534) and [45373756502](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373756502) succeeded.
+- No strategy backtest, empirical strategy evaluation, funding research, paid-data acquisition, venue merge, live trading or capital deployment occurred.
 
-**Scope restrictions:** no strategy backtest, no tuning of the closed Spot Momentum experiment, no unaccepted funding data, no paid data/key purchase, no venue merge and no live trading.
-
-**Asset-universe boundary:** ETHUSDT/BTCUSDT are the two symbols of this capture-validation task only. They do not define or restrict the factory's future asset universe. Future research discovery must follow [the open asset-universe policy](../docs/ASSET-UNIVERSE-DISCOVERY-AND-SCOPE-POLICY.md).
-
-### Primary workstream isolation record
-
-| Field | Current value |
-|---|---|
-| Workstream ID / status | `spot-holdout-first-scheduled-validation` / active |
-| Write scope | `tasks/PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md`; `tasks/ACTIVE-QUEUE.md`; `README.md`; `reports/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-CAPTURE-2026-11-23.md`; `reports/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-SCHEDULED-VALIDATION-2026-11-24.md`; `.github/workflows/spot-holdout-capture.yml`; `research/spot_holdout_capture.py`; `research/test_spot_holdout_capture.py` |
-| Exclusive resources | `github-actions:spot-holdout-capture`; `github-release:spot-holdout-2026`; `binance-spot-capture:1h` |
-| Confirmatory holdout ID | `binance-spot-1h:prospective-2026-11` |
-
-This pre-policy assignment retains its original one-substantive-cycle budget and 2026-11-25 17:30 UTC deadline in the task file. Its clock is not reset or retrospectively re-rated. Do not admit another workstream that overlaps these paths, reserves the same exclusive resources, or consumes this confirmatory dataset outside a jointly preregistered evaluation with multiplicity control.
-
+**Residual operating limitation:** the external scheduler, GitHub App dispatch credential and independent watchdog remain `UNCONFIGURED / DEGRADED`. This slot is `RECOVERED` by the agent fallback; this does not promote the external scheduler to `DELIVERY_VERIFIED`. GitHub cron remains non-authoritative.
 ## Research-track status
 
 | Workstream | Status | Rule |
@@ -40,7 +31,7 @@ This pre-policy assignment retains its original one-substantive-cycle budget and
 | ETH/BTC Spot mean-reversion | NO-GO, closed | Do not reopen or tune on the same OOS sample. |
 | ETH/BTC Spot relative momentum | NO-GO, closed | Do not tune on the same OOS sample. |
 | USD-M funding-aware study | INCONCLUSIVE | Keep funding inputs provisional/unaccepted; no perp backtest. |
-| Prospective Binance Spot capture | Initial capture passed; scheduled validation pending | Data infrastructure only; no strategy evaluation. |
+| Prospective Binance Spot capture | COMPLETE / RECOVERED by first-agent fallback | November 24 slot and same-slot replay verified; external scheduler remains UNCONFIGURED. No strategy evaluation. |
 
 ## Successor sequencing
 
@@ -53,11 +44,12 @@ All successor work must satisfy:
 
 ## Current automation observations to recheck
 
-- Capture trigger: GitHub cron `23 4 * * *` is best-effort only and is not the primary clock. The 2026-11-24 event did not create a capture run. Do not wait for the next cron boundary. External authenticated dispatch, per-slot idempotency and a separate watchdog are mandatory before this pipeline can be considered autonomously scheduled; these are not yet provisioned or verified. The existing owner-controlled `workflow_dispatch` and exact PR-comment routes remain gated; do not weaken actor checks.
-- Queue guardian: configured with a five-minute cron plus qualifying workflow_run handoffs. The latest observed run remains [45334612900](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45334612900), scheduled at 05:37:22–05:37:45 UTC in LIVE_ENFORCEMENT mode on main. Its report artifact [14893776351](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45334612900) was independently downloaded and inspected: enumeration completed across 531 runs; 411 research/test runs were counted, with only the latest 50 retained; all 50 retained runs were completed; `actions=[]` and `errors=[]`. No later guardian run was visible by 09:24 UTC; the fresh open-issues query returned only control PR #2 and no queue-guardian incident. The five-minute cadence remains unproven: treat it as opportunistic monitoring, not a heartbeat or SLA. Prefer event-driven workflow_run handoffs, with a separate external watchdog for missed events. Both scheduled workflows may be delayed or dropped under GitHub's best-effort schedule delivery: [workflow schedule behavior](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
-- Control PR #2 remains an exact-actor, exact-command dispatch surface; it is not a reason to execute or merge PR-head code. No new owner command has appeared since `/qfr-capture-spot-holdout` at 2026-11-23 18:48:40 UTC.
-- Main branch protection was not enabled; no repository permissions or settings are changed by this queue.
-
+- **External scheduler:** still UNCONFIGURED / DEGRADED; no independent scheduler, dedicated GitHub App credential or separate watchdog is provisioned. GitHub cron is best-effort only and must never be treated as the primary clock or recovery plan.
+- **First-agent recovery:** exercised successfully for the November 24 holdout slot. The direct-agent route checks due time, live Actions state and Release assets, then uses the exact-owner command only if the stable slot is missing and no capture is active. A second authorized wake-up proved exact ZIP/sidecar reuse; do not duplicate.
+- **Queue guardian:** five-minute cron cadence remains unproven and is not an SLA. Event-driven capture handoffs [45373479882](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373479882), [45373736534](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373736534) and [45373756502](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373756502) completed successfully.
+- **Research CI:** latest full CI [45373689039](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373689039) passed 320 deterministic tests and the synthetic plumbing smoke test on `0316062`.
+- **Control PR:** PR #2 remains the exact-owner command surface; do not execute or merge PR-head code. Existing exact actor/ref/event gates remain intact.
+- **Next ready workstream:** Post-Holdout Research Environment and Portfolio Review. Start its clock only when substantive work begins; first inspect predecessor feedback and this completed capture evidence.
 ## Handoff discipline
 
 Keep this file as a concise index, not a chronological transcript. Put reusable policy in `docs/`, project instructions in `tasks/`, dated evidence in `reports/`, and superseded state in `archive/`. Before each successor, record predecessor research/performance feedback, technical-delivery feedback, admin-agent calibration and the next task's difficulty/timebox.

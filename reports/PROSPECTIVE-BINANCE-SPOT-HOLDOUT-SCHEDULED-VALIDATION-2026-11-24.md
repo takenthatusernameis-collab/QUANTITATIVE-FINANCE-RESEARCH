@@ -1,8 +1,8 @@
 # Prospective Binance Spot Holdout — Scheduled-Run Checkpoint
 
 **Initial observation:** 2026-11-24 04:33 UTC  
-**Latest checkpoint:** 2026-11-24 07:15 UTC  
-**Disposition:** WAITING — scheduled event not observed; no duplicate dispatch  
+**Latest checkpoint:** 2026-11-24 10:22 UTC  
+**Disposition:** RECOVERED — November 24 slot captured by first-agent fallback; same-slot replay verified idempotent reuse  
 **Scope:** Workflow and release-state verification only. No market-data capture or strategy evaluation occurred.
 
 ## Scheduled workflow
@@ -106,3 +106,43 @@ The implementation uses a deterministic UTC daily slot ID, `binance-spot-1h:pros
 The existing exact-owner PR-comment authorization route remains available as the direct-agent fallback; no actor allowlist, credential or permission has been broadened. The first wake-up must confirm the connector-authored comment actually has the authorized owner identity and that the real Actions run followed. The external scheduler and separate watchdog remain unprovisioned; agent wake-up recovery is not a real-time SLA and does not establish `DELIVERY_VERIFIED`.
 
 No data has yet been captured by this fallback as of this handoff; execution and data acceptance remain pending the actual authenticated run.
+
+
+## Final first-agent recovery and same-slot replay — 2026-11-24 10:22 UTC
+
+### Trigger failure and fallback execution
+
+The GitHub Actions cron due at **04:23:00 UTC** did not create the capture run. The first authorized agent wake-up after the due time used the existing exact-owner PR #2 command; no authorization gate was weakened and no credential/permission was added.
+
+- An initial owner-authorized attempt [45372850274](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45372850274) stopped at the deterministic capture-test step before data acquisition because a test fixture regression was still present. The release was untouched. The subsequent full CI correction passed before retrying.
+- Successful first-agent capture: [run 45373419544](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373419544), event `issue_comment`, actor `takenthatusernameis-collab`, default-branch commit `27251ddb4fb492e792530afe64de3489f13022f7`, completed 10:18:08 UTC. Authorization, 27 capture tests, data fetch/publication and manifest-artifact upload all succeeded.
+- The due time to first actual capture was 5 hours, 54 minutes and 48 seconds. The fallback is not a real-time scheduler; it means the first waking authorized agent does not park the task waiting for cron.
+
+### Data acceptance and provenance
+
+The manifest-only Actions artifact [14909403654](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373419544/artifacts/14909403654) was downloaded and inspected. Its manifest records:
+
+- Stable slot: `binance-spot-1h:prospective-2026-11:2026-11-24`; actual acquisition timestamp `2026-11-24T10:18:00.440000Z`.
+- Requested/observed range: 2026-11-01 00:00 UTC through the fully closed 2026-11-24 09:00 UTC hourly bar.
+- ETHUSDT: 562 expected/observed rows; 0 missing hours; 0 duplicates; 0 overlap corrections; source error null; all rows sorted and closed.
+- BTCUSDT: the same 562 expected/observed rows and zero missing hours, duplicates, overlap corrections or source errors.
+- ETHUSDT CSV SHA-256: `db864661bdf017cfc6743f775ac5ac2949085c7c851a812cc2e31906802af888`.
+- BTCUSDT CSV SHA-256: `6584a02490ddbbcd1b1346c74b1a9e392a1d54305fac4e27a991981d36f8956f`.
+- `previous_snapshot` references original ZIP asset 784136576 and its verified SHA-256 `b1200bdea3a01e56963b8afda0cab497d4396e0eaae21344bfc624d8a518b0cf`. The first ZIP's sidecar was backfilled as asset 786684146 (3,960 bytes; SHA-256 `21be6fc2d2bbd02b522db079088d4dffd78585ea0a29d788a854fd7f88ec6213`).
+- Current ZIP: asset 786684218, `snapshot-slot-2026-11-24.zip`, 65,817 bytes, GitHub SHA-256 `22bd362b7c0db51c7a3302f5b09c1a4a2327a4d9553b8ac7259f2a343c5caade`.
+- Current sidecar: asset 786684257, `snapshot-slot-2026-11-24.manifest.json`, 5,211 bytes, GitHub SHA-256 `57cb7b1d297c15a33aa80784a0b72e010988e3da99a0e65171174ce02e19d284`.
+- Release metadata remains `immutable=false`; retention is not write-once protection. The manifest explicitly sets `research_evaluation_authorized=false`.
+
+### Live idempotency / first-agent replay proof
+
+A second authorized wake-up posted the same exact command at [PR #2 comment 7128620372](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/pull/2#issuecomment-7128620372). [Run 45373703705](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373703705) completed successfully on `main`; its capture tests passed and its output returned `idempotent_slot_reuse=true`. The verifier downloaded and checked the existing ZIP and sidecar, reused ZIP asset 786684218 and sidecar asset 786684257, and did not fetch or publish another snapshot. The Release still has exactly four assets (original ZIP + backfilled sidecar + current ZIP + current sidecar). This proves the first-agent fallback is idempotent under a repeated wake-up for the same due slot.
+
+### Engineering and guardian verification
+
+- Full main CI [45373689039](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373689039) passed **320 deterministic tests in 14.099 seconds** and the synthetic plumbing smoke test.
+- Capture runs 45373419544 and 45373703705 both succeeded. Their event-driven queue-guardian completion handoffs [45373479882](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373479882), [45373736534](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373736534) and [45373756502](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373756502) all succeeded.
+- No strategy backtest, signal/performance inspection, funding access, paid-data acquisition, venue merge, live trading or capital deployment occurred.
+
+### Final operating disposition
+
+The November 24 data slot is **RECOVERED** and the bounded capture-validation task is **COMPLETE**. The external scheduler, independent watchdog and dedicated dispatch credential remain **UNCONFIGURED / DEGRADED**; the above first-agent recovery must not be misreported as `DELIVERY_VERIFIED` for an external scheduler. Per-slot recovery and scheduler health are separate states. The next ready task is the Post-Holdout Research Environment and Portfolio Review; its timebox begins on its first substantive execution.

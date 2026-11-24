@@ -51,6 +51,12 @@ class ExternalSchedulerReliabilityTests(unittest.TestCase):
         self.assertIn("queue: max", workflow)
         self.assertIn("cancel-in-progress: false", workflow)
 
+    def test_per_slot_recovery_does_not_promote_external_scheduler(self):
+        policy = POLICY.read_text(encoding="utf-8").lower()
+        self.assertIn("specific due slot may nevertheless be `recovered`", policy)
+        self.assertIn("leave the external scheduler `unconfigured`/`degraded`", policy)
+        self.assertIn("until its own dispatcher and independent watchdog", policy)
+
     def test_policy_requires_observed_run_and_independent_watchdog(self):
         policy = POLICY.read_text(encoding="utf-8").lower()
         for phrase in (
