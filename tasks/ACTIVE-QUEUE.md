@@ -6,10 +6,10 @@
 **Primary active workstream:** none; no successor strategy or workstream is admitted pending materially new evidence and a fresh readiness review.  
 **Additional admitted parallel workstreams:** none.
 
-## Active workstream record — Binance Spot dynamic-universe audit
+## Closed workstream record — Binance Spot dynamic-universe audit
 
 - **workstream_id:** `BINANCE-SPOT-DYNAMIC-UNIVERSE-AUDIT-2026-11-24`
-- **status / priority:** active / P2 primary environment-enabling critical path
+- **status / priority:** CLOSED / INCONCLUSIVE; P2 environment-enabling audit, terminal at cycle 4/4 on 2026-11-24
 - **objective:** verify whether the complete current Binance Spot catalogue and official public archive/index surfaces can support a dynamically discovered historical universe, including product inception, delisted-symbol and point-in-time membership limitations; no strategy selection or backtest.
 - **dependencies:** `post-holdout-environment-review` (completed 2026-11-24).
 - **independence rationale:** the predecessor portfolio/environment review is complete; no other workstream is active; this audit uses only public read-only market metadata/archive inputs and does not consume or inspect a confirmatory holdout.
@@ -19,8 +19,9 @@
 - **difficulty_assessment:** data novelty 2 (full current catalogue and archive-index discovery are new); methodology 2 (historical/delisted membership must be distinguished from current catalogue); integration 2 (bounded manifest/parser/test work); statistical validation 1 (no strategy statistics); compute/operations 1 (strict request/object/byte caps). Total 8 / MEDIUM.
 - **started_at_utc:** `2026-11-24T12:28:44Z`
 - **expires_at_utc:** `2026-11-29T12:28:44Z` (five-day MEDIUM ceiling; earlier than absolute deadline 2026-12-02T17:30:00Z).
-- **max_cycles / cycles_used:** 4 / 3 (third substantive wake-up checkpoint, 2026-11-24 13:21 UTC). The activation record was committed before the first substantive action; the earlier of four substantive cycles or expiry controls.
-- **next action:** final independent evidence review in cycle 4; if no supported visible route reaches older category pages and no official completeness guarantee exists, close INCONCLUSIVE/INFEASIBLE. Do not use undocumented endpoints or repeat archive probes.
+- **max_cycles / cycles_used:** 4 / 4; closed at 2026-11-24 14:53 UTC when the cycle cap was reached, before the frozen expiry. No extension or clock reset.
+- **terminal disposition:** INCONCLUSIVE. Current catalogue VERIFIED for its snapshot; direct archive and sampled lifecycle evidence SAMPLE_ONLY; complete point-in-time membership and universe-wide archive coverage UNKNOWN. See the final audit report below.
+- **next action:** none. Reconsider only if materially new authoritative evidence or a separately authorized documented source route becomes available. Do not repeat failed archive probes or use undocumented endpoints.
 
 
 ## Final dynamic-universe audit disposition — 2026-11-24
@@ -68,7 +69,7 @@ The evidence-first lifecycle, dual-axis retrospectives, tested project-readiness
 - The environment matrix covers all 11 required dimensions and distinguishes pair-specific VERIFIED evidence from broader SAMPLE_ONLY/UNKNOWN scope.
 - No strategy was selected. The prior Spot mean-reversion and Spot Momentum NO-GO results remain closed; USD-M funding remains INCONCLUSIVE.
 - Two admin-agent calibrations were recorded: scheduled-delivery reliability must be proven end-to-end; source dimensions are VERIFIED only for the exact tested scope and execution environment.
-- The evidence-backed successor, [Binance Spot Dynamic-Universe and Historical-Coverage Feasibility Audit](BINANCE-SPOT-DYNAMIC-UNIVERSE-AND-HISTORICAL-COVERAGE-AUDIT.md), is now ACTIVE / MEDIUM / cycle 2 of 4, with frozen expiry 2026-11-29 12:28:44 UTC. The current catalogue and sampled archive route are verified only for their tested scope; historical lifecycle and universe-wide archive completeness remain UNKNOWN.
+- The evidence-backed successor, [Binance Spot Dynamic-Universe and Historical-Coverage Feasibility Audit](BINANCE-SPOT-DYNAMIC-UNIVERSE-AND-HISTORICAL-COVERAGE-AUDIT.md), subsequently CLOSED INCONCLUSIVE at cycle 4/4 on 2026-11-24. The current catalogue and sampled archive route are verified only for their tested scope; historical lifecycle and universe-wide archive completeness remain UNKNOWN. No further successor was admitted.
 - Full findings: [Post-Holdout Research Environment and Portfolio Review](../reports/POST-HOLDOUT-RESEARCH-ENVIRONMENT-AND-PORTFOLIO-REVIEW-2026-11-24.md).
 
 ## Research-track status
