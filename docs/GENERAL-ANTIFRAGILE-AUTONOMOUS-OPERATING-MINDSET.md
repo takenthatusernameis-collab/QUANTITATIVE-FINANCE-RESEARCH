@@ -25,6 +25,12 @@ Every successor must inherit both feedback axes. If the predecessor did not meas
 
 Assign project difficulty only after environment and scope assessment. Rate data novelty, methodological complexity, integration burden, statistical validation and compute/operational burden with evidence-backed rationales. Use the LOW/MEDIUM/HIGH ceilings in [the Model Implementation Timebox Policy](MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md). The earlier of cycle cap or calendar deadline controls. Deadlines never weaken scientific, data, security or financial-safety gates.
 
+### Independent parallel execution — MANDATORY
+
+Progress genuinely independent workstreams in parallel rather than serializing the entire factory behind one active task. Parallelism is allowed only after checking dependencies, duplicate dispatch, disjoint write scopes, exclusive resource reservations, confirmatory-holdout independence and measured infrastructure capacity. Keep the highest-priority critical-path task protected; do not start a dependency-gated successor early.
+
+Each active workstream has its own difficulty assessment, start timestamp, cycle budget and hard UTC expiry. The timebox begins when substantive work starts and continues through handoffs, CI queues and blocked periods. One stream's delay or expiry does not reset, consume or automatically cancel another independent stream. Use [Parallel Research Workstreams and Per-Workstream Expiry Policy](PARALLEL-RESEARCH-WORKSTREAM-AND-EXPIRY-POLICY.md) and the deterministic admission/timebox checks in research/workstream_policy.py. Do not impose an arbitrary global active-task ceiling; enforce actual per-resource capacity.
+
 The previous Spot Relative-Momentum Rotation concluded NO-GO on 2026-11-23 and is closed. It must not be tuned on its OOS sample. The original USD-M funding-aware study remains separately INCONCLUSIVE; this does not defer the evidence-first rule or authorize paid data/credentials.
 
 ## 1B. Factory-wide asset-universe independence
