@@ -1,7 +1,8 @@
 # Prospective Binance Spot Holdout — Scheduled-Run Checkpoint
 
-**Observed:** 2026-11-24 04:33 UTC  
-**Disposition:** WAITING — scheduled event not yet observed; no duplicate dispatch  
+**Initial observation:** 2026-11-24 04:33 UTC  
+**Latest checkpoint:** 2026-11-24 07:15 UTC  
+**Disposition:** WAITING — scheduled event not observed; no duplicate dispatch  
 **Scope:** Workflow and release-state verification only. No market-data capture or strategy evaluation occurred.
 
 ## Scheduled workflow
@@ -52,3 +53,22 @@ Release [spot-holdout-2026](https://github.com/takenthatusernameis-collab/QUANTI
 3. **If schedule delivery continues to fail, assess a distinct event-relay/monitor architecture:** require an independently authorized principal, least-privilege scope, idempotent run key, durable run manifest and explicit recovery/stop conditions. No such relay or additional permission is currently verified, so do not add credentials, permissions, external services or a speculative workflow in this task.
 
 **Disposition:** remain IN PROGRESS. Preserve the original one-substantive-cycle budget and hard deadline of 2026-11-25 17:30 UTC; do not reset or extend them. The next natural capture opportunity is 2026-11-25 04:23 UTC. Keep the queued Post-Holdout Research Environment and Portfolio Review dependency-gated until this task closes. No strategy backtest, funding access, venue merge, paid-data acquisition or live trading occurred.
+
+
+## Third post-schedule checkpoint — 2026-11-24 07:15 UTC
+
+- A time-filtered Actions query for runs created at or after 04:23 UTC returned four runs: two research-pipeline pushes, one cancelled earlier push, and queue guardian run [45334612900](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45334612900). **No run from `spot-holdout-capture.yml` appeared**, so no scheduled authorization or capture job ran. Main remains at [16873c03b57e](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/16873c03b57e7d1e9dbee19f0be27fc8921636b3).
+- The release still contains only ZIP asset [784136576](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/releases/tag/spot-holdout-2026): 63,517 bytes, GitHub digest `sha256:b1200bdea3a01e56963b8afda0cab497d4396e0eaae21344bfc624d8a518b0cf`. No second ZIP or JSON sidecar exists. Release metadata remains `immutable=false`; this is not write-once protection.
+- Queue guardian [run 45334612900](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45334612900) completed successfully at 05:37:45 UTC. Its artifact [14893776351](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45334612900) was downloaded and inspected (SHA-256 `2b0a19b801214e5c9813f0b8a300d1c542ee822413d340c55edaa2271a18da11`). The report records complete enumeration of 531 runs, 411 research/test runs, a latest-50 retained inventory (all 50 completed), no active runs, `actions=[]`, and `errors=[]`. No later guardian run or open queue-guardian incident was visible.
+- Latest main CI [run 45339112663](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45339112663) completed successfully at 06:16:20 UTC on this documentation checkpoint's parent commit. Its deterministic-test and synthetic-plumbing-smoke steps both passed. The preceding full CI [run 45327618205](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45327618205) passed 300 deterministic tests in 14.670 seconds and the same smoke test. These are engineering checks, not holdout-data acceptance.
+- PR #2 remains open; the last owner command remains `/qfr-capture-spot-holdout` at 2026-11-23 18:48:40 UTC. No later owner comment, review or other open issue was found. No authenticated `workflow_dispatch` capability is available in this execution path; the fallback remains untested.
+- Remote main's recursive tree still contains 114 entries, with no disposable cache, scratch, temporary or generated-data paths. No deletion was justified. The local working tree is not exposed by the GitHub view.
+- No manual/duplicate capture, strategy backtest, signal/performance inspection, funding access, paid-data acquisition, venue merge, credential creation, live trading or capital deployment occurred.
+
+### Adaptive decision
+
+1. Keep the capture identity and holdout unchanged. Do not create a manual or duplicate run to compensate for the missing schedule event.
+2. Recheck the next natural schedule boundary, **2026-11-25 04:23 UTC**, and reconcile the release only after an actual capture event and successful sidecar publication.
+3. If the next scheduled event is also absent, assess (but do not deploy without authorization) a distinct event-relay/monitor architecture with an independently authorized principal, least-privilege scope, idempotent run key, durable manifest and explicit stop conditions. Do not add credentials, permissions or external services speculatively.
+
+**Disposition:** remain IN PROGRESS. Preserve the original one-substantive-cycle budget and hard deadline **2026-11-25 17:30 UTC**; do not extend them. Keep the queued Post-Holdout Research Environment and Portfolio Review dependency-gated until this task closes.

@@ -1,7 +1,7 @@
 # Prospective Spot Holdout — First Scheduled Run and Recovery Validation
 
-**Status:** IN PROGRESS — scheduled event due 2026-11-24 04:23 UTC still not observed at the 06:09 UTC checkpoint; no duplicate/manual dispatch; sidecar validation pending
-**Latest checkpoint:** [2026-11-24 06:09 UTC scheduled-run checkpoint](../reports/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-SCHEDULED-VALIDATION-2026-11-24.md).  
+**Status:** IN PROGRESS — scheduled event due 2026-11-24 04:23 UTC still not observed at the 07:15 UTC checkpoint; no duplicate/manual dispatch; sidecar validation pending
+**Latest checkpoint:** [2026-11-24 07:15 UTC scheduled-run checkpoint](../reports/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-SCHEDULED-VALIDATION-2026-11-24.md).  
 **Priority:** P1 research-enabling infrastructure  
 **Task budget:** 1 substantive cycle; hard deadline **2026-11-25 17:30 UTC**. No automatic extension.
 
