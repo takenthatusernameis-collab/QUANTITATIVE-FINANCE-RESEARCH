@@ -37,7 +37,7 @@ class ExternalSchedulerReliabilityTests(unittest.TestCase):
             "first authorized agent",
             "after a task's explicit due time",
             "direct-agent fallback",
-            "stable task/slot idempotency key",
+            "stable slot/task idempotency key",
             "do not wait for another attempt",
         ):
             self.assertIn(phrase, policy)

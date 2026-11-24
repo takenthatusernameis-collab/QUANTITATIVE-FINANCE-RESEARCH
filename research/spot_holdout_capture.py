@@ -600,6 +600,7 @@ def load_existing_slot_snapshot(
             or manifest.get("capture_slot_date_utc") != slot["date"]
             or manifest.get("capture_slot_due_at_utc") != slot["due_at_utc"]
             or manifest.get("release_asset_name") != asset_name
+            or manifest.get("storage", {}).get("sidecar_asset_name") != sidecar_name
         ):
             raise ValueError("Existing capture-slot ZIP manifest identity does not match its slot")
         for symbol in SYMBOLS:

@@ -107,6 +107,7 @@ The November 24 daily slot became due at **2026-11-24 04:23 UTC**. No schedule-t
 - Authorized direct fallback: create the exact `/qfr-capture-spot-holdout` comment on open PR #2 only when the connected GitHub identity is verified as `takenthatusernameis-collab`; the workflow's existing exact-actor gate remains unchanged.
 - The capture workflow's concurrency group serializes competing starts. The script must check the stable slot asset and fully verify its ZIP/sidecar digests before any fetch; a second run reuses the existing result. An incomplete snapshot is not overwritten; it is reported for diagnosis and any recovery uses the same prior data plus a separately justified attempt.
 - Execution timestamp and latest closed bar are derived from the actual run, never backdated to 04:23 UTC.
+- The independent watchdog remains required for a future externally scheduled deployment. Until it is provisioned, the direct-agent wake-up fallback checks the live Actions inventory and release state; it does not pretend to provide a continuous heartbeat.
 - After the run, verify the exact event/actor/ref, jobs, ZIP and sidecar metadata, both CSV hashes, prior-snapshot reconciliation and queue-guardian completion. Keep empirical strategy evaluation disabled.
 
 This wake-up fallback restores progress without claiming that an external scheduler is operational. Direct agent execution is a last line of defense, not a replacement for independently monitored scheduling.
