@@ -199,6 +199,19 @@ Use the durable task/incident ledger for status tags `CANCELLATION_BLOCKED / ORP
 - The PR-comment route is verified for `/qfr-control-smoke` and `/qfr-run-eth-btc-data-audit`; control PR #2 remains open and draft.
 - Preserve the verified PR-comment route. Before each run, inspect the control PR, workflow gate, and active runs; do not duplicate an in-progress audit.
 - Do not build a second dispatch bridge unless the existing route becomes unavailable or fails its security checks. Continue removing the verified data-source and parser bottlenecks.
+
+### Bounded Binance Spot dynamic-universe audit
+
+The separate read-only workflow `.github/workflows/binance-spot-universe-audit.yml` accepts exactly `/qfr-audit-binance-spot-universe` on open control PR #2 from the verified actor `takenthatusernameis-collab`. It is not an ETH/BTC backtest command and does not reuse the ETH/BTC empirical workflow.
+
+- The job requires `issue_comment: created`, exact PR #2, PR state open, a PR conversation target, exact actor login and whole-body command equality.
+- It checks out only the issue-comment event's `GITHUB_SHA` on the default branch, verifies `GITHUB_REF`, and sets `persist-credentials: false`. It never checks out PR-head content.
+- Permissions are `contents: read` only. The script uses public unauthenticated Binance endpoints; it does not use secrets, account endpoints, trading permissions, proxies or region workarounds.
+- Hard caps: 50 metadata/API requests, 12 unique archive objects, and 250 MB of archive-object bytes. HTTP 403/418/451 stops the affected route; HTTP 429 is handled with bounded `Retry-After` behavior.
+- The only uploaded outputs are the request/quality manifest, normalized current catalogue metadata and archive symbol-prefix index. Raw exchangeInfo payloads and ZIP/CSV market data remain ephemeral.
+- The artifact name is `binance-spot-universe-audit-<run_id>`. Inspect its manifest and hashes before making any evidence classification. A complete current catalogue or sampled archive success does not establish point-in-time membership, delisted-symbol completeness, or a strategy edge.
+- The queue guardian explicitly maps this workflow to `binance-spot-universe-audit-main`; do not launch duplicate comments while its run is queued or in progress.
+
 - The research data-quality gate remains independent: an automated trigger must not rerun or bypass the ETH/BTC study until the pending data-gap reconciliation task validates the required inputs.
 
 ### Queue guardian and incident-driven alternative attempts
@@ -206,7 +219,7 @@ Use the durable task/incident ledger for status tags `CANCELLATION_BLOCKED / ORP
 - Live queue enforcement is in `.github/workflows/queue-guardian.yml`, scheduled every five minutes. Its target allowlist is explicit in `research/queue_guardian.py`; unknown workflow paths are ignored.
 - The watchdog has `actions: write` only to cancel eligible runs, `contents: read` to inspect repository configuration, `issues: write` to create durable incidents, and `pull-requests: write` solely to upsert one bot-owned status comment on control PR #2. The comment code updates only a marker-bearing comment authored by `github-actions[bot]`; user-authored comments are preserved. Do not broaden these permissions further or treat read-only run inspection as cancellation.
 - The harmless dry-run command is `/qfr-queue-guardian-dry-run`, accepted only from the verified actor on open control PR #2. It must never cancel runs or create incident issues. Scheduled executions are the live enforcement path.
-- The watchdog only cancels workflow-run-level `queued`/`pending` states older than 15 minutes when no earlier run in the exact mapped concurrency group is `in_progress`. A job queued within an already `in_progress` run and an environment `waiting` state are not candidates.
+- The watchdog only cancels workflow-run-level `queued`/`pending` states older than 15 minutes when no earlier run in the exact mapped concurrency group is `in_progress`. A job queued within an already `in_progress` run and an environment `waiting` state are not candidates. The Binance Spot universe audit is separately mapped and reported under `binance-spot-universe-audit-main`.
 - Each cancellation outcome is persisted in one issue whose title begins `[QFR queue guardian]`. At every agent-cycle start, inspect these open/closed incident records, follow their latest status, and prevent duplicate alternative attempts.
 - If cancellation is confirmed, keep the task `QUEUE_CANCELLED / RETRY_REQUIRED`; retry only after evidence of capacity recovery or with a materially different authorized route. If cancellation is not confirmed, use `CANCELLATION_BLOCKED / ORPHANED_POSSIBLE_EXECUTION` and immediately launch one independent alternative attempt as `ALTERNATIVE_ATTEMPT_ACTIVE`.
 - A new attempt must differ in execution plane, runner, dispatch path, data construction, provider, timeframe, model or task decomposition as justified by the cause. Give it a unique attempt key and isolated branch/worktree, cache, artifact namespace and output path. Never treat a fresh run ID as sufficient adaptation.
