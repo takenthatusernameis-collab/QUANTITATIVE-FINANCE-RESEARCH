@@ -1,5 +1,3 @@
-COMMIT TO REPOSITORY THE PENDING TASK
-
 # Quantitative Finance Research Factory
 
 **Start every agent cycle:** read the full [original agent-loop prompt](archive/ORIGINAL-AGENT-LOOP-PROMPT.md), then inspect the live GitHub state and the [canonical active queue](tasks/ACTIVE-QUEUE.md). Execute the prior task, verify the evidence, and commit a concrete successor task. A recommendation without a verified repository commit is not a completed handoff.
@@ -25,7 +23,7 @@ The current assignment is still [First Scheduled Holdout Run Validation](tasks/P
 - Binance Spot mean-reversion: **NO-GO**, concluded November 22, 2026.
 - ETH/BTC Spot relative-momentum rotation: **NO-GO**, concluded November 23, 2026; frozen and closed.
 - Original USD-M funding-aware study: **INCONCLUSIVE**; funding inputs remain unaccepted.
-- Prospective Binance Spot holdout capture: initial owner-authorized capture succeeded; the scheduled event due 2026-11-24 04:23 UTC remained absent at the 07:15 UTC checkpoint. A time-filtered Actions query returned four runs created after 04:23 UTC, none from the capture workflow. Release `spot-holdout-2026` still contains only ZIP asset 784136576 (63,517 bytes; SHA-256 `b1200bdea3a01e56963b8afda0cab497d4396e0eaae21344bfc624d8a518b0cf`); no second snapshot or JSON sidecar exists and `immutable=false`. Queue guardian run [45334612900](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45334612900) succeeded at 05:37 UTC with no actions/errors or active research/test runs. Latest main CI [45339112663](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45339112663) passed deterministic tests and the synthetic plumbing smoke test. No manual/duplicate dispatch was issued; next natural capture boundary is 2026-11-25 04:23 UTC. See [scheduled-run checkpoint](reports/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-SCHEDULED-VALIDATION-2026-11-24.md). ETHUSDT/BTCUSDT are capture-specific symbols, not a factory-wide asset restriction.
+- Prospective Binance Spot holdout capture: initial owner-authorized run [45242319210](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45242319210) succeeded via `issue_comment`; the GitHub Actions `schedule` event due 2026-11-24 04:23 UTC did not create a capture run. The latest Actions inventory contained five runs after 04:23 UTC and none from `spot-holdout-capture.yml`. Release `spot-holdout-2026` still contains only ZIP asset 784136576 (63,517 bytes; SHA-256 `b1200bdea3a01e56963b8afda0cab497d4396e0eaae21344bfc624d8a518b0cf`); no second snapshot or JSON sidecar exists and `immutable=false`. GitHub documents scheduled triggers as best-effort; they are non-authoritative and must never be treated as a timing guarantee. An independent authenticated dispatcher plus idempotency and a separate watchdog is required; it is not yet provisioned or verified. Do not wait for the next GitHub cron tick or create a duplicate capture. See [external scheduler policy](docs/EXTERNAL-SCHEDULER-AND-DISPATCH-RELIABILITY.md) and [scheduled-run checkpoint](reports/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-SCHEDULED-VALIDATION-2026-11-24.md). ETHUSDT/BTCUSDT are capture-specific symbols, not a factory-wide asset restriction.
 - No live trading, capital deployment, strategy promotion or paid-data purchase is authorized by these research tasks.
 
 ## Governing standards
@@ -38,6 +36,7 @@ The current assignment is still [First Scheduled Holdout Run Validation](tasks/P
 6. [Model Implementation Timebox Policy](docs/MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md)
 7. [Repository Hygiene and Context Compaction](docs/REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md)
 8. [ChatGPT-to-GitHub Dispatch](docs/CHATGPT-WORKFLOW-DISPATCH.md)
+9. [External Scheduler and Dispatch Reliability](docs/EXTERNAL-SCHEDULER-AND-DISPATCH-RELIABILITY.md)
 
 Detailed historical context from the former README is preserved in [the November 23 README snapshot](archive/README-HISTORICAL-2026-11-23.md). Historical queue entries are preserved in [the November 23 active-queue snapshot](archive/ACTIVE-QUEUE-HISTORICAL-2026-11-23.md).
 

@@ -1,6 +1,7 @@
 name: Prospective Binance Spot holdout capture
 
 on:
+  # Best-effort opportunistic trigger only; never use this cron as the primary clock or delivery guarantee.
   schedule:
     - cron: '23 4 * * *'
   workflow_dispatch:
