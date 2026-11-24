@@ -19,8 +19,8 @@ class ExternalSchedulerReliabilityTests(unittest.TestCase):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn('if [ "$ACTOR" != "takenthatusernameis-collab" ]; then', workflow)
         self.assertIn('[ "$COMMENT_USER" != "takenthatusernameis-collab" ] ||', workflow)
-        self.assertIn('if [ "$ISSUE_NUMBER" != "2" ] ||', workflow)
-        self.assertIn('if [ "$COMMENT_BODY" != "/qfr-capture-spot-holdout" ]; then', workflow)
+        self.assertIn('[ "$ISSUE_NUMBER" != "2" ] ||', workflow)
+        self.assertIn('[ "$COMMENT_BODY" != "/qfr-capture-spot-holdout" ]; then', workflow)
 
     def test_capture_task_requires_external_dispatch_not_next_cron(self):
         task = TASK.read_text(encoding="utf-8").lower()
