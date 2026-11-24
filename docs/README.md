@@ -10,9 +10,10 @@ This directory is the navigation layer for the quantitative-finance research fac
 4. [Asset-Universe Discovery and Scope Policy](ASSET-UNIVERSE-DISCOVERY-AND-SCOPE-POLICY.md): factory-wide open asset discovery and project-specific universe justification.
 5. [Project Retrospective and Admin-Agent Calibration](PROJECT-RETROSPECTIVE-AND-ADMIN-CALIBRATION.md): required research/performance and technical-delivery feedback before the next project.
 6. [Adaptive Autonomous Research Execution](ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md): operational failover, dispatch, recovery, queue and handoff rules.
-7. [Model Implementation Timebox Policy](MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md): difficulty-based cycle limits, hard deadlines and terminal outcomes.
-8. [Repository Hygiene and Context Compaction](REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md): safe cleanup and evidence preservation.
-9. [ChatGPT-to-GitHub Dispatch](CHATGPT-WORKFLOW-DISPATCH.md): exact connected-actor bridge, event validation and autonomous run verification.
+7. [Parallel Research Workstreams and Per-Workstream Expiry Policy](PARALLEL-RESEARCH-WORKSTREAM-AND-EXPIRY-POLICY.md): safe concurrency, independent clocks, resource isolation and admission checks.
+8. [Model Implementation Timebox Policy](MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md): difficulty-based cycle limits, hard deadlines and terminal outcomes.
+9. [Repository Hygiene and Context Compaction](REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md): safe cleanup and evidence preservation.
+10. [ChatGPT-to-GitHub Dispatch](CHATGPT-WORKFLOW-DISPATCH.md): exact connected-actor bridge, event validation and autonomous run verification.
 
 Lower-level documents may impose stricter controls but may not weaken higher-level rules.
 
