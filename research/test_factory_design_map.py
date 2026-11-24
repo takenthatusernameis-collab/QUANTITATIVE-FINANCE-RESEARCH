@@ -18,6 +18,10 @@ LEGACY_TEXT = (
 
 
 class FactoryDesignMapTests(unittest.TestCase):
+    def test_ci_watches_the_relocated_root_overview(self):
+        workflow = (ROOT / ".github" / "workflows" / "research-tests.yml").read_text(encoding="utf-8")
+        self.assertEqual(workflow.count('"REPOSITORY-OVERVIEW.md"'), 2)
+
     def test_readme_points_to_canonical_factory_map(self):
         readme = README.read_text(encoding="utf-8")
         self.assertIn("docs/QUANTITATIVE-RESEARCH-FACTORY-DESIGN-MAP.md", readme)

@@ -5,6 +5,7 @@ on:
     paths:
       - "research/**"
       - "README.md"
+      - "REPOSITORY-OVERVIEW.md"
       - "docs/**"
       - "tasks/**"
       - "reports/**"
@@ -13,6 +14,7 @@ on:
     paths:
       - "research/**"
       - "README.md"
+      - "REPOSITORY-OVERVIEW.md"
       - "docs/**"
       - "tasks/**"
       - "reports/**"
