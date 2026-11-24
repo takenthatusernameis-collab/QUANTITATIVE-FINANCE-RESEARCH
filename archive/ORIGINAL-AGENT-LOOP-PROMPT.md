@@ -1,7 +1,7 @@
-COMMIT TO REPOSITORY THE PENDING TASK
+# Superseded agent-loop prompt path
 
-# Original agent-loop prompt
+This path is retained so historical repository references do not break. It is no longer an active wake-up instruction.
 
-Commit a pending task in this repository for the next agent to execute, and execute the pending task commited by the last agent!
+The canonical cycle-start and production-line architecture is the [Quantitative Research Factory — Production Design Map](../docs/QUANTITATIVE-RESEARCH-FACTORY-DESIGN-MAP.md).
 
-**No verified repository commit means no completed commit assignment.**
+The former directive is preserved verbatim in [WAKE-UP-PROMPT-LEGACY-2026-11-24.md](WAKE-UP-PROMPT-LEGACY-2026-11-24.md).

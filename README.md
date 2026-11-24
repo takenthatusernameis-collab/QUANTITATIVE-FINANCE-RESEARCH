@@ -1,6 +1,6 @@
 # Quantitative Finance Research Factory
 
-**Start every agent cycle:** read the full [original agent-loop prompt](archive/ORIGINAL-AGENT-LOOP-PROMPT.md), then inspect the live GitHub state and the [canonical active queue](tasks/ACTIVE-QUEUE.md). Execute the prior task, verify the evidence, and commit a concrete successor task. A recommendation without a verified repository commit is not a completed handoff.
+**Start every agent cycle:** use the [Quantitative Research Factory — Production Design Map](docs/QUANTITATIVE-RESEARCH-FACTORY-DESIGN-MAP.md) as the canonical wake-up and production-line architecture, then inspect live GitHub state and the [canonical active queue](tasks/ACTIVE-QUEUE.md). Resume the highest-priority active work, perform safe repository hygiene before substantive changes, and verify the gates for each stage. Update the queue and commit only when there is a real, verified state change; do not manufacture a task or commit to satisfy a ritual. A completed claim requires an inspectable artifact, decision or handoff.
 
 ## Mission
 
@@ -18,7 +18,7 @@ Continuously improve the probability that each agent cycle produces trustworthy,
 
 ## Current research state
 
-The current assignment is still [First Scheduled Holdout Run Validation](tasks/PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md). Recheck Actions and the queue before acting; status here is only a navigation aid.
+The current assignment is still [External Dispatch and Recovery Validation](tasks/PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md). Recheck Actions and the queue before acting; status here is only a navigation aid.
 
 - Binance Spot mean-reversion: **NO-GO**, concluded November 22, 2026.
 - ETH/BTC Spot relative-momentum rotation: **NO-GO**, concluded November 23, 2026; frozen and closed.
@@ -60,7 +60,7 @@ Detailed historical context from the former README is preserved in [the November
 4. Rank only feasible projects; assign evidence-backed difficulty, cycle budget and deadline before implementation.
 5. Execute within authorization; preserve frozen criteria, independent holdouts and complete provenance.
 6. Report research outcomes separately from tests/engineering results.
-7. Calibrate repository-admin decisions from both feedback axes and commit one clear successor task.
+7. Calibrate repository-admin decisions from both feedback axes; update the canonical queue only when task state genuinely changes, and do not manufacture successor tasks or commits.
 
 The main-branch CI runs deterministic tests and a synthetic plumbing smoke test. These establish software behavior, not market-data acceptance or strategy profitability. See [research pipeline instructions](research/README.md).
 

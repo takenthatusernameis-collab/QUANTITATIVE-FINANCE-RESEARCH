@@ -1,6 +1,10 @@
 # Documentation and Operating-Contract Index
 
-This directory is the navigation layer for the quantitative-finance research factory. Read governing documents in order; use task-specific files for the current experiment and reports/archive snapshots for historical evidence.
+This directory is the navigation layer for the quantitative-finance research factory. Read the factory design map at cycle start; use governing documents for binding rules, task-specific files for the current experiment and reports/archive snapshots for historical evidence.
+
+## Factory design map
+
+The [Quantitative Research Factory — Production Design Map](QUANTITATIVE-RESEARCH-FACTORY-DESIGN-MAP.md) is the canonical wake-up and assembly-line view: stages, role responsibilities, inputs/outputs, stage gates, orchestration, failure recovery and recursive improvement. It is an architecture/navigation layer, not a replacement for the detailed policies below.
 
 ## Authority order
 
@@ -22,14 +26,14 @@ Lower-level documents may impose stricter controls but may not weaken higher-lev
 
 | Need | Canonical entry |
 |---|---|
-| Start an agent cycle | [Repository README](../README.md), then [active queue](../tasks/ACTIVE-QUEUE.md) |
+| Start an agent cycle | [Factory production design map](QUANTITATIVE-RESEARCH-FACTORY-DESIGN-MAP.md), then inspect the [active queue](../tasks/ACTIVE-QUEUE.md) |
 | Choose a new research project | [Evidence-first lifecycle](RESEARCH-ENVIRONMENT-FIRST-PROJECT-LIFECYCLE.md) |
 | Discover eligible assets/instruments | [Asset-universe discovery policy](ASSET-UNIVERSE-DISCOVERY-AND-SCOPE-POLICY.md) |
 | Record prior-task learning | [Retrospective and calibration](PROJECT-RETROSPECTIVE-AND-ADMIN-CALIBRATION.md) |
 | Create a model timebox | [Timebox policy](MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md) |
 | Admit independent parallel work | [Parallel workstream policy](PARALLEL-RESEARCH-WORKSTREAM-AND-EXPIRY-POLICY.md) and [deterministic checks](../research/workstream_policy.py) |
 | Inspect the ETH/BTC pipeline | [Research pipeline README](../research/README.md) |
-| Validate the current Spot capture | [First scheduled holdout validation](../tasks/PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md) |
+| Validate the current Spot capture | [External dispatch and recovery validation](../tasks/PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md) |
 | Plan the next project after capture validation | [Post-holdout environment and portfolio review](../tasks/POST-HOLDOUT-RESEARCH-ENVIRONMENT-AND-PORTFOLIO-REVIEW.md) |
 | Reuse a project-intake record | [Project intake template](../templates/PROJECT-INTAKE-TEMPLATE.json) |
 
