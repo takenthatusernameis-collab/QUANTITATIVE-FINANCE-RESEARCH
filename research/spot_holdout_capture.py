@@ -545,6 +545,7 @@ def load_existing_slot_snapshot(
     repo: str,
     release_tag: str,
     slot: dict[str, str],
+    token: str | None = None,
 ) -> dict[str, Any] | None:
     """Return a fully hash-verified snapshot already published for this UTC slot.
 
@@ -617,16 +618,57 @@ def load_existing_slot_snapshot(
         (item for item in release.get("assets", []) if item.get("name") == sidecar_name),
         None,
     )
+    if sidecar is None:
+        # The ZIP may have been durably published immediately before an interrupted
+        # process stopped. Reconstruct the metadata-only sidecar from the verified ZIP
+        # and GitHub's independently checked asset metadata; never re-fetch or replace
+        # market data merely to repair this second-stage publication.
+        if not token:
+            raise ValueError("Existing capture-slot sidecar is missing and no authorized token is available for safe recovery")
+        recovered_manifest = dict(manifest)
+        recovered_manifest["storage"] = {
+            "asset_id": asset["id"],
+            "asset_name": asset_name,
+            "asset_url": asset["browser_download_url"],
+            "asset_size_bytes": asset["size"],
+            "asset_created_at": asset["created_at"],
+            "asset_digest": digest,
+            "archive_sha256": archive_sha,
+            "verified_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "release_tag": release_tag,
+            "retention_policy": RETENTION_POLICY,
+            "minimum_retention_days": 180,
+            "platform_immutable": bool(release.get("immutable", False)),
+            "sidecar_asset_name": sidecar_name,
+            "sidecar_reconstructed_from_verified_zip": True,
+        }
+        recovered_payload = build_durable_sidecar(recovered_manifest)
+        recovered = publish_release_asset(
+            session=session,
+            repo=repo,
+            token=token,
+            release_tag=release_tag,
+            asset_name=sidecar_name,
+            zip_bytes=recovered_payload,
+            content_type="application/json",
+        )
+        sidecar = {
+            "state": "uploaded",
+            "id": recovered["asset_id"],
+            "name": recovered["asset_name"],
+            "browser_download_url": recovered["asset_url"],
+            "size": recovered["asset_size_bytes"],
+            "digest": recovered["asset_digest"],
+        }
     if (
-        not sidecar
-        or sidecar.get("state") != "uploaded"
+        sidecar.get("state") != "uploaded"
         or not sidecar.get("id")
         or not sidecar.get("browser_download_url")
         or not sidecar.get("size")
         or not isinstance(sidecar.get("digest"), str)
         or not sidecar["digest"].startswith("sha256:")
     ):
-        raise ValueError("Existing capture-slot sidecar is missing or has incomplete metadata")
+        raise ValueError("Existing capture-slot sidecar has incomplete metadata")
     sidecar_response = session.get(
         sidecar["browser_download_url"],
         headers={"Accept": "application/json"},
@@ -675,7 +717,7 @@ def write_snapshot(
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     slot = capture_slot(now_ms)
-    existing_slot = load_existing_slot_snapshot(session, repo, RELEASE_TAG, slot)
+    existing_slot = load_existing_slot_snapshot(session, repo, RELEASE_TAG, slot, token=token)
     if existing_slot is not None:
         existing_slot["idempotent_slot_reuse"] = True
         manifest_path = output_dir / "manifest.json"

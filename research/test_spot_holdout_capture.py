@@ -499,6 +499,111 @@ class SpotHoldoutCaptureTests(unittest.TestCase):
         self.assertEqual(result["storage"]["sidecar_asset_id"], 102)
         self.assertFalse(result["data_quality_complete"])
 
+    def test_existing_slot_snapshot_rebuilds_missing_sidecar_from_verified_zip(self):
+        now = int(datetime(2026, 11, 24, 10, 5, tzinfo=timezone.utc).timestamp() * 1000)
+        slot = capture_slot(now)
+        asset_name = f"snapshot-slot-{slot['date']}.zip"
+        sidecar_name = f"snapshot-slot-{slot['date']}.manifest.json"
+        csv_payload = rows_to_csv([make_row(CAPTURE_START_MS)])
+        files = {
+            f"spot_{symbol}_1h.csv": {
+                "sha256": sha256_bytes(csv_payload),
+                "rows": 1,
+                "symbol": symbol,
+                "interval": "1h",
+            }
+            for symbol in ("ETHUSDT", "BTCUSDT")
+        }
+        manifest = {
+            "schema_version": 1,
+            "capture_type": "prospective_binance_spot_hourly",
+            "market": "spot",
+            "interval": "1h",
+            "status": "INCOMPLETE",
+            "data_quality_complete": False,
+            "capture_slot_id": slot["id"],
+            "capture_slot_date_utc": slot["date"],
+            "capture_slot_due_at_utc": slot["due_at_utc"],
+            "release_asset_name": asset_name,
+            "files": files,
+            "storage": {"sidecar_asset_name": sidecar_name},
+        }
+        stream = io.BytesIO()
+        with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("spot_ETHUSDT_1h.csv", csv_payload)
+            archive.writestr("spot_BTCUSDT_1h.csv", csv_payload)
+            archive.writestr("manifest.json", json.dumps(manifest))
+        zip_payload = stream.getvalue()
+        zip_digest = sha256_bytes(zip_payload)
+        zip_url = "https://example.invalid/" + asset_name
+        zip_asset = {
+            "id": 101,
+            "name": asset_name,
+            "state": "uploaded",
+            "created_at": "2026-11-24T10:05:00Z",
+            "browser_download_url": zip_url,
+            "size": len(zip_payload),
+            "digest": "sha256:" + zip_digest,
+        }
+        release_without_sidecar = {
+            "id": 7,
+            "upload_url": "https://uploads.github.com/repos/owner/repo/releases/7/assets{?name,label}",
+            "assets": [zip_asset],
+            "immutable": False,
+        }
+        recovered_sidecar_name = sidecar_name
+        uploaded = {
+            "id": 102,
+            "name": recovered_sidecar_name,
+            "browser_download_url": "https://example.invalid/" + recovered_sidecar_name,
+            "created_at": "2026-11-24T10:06:00Z",
+            "digest": "sha256:PLACEHOLDER",
+        }
+        final_release = {**release_without_sidecar, "assets": [zip_asset, {
+            **uploaded,
+            "state": "uploaded",
+            "size": 0,
+        }]}
+        session = Mock()
+        session.get.side_effect = [
+            Response(release_without_sidecar),
+            Response(content=zip_payload),
+            Response(release_without_sidecar),
+            Response(final_release),
+        ]
+        session.post.side_effect = [
+            Response(uploaded, status=201),
+        ]
+        # publish_release_asset must upload JSON, and the returned GitHub asset
+        # digest/size must agree with the exact reconstructed bytes.
+        def verify_upload(**kwargs):
+            payload = kwargs["data"]
+            self.assertEqual(kwargs["headers"]["Content-Type"], "application/json")
+            uploaded["digest"] = "sha256:" + sha256_bytes(payload)
+            uploaded["size"] = len(payload)
+            final_release["assets"][1]["digest"] = uploaded["digest"]
+            final_release["assets"][1]["size"] = uploaded["size"]
+            sidecar_response = Response(content=payload)
+            session.get.side_effect = [
+                Response(release_without_sidecar),
+                Response(content=zip_payload),
+                Response(release_without_sidecar),
+                Response(final_release),
+                sidecar_response,
+            ]
+            return Response(uploaded, status=201)
+        session.post.side_effect = verify_upload
+
+        result = load_existing_slot_snapshot(
+            session, "owner/repo", "spot-holdout-2026", slot, token="authorized-test-token"
+        )
+        self.assertTrue(result["idempotent_slot_reuse"])
+        self.assertTrue(result["storage"]["sidecar_reconstructed_from_verified_zip"])
+        self.assertEqual(result["storage"]["asset_id"], 101)
+        self.assertEqual(result["storage"]["sidecar_asset_id"], 102)
+        self.assertEqual(session.post.call_count, 1)
+        self.assertEqual(session.post.call_args.kwargs["data"], session.get.call_args.kwargs.get("unused", session.post.call_args.kwargs["data"]))
+
     def test_existing_slot_snapshot_rejects_zip_digest_mismatch(self):
         now = int(datetime(2026, 11, 24, 10, 5, tzinfo=timezone.utc).timestamp() * 1000)
         slot = capture_slot(now)
