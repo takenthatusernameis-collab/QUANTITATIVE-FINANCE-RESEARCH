@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MAP = ROOT / "docs" / "QUANTITATIVE-RESEARCH-FACTORY-DESIGN-MAP.md"
 README = ROOT / "README.md"
 DOC_INDEX = ROOT / "docs" / "README.md"
+OVERVIEW = ROOT / "REPOSITORY-OVERVIEW.md"
 COMPAT_PROMPT = ROOT / "archive" / "ORIGINAL-AGENT-LOOP-PROMPT.md"
 LEGACY_PROMPT = ROOT / "archive" / "WAKE-UP-PROMPT-LEGACY-2026-11-24.md"
 
@@ -21,6 +22,33 @@ class FactoryDesignMapTests(unittest.TestCase):
         readme = README.read_text(encoding="utf-8")
         self.assertIn("docs/QUANTITATIVE-RESEARCH-FACTORY-DESIGN-MAP.md", readme)
         self.assertNotIn("read the full [original agent-loop prompt]", readme.lower())
+
+    def test_readme_is_the_stable_launcher_and_routes_to_the_assembly_line(self):
+        readme = README.read_text(encoding="utf-8")
+        self.assertIn("Stable scheduled-automation entry point", readme)
+        self.assertIn("README.md", readme)
+        self.assertIn("docs/QUANTITATIVE-RESEARCH-FACTORY-DESIGN-MAP.md", readme)
+        self.assertIn("REPOSITORY-OVERVIEW.md", readme)
+        self.assertIn("tasks/ACTIVE-QUEUE.md", readme)
+        self.assertNotIn("## Current research state", readme)
+        self.assertNotIn("## Mission", readme)
+
+    def test_substantive_readme_context_was_moved_without_copying_the_design_map(self):
+        overview = OVERVIEW.read_text(encoding="utf-8")
+        self.assertIn("moved out of `README.md`", overview)
+        self.assertIn("## Mission", overview)
+        self.assertIn("## Current research state", overview)
+        self.assertIn("## Mandatory project-selection rule", overview)
+        self.assertIn("docs/QUANTITATIVE-RESEARCH-FACTORY-DESIGN-MAP.md", overview)
+        self.assertNotIn("## 2. End-to-end production-line map", overview)
+        self.assertNotIn("flowchart TD", overview)
+
+    def test_only_one_canonical_factory_design_map_file_exists(self):
+        matches = [
+            path for path in ROOT.rglob("QUANTITATIVE-RESEARCH-FACTORY-DESIGN-MAP.md")
+            if path.is_file()
+        ]
+        self.assertEqual(matches, [MAP])
 
     def test_documentation_index_points_to_factory_map(self):
         index = DOC_INDEX.read_text(encoding="utf-8")

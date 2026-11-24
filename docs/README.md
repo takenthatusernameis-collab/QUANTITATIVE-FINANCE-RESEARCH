@@ -1,6 +1,6 @@
 # Documentation and Operating-Contract Index
 
-This directory is the navigation layer for the quantitative-finance research factory. Read the factory design map at cycle start; use governing documents for binding rules, task-specific files for the current experiment and reports/archive snapshots for historical evidence.
+This directory is the navigation layer for the quantitative-finance research factory. The repository [README](../README.md) remains the stable scheduled-automation entry point and routes every wake-up to the canonical factory design map. Use governing documents for binding rules, the active queue for live task state, the [repository overview](../REPOSITORY-OVERVIEW.md) for contextual research status, and reports/archive snapshots for evidence and history.
 
 ## Factory design map
 
@@ -26,7 +26,9 @@ Lower-level documents may impose stricter controls but may not weaken higher-lev
 
 | Need | Canonical entry |
 |---|---|
+| Stable scheduled-automation entry point | [Repository README](../README.md) — keep this path/name unchanged |
 | Start an agent cycle | [Factory production design map](QUANTITATIVE-RESEARCH-FACTORY-DESIGN-MAP.md), then inspect the [active queue](../tasks/ACTIVE-QUEUE.md) |
+| Review repository overview and recorded research status | [Repository overview](../REPOSITORY-OVERVIEW.md) — verify changing state against live sources |
 | Choose a new research project | [Evidence-first lifecycle](RESEARCH-ENVIRONMENT-FIRST-PROJECT-LIFECYCLE.md) |
 | Discover eligible assets/instruments | [Asset-universe discovery policy](ASSET-UNIVERSE-DISCOVERY-AND-SCOPE-POLICY.md) |
 | Record prior-task learning | [Retrospective and calibration](PROJECT-RETROSPECTIVE-AND-ADMIN-CALIBRATION.md) |
