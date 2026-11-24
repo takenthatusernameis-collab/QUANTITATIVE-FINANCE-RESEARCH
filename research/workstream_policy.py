@@ -203,11 +203,10 @@ def evaluate_parallel_workstream_admission(
         blockers.append("workstream_id must be unique across active and completed workstreams")
 
     for dependency in dependencies:
-        if dependency not in completed:
-            if dependency in active_ids:
-                blockers.append(f"dependency {dependency} is still active; dependent work cannot run in parallel")
-            else:
-                blockers.append(f"dependency {dependency} is not recorded as completed")
+        if dependency in active_ids:
+            blockers.append(f"dependency {dependency} is still active; dependent work cannot run in parallel")
+        elif dependency not in completed:
+            blockers.append(f"dependency {dependency} is not recorded as completed")
 
     candidate_scopes: list[PurePosixPath] = []
     for raw in write_scope_raw:
