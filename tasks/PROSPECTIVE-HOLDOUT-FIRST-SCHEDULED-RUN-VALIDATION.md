@@ -14,6 +14,14 @@ The daily schedule is `23 4 * * *` UTC. The first scheduled run is expected afte
 
 Verify that the scheduled capture appends a new, complete snapshot, validates and reconciles the previous snapshot, preserves provenance and retention, and leaves the queue guardian healthy. Resolve any concrete durability/provenance defect within the same bounded cycle. This is a data-infrastructure task only. Its ETHUSDT/BTCUSDT symbol scope is deliberately specific to this capture validation and must not be copied into a factory-wide asset whitelist, treated as the default future research universe, or used to restrict candidate discovery after this task closes. See [Asset-Universe Discovery and Scope Policy](../docs/ASSET-UNIVERSE-DISCOVERY-AND-SCOPE-POLICY.md).
 
+## Parallel workstream isolation
+
+- Workstream ID: `spot-holdout-first-scheduled-validation`.
+- Status: primary active workstream.
+- Write scope and exclusive resources are registered in the [canonical queue](ACTIVE-QUEUE.md).
+- Protected data identity: `binance-spot-1h:prospective-2026-11`.
+- This task keeps its existing one-cycle budget and 2026-11-25 17:30 UTC deadline. The factory's newly adopted parallel-workstream policy does not reset or retroactively re-rate it.
+
 ## Required steps
 
 1. Inspect the latest main commit, active queue, open PR #2 comments, workflow runs, queue guardian report and current release assets before any dispatch. Do not duplicate a successful capture or overlap an active run.
