@@ -127,12 +127,17 @@ class BinanceSpotUniverseAuditTests(unittest.TestCase):
         )
         first_symbols, first_meta = audit.select_sample(records)
         second_symbols, second_meta = audit.select_sample(records)
-        self.assertEqual(first_symbols, ["BTCUSDT", "ETHUSDT", "ZZZBTC"])
+        self.assertEqual(first_symbols, ["BTCUSDT", "ETHUSDT", "ZZZBTC", "AAAUSDT"])
         self.assertEqual(first_symbols, second_symbols)
         self.assertEqual(first_meta, second_meta)
         self.assertTrue(first_meta["sample_is_non_exhaustive"])
-        self.assertEqual(first_meta["selected_quote_status_stratum"], {
+        self.assertEqual(first_meta["inactive_status_sample"], "ZZZBTC")
+        self.assertEqual(first_meta["active_non_seed_sample"], "AAAUSDT")
+        self.assertEqual(first_meta["inactive_status_selection"]["stratum"], {
             "quoteAsset": "BTC", "status": "BREAK"
+        })
+        self.assertEqual(first_meta["active_non_seed_selection"]["stratum"], {
+            "quoteAsset": "USDT", "status": "TRADING"
         })
 
     def test_s3_listing_parser_reads_common_prefixes_and_pagination_token(self):
