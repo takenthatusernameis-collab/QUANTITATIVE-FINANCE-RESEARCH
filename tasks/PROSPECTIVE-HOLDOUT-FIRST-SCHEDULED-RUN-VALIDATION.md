@@ -70,7 +70,7 @@ The next checkpoint must inspect the actual schedule-triggered capture and its q
 ## Acceptance criteria — final disposition 2026-11-24
 
 - [x] The missing due slot was recovered by the first authorized agent wake-up after 04:23 UTC, through the existing exact-owner PR #2 command. Capture run [45373419544](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373419544) passed the actor gate and capture job.
-- [x] Stable slot `binance-spot-1h:prospective-2026-11:2026-11-24` produced exactly one ZIP and one JSON sidecar, with deterministic names and verified GitHub digests.
+- [x] Stable slot `binance-spot-1h:prospective-2026-11:2026-11-24` produced exactly one `snapshot-slot-2026-11-24.zip` and one `snapshot-slot-2026-11-24.manifest.json`, with verified GitHub digests.
 - [x] ETHUSDT and BTCUSDT each have 562 closed, ordered hourly observations from 2026-11-01 00:00 UTC through 2026-11-24 09:00 UTC; zero missing hours, duplicate timestamps, overlap corrections or source errors.
 - [x] The new manifest links the previous ZIP asset 784136576 and its verified digest; the previous snapshot's sidecar was backfilled as asset 786684146.
 - [x] Current ZIP asset 786684218 (65,817 bytes; SHA-256 `22bd362b7c0db51c7a3302f5b09c1a4a2327a4d9553b8ac7259f2a343c5caade`) and sidecar asset 786684257 (5,211 bytes; SHA-256 `57cb7b1d297c15a33aa80784a0b72e010988e3da99a0e65171174ce02e19d284`) are present in Release `spot-holdout-2026`.
