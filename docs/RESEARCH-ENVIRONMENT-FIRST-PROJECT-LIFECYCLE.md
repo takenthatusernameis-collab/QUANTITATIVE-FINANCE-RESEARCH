@@ -8,6 +8,8 @@
 
 The repository must first establish what information is realistically accessible, authorized, sufficiently complete, semantically valid, reproducible and economically usable. Only then may an agent design and select a hypothesis that fits the verified evidence envelope.
 
+The factory has no global asset whitelist. Apply the mandatory [Asset-Universe Discovery and Scope Policy](ASSET-UNIVERSE-DISCOVERY-AND-SCOPE-POLICY.md): dynamic discovery is the default for asset-level research, while prior project symbols and narrow capture datasets must never silently constrain the next project's opportunity space.
+
 A source advertised by a provider, an endpoint that once returned HTTP 200, a small sample, a test fixture or an assumed permission is not proof of full research feasibility. Keep observed facts separate from claims, assumptions and unknowns.
 
 ## Required lifecycle and stage gates
@@ -52,7 +54,7 @@ The standard environment inventory must cover:
 | Provenance and reproducibility | Can the source, query parameters, code SHA, environment/dependencies, transformations, random seeds and artifact hashes be recorded? |
 | Workflow permissions and autonomy | Can the project be dispatched, monitored, resumed and reported through the actual authorized integration without routine manual action? |
 
-Use [templates/PROJECT-INTAKE-TEMPLATE.json](../templates/PROJECT-INTAKE-TEMPLATE.json) and the tested [project-readiness policy](../research/project_readiness.py).
+Use [templates/PROJECT-INTAKE-TEMPLATE.json](../templates/PROJECT-INTAKE-TEMPLATE.json) and the tested [project-readiness policy](../research/project_readiness.py). The intake must include [Asset-Universe Discovery and Scope Policy](ASSET-UNIVERSE-DISCOVERY-AND-SCOPE-POLICY.md).
 
 ### Stage 2 — Decide whether the environment is ready for hypothesis design
 
@@ -73,7 +75,7 @@ A provider or infrastructure upgrade is its own project, with explicit evidence,
 
 Only after Stages 0–2 pass may agents generate hypotheses.
 
-Each candidate must state the observed market phenomenon and falsifiable mechanism; exact instruments, universe, venue, market type, quote currency and required fields; why the verified environment can measure them; expected information gain; primary benchmark and null; realistic costs; minimum viable sample and independent holdout; leakage, survivorship, multiple-testing and regime risks; compute/storage needs; and explicit rejection/stop conditions.
+Each candidate must state the observed market phenomenon and falsifiable mechanism; exact instruments, universe, venue, market type, quote currency and required fields; why the verified environment can measure them; expected information gain; primary benchmark and null; realistic costs; minimum viable sample and independent holdout; leakage, survivorship, multiple-testing and regime risks; compute/storage needs; and explicit rejection/stop conditions. Include an `asset_universe_policy`: dynamic discovery by default, or a documented reason why a fixed set is intrinsic to the hypothesis. Do not carry over the previous task's tickers or asset-count limits.
 
 Do not rank a candidate highly because of an attractive backtest, theoretical return or novelty when required evidence is unavailable. No empirical result may be inspected before preregistration and holdout rules are frozen.
 

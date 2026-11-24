@@ -7,11 +7,12 @@ This directory is the navigation layer for the quantitative-finance research fac
 1. Hard invariants: explicit authorization, security, legality, privacy, scientific validity, data integrity, provenance, independent holdouts and no-live-trading boundaries.
 2. [General Antifragile Autonomous Operating Mindset](GENERAL-ANTIFRAGILE-AUTONOMOUS-OPERATING-MINDSET.md): highest-level principles and priority hierarchy.
 3. [Evidence-First Project Lifecycle](RESEARCH-ENVIRONMENT-FIRST-PROJECT-LIFECYCLE.md): mandatory predecessor feedback, environment inventory, hypothesis eligibility, project ranking and timebox assignment.
-4. [Project Retrospective and Admin-Agent Calibration](PROJECT-RETROSPECTIVE-AND-ADMIN-CALIBRATION.md): required research/performance and technical-delivery feedback before the next project.
-5. [Adaptive Autonomous Research Execution](ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md): operational failover, dispatch, recovery, queue and handoff rules.
-6. [Model Implementation Timebox Policy](MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md): difficulty-based cycle limits, hard deadlines and terminal outcomes.
-7. [Repository Hygiene and Context Compaction](REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md): safe cleanup and evidence preservation.
-8. [ChatGPT-to-GitHub Dispatch](CHATGPT-WORKFLOW-DISPATCH.md): exact connected-actor bridge, event validation and autonomous run verification.
+4. [Asset-Universe Discovery and Scope Policy](ASSET-UNIVERSE-DISCOVERY-AND-SCOPE-POLICY.md): factory-wide open asset discovery and project-specific universe justification.
+5. [Project Retrospective and Admin-Agent Calibration](PROJECT-RETROSPECTIVE-AND-ADMIN-CALIBRATION.md): required research/performance and technical-delivery feedback before the next project.
+6. [Adaptive Autonomous Research Execution](ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md): operational failover, dispatch, recovery, queue and handoff rules.
+7. [Model Implementation Timebox Policy](MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md): difficulty-based cycle limits, hard deadlines and terminal outcomes.
+8. [Repository Hygiene and Context Compaction](REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md): safe cleanup and evidence preservation.
+9. [ChatGPT-to-GitHub Dispatch](CHATGPT-WORKFLOW-DISPATCH.md): exact connected-actor bridge, event validation and autonomous run verification.
 
 Lower-level documents may impose stricter controls but may not weaken higher-level rules.
 
@@ -21,6 +22,7 @@ Lower-level documents may impose stricter controls but may not weaken higher-lev
 |---|---|
 | Start an agent cycle | [Repository README](../README.md), then [active queue](../tasks/ACTIVE-QUEUE.md) |
 | Choose a new research project | [Evidence-first lifecycle](RESEARCH-ENVIRONMENT-FIRST-PROJECT-LIFECYCLE.md) |
+| Discover eligible assets/instruments | [Asset-universe discovery policy](ASSET-UNIVERSE-DISCOVERY-AND-SCOPE-POLICY.md) |
 | Record prior-task learning | [Retrospective and calibration](PROJECT-RETROSPECTIVE-AND-ADMIN-CALIBRATION.md) |
 | Create a model timebox | [Timebox policy](MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md) |
 | Inspect the ETH/BTC pipeline | [Research pipeline README](../research/README.md) |

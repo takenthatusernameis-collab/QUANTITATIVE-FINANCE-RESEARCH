@@ -36,6 +36,7 @@ TIMEBOXES = {
     "HIGH": {"max_cycles": 8, "max_elapsed_days": 10},
 }
 PROJECT_KINDS = {"hypothesis_research", "environment_enabling", "meta_process_improvement"}
+ASSET_UNIVERSE_MODES = {"dynamic_discovery", "fixed_universe", "not_applicable"}
 
 
 def _nonempty(value: object) -> bool:
@@ -117,6 +118,65 @@ def evaluate_hypothesis_environment_fit(
         "environment_ready": bool(env["ready_for_hypothesis_design"]),
         "blockers": blockers,
     }
+
+
+
+def evaluate_asset_universe_policy(policy: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Keep the factory opportunity space open; validate only project-scoped limits."""
+    blockers: list[str] = []
+    if not isinstance(policy, Mapping):
+        return {
+            "valid": False,
+            "mode": None,
+            "blockers": ["hypothesis.asset_universe_policy is required"],
+        }
+
+    mode = str(policy.get("mode", "")).strip().lower()
+    if mode not in ASSET_UNIVERSE_MODES:
+        blockers.append(f"asset_universe_policy.mode must be one of {sorted(ASSET_UNIVERSE_MODES)}")
+        return {"valid": False, "mode": mode or None, "blockers": blockers}
+
+    if mode == "not_applicable":
+        if not _nonempty(policy.get("rationale")):
+            blockers.append("asset_universe_policy.rationale is required when mode is not_applicable")
+        return {"valid": not blockers, "mode": mode, "blockers": blockers}
+
+    for field in ("target_scope", "inclusion_criteria", "exclusion_criteria"):
+        value = policy.get(field)
+        if not (_nonempty(value) or _string_list(value)):
+            blockers.append(f"asset_universe_policy.{field} is required")
+    if not _nonempty(policy.get("point_in_time_membership")):
+        blockers.append("asset_universe_policy.point_in_time_membership is required")
+
+    if mode == "dynamic_discovery":
+        for field in ("discovery_method", "expansion_rule"):
+            if not _nonempty(policy.get(field)):
+                blockers.append(f"asset_universe_policy.{field} is required for dynamic discovery")
+        seed_assets = policy.get("seed_assets")
+        if seed_assets is not None:
+            if not _string_list(seed_assets):
+                blockers.append("asset_universe_policy.seed_assets must be a non-empty list when supplied")
+            if policy.get("seed_assets_non_exhaustive") is not True:
+                blockers.append("seed assets must be explicitly marked non-exhaustive")
+        cap = policy.get("max_asset_count")
+        if cap is not None:
+            if isinstance(cap, bool) or not isinstance(cap, int) or cap < 1:
+                blockers.append("asset_universe_policy.max_asset_count must be a positive integer or null")
+            if not _nonempty(policy.get("cap_rationale")):
+                blockers.append("an asset-count cap requires an evidence-backed cap_rationale")
+        elif policy.get("cap_rationale") not in (None, ""):
+            blockers.append("cap_rationale must be null when no asset-count cap is applied")
+
+    elif mode == "fixed_universe":
+        if not _nonempty(policy.get("fixed_scope_rationale")):
+            blockers.append("a fixed universe requires a research-design fixed_scope_rationale")
+        cap = policy.get("max_asset_count")
+        if cap is not None and (
+            isinstance(cap, bool) or not isinstance(cap, int) or cap < 1
+        ):
+            blockers.append("asset_universe_policy.max_asset_count must be a positive integer or null")
+
+    return {"valid": not blockers, "mode": mode, "blockers": blockers}
 
 
 def assess_project_difficulty(ratings: Mapping[str, Any]) -> dict[str, Any]:
@@ -243,6 +303,8 @@ def evaluate_project_intake(manifest: Mapping[str, Any]) -> dict[str, Any]:
                 value = hypothesis.get(field)
                 if not (_nonempty(value) or _string_list(value)):
                     blockers.append(f"hypothesis.{field} is required")
+            universe_result = evaluate_asset_universe_policy(hypothesis.get("asset_universe_policy"))
+            blockers.extend(universe_result["blockers"])
             fit = evaluate_hypothesis_environment_fit(
                 environment if isinstance(environment, Mapping) else {},
                 hypothesis.get("required_environment_dimensions", ()),

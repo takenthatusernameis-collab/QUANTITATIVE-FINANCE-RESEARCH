@@ -5,12 +5,13 @@
 
 ## New-project intake (mandatory before hypothesis design)
 
-The research factory is evidence-first. Review research/performance and technical-delivery feedback from the previous task, calibrate repository-admin decisions, and inventory actual accessible sources before designing a model. Required evidence covers authorized access, product/history coverage, point-in-time population, market/time semantics, quality controls, execution costs, compute/API limits, storage, provenance and workflow permissions.
+The research factory is evidence-first and has no global asset whitelist. Review research/performance and technical-delivery feedback from the previous task, calibrate repository-admin decisions, and inventory actual accessible sources before designing a model. The existing `run_eth_btc.py` pipeline and Spot holdout tooling are pair-/capture-specific implementations, not the factory's complete research universe. Do not carry their ETHUSDT/BTCUSDT symbols into unrelated hypotheses. Required evidence covers authorized access, product/history coverage, point-in-time population, market/time semantics, quality controls, execution costs, compute/API limits, storage, provenance and workflow permissions.
 
 Only VERIFIED required dimensions may support a new hypothesis. Sample-only or claimed source support is a bounded pilot, not model readiness. If the environment is insufficient, scope a bounded environment-enabling project rather than bending the data/infrastructure around a favored model.
 
 - [Evidence-First Project Lifecycle](../docs/RESEARCH-ENVIRONMENT-FIRST-PROJECT-LIFECYCLE.md)
 - [Project Retrospective and Admin-Agent Calibration](../docs/PROJECT-RETROSPECTIVE-AND-ADMIN-CALIBRATION.md)
+- [Asset-Universe Discovery and Scope Policy](../docs/ASSET-UNIVERSE-DISCOVERY-AND-SCOPE-POLICY.md)
 - [Project intake template](../templates/PROJECT-INTAKE-TEMPLATE.json)
 - Deterministic gate: `project_readiness.py`
 

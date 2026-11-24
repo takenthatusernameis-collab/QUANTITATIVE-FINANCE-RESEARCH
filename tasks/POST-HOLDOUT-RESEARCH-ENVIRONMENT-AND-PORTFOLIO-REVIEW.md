@@ -7,7 +7,7 @@
 
 ## Objective
 
-Use the completed holdout-validation task's research/evidence outcome and technical-delivery outcome, together with the recent empirical NO-GO and funding-INCONCLUSIVE findings, to establish the actual evidence and operating environment. Only after that inventory may the agent generate and rank candidate research hypotheses. Do not preselect a model in this task.
+Use the completed holdout-validation task's research/evidence outcome and technical-delivery outcome, together with the recent empirical NO-GO and funding-INCONCLUSIVE findings, to establish the actual evidence and operating environment. Only after that inventory may the agent generate and rank candidate research hypotheses. Do not preselect a model in this task. The research opportunity and asset universe are not restricted to ETHUSDT/BTCUSDT or to the assets currently cached in this repository.
 
 ## Required sequence
 
@@ -20,9 +20,9 @@ Use the completed holdout-validation task's research/evidence outcome and techni
 5. Classify each source/dimension as VERIFIED, SAMPLE_ONLY, CLAIMED_UNVERIFIED, UNAVAILABLE/RESTRICTED, UNKNOWN or NOT_APPLICABLE with evidence and rationales.
 6. Identify research questions the verified information can answer. Generate candidates only after the inventory is complete.
 7. Reject candidates depending on unavailable or unverified inputs. Rank only feasible candidates by information gain, decision value, economic rationale, validation feasibility, cost and time.
-8. If no model is ready, select a bounded environment-enabling project or report that no new model is currently justified.
-9. For any selected hypothesis, create a distinct preregistration, experiment identity, independent holdout, difficulty assessment and hard expiration. Do not begin implementation under this portfolio-review task.
-10. Commit the retrospective, environment matrix, admin-agent calibration decision and one evidence-backed successor handoff to `main`.
+9. If no model is ready, select a bounded environment-enabling project or report that no new model is currently justified.
+10. For any selected hypothesis, create a distinct preregistration, experiment identity, independent holdout, asset-universe policy, difficulty assessment and hard expiration. Do not begin implementation under this portfolio-review task.
+11. Commit the retrospective, environment matrix, admin-agent calibration decision and one evidence-backed successor handoff to `main`.
 
 ## Admin-agent calibration
 

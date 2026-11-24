@@ -14,6 +14,7 @@ Continuously improve the probability that each agent cycle produces trustworthy,
 
 - [Evidence-First Project Lifecycle](docs/RESEARCH-ENVIRONMENT-FIRST-PROJECT-LIFECYCLE.md)
 - [Project Retrospective and Admin-Agent Calibration](docs/PROJECT-RETROSPECTIVE-AND-ADMIN-CALIBRATION.md)
+- [Asset-Universe Discovery and Scope Policy](docs/ASSET-UNIVERSE-DISCOVERY-AND-SCOPE-POLICY.md)
 - [Documentation and Operating-Contract Index](docs/README.md)
 
 ## Current research state
@@ -23,7 +24,7 @@ The current assignment is still [First Scheduled Holdout Run Validation](tasks/P
 - Binance Spot mean-reversion: **NO-GO**, concluded November 22, 2026.
 - ETH/BTC Spot relative-momentum rotation: **NO-GO**, concluded November 23, 2026; frozen and closed.
 - Original USD-M funding-aware study: **INCONCLUSIVE**; funding inputs remain unaccepted.
-- Prospective Binance Spot holdout capture: initial owner-authorized capture succeeded; first scheduled capture and sidecar/reconciliation verification are the current task.
+- Prospective Binance Spot holdout capture: initial owner-authorized capture succeeded; first scheduled capture and sidecar/reconciliation verification are the current task. ETHUSDT/BTCUSDT are capture-specific symbols, not a factory-wide asset restriction.
 - No live trading, capital deployment, strategy promotion or paid-data purchase is authorized by these research tasks.
 
 ## Governing standards

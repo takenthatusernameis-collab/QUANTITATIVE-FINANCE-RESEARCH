@@ -5,8 +5,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from project_readiness import (
     DIFFICULTY_DIMENSIONS, ENVIRONMENT_DIMENSIONS, assess_project_difficulty,
-    evaluate_environment_assessment, evaluate_hypothesis_environment_fit,
-    evaluate_predecessor_feedback, evaluate_project_intake,
+    evaluate_asset_universe_policy, evaluate_environment_assessment,
+    evaluate_hypothesis_environment_fit, evaluate_predecessor_feedback,
+    evaluate_project_intake,
 )
 
 
@@ -62,6 +63,17 @@ def valid_manifest():
         "previous_task_feedback": predecessor_feedback(), "difficulty_assessment": difficulty(1),
         "hypothesis": {
             "research_question": "Does a predeclared signal predict next-period returns?",
+            "asset_universe_policy": {
+                "mode": "dynamic_discovery",
+                "target_scope": "All eligible assets from relevant authorized sources",
+                "discovery_method": "Enumerate instrument catalogues and apply frozen filters",
+                "inclusion_criteria": ["Point-in-time listed instrument", "Meets liquidity threshold"],
+                "exclusion_criteria": ["Restricted source", "Unverifiable instrument history"],
+                "point_in_time_membership": "Reconstruct membership at each decision time, including delistings",
+                "expansion_rule": "Include every newly discovered candidate passing the same rules; no inherited ticker whitelist",
+                "max_asset_count": None,
+                "cap_rationale": None,
+            },
             "required_environment_dimensions": [
                 "legal_and_authorized_access", "actual_source_access",
                 "historical_coverage_and_product_inception",
@@ -116,6 +128,70 @@ class ProjectReadinessTests(unittest.TestCase):
         assessment = complete_environment({"compute_runtime_and_api_limits": "unknown"})
         result = evaluate_hypothesis_environment_fit(assessment, ["compute_runtime_and_api_limits"])
         self.assertFalse(result["allowed"])
+
+
+    def test_dynamic_universe_is_open_ended_without_an_arbitrary_asset_cap(self):
+        policy = {
+            "mode": "dynamic_discovery",
+            "target_scope": "All eligible assets from relevant authorized sources",
+            "discovery_method": "Enumerate source catalogues and apply frozen filters",
+            "inclusion_criteria": ["Point-in-time listing", "Observed liquidity"],
+            "exclusion_criteria": ["Restricted source", "Unverifiable history"],
+            "point_in_time_membership": "Reconstruct membership at each decision time",
+            "expansion_rule": "Include every candidate satisfying the same frozen rules",
+        }
+        result = evaluate_asset_universe_policy(policy)
+        self.assertTrue(result["valid"], result["blockers"])
+
+    def test_fixed_universe_requires_research_specific_justification(self):
+        policy = {
+            "mode": "fixed_universe",
+            "target_scope": "One predeclared relative-value pair",
+            "inclusion_criteria": ["The two legs required by the hypothesis"],
+            "exclusion_criteria": ["Other instruments do not represent this exact pair relationship"],
+            "point_in_time_membership": "Both legs must exist throughout each evaluated interval",
+        }
+        self.assertFalse(evaluate_asset_universe_policy(policy)["valid"])
+        policy["fixed_scope_rationale"] = "The estimand is specifically this two-leg relative-value relationship."
+        self.assertTrue(evaluate_asset_universe_policy(policy)["valid"])
+
+    def test_dynamic_asset_count_cap_requires_rationale(self):
+        policy = {
+            "mode": "dynamic_discovery",
+            "target_scope": "All eligible assets from relevant sources",
+            "discovery_method": "Enumerate source catalogues",
+            "inclusion_criteria": ["Point-in-time listed"],
+            "exclusion_criteria": ["Unverifiable source"],
+            "point_in_time_membership": "Historical reconstruction",
+            "expansion_rule": "Expand to all candidates passing the filters",
+            "max_asset_count": 50,
+        }
+        self.assertFalse(evaluate_asset_universe_policy(policy)["valid"])
+        policy["cap_rationale"] = "A measured runner memory limit bounds this pilot; it is not the final universe."
+        self.assertTrue(evaluate_asset_universe_policy(policy)["valid"])
+
+    def test_seed_assets_must_be_declared_non_exhaustive(self):
+        policy = {
+            "mode": "dynamic_discovery",
+            "target_scope": "All qualifying assets from relevant authorized sources",
+            "discovery_method": "Enumerate source catalogues",
+            "inclusion_criteria": ["Point-in-time listing"],
+            "exclusion_criteria": ["Unverifiable history"],
+            "point_in_time_membership": "Historical reconstruction",
+            "expansion_rule": "Expand to all candidates passing the filters",
+            "seed_assets": ["EXAMPLE1", "EXAMPLE2"],
+            "seed_assets_non_exhaustive": False,
+        }
+        self.assertFalse(evaluate_asset_universe_policy(policy)["valid"])
+        policy["seed_assets_non_exhaustive"] = True
+        self.assertTrue(evaluate_asset_universe_policy(policy)["valid"])
+
+    def test_not_applicable_universe_requires_rationale(self):
+        self.assertFalse(evaluate_asset_universe_policy({"mode": "not_applicable"})["valid"])
+        self.assertTrue(evaluate_asset_universe_policy({
+            "mode": "not_applicable",
+            "rationale": "This research concerns a non-asset aggregate risk index.",
+        })["valid"])
 
     def test_difficulty_maps_to_timebox(self):
         self.assertEqual(assess_project_difficulty(difficulty(1))["tier"], "LOW")

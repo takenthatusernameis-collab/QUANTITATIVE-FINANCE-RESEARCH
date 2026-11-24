@@ -18,6 +18,8 @@ The first daily Binance Spot capture is scheduled for **2026-11-24 04:23 UTC**. 
 
 **Scope restrictions:** no strategy backtest, no tuning of the closed Spot Momentum experiment, no unaccepted funding data, no paid data/key purchase, no venue merge and no live trading.
 
+**Asset-universe boundary:** ETHUSDT/BTCUSDT are the two symbols of this capture-validation task only. They do not define or restrict the factory's future asset universe. Future research discovery must follow [the open asset-universe policy](../docs/ASSET-UNIVERSE-DISCOVERY-AND-SCOPE-POLICY.md).
+
 ## Research-track status
 
 | Workstream | Status | Rule |

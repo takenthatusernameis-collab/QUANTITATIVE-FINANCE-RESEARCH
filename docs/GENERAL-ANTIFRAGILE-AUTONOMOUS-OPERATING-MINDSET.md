@@ -27,6 +27,14 @@ Assign project difficulty only after environment and scope assessment. Rate data
 
 The previous Spot Relative-Momentum Rotation concluded NO-GO on 2026-11-23 and is closed. It must not be tuned on its OOS sample. The original USD-M funding-aware study remains separately INCONCLUSIVE; this does not defer the evidence-first rule or authorize paid data/credentials.
 
+## 1B. Factory-wide asset-universe independence
+
+The research factory has no global ticker, asset, instrument, exchange, market-type, quote-currency, asset-count or market-cap-tier whitelist. Dynamic discovery is the default for new asset-level or cross-sectional hypotheses. Previous task symbols, cached datasets, examples, provider probes and project-specific scripts do not define future opportunity space.
+
+A fixed instrument or pair is permitted only when the research question itself requires it, with a task-specific rationale and explicit inclusion/exclusion rules. A narrow dataset/capture task must not constrain the next research universe. Every successor must revisit the full relevant, authorized asset/instrument opportunity space and must not inherit a static list or arbitrary top-N ceiling.
+
+Follow [Asset-Universe Discovery and Scope Policy](ASSET-UNIVERSE-DISCOVERY-AND-SCOPE-POLICY.md) and enforce the declared universe through `research/project_readiness.py`. If accessible data cover only a small sample, label it as such; do not quietly convert a data limitation into a permanent universe restriction. Any finite asset cap requires evidence-backed technical or research justification and must be disclosed as a bounded pilot where appropriate.
+
 ## 2. Canonical adaptive research decision hierarchy
 
 This is the **single authoritative priority hierarchy** for every research, engineering, automation and repository task. Research-specific runbooks may operationalize it but may not reorder, weaken or contradict it. The Adaptive Autonomous Research Execution Standard is the operational contract; the README and active queue are entry points, not competing policy sources.

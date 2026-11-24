@@ -13,7 +13,7 @@ An agent's responsibility is not merely to execute the initially proposed method
 
 ## Mandatory project-entry sequence: feedback and environment before hypothesis
 
-Every new project must follow the [Evidence-First Project Lifecycle](RESEARCH-ENVIRONMENT-FIRST-PROJECT-LIFECYCLE.md). Do not begin with a preselected model and then attempt to obtain, invent, splice or repair data/infrastructure to fit it.
+Every new project must follow the [Evidence-First Project Lifecycle](RESEARCH-ENVIRONMENT-FIRST-PROJECT-LIFECYCLE.md) and [Asset-Universe Discovery and Scope Policy](ASSET-UNIVERSE-DISCOVERY-AND-SCOPE-POLICY.md). Do not begin with a preselected model and then attempt to obtain, invent, splice or repair data/infrastructure to fit it. The factory has no global asset whitelist: do not inherit ETHUSDT/BTCUSDT or any other prior project's symbols, fixed top-N count, venue or market-cap tier as a constraint on future research.
 
 Before new hypothesis design: review the previous task's research/performance and technical-delivery feedback; record an evidence-backed repository-admin calibration decision; inventory actual data/source access, permissions, history, point-in-time coverage, semantics, quality controls, economic inputs, compute/API limits, storage, provenance and autonomous execution; classify every dimension with evidence; permit hypotheses only against VERIFIED required dimensions; and assign difficulty/timebox only after feasibility and scope are established.
 

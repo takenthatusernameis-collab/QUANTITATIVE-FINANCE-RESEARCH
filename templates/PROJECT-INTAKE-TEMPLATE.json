@@ -133,6 +133,24 @@
     "stop_conditions": [
       "Data, security, validity and deadline stop conditions."
     ],
-    "preregistration_path": "tasks/REPLACE-WITH-PREREGISTRATION.md"
+    "preregistration_path": "tasks/REPLACE-WITH-PREREGISTRATION.md",
+    "asset_universe_policy": {
+      "mode": "dynamic_discovery",
+      "target_scope": "All assets/instruments relevant to the preregistered question across authorized sources; do not inherit a previous task's symbols",
+      "discovery_method": "Enumerate relevant source catalogues, then apply frozen inclusion/exclusion criteria",
+      "inclusion_criteria": [
+        "Point-in-time listing/inception status",
+        "Research-relevant liquidity or evidence-quality threshold"
+      ],
+      "exclusion_criteria": [
+        "Unverifiable instrument identity/history",
+        "Restricted or unauthorized source",
+        "Failure of preregistered economic eligibility"
+      ],
+      "point_in_time_membership": "Reconstruct eligible membership at each historical decision time; include delisted/expired instruments where relevant",
+      "expansion_rule": "Include every newly discovered candidate passing the same frozen criteria; any seed assets are non-exhaustive",
+      "max_asset_count": null,
+      "cap_rationale": null
+    }
   }
 }
