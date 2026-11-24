@@ -25,7 +25,7 @@ The current assignment is still [First Scheduled Holdout Run Validation](tasks/P
 - Binance Spot mean-reversion: **NO-GO**, concluded November 22, 2026.
 - ETH/BTC Spot relative-momentum rotation: **NO-GO**, concluded November 23, 2026; frozen and closed.
 - Original USD-M funding-aware study: **INCONCLUSIVE**; funding inputs remain unaccepted.
-- Prospective Binance Spot holdout capture: initial owner-authorized capture succeeded; the first scheduled event due 2026-11-24 04:23 UTC was not yet visible at the 04:33 UTC checkpoint. No duplicate/manual capture was dispatched; sidecar/reconciliation verification remains pending. See [scheduled-run checkpoint](reports/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-SCHEDULED-VALIDATION-2026-11-24.md). ETHUSDT/BTCUSDT are capture-specific symbols, not a factory-wide asset restriction.
+- Prospective Binance Spot holdout capture: initial owner-authorized capture succeeded; the scheduled event due 2026-11-24 04:23 UTC remained absent at the 06:09 UTC checkpoint. Queue guardian run [45334612900](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45334612900) succeeded at 05:37 UTC with no actions, errors or active research/test runs, but no capture event or sidecar appeared. No manual/duplicate dispatch was issued; reconciliation remains pending. See [scheduled-run checkpoint](reports/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-SCHEDULED-VALIDATION-2026-11-24.md). ETHUSDT/BTCUSDT are capture-specific symbols, not a factory-wide asset restriction.
 - No live trading, capital deployment, strategy promotion or paid-data purchase is authorized by these research tasks.
 
 ## Governing standards
