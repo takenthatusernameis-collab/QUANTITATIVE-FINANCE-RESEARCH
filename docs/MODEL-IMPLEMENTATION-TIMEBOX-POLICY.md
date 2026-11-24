@@ -47,6 +47,8 @@ Use the smallest tier that realistically covers the work. Score difficulty befor
 
 The applicable limit is the **earlier** of the cycle cap or calendar deadline. A substantive agent cycle is a distinct work segment that produces a durable implementation, test, data-quality finding, empirical run or decision artifact. Individual tool calls, cosmetic edits and identical retries are not separate cycles.
 
+These ceilings apply independently to each experiment/workstream, not to a shared batch clock. Concurrent independent workstreams must each record their own start, difficulty assessment, maximum cycles and exact expiry. A workstream does not borrow unused cycles or calendar time from another. Use the [Parallel Research Workstreams and Per-Workstream Expiry Policy](PARALLEL-RESEARCH-WORKSTREAM-AND-EXPIRY-POLICY.md) for admission, isolation and per-stream lifecycle rules.
+
 The clock starts at the recorded implementation start timestamp. It includes ordinary CI/runner queues, debugging, data acquisition, analysis and reporting; routine execution friction is not a reason to reset it. Agents must use the repository's recovery and alternative-route procedures within the same budget.
 
 ## 4. Required execution and deadline behavior
