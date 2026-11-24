@@ -7,8 +7,27 @@ on:
 permissions:
   contents: read
 
+run-name: >-
+  ${{ github.event.action == 'created' &&
+      github.event.issue.number == 2 &&
+      github.event.issue.pull_request != null &&
+      github.event.issue.state == 'open' &&
+      github.event.comment.user.login == 'takenthatusernameis-collab' &&
+      github.event.comment.body == '/qfr-audit-binance-spot-universe' &&
+      'Authorized Binance Spot universe audit' ||
+      format('Ignored Binance Spot audit comment {0}', github.event.comment.id) }}
+
 concurrency:
-  group: binance-spot-universe-audit-main
+  group: >-
+    ${{ github.event.action == 'created' &&
+        github.event.issue.number == 2 &&
+        github.event.issue.pull_request != null &&
+        github.event.issue.state == 'open' &&
+        github.event.comment.user.login == 'takenthatusernameis-collab' &&
+        github.event.comment.body == '/qfr-audit-binance-spot-universe' &&
+        'binance-spot-universe-audit-main' ||
+        format('binance-spot-universe-audit-ignored-{0}', github.event.comment.id) }}
+  queue: max
   cancel-in-progress: false
 
 jobs:
