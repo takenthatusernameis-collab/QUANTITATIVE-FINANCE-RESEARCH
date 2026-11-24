@@ -46,7 +46,7 @@ Detailed historical context from the former README is preserved in [the November
 | Path | Responsibility |
 |---|---|
 | `research/` | Data adapters, research logic, machine-checkable gates and deterministic tests |
-| `tasks/` | Bounded project specifications; one canonical active queue pointer |
+| `tasks/` | Bounded project specifications and one canonical queue pointer; multiple independent active workstreams may run with separate expiries |
 | `reports/` | Dated research results, audits, retrospectives and evidence handoffs |
 | `docs/` | Governing policies and operational runbooks |
 | `templates/` | Reusable project-intake and retrospective templates |
