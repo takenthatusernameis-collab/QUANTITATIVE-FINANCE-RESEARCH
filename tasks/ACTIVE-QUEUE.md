@@ -1,8 +1,12 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-24 01:06 UTC  
+**Updated:** 2026-11-24 01:41 UTC  
 **Single canonical active task:** [First Scheduled Holdout Run Validation](PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md).  
 **Queued successor (not active until current task closes):** [Post-Holdout Research Environment and Portfolio Review](POST-HOLDOUT-RESEARCH-ENVIRONMENT-AND-PORTFOLIO-REVIEW.md).
+
+## Repository governance upgrade — completed 2026-11-24
+
+The evidence-first lifecycle, dual-axis retrospectives, tested project-readiness gate, documentation index, action SHA pinning, grouped dependency updates and per-ref CI deduplication are committed. See [governance implementation retrospective](../reports/EVIDENCE-FIRST-RESEARCH-GOVERNANCE-IMPLEMENTATION-2026-11-24.md). Latest CI [45306713796](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45306713796) passed 280 deterministic tests and the synthetic plumbing smoke test.
 
 ## Current active assignment
 
