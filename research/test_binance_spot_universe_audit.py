@@ -34,6 +34,7 @@ def response(status_code, content=b"", headers=None, url="https://example.test/r
     item.status_code = status_code
     item.url = url
     item._content = content
+    item.raw = io.BytesIO(content)
     item.headers.update(headers or {})
     item.encoding = "utf-8"
     return item
@@ -243,7 +244,7 @@ class BinanceSpotUniverseAuditTests(unittest.TestCase):
         self.assertIn("github.event.comment.body == '/qfr-audit-binance-spot-universe'", workflow)
         self.assertIn("ref: ${{ github.sha }}", workflow)
         self.assertIn("persist-credentials: false", workflow)
-        self.assertIn("permissions:\\n  contents: read", workflow)
+        self.assertIn("permissions:\n  contents: read", workflow)
         self.assertNotIn("workflow_dispatch:", workflow)
         self.assertNotIn("pull_request_target:", workflow)
         self.assertNotIn("actions: write", workflow)
