@@ -82,7 +82,7 @@ The next checkpoint must inspect the actual schedule-triggered capture and its q
 
 ## Residual factory-wide reliability gap — not a blocker to this recovered slot
 
-The independent external scheduler, dedicated GitHub App dispatch credential and watchdog in a separate failure domain remain `UNCONFIGURED / DEGRADED`. Do not claim `DELIVERY_VERIFIED`. The per-slot recovery state is `RECOVERED` because the first-agent fallback succeeded and a second wake-up proved idempotent reuse. These states are deliberately separate. Future time-sensitive work must continue to use the first-authorized-agent fallback when no reliable scheduler is provisioned; an unresolved external scheduler gap must not stall independent safe research.
+The independent external scheduler, dedicated GitHub App dispatch credential and independent watchdog in a separate failure domain remain `UNCONFIGURED / DEGRADED`. The independent watchdog remains a mandatory requirement for any future externally scheduled deployment. Do not claim `DELIVERY_VERIFIED`; per-slot recovery and external scheduler delivery are separate states. **Do not wait for the next GitHub cron tick** on future due work; use the first authorized agent wake-up fallback. The per-slot recovery state is `RECOVERED` because the first-agent fallback succeeded and a second wake-up proved idempotent reuse. These states are deliberately separate. Future time-sensitive work must continue to use the first-authorized-agent fallback when no reliable scheduler is provisioned; an unresolved external scheduler gap must not stall independent safe research.
 
 ## Stop conditions and handoff
 
