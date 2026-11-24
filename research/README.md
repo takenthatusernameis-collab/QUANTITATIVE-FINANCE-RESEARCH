@@ -47,7 +47,7 @@ Each active workstream has its own difficulty tier, start timestamp, cycle budge
 - Each cancelled run receives a durable queue-incident issue with status `QUEUE_CANCELLED / RETRY_REQUIRED`. If cancellation cannot be confirmed, the original is recorded `CANCELLATION_BLOCKED / ORPHANED_POSSIBLE_EXECUTION` and the next agent must launch exactly one materially different, independently isolated alternative as `ALTERNATIVE_ATTEMPT_ACTIVE`.
 - Check open issues with the title prefix `[QFR queue guardian]` at the start of each agent cycle. Handle cancellation-blocked issues before creating new overlapping work. Keep run IDs and attempt lineage in the task record.
 - The harmless command `/qfr-queue-guardian-dry-run` on control PR #2 executes the scanner without cancellation or issue creation. The scheduled workflow is the live enforcement path; it requires only `actions: write`, `contents: read` and `issues: write` for the repository.
-- Research-test CI is serialized with a bounded queue. The queue guardian only handles the two paths explicitly mapped in `research/queue_guardian.py`; unknown workflows are never cancelled until deliberately reviewed and allowlisted.
+- Research-test CI is serialized with a bounded queue. The queue guardian handles only the four paths explicitly mapped in `research/queue_guardian.py`: ETH/BTC research, research tests, the trusted Binance archive cache warmer, and the read-only Binance Spot dynamic-universe audit. The latter has its own `binance-spot-universe-audit-main` concurrency group and exact control-PR actor/command gate. Unknown workflows are never cancelled until deliberately reviewed and allowlisted.
 
 ### Alternative-attempt isolation
 
