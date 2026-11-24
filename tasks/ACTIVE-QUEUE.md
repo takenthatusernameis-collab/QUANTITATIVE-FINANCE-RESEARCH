@@ -1,7 +1,9 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-24 01:42 UTC  
-**Single canonical active task:** [First Scheduled Holdout Run Validation](PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md).  
+**Updated:** 2026-11-24  
+**Canonical queue:** this file remains the single active-work index; it may contain one primary critical-path task plus independently admitted parallel workstreams.  
+**Primary active workstream:** [First Scheduled Holdout Run Validation](PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md).  
+**Additional admitted parallel workstreams:** none currently. The new policy enables safe parallel work but does not itself create or dispatch another task.  
 **Queued successor (not active until current task closes):** [Post-Holdout Research Environment and Portfolio Review](POST-HOLDOUT-RESEARCH-ENVIRONMENT-AND-PORTFOLIO-REVIEW.md).
 
 ## Repository governance upgrade — completed 2026-11-24
