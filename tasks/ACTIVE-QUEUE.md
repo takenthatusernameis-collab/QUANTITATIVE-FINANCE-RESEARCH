@@ -19,7 +19,7 @@
 - **difficulty_assessment:** data novelty 2 (full current catalogue and archive-index discovery are new); methodology 2 (historical/delisted membership must be distinguished from current catalogue); integration 2 (bounded manifest/parser/test work); statistical validation 1 (no strategy statistics); compute/operations 1 (strict request/object/byte caps). Total 8 / MEDIUM.
 - **started_at_utc:** `2026-11-24T12:28:44Z`
 - **expires_at_utc:** `2026-11-29T12:28:44Z` (five-day MEDIUM ceiling; earlier than absolute deadline 2026-12-02T17:30:00Z).
-- **max_cycles / cycles_used:** 4 / 2 (second substantive wake-up checkpoint, 2026-11-24 12:53:20 UTC). The first substantive audit action begins only after this activation record is committed; the earlier of four substantive cycles or expiry controls.
+- **max_cycles / cycles_used:** 4 / 2 (second substantive wake-up checkpoint, 2026-11-24 12:53:20 UTC). The activation record was committed before the first substantive action; the earlier of four substantive cycles or expiry controls.
 - **next action:** inspect the official Binance announcement category's visible history/pagination for both new-pair listings and removals, then reconcile a small deterministic sample of older listing/removal/relisting events against the current catalogue. Do not repeat the 11-object archive sample; at most one archive object remains under the pilot cap.
 
 
