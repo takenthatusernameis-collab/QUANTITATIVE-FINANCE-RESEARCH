@@ -241,7 +241,7 @@ class BinanceSpotUniverseAuditTests(unittest.TestCase):
         self.assertIn("github.event.issue.state == 'open'", workflow)
         self.assertIn("github.event.comment.user.login == 'takenthatusernameis-collab'", workflow)
         self.assertIn("github.event.comment.body == '/qfr-audit-binance-spot-universe'", workflow)
-        self.assertIn("ref: ${{ github.event.repository.default_branch }}", workflow)
+        self.assertIn("ref: ${{ github.sha }}", workflow)
         self.assertIn("persist-credentials: false", workflow)
         self.assertIn("permissions:\\n  contents: read", workflow)
         self.assertNotIn("workflow_dispatch:", workflow)
