@@ -77,8 +77,12 @@ The next checkpoint must inspect the actual schedule-triggered capture and its q
 - [x] A second same-slot owner-authorized wake-up [45373703705](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373703705) returned `idempotent_slot_reuse=true`, verified/reused the same asset IDs and did not create additional release assets.
 - [x] Release immutability and retention are described accurately: `immutable=false`; Release assets have no automatic Actions-artifact TTL but can still be deliberately deleted.
 - [x] Queue-guardian event-driven handoffs [45373479882](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373479882), [45373736534](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373736534) and [45373756502](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373756502) succeeded.
-- [x] Main CI [45373689039](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373689039) passed 320 deterministic tests and the synthetic plumbing smoke test; capture workflow tests passed in both capture runs.
+- [x] Main CI [45375425738](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45375425738) passed 324 deterministic tests in 15.423 seconds and the synthetic plumbing smoke test; capture workflow tests passed in both capture runs.
 - [x] No strategy backtest, empirical strategy evaluation, funding research, paid-data acquisition, venue merge, live trading or capital deployment occurred.
+
+## Interrupted ZIP/sidecar publication recovery — regression-tested 2026-11-24
+
+A second recovery edge is now covered: a capture process can publish its deterministic ZIP and stop before the metadata-only sidecar is uploaded. On the next wake-up, the script locates the existing slot ZIP, checks GitHub's size/SHA-256 metadata, validates the ZIP's embedded slot manifest and both CSV hashes, and reconstructs only the missing sidecar from those verified bytes. It uses the workflow's already-authorized token for the Release upload; without that token it fails closed before downloading the ZIP. It does not fetch or append market data again. The 324-test CI run includes positive reconstruction and no-token regression tests. This crash-window recovery is unit-tested; the live November 24 run did not require it because its sidecar was published successfully.
 
 ## Residual factory-wide reliability gap — not a blocker to this recovered slot
 

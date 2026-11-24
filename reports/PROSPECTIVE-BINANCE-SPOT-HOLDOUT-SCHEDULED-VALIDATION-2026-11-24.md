@@ -139,10 +139,15 @@ A second authorized wake-up posted the same exact command at [PR #2 comment 7128
 
 ### Engineering and guardian verification
 
-- Full main CI [45373689039](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373689039) passed **320 deterministic tests in 14.099 seconds** and the synthetic plumbing smoke test.
+- Full main CI [45375425738](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45375425738) passed **324 deterministic tests in 15.423 seconds** and the synthetic plumbing smoke test.
 - Capture runs 45373419544 and 45373703705 both succeeded. Their event-driven queue-guardian completion handoffs [45373479882](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373479882), [45373736534](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373736534) and [45373756502](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373756502) all succeeded.
 - No strategy backtest, signal/performance inspection, funding access, paid-data acquisition, venue merge, live trading or capital deployment occurred.
 
 ### Final operating disposition
 
 The November 24 data slot is **RECOVERED** and the bounded capture-validation task is **COMPLETE**. The external scheduler, independent watchdog and dedicated dispatch credential remain **UNCONFIGURED / DEGRADED**; the above first-agent recovery must not be misreported as `DELIVERY_VERIFIED` for an external scheduler. Per-slot recovery and scheduler health are separate states. The next ready task is the Post-Holdout Research Environment and Portfolio Review; its timebox begins on its first substantive execution.
+
+
+## Interrupted sidecar-publication recovery hardening — regression-tested 2026-11-24
+
+The final main-branch implementation now handles a partial publication in which the deterministic ZIP exists but its metadata-only sidecar does not. On the next same-slot wake-up it verifies GitHub's ZIP size and SHA-256, the embedded slot identity, each CSV's SHA-256 and readable rows, then reconstructs and uploads only the sidecar using the existing workflow token. It does not refetch market data or publish another ZIP. If the sidecar is absent and no authorized token is available, it fails closed before downloading the ZIP. Positive reconstruction and no-token rejection are included in the final 324-test CI run [45375425738](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45375425738). This is a tested recovery branch, not a fault that occurred during the successful November 24 capture.
