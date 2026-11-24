@@ -80,11 +80,19 @@ class WorkstreamPolicyTests(unittest.TestCase):
 
     def test_workstream_cannot_exceed_its_tier_time_ceiling(self):
         result = assess_workstream_timebox(
-            workstream("too-long", expires_at_utc="2026-01-03T00:00:00Z"),
+            workstream("too-long", expires_at_utc="2026-01-03T00:00:01Z"),
             now_utc="2026-01-01T12:00:00Z",
         )
         self.assertFalse(result["valid"])
         self.assertTrue(any("tier ceiling" in item for item in result["blockers"]))
+
+    def test_workstream_at_exact_tier_time_ceiling_is_valid(self):
+        result = assess_workstream_timebox(
+            workstream("exact-boundary", expires_at_utc="2026-01-03T00:00:00Z"),
+            now_utc="2026-01-01T12:00:00Z",
+        )
+        self.assertTrue(result["valid"], result["blockers"])
+        self.assertEqual(result["tier_max_elapsed_days"], 2)
 
     def test_workstream_cannot_exceed_its_tier_cycle_ceiling(self):
         result = assess_workstream_timebox(
