@@ -515,7 +515,13 @@ class SpotHoldoutCaptureTests(unittest.TestCase):
         }]})
         with self.assertRaisesRegex(ValueError, "size or digest"):
             load_existing_slot_snapshot(session, "owner/repo", "spot-holdout-2026", slot)
-        self.assertEqual(session.get.call_count, 1)
+        # One request reads release metadata; the second downloads the ZIP so its
+        # byte length and SHA-256 can be checked against GitHub's asset metadata.
+        self.assertEqual(session.get.call_count, 2)
+        self.assertEqual(
+            session.get.call_args_list[1].args[0],
+            "https://example.invalid/" + asset_name,
+        )
 
     def test_release_asset_idempotent_reuse_requires_exact_digest_and_size(self):
         payload = b"same-manifest"
