@@ -582,6 +582,13 @@ def load_existing_slot_snapshot(
     if not isinstance(digest, str) or not digest.startswith("sha256:"):
         raise ValueError("Existing capture-slot ZIP has no GitHub SHA-256 digest")
 
+    sidecar = next(
+        (item for item in release.get("assets", []) if item.get("name") == sidecar_name),
+        None,
+    )
+    if sidecar is None and not token:
+        raise ValueError("Existing capture-slot sidecar is missing and no authorized token is available for safe recovery")
+
     zip_response = session.get(asset["browser_download_url"], headers={"Accept": "application/octet-stream"}, timeout=120)
     zip_response.raise_for_status()
     zip_payload = zip_response.content
@@ -614,10 +621,6 @@ def load_existing_slot_snapshot(
                 raise ValueError(f"Existing capture-slot CSV checksum mismatch: {filename}")
             read_csv_rows(payload)
 
-    sidecar = next(
-        (item for item in release.get("assets", []) if item.get("name") == sidecar_name),
-        None,
-    )
     if sidecar is None:
         # The ZIP may have been durably published immediately before an interrupted
         # process stopped. Reconstruct the metadata-only sidecar from the verified ZIP
