@@ -231,6 +231,23 @@ class BinanceSpotUniverseAuditTests(unittest.TestCase):
     def test_negative_control_symbol_is_not_in_seed_catalogue(self):
         self.assertNotIn(audit.NEGATIVE_CONTROL_SYMBOL, audit.SEED_SYMBOLS)
 
+    def test_workflow_is_exact_actor_gated_read_only_and_default_branch_only(self):
+        workflow_path = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "binance-spot-universe-audit.yml"
+        workflow = workflow_path.read_text(encoding="utf-8")
+        self.assertIn("issue_comment:", workflow)
+        self.assertIn("types: [created]", workflow)
+        self.assertIn("github.event.issue.number == 2", workflow)
+        self.assertIn("github.event.issue.pull_request != null", workflow)
+        self.assertIn("github.event.issue.state == 'open'", workflow)
+        self.assertIn("github.event.comment.user.login == 'takenthatusernameis-collab'", workflow)
+        self.assertIn("github.event.comment.body == '/qfr-audit-binance-spot-universe'", workflow)
+        self.assertIn("ref: ${{ github.event.repository.default_branch }}", workflow)
+        self.assertIn("persist-credentials: false", workflow)
+        self.assertIn("permissions:\\n  contents: read", workflow)
+        self.assertNotIn("workflow_dispatch:", workflow)
+        self.assertNotIn("pull_request_target:", workflow)
+        self.assertNotIn("actions: write", workflow)
+        self.assertNotIn("checkout@", workflow.split("Run bounded public-data audit")[1].split("Upload compact")[0])
 
 if __name__ == "__main__":
     unittest.main()
