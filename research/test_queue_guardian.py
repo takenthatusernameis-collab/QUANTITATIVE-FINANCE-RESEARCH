@@ -175,6 +175,7 @@ class QueueDecisionTests(unittest.TestCase):
         )
         for item in (queued, active):
             item["display_title"] = "Authorized Binance Spot universe audit"
+            item["event"] = "issue_comment"
             item["head_branch"] = "main"
             item["head_repository"] = {
                 "full_name": "takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH"
