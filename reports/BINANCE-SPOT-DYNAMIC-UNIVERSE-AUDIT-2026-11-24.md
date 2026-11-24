@@ -1,8 +1,9 @@
 # Binance Spot Dynamic-Universe and Historical-Coverage Audit — checkpoint
 
-**Checkpoint time:** 2026-11-24 12:53:20 UTC  
+**First checkpoint time:** 2026-11-24 12:53:20 UTC
+**Latest checkpoint:** 2026-11-24 13:21 UTC  
 **Workstream:** BINANCE-SPOT-DYNAMIC-UNIVERSE-AUDIT-2026-11-24  
-**Status:** ACTIVE — second substantive wake-up completed; 2 of 4 cycles used.  
+**Status:** ACTIVE — third substantive wake-up completed; 3 of 4 cycles used.  
 **Scope:** public, read-only Binance Spot metadata and archive feasibility. No strategy, backtest, holdout inspection, credentials, paid data or trading.
 
 ## Executive result
@@ -100,7 +101,7 @@ Representative official sources:
 
 The official [Binance Public Data issue #479](https://github.com/binance/binance-public-data/issues/479) remains open as of this checkpoint. It asks for a complete historical Spot symbol manifest and archive-boundary clarification; the inspected issue snapshot contained user follow-ups but no maintainer answer. This is a lead, not proof that no such internal or undocumented record exists.
 
-## 5. Current evidence classification
+## 5. Evidence classification at second checkpoint
 
 | Dimension | Classification | Reason |
 |---|---|---|
@@ -115,7 +116,7 @@ The official [Binance Public Data issue #479](https://github.com/binance/binance
 | Point-in-time membership and listing/delisting dates | UNKNOWN | Current status is not an event history; relisting example demonstrates the distinction |
 | Universe-wide historical archive completeness | UNKNOWN | No complete archive index or exhaustive symbol-month validation |
 
-## 6. Next bounded action
+## 6. Next bounded action at second checkpoint (completed at third checkpoint)
 
 The workstream remains ACTIVE at cycle 2/4. The next wake-up should:
 1. Inspect whether the official Binance announcement category exposes a stable, paginated historical event list for both new-pair listings and removals; use visible documented page behavior only, not undocumented private APIs.
@@ -123,7 +124,58 @@ The workstream remains ACTIVE at cycle 2/4. The next wake-up should:
 3. Do not repeat the 11-object archive sample. At most one archive object remains under the pilot cap; use it only if a pre-listing negative control has a clear, isolated request path.
 4. If no documented completeness guarantee or reproducible event ledger can be established, close INCONCLUSIVE/INFEASIBLE with the exact missing dimensions. Do not admit a strategy or broaden the universe by assumption.
 
-## 7. Engineering verification
+
+## 7. Third wake-up checkpoint — 2026-11-24 13:21 UTC
+
+### Official announcement-category inspection
+
+- The official [New Cryptocurrency Listing category](https://www.binance.com/en/support/announcement/list/48) visibly exposes **231 pages**. Its first page mixes Spot-pair announcements with token listings, Futures products, bStocks and stock-options notices; it is not a Spot-pair-only event feed.
+- The official [Delisting category](https://www.binance.com/en/support/announcement/list/0161/) visibly exposes **45 pages**. Its first page mixes Spot pair removals with Margin, Futures, token and Binance Alpha removals; it is not a Spot-pair-only event feed.
+- The visible controls establish that both categories are multi-page. The available read-only inspection surface did not expose usable page-number links: attempts to open page 2 or a page-number variant were inaccessible, so neither page 2 nor the oldest page was verified. Binance's [delisting FAQ](https://www.binance.com/en/support/faq/detail/2068a768949b4ccab0cd7ac962465ddd) explains where users can view notices but provides no historical-retention or completeness guarantee.
+- **Scope deviation recorded:** while identifying the public page feed, one publicly reachable but undocumented BAPI list endpoint was opened. Its response is excluded from accepted evidence; no completeness or pagination conclusion relies on it, and it must not be used again. Accepted category evidence above comes from the visible support pages; accepted event evidence below comes from individual official announcement pages.
+- Result: visible pagination is **SAMPLE_ONLY** evidence of a multi-page interface, not proof of complete historical retention, stable supported pagination, or a complete pair-lifecycle ledger.
+
+### Bounded older listing/removal/relisting sample
+
+The comparison uses the retained 2026-11-24 catalogue snapshot: 3,751 normalized symbols, retrieved at `2026-11-24T12:47:52.814026Z`; raw `exchangeInfo` SHA-256 `1547b62532d008d7e2ca92a64d3f60be23d32552a675a96b82f67f515d2b5d53`; normalized catalogue SHA-256 `86cfc7b96303d1b8c3397469ca4524328109425fb89b24c75e7ca7d572ceda47`.
+
+| Official event | Pair symbols checked | Current `exchangeInfo` status |
+|---|---|---|
+| 2022-01-07 additions ([official notice](https://www.binance.com/en/support/announcement/detail/6f8c41c26da04752a7bba9cf9a9803d4)) | `ALICEBNB`, `ATOMTRY`, `ETHUST`, `GALAAUD`, `LRCBNB`, `ONEETH`, `OOKIBNB` | `ATOMTRY` = TRADING; other 6 = BREAK |
+| 2022-04-22 UST/BTC removal and BTC/UST opening ([official notice](https://www.binance.com/en/support/announcement/detail/c24b77f6b7f14f618676f416edfb07aa)) | `USTBTC` removed; `BTCUST` opened | Both = BREAK |
+| 2022-09-16 additions ([official notice](https://www.binance.com/en/support/announcement/detail/f8317be10f3743b4b303c6596165d73b)) | `GASBUSD`, `LUNATRY`, `NEBLBUSD`, `PROSBUSD`, `VIBBUSD` | `LUNATRY` = TRADING; other 4 = BREAK |
+| 2022-10-14 additions ([official notice](https://www.binance.com/en/support/announcement/detail/bbd519b952db40249b4ecc4643cb9021)) | `AGIXBUSD`, `NEBLUSDT`, `SNTBUSD` | All 3 = BREAK |
+| 2024-12-27 removal followed by 2025-11-26 reopening ([removal](https://www.binance.com/en/support/announcement/detail/f1b4fd16b90947aeaa25721940c4b594); [reopening](https://www.binance.com/en/support/announcement/detail/52d33c3e07344e51848368a67b8e584c)) | `ACMTRY` | TRADING |
+
+All **18 unique** sampled pair records were present in the current catalogue: **15 BREAK and 3 TRADING**. This is a purposive, deterministic, non-exhaustive event sample, not a random or complete historical census. It shows that selected old pair records remain in the current response; it does not establish that every historical pair is retained.
+
+The ACM/TRY sequence confirms that a current TRADING record can coexist with a prior removal interval and later reopening. The UST/BTC event also demonstrates that `USTBTC` and `BTCUST` are distinct directed pair symbols; both current BREAK records do not encode their historical event dates. Current status is not a lifecycle ledger.
+
+### Remaining archive negative-control allowance
+
+One pre-listing candidate URL (`USDTAED`, 1h, 2026-05) was attempted through the web inspection surface, but the tool returned an inaccessible-page error without an HTTP status, response body or byte count. This is **not** a verified 404 and is not accepted as a negative control. No repeat or alternate archive request was made, and no additional archive bytes are evidenced. Do not spend another request on this route during the remaining cycle.
+
+## 8. Updated evidence classification — third checkpoint
+
+| Dimension | Classification | Reason |
+|---|---|---|
+| Current Spot catalogue | VERIFIED for the 2026-11-24 snapshot | 3,751/3,751 normalized; raw and normalized hashes retained |
+| Current symbol identity/status/quote/permissions | VERIFIED for this snapshot | All returned records normalized |
+| Archive prefix listing and pagination | UNAVAILABLE in tested form | The earlier ListObjectsV2 route returned HTML rather than XML |
+| Direct monthly archive objects | SAMPLE_ONLY | Four accepted symbol-month samples; one incomplete sample |
+| Announcement category visible pagination | SAMPLE_ONLY | 231 and 45 visible pages; page 2/oldest page and complete retention not verified |
+| Older listing/removal/relisting event reconciliation | SAMPLE_ONLY | 18 selected pairs checked against the retained catalogue snapshot |
+| Complete delisted-symbol inventory | UNKNOWN | No complete authoritative event ledger or exhaustive reconciliation |
+| Point-in-time listing/delisting/relisting membership | UNKNOWN | Current status does not encode event dates or suspension intervals |
+| Universe-wide historical archive completeness | UNKNOWN | No complete archive index or exhaustive symbol-month validation |
+
+**Decision:** the official announcement surfaces improve the evidence for selected historical events but do not satisfy the completeness requirement. No broader Spot universe or successor strategy is ready.
+
+## 9. Next bounded action — final cycle
+
+Use cycle 4 only for a final independent review of the existing evidence and any supported, visible UI route that can reach older category pages without undocumented endpoints. If no documented completeness guarantee or reproducible complete lifecycle ledger is available, close this workstream **INCONCLUSIVE/INFEASIBLE** with the exact unresolved dimensions. Do not repeat the 11-object archive sample, retry the inaccessible pre-listing object, call undocumented BAPI endpoints, or start a strategy.
+
+## 10. Engineering verification
 
 Main CI [45397358320](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45397358320) passed on commit c67b6d686475c5bbc96c43516bcd248d442d020e:
 - 346 deterministic tests passed in 15.555 seconds.
