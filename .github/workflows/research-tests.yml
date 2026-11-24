@@ -23,9 +23,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: research-tests-main
-  queue: max
-  cancel-in-progress: false
+  # Keep main and each PR independent; newer commits supersede stale CI on the same ref.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:

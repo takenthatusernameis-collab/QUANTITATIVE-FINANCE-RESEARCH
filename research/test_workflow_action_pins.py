@@ -25,5 +25,13 @@ class WorkflowActionPinTests(unittest.TestCase):
         self.assertEqual(failures, [], "\n".join(failures))
 
 
+    def test_research_ci_deduplicates_stale_runs_per_ref(self):
+        workflow = (Path(__file__).resolve().parent.parent / ".github" / "workflows" / "research-tests.yml").read_text(encoding="utf-8")
+        self.assertIn("github.event.pull_request.number || github.ref", workflow)
+        self.assertIn("cancel-in-progress: true", workflow)
+        self.assertNotIn("group: research-tests-main", workflow)
+        self.assertNotIn("queue: max", workflow)
+
+
 if __name__ == "__main__":
     unittest.main()
