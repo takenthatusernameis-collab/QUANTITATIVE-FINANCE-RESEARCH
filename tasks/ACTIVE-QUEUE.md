@@ -1,6 +1,6 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-24 01:41 UTC  
+**Updated:** 2026-11-24 01:42 UTC  
 **Single canonical active task:** [First Scheduled Holdout Run Validation](PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md).  
 **Queued successor (not active until current task closes):** [Post-Holdout Research Environment and Portfolio Review](POST-HOLDOUT-RESEARCH-ENVIRONMENT-AND-PORTFOLIO-REVIEW.md).
 

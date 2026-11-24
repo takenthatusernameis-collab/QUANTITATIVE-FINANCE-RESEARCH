@@ -65,7 +65,7 @@ The documentation approach follows useful reproducibility and supply-chain patte
 
 ## 6. Difficulty and timebox calibration
 
-This governance task was assessed as **HIGH** implementation complexity because it changed multiple governing documents, machine-checkable policy, tests, workflows and handoff structure. The work was completed in a bounded set of implementation/validation cycles. The validation result does not extend any research experiment's deadline.
+**Bootstrap exception:** this governance project created the mandatory timebox standard while the project was already under way. Its scope is retrospectively characterized as HIGH because it changed multiple governing documents, machine-checkable policy, tests, workflows and handoff structure; however, it did **not** have a prospectively frozen difficulty score and deadline. Do not treat this project as evidence of successful prospective timebox calibration. This gap is explicitly carried forward as a lesson: every successor must score difficulty and freeze expiry before implementation.
 
 The standard now scores five dimensions (data novelty, methodology, integration, statistical validation, compute/operations), each 1–3:
 - LOW: 5–7 total; at most 2 substantive cycles / 2 elapsed days.
