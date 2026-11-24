@@ -26,6 +26,7 @@ Lower-level documents may impose stricter controls but may not weaken higher-lev
 | Discover eligible assets/instruments | [Asset-universe discovery policy](ASSET-UNIVERSE-DISCOVERY-AND-SCOPE-POLICY.md) |
 | Record prior-task learning | [Retrospective and calibration](PROJECT-RETROSPECTIVE-AND-ADMIN-CALIBRATION.md) |
 | Create a model timebox | [Timebox policy](MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md) |
+| Admit independent parallel work | [Parallel workstream policy](PARALLEL-RESEARCH-WORKSTREAM-AND-EXPIRY-POLICY.md) and [deterministic checks](../research/workstream_policy.py) |
 | Inspect the ETH/BTC pipeline | [Research pipeline README](../research/README.md) |
 | Validate the current Spot capture | [First scheduled holdout validation](../tasks/PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md) |
 | Plan the next project after capture validation | [Post-holdout environment and portfolio review](../tasks/POST-HOLDOUT-RESEARCH-ENVIRONMENT-AND-PORTFOLIO-REVIEW.md) |
