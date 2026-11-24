@@ -36,7 +36,7 @@ The current assignment is still [First Scheduled Holdout Run Validation](tasks/P
 6. [Repository Hygiene and Context Compaction](docs/REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md)
 7. [ChatGPT-to-GitHub Dispatch](docs/CHATGPT-WORKFLOW-DISPATCH.md)
 
-Detailed historical context from the former README is preserved in [the November 23 README snapshot](../archive/README-HISTORICAL-2026-11-23.md). Historical queue entries are preserved in [the November 23 active-queue snapshot](../archive/ACTIVE-QUEUE-HISTORICAL-2026-11-23.md).
+Detailed historical context from the former README is preserved in [the November 23 README snapshot](archive/README-HISTORICAL-2026-11-23.md). Historical queue entries are preserved in [the November 23 active-queue snapshot](archive/ACTIVE-QUEUE-HISTORICAL-2026-11-23.md).
 
 ## Repository map
 
