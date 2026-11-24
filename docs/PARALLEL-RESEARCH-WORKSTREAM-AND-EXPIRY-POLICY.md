@@ -75,8 +75,10 @@ Expiry applies only to the affected workstream. Other admitted workstreams conti
 - A workstream may continue while another is blocked only if it does not rely on the blocked output, share a conflicting resource or expose a confirmatory holdout.
 - Do not let parallel work starve the highest-priority assignment or exceed observed infrastructure/provider limits.
 
-## 5. Current activation
+## 5. Current activation and status source
 
-The existing **First Scheduled Holdout Run Validation** remains the primary active workstream, with its existing scope, deadline and acceptance criteria unchanged. The queued **Post-Holdout Research Environment and Portfolio Review** remains dependency-gated and must not be started early.
+Live workstream status is maintained exclusively in [the canonical active queue](../tasks/ACTIVE-QUEUE.md), not in this generic policy. The First Scheduled Holdout Run Validation closed as RECOVERED on 2026-11-24. The Post-Holdout Research Environment and Portfolio Review then completed on 2026-11-24 after one of its two allowed LOW-tier cycles. Its evidence-selected successor is [Binance Spot Dynamic-Universe and Historical-Coverage Feasibility Audit](../tasks/BINANCE-SPOT-DYNAMIC-UNIVERSE-AND-HISTORICAL-COVERAGE-AUDIT.md), currently READY / MEDIUM. No workstream is active at this checkpoint. Future agents must read the live queue rather than infer current task status from this policy.
 
-This policy enables future independent workstreams; it does not itself create or dispatch a new research experiment. No additional parallel workstream is currently admitted by this policy until a concrete task passes the admission checks and has its own frozen timebox.
+The successor has a maximum of four substantive cycles / five elapsed days and an absolute deadline of 2026-12-02 17:30 UTC. Its exact start/expiry and cycle counter must be frozen in the canonical queue before the first substantive action. It is an environment-enabling audit, not permission to start a strategy.
+
+This policy enables independent workstreams but does not itself create or dispatch one. Each additional workstream must pass the admission checks and receive its own frozen timebox before substantive work begins.
