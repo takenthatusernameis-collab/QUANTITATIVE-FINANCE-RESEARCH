@@ -158,7 +158,7 @@ class SpotHoldoutCaptureTests(unittest.TestCase):
         session.get.return_value = Response(status=451)
         with self.assertRaises(requests.HTTPError):
             fetch_klines(session, "ETHUSDT", CAPTURE_START_MS, CAPTURE_START_MS)
-        self.assertEqual(session.get.call_count, 2)
+        self.assertEqual(session.get.call_count, 1)
 
     def test_previous_snapshot_manifest_and_file_hashes_are_verified(self):
         start = CAPTURE_START_MS
