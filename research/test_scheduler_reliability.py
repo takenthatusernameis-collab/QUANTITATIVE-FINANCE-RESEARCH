@@ -72,5 +72,22 @@ class ExternalSchedulerReliabilityTests(unittest.TestCase):
             self.assertIn(phrase, policy)
 
 
+    def test_general_repository_tasks_keep_direct_agent_last_resort(self):
+        factory_map = (ROOT / "docs" / "QUANTITATIVE-RESEARCH-FACTORY-DESIGN-MAP.md").read_text(encoding="utf-8").lower()
+        policy = POLICY.read_text(encoding="utf-8").lower()
+        self.assertIn("automation-first does not mean automation-only", factory_map)
+        self.assertIn("this rule applies beyond captures", factory_map)
+        for phrase in (
+            "general repository rule",
+            "first agent that resumes the task",
+            "smallest safe, independently verifiable unit",
+            "research implementation",
+            "data audits",
+            "empirical validation",
+            "repository maintenance",
+            "not a bypass of authorization",
+        ):
+            self.assertIn(phrase, policy)
+
 if __name__ == "__main__":
     unittest.main()
