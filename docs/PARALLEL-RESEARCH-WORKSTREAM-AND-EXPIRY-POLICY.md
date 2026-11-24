@@ -77,6 +77,8 @@ Expiry applies only to the affected workstream. Other admitted workstreams conti
 
 ## 5. Current activation and status source
 
-Live workstream status is maintained exclusively in [the canonical active queue](../tasks/ACTIVE-QUEUE.md), not in this generic policy. The former First Scheduled Holdout Run Validation closed as RECOVERED on 2026-11-24; the Post-Holdout Research Environment and Portfolio Review is now active with its own frozen LOW-tier clock. Future agents must read the live queue rather than infer current task status from this policy.
+Live workstream status is maintained exclusively in [the canonical active queue](../tasks/ACTIVE-QUEUE.md), not in this generic policy. The First Scheduled Holdout Run Validation closed as RECOVERED on 2026-11-24. The Post-Holdout Research Environment and Portfolio Review then completed on 2026-11-24 after one of its two allowed LOW-tier cycles. Its evidence-selected successor is [Binance Spot Dynamic-Universe and Historical-Coverage Feasibility Audit](../tasks/BINANCE-SPOT-DYNAMIC-UNIVERSE-AND-HISTORICAL-COVERAGE-AUDIT.md), currently READY / MEDIUM. No workstream is active at this checkpoint. Future agents must read the live queue rather than infer current task status from this policy.
+
+The successor has a maximum of four substantive cycles / five elapsed days and an absolute deadline of 2026-12-02 17:30 UTC. Its exact start/expiry and cycle counter must be frozen in the canonical queue before the first substantive action. It is an environment-enabling audit, not permission to start a strategy.
 
 This policy enables independent workstreams but does not itself create or dispatch one. Each additional workstream must pass the admission checks and receive its own frozen timebox before substantive work begins.
