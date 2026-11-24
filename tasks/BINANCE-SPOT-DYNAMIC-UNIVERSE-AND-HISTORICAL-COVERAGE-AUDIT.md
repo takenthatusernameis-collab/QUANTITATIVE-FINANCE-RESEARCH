@@ -1,7 +1,7 @@
 # Binance Spot Dynamic-Universe and Historical-Coverage Feasibility Audit
 
 **Project ID:** `BINANCE-SPOT-DYNAMIC-UNIVERSE-AUDIT-2026-11-24`  
-**Status:** ACTIVE — activated 2026-11-24; the exact start, expiry and cycle counter are frozen in the canonical active queue.  
+**Status:** ACTIVE — second substantive wake-up checkpoint completed 2026-11-24; 2 of 4 cycles used. The canonical active queue remains authoritative for the frozen start, expiry and cycle counter.  
 **Priority:** P2 — environment-enabling prerequisite for any broader asset-level research.  
 **Project kind:** `environment_enabling`; this is not a strategy hypothesis or backtest.
 
@@ -28,7 +28,7 @@ This task tests whether a broader, dynamically discovered universe can be eviden
 - **workstream_id:** `BINANCE-SPOT-DYNAMIC-UNIVERSE-AUDIT-2026-11-24`
 - **started_at_utc:** `2026-11-24T12:28:44Z`
 - **expires_at_utc:** `2026-11-29T12:28:44Z`
-- **max_cycles / cycles_used:** 4 / 0 at activation.
+- **max_cycles / cycles_used:** 4 / 2 at the 2026-11-24 12:53:20 UTC checkpoint. The initial catalogue and direct-archive probes were completed in the first substantive wake-up; the present artifact and lifecycle reconciliation is the second. Workflow-run count is not used as a substitute for the agent-cycle count.
 - **Activation authority:** canonical [active queue](ACTIVE-QUEUE.md); this task's MEDIUM score and five-day ceiling remain unchanged.
 - **No strategy, holdout evaluation, paid data, credentials, or trading authorization is created by activation.**
 
@@ -50,8 +50,23 @@ Run [45395322993](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FIN
 - 3,751/3,751 symbols normalized with zero parse errors; 1,376 `TRADING`, 2,375 `BREAK`; 50 quote assets; `isSpotTradingAllowed`: 3,711 true and 40 false. `BREAK` is a current status value, not proof of a delisting date or complete historical universe.
 - The same run's single ListObjectsV2 prefix request returned HTTP 200, `text/html`, 2,712 bytes, rather than an XML `ListBucketResult`. Pagination and archive symbol-directory enumeration are therefore **not verified**. The affected listing/index route is stopped; do not repeat it or probe alternate directory-index paths without a separately justified route.
 - The first implementation failed because the XML parser exception was not caught. The uploaded artifact [14920004516](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45395322993/artifacts/14920004516) has digest `sha256:8386d14ba23f79bc7e418f5ff0de2b9f514b9b00df0416f8694da3fe4bb390d7`; it contains the manifest and normalized catalogue only. No archive object was downloaded and no klines inception query was made in that run.
-- The parser now converts non-XML index responses into a recorded schema limitation, and the runner audit skips that known failed index route. The next run tests direct documented monthly object URLs as a distinct route and uses a reproducible sample containing an inactive status stratum plus an active non-seed quote-asset stratum where available.
-- CI run [45395708539](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45395708539) passed the then-current deterministic tests and synthetic smoke test. Subsequent sample/index changes are newer than that tested SHA and must be covered by a fresh CI run before the final task report.
+- The parser now converts non-XML index responses into a recorded schema limitation, and the runner audit skips that known failed index route. The direct documented monthly-object route was tested in run [45396976562](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45396976562); see the second-wake-up checkpoint report below.
+- CI run [45397358320](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45397358320) covers the current code on commit c67b6d and passed 346 deterministic tests plus the synthetic smoke test.
+
+
+## Second-wake-up checkpoint — 2026-11-24 12:53:20 UTC
+
+Full evidence and exact classifications: [Binance Spot Dynamic-Universe and Historical-Coverage Audit checkpoint](../reports/BINANCE-SPOT-DYNAMIC-UNIVERSE-AUDIT-2026-11-24.md).
+
+- Current exchangeInfo snapshot: 3,751/3,751 unique symbols normalized, zero parse errors; 1,376 TRADING, 2,375 BREAK, 50 quote assets, 3,711 spot-allowed and 40 not spot-allowed. Raw response SHA-256: 1547b62532d008d7e2ca92a64d3f60be23d32552a675a96b82f67f515d2b5d53.
+- Run [45396976562](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45396976562), artifact [14920684215](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45396976562/artifacts/14920684215), contains only manifest.json and normalized catalogue.json. The normalized catalogue SHA-256 is 86cfc7b96303d1b8c3397469ca4524328109425fb89b24c75e7ca7d572ceda47; artifact SHA-256 is f6749853ea829a013490e9af394d6b24e39a51e96433cbcfee7ed9070dcd5e66.
+- Direct monthly object checks used 5 metadata/API requests, 11 unique archive objects, 16 HTTP requests total and 155,377 downloaded archive bytes. BTCUSDT 2026-10, ETHUSDT 2026-10, USDTAED 2026-10 and BTCUSDT 2020-01 passed 744-row monthly checks and checksum validation. USDCAED 2026-10 was explicitly rejected as a complete month: four rows, 740 missing hours and one close-time alignment error; its first-kline query was 2026-10-28 08:00 UTC. QFRNOTREALUSDT returned the expected 404. No pre-listing archive negative-control request was made.
+- A non-exhaustive cross-check of 106 pair symbols sampled from 17 official pair-removal notices (2023–2026) found 105 current catalogue records in BREAK and one, ACMTRY, in TRADING after its 2025 relisting. An additional 20 current catalogue records associated with tokens named in 2018/2019 token-delisting notices were all present in BREAK. This is SAMPLE_ONLY evidence of retention, not a complete historical symbol inventory.
+- The official announcement category is a possible event source, but complete historical pagination and listing/removal/relisting coverage are not verified. The current catalogue has no point-in-time lifecycle dates. The archive prefix-list request remains unusable in the tested form (HTTP 200 HTML rather than XML); direct object URLs are verified only for the bounded sample.
+- Latest main CI [45397358320](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45397358320) passed 346 deterministic tests in 15.555 seconds and the synthetic pipeline smoke test on commit c67b6d686475c5bbc96c43516bcd248d442d020e. This is engineering evidence, not data or strategy acceptance.
+- Current classification: current catalogue VERIFIED; direct archive objects SAMPLE_ONLY; sampled delisted-pair presence SAMPLE_ONLY; complete delisted inventory UNKNOWN; point-in-time membership and universe-wide archive completeness UNKNOWN. No strategy is admitted.
+
+**Next action:** perform one bounded, read-only check of the official announcement category's visible pagination/history for both new-pair listings and removals, then reconcile a small deterministic sample of older listing/removal/relisting events against the current catalogue. Do not repeat the 11-object archive sample. At most one archive object remains under the pilot cap; use it only if a single isolated pre-listing negative-control request can be made without rerunning the existing sample. If no documented completeness guarantee or reproducible lifecycle ledger is established, close INCONCLUSIVE/INFEASIBLE by the frozen cycle/time limit; do not start a strategy.
 
 ## Objective
 
