@@ -34,9 +34,10 @@ The current assignment is still [First Scheduled Holdout Run Validation](tasks/P
 2. [Evidence-First Project Lifecycle](docs/RESEARCH-ENVIRONMENT-FIRST-PROJECT-LIFECYCLE.md)
 3. [Project Retrospective and Admin-Agent Calibration](docs/PROJECT-RETROSPECTIVE-AND-ADMIN-CALIBRATION.md)
 4. [Adaptive Autonomous Research Execution](docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md)
-5. [Model Implementation Timebox Policy](docs/MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md)
-6. [Repository Hygiene and Context Compaction](docs/REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md)
-7. [ChatGPT-to-GitHub Dispatch](docs/CHATGPT-WORKFLOW-DISPATCH.md)
+5. [Parallel Research Workstreams and Per-Workstream Expiry Policy](docs/PARALLEL-RESEARCH-WORKSTREAM-AND-EXPIRY-POLICY.md)
+6. [Model Implementation Timebox Policy](docs/MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md)
+7. [Repository Hygiene and Context Compaction](docs/REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md)
+8. [ChatGPT-to-GitHub Dispatch](docs/CHATGPT-WORKFLOW-DISPATCH.md)
 
 Detailed historical context from the former README is preserved in [the November 23 README snapshot](archive/README-HISTORICAL-2026-11-23.md). Historical queue entries are preserved in [the November 23 active-queue snapshot](archive/ACTIVE-QUEUE-HISTORICAL-2026-11-23.md).
 
