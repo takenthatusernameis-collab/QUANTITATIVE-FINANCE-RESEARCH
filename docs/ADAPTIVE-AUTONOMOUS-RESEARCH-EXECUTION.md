@@ -53,7 +53,7 @@ Apply [Parallel Research Workstreams and Per-Workstream Expiry Policy](PARALLEL-
 
 Before any substantive action, brainstorm a compact adaptive antifragile plan from the live context: current tasks, run/incident state, recent failures, available tools and permissions, costs, independent work and long-term impact. Generate at least three materially different approaches for a significant blocker where applicable; rank them and define success criteria. Record the plan in the existing task handoff, not a new per-session document.
 
-Then perform the mandatory conservative repository cleanup in [Repository Hygiene and Context Compaction](REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md), before the primary meta-improvement or research task. Keep one canonical active task pointer. Remove disposable scratch/build clutter and stale active instructions, but preserve historical evidence, source data needed for reproducibility, checksums, manifests, run logs, incident records and research conclusions. Never delete active work or force a clean tree at the expense of provenance.
+Then perform the mandatory conservative repository cleanup in [Repository Hygiene and Context Compaction](REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md), before the primary meta-improvement or research task. Keep one canonical active-queue pointer; the queue may track a primary critical-path assignment plus admitted independent workstreams. Remove disposable scratch/build clutter and stale active instructions, but preserve historical evidence, source data needed for reproducibility, checksums, manifests, run logs, incident records and research conclusions. Never delete active work or force a clean tree at the expense of provenance.
 
 ## Non-negotiable principles
 
