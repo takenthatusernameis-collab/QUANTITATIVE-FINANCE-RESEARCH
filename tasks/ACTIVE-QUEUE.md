@@ -1,10 +1,26 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-24 10:40 UTC  
+**Updated:** 2026-11-24 12:28 UTC  
 **Canonical queue:** this file remains the single active-work index; it may contain one primary critical-path task plus independently admitted parallel workstreams.  
-**Currently executing workstreams:** none at this checkpoint.  
-**Next ready workstream:** [Binance Spot Dynamic-Universe and Historical-Coverage Feasibility Audit](BINANCE-SPOT-DYNAMIC-UNIVERSE-AND-HISTORICAL-COVERAGE-AUDIT.md) — READY; MEDIUM; maximum 4 cycles / 5 elapsed days; exact UTC start/expiry to be frozen before its first substantive action; absolute deadline 2026-12-02 17:30 UTC.  
-**Additional admitted parallel workstreams:** none currently.
+**Currently executing workstreams:** 1.  
+**Primary active workstream:** [Binance Spot Dynamic-Universe and Historical-Coverage Feasibility Audit](BINANCE-SPOT-DYNAMIC-UNIVERSE-AND-HISTORICAL-COVERAGE-AUDIT.md) — ACTIVE; MEDIUM; cycle 0/4; expires 2026-11-29 12:28:44 UTC.  
+**Additional admitted parallel workstreams:** none.
+
+## Active workstream record — Binance Spot dynamic-universe audit
+
+- **workstream_id:** `BINANCE-SPOT-DYNAMIC-UNIVERSE-AUDIT-2026-11-24`
+- **status / priority:** active / P2 primary environment-enabling critical path
+- **objective:** verify whether the complete current Binance Spot catalogue and official public archive/index surfaces can support a dynamically discovered historical universe, including product inception, delisted-symbol and point-in-time membership limitations; no strategy selection or backtest.
+- **dependencies:** `post-holdout-environment-review` (completed 2026-11-24).
+- **independence rationale:** the predecessor portfolio/environment review is complete; no other workstream is active; this audit uses only public read-only market metadata/archive inputs and does not consume or inspect a confirmatory holdout.
+- **write_scope:** `tasks/ACTIVE-QUEUE.md`, `tasks/BINANCE-SPOT-DYNAMIC-UNIVERSE-AND-HISTORICAL-COVERAGE-AUDIT.md`, `research/binance_spot_universe_audit.py`, `research/test_binance_spot_universe_audit.py`, `reports/BINANCE-SPOT-DYNAMIC-UNIVERSE-AUDIT-2026-11-24.md`.
+- **exclusive_resource_keys:** `binance-public-api-50-request-budget`, `binance-vision-12-archive-object-250mb-budget`, `main-branch-integration`.
+- **confirmatory_holdout_ids:** none.
+- **difficulty_assessment:** data novelty 2 (full current catalogue and archive-index discovery are new); methodology 2 (historical/delisted membership must be distinguished from current catalogue); integration 2 (bounded manifest/parser/test work); statistical validation 1 (no strategy statistics); compute/operations 1 (strict request/object/byte caps). Total 8 / MEDIUM.
+- **started_at_utc:** `2026-11-24T12:28:44Z`
+- **expires_at_utc:** `2026-11-29T12:28:44Z` (five-day MEDIUM ceiling; earlier than absolute deadline 2026-12-02T17:30:00Z).
+- **max_cycles / cycles_used:** 4 / 0. The first substantive audit action begins only after this activation record is committed; the earlier of four substantive cycles or expiry controls.
+- **next action:** perform the bounded public catalogue/index feasibility probe, preserving raw inputs ephemerally and committing only manifests, hashes and a concise evidence report.
 
 ## Repository governance upgrade — completed 2026-11-24
 
