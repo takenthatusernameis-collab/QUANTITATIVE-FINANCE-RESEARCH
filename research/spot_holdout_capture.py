@@ -676,6 +676,7 @@ def write_snapshot(
     slot = capture_slot(now_ms)
     existing_slot = load_existing_slot_snapshot(session, repo, RELEASE_TAG, slot)
     if existing_slot is not None:
+        existing_slot["idempotent_slot_reuse"] = True
         manifest_path = output_dir / "manifest.json"
         manifest_path.write_text(json.dumps(existing_slot, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         return existing_slot

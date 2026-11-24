@@ -28,13 +28,14 @@ class ExternalSchedulerReliabilityTests(unittest.TestCase):
         self.assertIn("idempotency key", task)
         self.assertIn("independent watchdog", task)
         self.assertIn("do not wait for the next github cron tick", task)
-        self.assertNotIn("next natural capture opportunity", task)
+        self.assertIn("first authorized agent wake-up", task)
+        self.assertIn("snapshot-slot-2026-11-24.zip", task)
 
     def test_policy_requires_first_agent_wakeup_fallback_when_automation_is_missing(self):
         policy = POLICY.read_text(encoding="utf-8").lower()
         for phrase in (
             "first authorized agent",
-            "after the task's explicit due time",
+            "after a task's explicit due time",
             "direct-agent fallback",
             "stable task/slot idempotency key",
             "do not wait for another attempt",
