@@ -840,11 +840,11 @@ def run_audit(output_dir: Path, run_id: str | None = None) -> dict:
                 and len(normalized_records) == manifest["catalogue"].get("symbol_count_reported")
                 else "SAMPLE_ONLY"
             ),
-            "archive_symbol_directory_index": "VERIFIED" if index_complete else "UNKNOWN",
+            "archive_symbol_directory_index": "VERIFIED" if index_complete else "UNAVAILABLE/RESTRICTED",
             "archive_month_key_index_for_sample": (
                 "SAMPLE_ONLY"
                 if manifest["archive_index"].get("sample_symbol_month_indexes")
-                else "UNKNOWN"
+                else "UNAVAILABLE/RESTRICTED"
             ),
             "sampled_monthly_archive_integrity": (
                 "SAMPLE_ONLY" if positive_checks else "UNKNOWN"
@@ -862,11 +862,13 @@ def run_audit(output_dir: Path, run_id: str | None = None) -> dict:
             "point_in_time_membership_and_delisting_dates": "UNKNOWN",
             "universe_wide_historical_archive_completeness": "UNKNOWN",
         }
-        manifest["status"] = (
-            "COMPLETED_WITH_SAMPLE_EVIDENCE"
-            if manifest["classifications"]["current_spot_catalogue"] == "VERIFIED"
-            else "INCOMPLETE"
-        )
+        if manifest["classifications"]["current_spot_catalogue"] == "VERIFIED":
+            manifest["status"] = (
+                "COMPLETED_WITH_SAMPLE_EVIDENCE" if positive_checks
+                else "COMPLETED_CATALOGUE_ONLY"
+            )
+        else:
+            manifest["status"] = "INCOMPLETE"
     except (RestrictedRoute, BudgetExceeded, NetworkFailure, AuditStop, ValueError, json.JSONDecodeError) as exc:
         manifest["status"] = "STOPPED_OR_INCOMPLETE"
         manifest["stop_reasons"].append(f"{type(exc).__name__}: {exc}")
