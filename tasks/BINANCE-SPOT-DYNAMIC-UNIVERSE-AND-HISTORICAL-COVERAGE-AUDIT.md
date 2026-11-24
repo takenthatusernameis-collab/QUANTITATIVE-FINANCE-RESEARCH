@@ -32,6 +32,27 @@ This task tests whether a broader, dynamically discovered universe can be eviden
 - **Activation authority:** canonical [active queue](ACTIVE-QUEUE.md); this task's MEDIUM score and five-day ceiling remain unchanged.
 - **No strategy, holdout evaluation, paid data, credentials, or trading authorization is created by activation.**
 
+
+## Autonomous execution interface
+
+- **Workflow:** `.github/workflows/binance-spot-universe-audit.yml`.
+- **Exact command:** `/qfr-audit-binance-spot-universe` on open control PR #2, posted by the verified actor `takenthatusernameis-collab`.
+- **Security:** `issue_comment: created`; exact PR, open state, actor and whole command; checkout of the event's default-branch `GITHUB_SHA`; `GITHUB_REF` verification; `persist-credentials: false`; `contents: read` only; no secrets or PR-head code.
+- **Queue group:** `binance-spot-universe-audit-main`, explicitly allowlisted in `research/queue_guardian.py`.
+- **Artifact:** `binance-spot-universe-audit-<run_id>`; only `manifest.json`, normalized `catalogue.json` and an archive-prefix index if one is actually obtained. Raw response bodies and ZIP/CSV market data remain ephemeral.
+
+## Initial runner probe evidence — 2026-11-24
+
+Run [45395322993](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45395322993) proved that the GitHub-hosted runner can retrieve the **complete current** public Spot `exchangeInfo` catalogue:
+
+- HTTP 200 from `https://data-api.binance.vision/api/v3/exchangeInfo`; retrieved at 2026-11-24 12:37:44.598995 UTC.
+- Raw response SHA-256: `84885194a788fcf6095bddda2420cd98fc384c97e907e167e29ad9ffa07464e5`; 18,152,734 decoded response bytes; `X-MBX-USED-WEIGHT-1M: 20`.
+- 3,751/3,751 symbols normalized with zero parse errors; 1,376 `TRADING`, 2,375 `BREAK`; 50 quote assets; `isSpotTradingAllowed`: 3,711 true and 40 false. `BREAK` is a current status value, not proof of a delisting date or complete historical universe.
+- The same run's single ListObjectsV2 prefix request returned HTTP 200, `text/html`, 2,712 bytes, rather than an XML `ListBucketResult`. Pagination and archive symbol-directory enumeration are therefore **not verified**. The affected listing/index route is stopped; do not repeat it or probe alternate directory-index paths without a separately justified route.
+- The first implementation failed because the XML parser exception was not caught. The uploaded artifact [14920004516](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45395322993/artifacts/14920004516) has digest `sha256:8386d14ba23f79bc7e418f5ff0de2b9f514b9b00df0416f8694da3fe4bb390d7`; it contains the manifest and normalized catalogue only. No archive object was downloaded and no klines inception query was made in that run.
+- The parser now converts non-XML index responses into a recorded schema limitation, and the runner audit skips that known failed index route. The next run tests direct documented monthly object URLs as a distinct route and uses a reproducible sample containing an inactive status stratum plus an active non-seed quote-asset stratum where available.
+- CI run [45395708539](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45395708539) passed the then-current deterministic tests and synthetic smoke test. Subsequent sample/index changes are newer than that tested SHA and must be covered by a fresh CI run before the final task report.
+
 ## Objective
 
 Determine whether Binance Spot's public catalogue and historical archive surfaces can support a defensible, dynamically discovered, point-in-time asset universe for future research, including current instrument identity, historical archive presence, product inception and delisted-symbol limitations.
