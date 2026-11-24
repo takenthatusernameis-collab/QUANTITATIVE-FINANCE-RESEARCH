@@ -18,7 +18,7 @@ class ExternalSchedulerReliabilityTests(unittest.TestCase):
     def test_existing_owner_authorization_is_not_weakened(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn('if [ "$ACTOR" != "takenthatusernameis-collab" ]; then', workflow)
-        self.assertIn('if [ "$COMMENT_USER" != "takenthatusernameis-collab" ] ||', workflow)
+        self.assertIn('[ "$COMMENT_USER" != "takenthatusernameis-collab" ] ||', workflow)
         self.assertIn('if [ "$ISSUE_NUMBER" != "2" ] ||', workflow)
         self.assertIn('if [ "$COMMENT_BODY" != "/qfr-capture-spot-holdout" ]; then', workflow)
 
