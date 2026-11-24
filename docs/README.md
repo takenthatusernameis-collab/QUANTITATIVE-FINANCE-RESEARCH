@@ -35,7 +35,7 @@ Lower-level documents may impose stricter controls but may not weaken higher-lev
 ## Repository architecture
 
 - `research/`: deterministic policy functions, data adapters, model implementations and tests.
-- `tasks/`: active and bounded project specifications; one canonical active-task pointer.
+- `tasks/`: bounded project specifications and one canonical queue index; the queue may track multiple independent active workstreams, each with its own expiry.
 - `reports/`: dated, evidence-backed results, audits, retrospectives and handoffs.
 - `templates/`: reusable project and review structures; templates are not evidence.
 - `archive/`: snapshots of superseded instructions and original prompts.
