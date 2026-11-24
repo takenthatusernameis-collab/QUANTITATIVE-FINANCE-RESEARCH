@@ -1,7 +1,7 @@
 # ETH/BTC quantitative research pipeline
 
 
-**Repository-wide operating rules:** follow the [General Antifragile Autonomous Operating Mindset](../docs/GENERAL-ANTIFRAGILE-AUTONOMOUS-OPERATING-MINDSET.md), [Adaptive Execution Standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md), and [Repository Hygiene preflight](../docs/REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md). The single current task pointer is [tasks/ACTIVE-QUEUE.md](../tasks/ACTIVE-QUEUE.md).
+**Repository-wide operating rules:** follow the [General Antifragile Autonomous Operating Mindset](../docs/GENERAL-ANTIFRAGILE-AUTONOMOUS-OPERATING-MINDSET.md), [Adaptive Execution Standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md), [Parallel Research Workstreams and Per-Workstream Expiry Policy](../docs/PARALLEL-RESEARCH-WORKSTREAM-AND-EXPIRY-POLICY.md), and [Repository Hygiene preflight](../docs/REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md). The canonical queue pointer is [tasks/ACTIVE-QUEUE.md](../tasks/ACTIVE-QUEUE.md); it may list multiple independent active workstreams.
 
 ## New-project intake (mandatory before hypothesis design)
 
@@ -33,6 +33,12 @@ Use `--market spot`, `--market um`, or `--market both`. `--self-test` runs a syn
 Routine safe research work is agent-initiated: deterministic tests, synthetic checks, historical data audits, lawful data retrieval, parser repair, provider comparison, research code, historical backtests after their acceptance gates pass, artifact inspection, reporting and task handoff. Do not wait for a routine user click or confirmation. Genuine security, legal, permission and live-financial boundaries remain enforced.
 
 Treat the first implementation route as replaceable. Diagnose the exact failure, preserve the request/error/source/schema/timestamps and hashes, test at least three materially different options where applicable, and stop an unchanged non-transient route after two independent identical failures. Use positive controls and provenance. A new data source, time resolution or model is a separate experiment with its own frozen hypothesis and acceptance criteria; never combine its outputs as if they belonged to the original study.
+
+### Parallel workstream admission and expiry
+
+Do not serialize independent research or engineering merely because another task is active. Before concurrent start, check unfinished dependencies, duplicate dispatch, repository write-scope overlap, exclusive resource reservations and confirmatory-holdout reuse. Shared immutable read-only data is acceptable with provenance. Do not start dependency-gated successors early or starve the primary critical-path assignment.
+
+Each active workstream has its own difficulty tier, start timestamp, cycle budget and UTC expiry. Use ../research/workstream_policy.py functions evaluate_parallel_workstream_admission and assess_workstream_timebox; the corresponding tests are in test_workstream_policy.py. Its clock continues through ordinary handoffs, CI queues and blockers, and expiry closes only that workstream. Resource concurrency is bounded by measured runner/API/storage capacity, not an arbitrary factory-wide task count.
 
 ### GitHub Actions queue enforcement
 
