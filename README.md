@@ -15,6 +15,7 @@ Continuously improve the probability that each agent cycle produces trustworthy,
 - [Evidence-First Project Lifecycle](docs/RESEARCH-ENVIRONMENT-FIRST-PROJECT-LIFECYCLE.md)
 - [Project Retrospective and Admin-Agent Calibration](docs/PROJECT-RETROSPECTIVE-AND-ADMIN-CALIBRATION.md)
 - [Asset-Universe Discovery and Scope Policy](docs/ASSET-UNIVERSE-DISCOVERY-AND-SCOPE-POLICY.md)
+- [Parallel Research Workstreams and Per-Workstream Expiry Policy](docs/PARALLEL-RESEARCH-WORKSTREAM-AND-EXPIRY-POLICY.md)
 - [Documentation and Operating-Contract Index](docs/README.md)
 
 ## Current research state
