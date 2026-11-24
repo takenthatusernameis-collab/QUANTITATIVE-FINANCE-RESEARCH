@@ -83,7 +83,7 @@ class ExternalSchedulerReliabilityTests(unittest.TestCase):
             "smallest safe, independently verifiable unit",
             "research implementation",
             "data audits",
-            "empirical validation",
+            "validation",
             "repository maintenance",
             "not a bypass of authorization",
         ):
