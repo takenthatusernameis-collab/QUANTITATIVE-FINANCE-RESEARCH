@@ -1,7 +1,7 @@
 # Prospective Spot Holdout — Capture and First-Agent Recovery Validation
 
-**Status:** COMPLETE — November 24 slot RECOVERED by first-authorized-agent wake-up; complete snapshot and sidecars verified; second same-slot wake-up proved idempotent reuse. External scheduler and independent watchdog remain UNCONFIGURED and are not represented as DELIVERY_VERIFIED.
-**Latest checkpoint:** [2026-11-24 10:22 UTC final recovery checkpoint](../reports/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-SCHEDULED-VALIDATION-2026-11-24.md).  
+**Status:** COMPLETE — November 24 slot RECOVERED by first-authorized-agent wake-up; complete snapshot and sidecars verified; second owner wake-up and a later, 10h36m-late GitHub schedule event both proved same-slot idempotent reuse. External scheduler and independent watchdog remain UNCONFIGURED and are not represented as DELIVERY_VERIFIED.
+**Latest checkpoint:** [2026-11-24 14:59 UTC late scheduled-event replay](../reports/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-SCHEDULED-VALIDATION-2026-11-24.md#late-scheduled-event-replay-2026-11-24-1459-utc).  
 **Priority:** P1 research-enabling infrastructure  
 **Task budget:** 1 substantive cycle; hard deadline **2026-11-25 17:30 UTC**. No automatic extension.
 
@@ -78,6 +78,8 @@ The next checkpoint must inspect the actual schedule-triggered capture and its q
 - [x] Release immutability and retention are described accurately: `immutable=false`; Release assets have no automatic Actions-artifact TTL but can still be deliberately deleted.
 - [x] Queue-guardian event-driven handoffs [45373479882](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373479882), [45373736534](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373736534) and [45373756502](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373756502) succeeded.
 - [x] Main CI [45375425738](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45375425738) passed 324 deterministic tests in 15.423 seconds and the synthetic plumbing smoke test; capture workflow tests passed in both capture runs.
+- [x] A later GitHub schedule event [45420205895](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45420205895) completed at 2026-11-24 14:59:10 UTC, 10h36m10s after the nominal 04:23 UTC due time. Both authorization and capture jobs succeeded; 29 capture tests passed; output returned `idempotent_slot_reuse=true`, reused the existing ZIP/sidecar IDs and created no new Release assets.
+- [x] Queue-guardian handoff [45420274332](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45420274332) succeeded with zero actions and zero errors. Run enumeration completed (660 runs enumerated); the 503-item inventory was truncated, so no claim of exhaustive inventory is made.
 - [x] No strategy backtest, empirical strategy evaluation, funding research, paid-data acquisition, venue merge, live trading or capital deployment occurred.
 
 ## Interrupted ZIP/sidecar publication recovery — regression-tested 2026-11-24
@@ -93,4 +95,18 @@ The independent external scheduler, dedicated GitHub App dispatch credential and
 - Never use GitHub Actions cron as the primary clock, deadline guarantee or recovery plan.
 - Before any same-slot retry, inspect Actions, release assets and active runs; reuse a complete verified result, observe a valid active run, or proceed with bounded recovery only if the slot is missing/incomplete.
 - Never overwrite an incomplete or conflicting snapshot, forward-fill missing market observations, backdate acquisition time, weaken authorization gates or bypass external-data restrictions.
-- The external scheduler/watchdog gap remains a separate meta-process improvement; provision only when an authorized provider/identity is available. The next ready workstream is the [Post-Holdout Research Environment and Portfolio Review](POST-HOLDOUT-RESEARCH-ENVIRONMENT-AND-PORTFOLIO-REVIEW.md).
+- The external scheduler/watchdog gap remains a separate meta-process improvement; provision only when an authorized provider/identity is available. The post-holdout environment review and its dynamic-universe successor have since closed; the canonical queue currently admits no successor workstream.
+
+
+## Late scheduled-event replay — 2026-11-24 14:59 UTC
+
+The configured GitHub schedule event eventually arrived after the first-agent recovery had already completed the November 24 slot.
+
+- Workflow run [45420205895](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45420205895) was created at **14:59:10 UTC**, **10 hours, 36 minutes and 10 seconds** after the nominal 04:23 UTC schedule time. Event: `schedule`; ref: `main`; commit: `b2d6d3271bbfa2cf2559fd4be68a7a2d919a233b`.
+- Both authorization and capture jobs completed successfully. The capture job's 29 deterministic tests passed.
+- The capture output reported `status=COMPLETE`, `data_quality_complete=true`, `research_evaluation_authorized=false` and `idempotent_slot_reuse=true`. It verified the same 562 ETHUSDT and 562 BTCUSDT hourly rows through the 2026-11-24 09:00 UTC bar, with zero missing hours, corrections or source errors.
+- The run referenced the existing ZIP asset 786684218 and sidecar 786684257. The Release still contains exactly the same four assets; no duplicate ZIP or sidecar was published and no new market-data capture was needed.
+- Manifest-only artifact [14933717886](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45420205895/artifacts/14933717886) is 1,758 bytes with SHA-256 `a17b0e71c4e37982fa24729f3b61f94e3680fc8973ddaebcda03b2c1d8ed27e3`.
+- Queue guardian [45420274332](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45420274332) completed successfully. Its report records `actions=[]`, `errors=[]`, complete run enumeration of 660 records, and a truncated 503-item run inventory. The report artifact is [14932824237](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45420274332/artifacts/14932824237), 4,032 bytes, SHA-256 `502da14600e90644ab56de7c04e959bff30783d015362b2c639201748ba0a925`.
+
+**Interpretation:** the GitHub schedule event was delivered very late and only replayed an already completed slot idempotently. This is evidence that delayed schedule events can arrive; it is not evidence of an SLA, independent scheduler or watchdog. The slot remains **RECOVERED**, while factory-wide scheduled delivery remains **UNCONFIGURED / DEGRADED**, not `DELIVERY_VERIFIED`. An actual `workflow_dispatch` event remains untested.

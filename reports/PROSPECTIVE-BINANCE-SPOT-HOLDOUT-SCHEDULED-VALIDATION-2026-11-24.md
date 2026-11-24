@@ -1,8 +1,8 @@
 # Prospective Binance Spot Holdout — Scheduled-Run Checkpoint
 
 **Initial observation:** 2026-11-24 04:33 UTC  
-**Latest checkpoint:** 2026-11-24 10:22 UTC  
-**Disposition:** RECOVERED — November 24 slot captured by first-agent fallback; same-slot replay verified idempotent reuse  
+**Latest checkpoint:** 2026-11-24 14:59 UTC  
+**Disposition:** RECOVERED — November 24 slot captured by first-agent fallback; a second owner wake-up and a later 10h36m-late GitHub schedule event verified same-slot idempotent reuse  
 **Scope:** Workflow and release-state verification only. No market-data capture or strategy evaluation occurred.
 
 ## Scheduled workflow
@@ -151,3 +151,18 @@ The November 24 data slot is **RECOVERED** and the bounded capture-validation ta
 ## Interrupted sidecar-publication recovery hardening — regression-tested 2026-11-24
 
 The final main-branch implementation now handles a partial publication in which the deterministic ZIP exists but its metadata-only sidecar does not. On the next same-slot wake-up it verifies GitHub's ZIP size and SHA-256, the embedded slot identity, each CSV's SHA-256 and readable rows, then reconstructs and uploads only the sidecar using the existing workflow token. It does not refetch market data or publish another ZIP. If the sidecar is absent and no authorized token is available, it fails closed before downloading the ZIP. Positive reconstruction and no-token rejection are included in the final 324-test CI run [45375425738](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45375425738). This is a tested recovery branch, not a fault that occurred during the successful November 24 capture.
+
+
+## Late scheduled-event replay — 2026-11-24 14:59 UTC
+
+GitHub eventually delivered the configured daily schedule event after the first-authorized-agent fallback had already recovered the November 24 slot.
+
+- Run [45420205895](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45420205895) was created at 14:59:10 UTC, **10h36m10s after the nominal 04:23 UTC due time**. The event was `schedule`, on `main`, commit `b2d6d3271bbfa2cf2559fd4be68a7a2d919a233b`.
+- Authorization and capture jobs succeeded. The capture job passed 29 dedicated deterministic tests.
+- The emitted manifest reported `status=COMPLETE`, `data_quality_complete=true`, `research_evaluation_authorized=false` and `idempotent_slot_reuse=true`.
+- It verified the existing November 24 slot: 562 closed hourly rows each for ETHUSDT and BTCUSDT through 09:00 UTC, with zero missing hours, overlap corrections or source errors.
+- It referenced the existing ZIP asset 786684218 and sidecar asset 786684257. The Release inventory remained exactly four assets; no duplicate ZIP or sidecar was created and no new market-data acquisition was needed.
+- The manifest-only artifact [14933717886](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45420205895/artifacts/14933717886) is 1,758 bytes with SHA-256 `a17b0e71c4e37982fa24729f3b61f94e3680fc8973ddaebcda03b2c1d8ed27e3`.
+- Queue-guardian handoff [45420274332](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45420274332) succeeded with no enforcement actions and no errors. It enumerated 660 runs, but its 503-item inventory was truncated; exhaustive inventory is not claimed. Artifact [14932824237](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45420274332/artifacts/14932824237) is 4,032 bytes with SHA-256 `502da14600e90644ab56de7c04e959bff30783d015362b2c639201748ba0a925`.
+
+This is a **late schedule delivery**, not reliable scheduling: the event arrived more than ten hours after its nominal due time and only replayed an already completed slot. Per-slot status remains **RECOVERED**; the external scheduler, dedicated dispatch credential and separate watchdog remain **UNCONFIGURED / DEGRADED**. This does not satisfy `DELIVERY_VERIFIED`. The actual `workflow_dispatch` event remains untested.

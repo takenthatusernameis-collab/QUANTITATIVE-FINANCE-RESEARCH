@@ -36,7 +36,7 @@ This is a data/infrastructure task—not a model task. **Do not run backtests, o
 - Coverage: 2026-11-01 00:00 UTC through 2026-11-23 17:00 UTC, 546 rows each for ETHUSDT/BTCUSDT; zero gaps, duplicates, corrections or source errors; closed bars only.
 - Durable snapshot: [release asset](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/releases/download/spot-holdout-2026/snapshot-45242319210-attempt-1.zip), ID `784136576`, 63,517 bytes, SHA-256 `b1200bdea3a01e56963b8afda0cab497d4396e0eaae21344bfc624d8a518b0cf`. Release assets have no Actions-artifact expiry, but the release is not platform-immutable and can be deleted.
 - Manifest artifact: [14852546156](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45242319210/artifacts/14852546156), 1,363 bytes, 30-day retention through 2026-12-23 18:49 UTC. The ZIP's embedded manifest predates the post-upload storage metadata; the GitHub Release API supplies the asset ID/digest.
-- The exact issue-comment route is end-to-end validated. The scheduled trigger and actual `workflow_dispatch` event have not yet been exercised. The first scheduled-run check is handed to [PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION](PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md).
+- The exact issue-comment route is end-to-end validated. A GitHub `schedule` event was later observed on 2026-11-24 at 14:59:10 UTC, 10h36m10s after its nominal 04:23 UTC due time; it returned `idempotent_slot_reuse=true` and reused the already published slot without creating duplicate Release assets. The actual `workflow_dispatch` event remains unexercised.
 - No backtest, model selection, funding access, credentials, paid purchase, raw-data Git commit or live trading occurred.
 
 ## Acceptance criteria
@@ -47,11 +47,12 @@ This is a data/infrastructure task—not a model task. **Do not run backtests, o
 - [x] Every accepted bar is timestamp/symbol/interval validated; the initial capture had no unresolved gaps.
 - [x] Overlap/backfill and deterministic deduplication are implemented and tested.
 - [x] Manifests and hashes are retained; raw market data is outside Git.
-- [x] A GitHub Release asset with no automatic Actions-artifact expiry is used; it can still be deliberately deleted because the release is not immutable. Recovery behavior is implemented and unit-tested; scheduled recovery remains in the successor task.
-- [ ] Scheduled and actual workflow-dispatch events are not yet exercised; the owner-only exact issue-comment path, 20-minute timeout configuration and fail-closed paths are validated. See the successor task.
+- [x] A GitHub Release asset with no automatic Actions-artifact expiry is used; it can still be deliberately deleted because the release is not immutable. Recovery behavior is implemented and unit-tested.
+- [x] A GitHub schedule event was exercised late on 2026-11-24; it verified/reused the existing slot and created no duplicate Release assets.
+- [ ] An actual `workflow_dispatch` event remains unexercised; no claim of manual-dispatch validation is made. The exact owner-only issue-comment route and scheduled event are validated.
 - [x] CI and one end-to-end capture pass; the Actions artifact contains only the manifest, while the durable release asset contains the required public market-data snapshot.
 - [x] No empirical strategy evaluation occurred during this task.
 
 ## Completion decision
 
-The implementation and initial end-to-end capture passed within the consumed cycle. Do not extend this task. Scheduled/manual-event validation and the durable-manifest review are separate bounded follow-up work in [PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md](PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md). The next model remains unselected until a new, separate preregistration and timebox are committed.
+The implementation and initial end-to-end capture passed within the consumed cycle. Do not extend this task. The first scheduled-run/recovery follow-up is documented separately. The late schedule event does not validate `workflow_dispatch` or an independent external scheduler. The next model remains unselected until a new, separate preregistration and timebox are committed.
