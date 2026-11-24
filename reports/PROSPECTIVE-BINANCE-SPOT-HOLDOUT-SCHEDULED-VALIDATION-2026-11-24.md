@@ -6,7 +6,7 @@
 
 ## Scheduled workflow
 
-- Workflow: [spot-holdout-capture.yml](../.github/workflows/spot-holdout-capture.yml) is referenced below; the actual workflow path is [spot-holdout-capture.yml](../.github/workflows/spot-holdout.yml). It runs on default branch main and declares daily cron 23 4 * * * UTC.
+- Workflow: [spot-holdout-capture.yml](../.github/workflows/spot-holdout-capture.yml) runs on the default branch main and declares daily cron 23 4 * * * UTC.
 - Main branch head at inspection: [79057751de40](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/79057751de40bd7862416ff6de90a51d0aee9f75).
 - The GitHub Actions run query for runs created at or after 2026-11-24T04:23:00Z returned **zero**. Thus no schedule-triggered capture was visible by 04:33 UTC; no capture authorization or data-fetch job had run.
 - There were zero queued and zero in-progress workflow runs. PR #2 remained open; no new owner command was posted.
