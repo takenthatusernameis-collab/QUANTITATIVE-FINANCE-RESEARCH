@@ -34,7 +34,7 @@ Do not let cleanup become an excuse to defer safe work. Isolate any uncertain or
 - Inspect `git status --short`, the recursive tree, recent commits and active run/artifact references before making deletions.
 - Remove only clearly disposable generated files, caches that are not needed for reproducibility, scratch files and redundant temporary outputs. Keep a verified reusable market-data cache outside version control when it materially reduces future acquisition cost and has a valid provenance manifest.
 - Prefer updating one canonical task or report over creating another document that repeats the same state. Do not append routine session transcripts to the README.
-- Maintain one active task pointer in `tasks/ACTIVE-QUEUE.md`. Completed tasks should be marked completed; superseded task definitions should clearly point to their successor.
+- Maintain one canonical active-queue pointer in `tasks/ACTIVE-QUEUE.md`. The queue may list one primary critical-path assignment plus multiple admitted independent workstreams, each with its own task link, isolation record and expiry. Completed tasks should be marked completed; superseded task definitions should clearly point to their successor.
 - Keep run logs and bulky outputs in GitHub Actions artifacts or an approved external store with documented retention. Keep a compact summary, source hashes and artifact IDs in Git.
 - Archive rather than delete superseded research records when they contain unique decisions, failed approaches, source findings or reproducibility evidence.
 - Before moving/renaming a file, search all repository references and update them in the same change. Do not break links.
