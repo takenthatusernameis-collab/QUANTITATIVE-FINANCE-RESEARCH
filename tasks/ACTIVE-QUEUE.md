@@ -8,7 +8,7 @@
 
 ## Repository governance upgrade — completed 2026-11-24
 
-The evidence-first lifecycle, dual-axis retrospectives, tested project-readiness gate, documentation index, action SHA pinning, grouped dependency updates and per-ref CI deduplication are committed. See [governance implementation retrospective](../reports/EVIDENCE-FIRST-RESEARCH-GOVERNANCE-IMPLEMENTATION-2026-11-24.md). Latest CI [45306713796](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45306713796) passed 280 deterministic tests and the synthetic plumbing smoke test.
+The evidence-first lifecycle, dual-axis retrospectives, tested project-readiness gate, documentation index, action SHA pinning, grouped dependency updates, per-ref CI deduplication and parallel-workstream admission/timebox policy are committed. See [governance implementation retrospective](../reports/EVIDENCE-FIRST-RESEARCH-GOVERNANCE-IMPLEMENTATION-2026-11-24.md) and [parallel-workstream policy](../docs/PARALLEL-RESEARCH-WORKSTREAM-AND-EXPIRY-POLICY.md). Latest CI [45308874842](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45308874842) passed 300 deterministic tests and the synthetic plumbing smoke test.
 
 ## Current active assignment
 
@@ -53,8 +53,8 @@ All successor work must satisfy:
 
 ## Current automation observations to recheck
 
-- Capture schedule: daily at 04:23 UTC; the first scheduled event after implementation is the active validation target.
-- Queue guardian: configured on a five-minute schedule and on qualifying workflow completions. The last previously observed scheduled heartbeat was 2026-11-23 21:49:36 UTC; inspect actual later runs and do not infer ongoing health from configuration alone.
+- Capture schedule: daily at 04:23 UTC. At the 2026-11-24 01:58 UTC checkpoint, the first scheduled event was still in the future; no capture run was dispatched manually or duplicated.
+- Queue guardian: configured with `*/5 * * * *` plus qualifying `workflow_run` handoffs. The latest actual scheduled run remains 2026-11-23 21:49:36 UTC; no later `schedule` event was present by 2026-11-24 01:57 UTC. Event-driven run [45306164079](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45306164079) completed successfully at 01:35:30 UTC in LIVE_ENFORCEMENT mode with `actions=[]` and `errors=[]`; its run enumeration completed, but its 375-item inventory was truncated. This verifies one event-driven handoff, not a five-minute heartbeat/SLA. GitHub documents that scheduled events may be delayed or dropped under high load: [workflow schedule behavior](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
 - Control PR #2 remains an exact-actor, exact-command dispatch surface; it is not a reason to execute or merge PR-head code.
 - Main branch protection was not enabled; no repository permissions or settings are changed by this queue.
 

@@ -1,6 +1,6 @@
 # Prospective Spot Holdout — First Scheduled Run and Recovery Validation
 
-**Status:** IN PROGRESS — durable sidecar implementation committed; scheduled-run validation pending  
+**Status:** IN PROGRESS — durable sidecar implementation committed; pre-schedule checkpoint recorded; scheduled-run validation pending  
 **Priority:** P1 research-enabling infrastructure  
 **Task budget:** 1 substantive cycle; hard deadline **2026-11-25 17:30 UTC**. No automatic extension.
 
@@ -44,6 +44,18 @@ Verify that the scheduled capture appends a new, complete snapshot, validates an
 - The capture workflow conditionally corrects the legacy release description only when it exactly matches the old "immutable" wording and the release API says the release is not immutable. No permissions or protection settings are changed.
 - Added deterministic tests for sidecar structure, previous-snapshot backfill, current-snapshot publication, idempotent reuse, collision rejection, digest requirements and release-description correction. The first full CI run [45247197778](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45247197778) found one test-harness argument mismatch; the ZIP upload now passes `application/zip` explicitly. Follow-up CI run [45247539131](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45247539131) passed **264 deterministic tests** and the synthetic plumbing smoke test.
 
+## Pre-schedule checkpoint — 2026-11-24 01:58 UTC
+
+- The first scheduled capture at 04:23 UTC had not yet become due. No schedule-triggered capture run or second release asset existed at this checkpoint. No manual or duplicate capture was dispatched.
+- The current release still contains only the initial ZIP [asset 784136576](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/releases/tag/spot-holdout-2026), with `immutable=false`; the first durable sidecar backfill therefore remains pending the next successful capture.
+- Queue guardian event-driven handoff [45306164079](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45306164079) completed successfully at 01:35:30 UTC in LIVE_ENFORCEMENT mode. Its report recorded no actions and no errors; run enumeration completed, while the 375-item inventory was explicitly truncated. The most recent scheduled guardian run remains [45273577143](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45273577143) at 2026-11-23 21:49:36 UTC. Thus event-driven operation has one successful recent check, but the configured five-minute cron has not demonstrated a five-minute cadence. GitHub documents schedule delivery as best-effort and subject to delay/drop under high load: [schedule event reference](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
+- Three unrelated Dependabot issue-comment events on closed PR #8 triggered the capture workflow; the exact authorization gate rejected the bot/target/command and the capture job was skipped. No market data was fetched by those runs.
+- A separate workstream-policy boundary fixture initially failed because the test treated an exact two-day LOW-tier ceiling as invalid. The implementation correctly allows the exact ceiling and rejects only an expiry beyond it. The fixture now uses two days plus one second, with a new exact-boundary acceptance test. Full CI [45308874842](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45308874842) passed **300 deterministic tests** and the synthetic plumbing smoke test on `ca112f1`. This was a test-fixture correction, not a relaxation or implementation defect.
+- The recursive remote Git tree contained 113 entries and no disposable cache, scratch, temporary, or generated-data candidates. Local untracked state is not observable through the remote GitHub view; no remote cleanup deletion was justified.
+- No strategy backtest, signal/performance inspection, funding research, paid-data acquisition, venue merge, credential creation, live trading or capital deployment occurred.
+
+The next checkpoint must inspect the actual schedule-triggered capture and its queue-guardian completion handoff. Do not dispatch a duplicate to compensate for an event that has not yet become due or is merely delayed.
+
 ## Acceptance criteria
 
 - [ ] First scheduled event is found and its result is independently inspected.
@@ -54,7 +66,7 @@ Verify that the scheduled capture appends a new, complete snapshot, validates an
 - [ ] Live sidecar backfill/publication for the first ZIP and the next ZIP is verified by the scheduled run.
 - [ ] Retention claims distinguish no automatic TTL from protection against manual deletion.
 - [ ] Queue guardian handoff is successful and no orphaned/duplicate active run remains.
-- [x] CI passes after implementation changes: 264 deterministic tests and the synthetic plumbing smoke test succeeded; no raw market data is committed.
+- [x] CI passes after the latest implementation/policy changes: 300 deterministic tests and the synthetic plumbing smoke test succeeded in [run 45308874842](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45308874842); no raw market data is committed.
 - [ ] No empirical strategy evaluation, funding research or live trading occurs.
 
 ## Stop conditions
