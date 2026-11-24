@@ -1,7 +1,7 @@
 # Binance Spot Dynamic-Universe and Historical-Coverage Feasibility Audit
 
 **Project ID:** `BINANCE-SPOT-DYNAMIC-UNIVERSE-AUDIT-2026-11-24`  
-**Status:** READY — not started; freeze exact UTC start/expiry and cycle counter in the canonical queue before the first substantive action.  
+**Status:** ACTIVE — activated 2026-11-24; the exact start, expiry and cycle counter are frozen in the canonical active queue.  
 **Priority:** P2 — environment-enabling prerequisite for any broader asset-level research.  
 **Project kind:** `environment_enabling`; this is not a strategy hypothesis or backtest.
 
@@ -20,6 +20,17 @@ This task tests whether a broader, dynamically discovered universe can be eviden
 - **Absolute deadline:** **2026-12-02 17:30 UTC**. On activation, set `started_at_utc` and `expires_at_utc` exactly, with expiry no later than five days after start and no later than the absolute deadline.
 - **Terminal rule:** if complete universe/archive evidence is not obtained by expiry, close as INCONCLUSIVE/INFEASIBLE with the exact missing dimension. Expiry is not a strategy NO-GO.
 - **No clock reset:** agent handoffs, ordinary CI/runner delays and route changes do not reset the budget.
+
+
+
+## Activation record — 2026-11-24
+
+- **workstream_id:** `BINANCE-SPOT-DYNAMIC-UNIVERSE-AUDIT-2026-11-24`
+- **started_at_utc:** `2026-11-24T12:28:44Z`
+- **expires_at_utc:** `2026-11-29T12:28:44Z`
+- **max_cycles / cycles_used:** 4 / 0 at activation.
+- **Activation authority:** canonical [active queue](ACTIVE-QUEUE.md); this task's MEDIUM score and five-day ceiling remain unchanged.
+- **No strategy, holdout evaluation, paid data, credentials, or trading authorization is created by activation.**
 
 ## Objective
 
