@@ -504,15 +504,18 @@ class SpotHoldoutCaptureTests(unittest.TestCase):
         slot = capture_slot(now)
         asset_name = f"snapshot-slot-{slot['date']}.zip"
         session = Mock()
-        session.get.return_value = Response({"assets": [{
-            "id": 101,
-            "name": asset_name,
-            "state": "uploaded",
-            "created_at": "2026-11-24T10:05:00Z",
-            "browser_download_url": "https://example.invalid/" + asset_name,
-            "size": 12,
-            "digest": "sha256:" + "0" * 64,
-        }]})
+        session.get.side_effect = [
+            Response({"assets": [{
+                "id": 101,
+                "name": asset_name,
+                "state": "uploaded",
+                "created_at": "2026-11-24T10:05:00Z",
+                "browser_download_url": "https://example.invalid/" + asset_name,
+                "size": 12,
+                "digest": "sha256:" + "0" * 64,
+            }]}),
+            Response(content=b"short"),
+        ]
         with self.assertRaisesRegex(ValueError, "size or digest"):
             load_existing_slot_snapshot(session, "owner/repo", "spot-holdout-2026", slot)
         # One request reads release metadata; the second downloads the ZIP so its
