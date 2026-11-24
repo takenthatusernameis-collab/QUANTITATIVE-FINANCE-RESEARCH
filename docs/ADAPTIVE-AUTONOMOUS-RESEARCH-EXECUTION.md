@@ -43,6 +43,14 @@ The limit is the earlier of the tier's cycle cap or calendar deadline. It includ
 
 The deferred activation condition was met by the prior Spot mean-reversion NO-GO on 2026-11-22. The current Spot Momentum assignment is MEDIUM: four substantive cycles maximum, implementation by **2026-11-26 18:00 UTC**, and a final research conclusion by **2026-11-28 18:00 UTC**. The separate unresolved USDⓈ-M funding study does not suspend this policy.
 
+### Parallel workstream execution
+
+Independent work should proceed concurrently where it increases decision throughput and passes the dependency, duplicate-dispatch, write-scope, exclusive-resource, confirmatory-holdout and real-capacity checks. One primary critical-path task may coexist with additional independent active workstreams; a single-active-task queue must not become an artificial serialization bottleneck. Do not start a successor whose explicit predecessor gate remains open.
+
+Every workstream owns its own difficulty-based cycle cap and UTC expiry. Its clock starts at substantive execution, not while queued, and does not reset on handoff, ordinary CI delay or a change of agent. Expiry closes only that workstream; unrelated admitted work continues. The earlier of its own cycle cap or expiry timestamp controls, and expiry without valid empirical evidence is INCONCLUSIVE/INFEASIBLE, never an automatic NO-GO.
+
+Apply [Parallel Research Workstreams and Per-Workstream Expiry Policy](PARALLEL-RESEARCH-WORKSTREAM-AND-EXPIRY-POLICY.md). Before concurrent activation, use evaluate_parallel_workstream_admission and assess_workstream_timebox in research/workstream_policy.py. The validator is a guardrail, not a replacement for evidence-first intake, authorization, resource-capacity assessment or scientific review.
+
 Before any substantive action, brainstorm a compact adaptive antifragile plan from the live context: current tasks, run/incident state, recent failures, available tools and permissions, costs, independent work and long-term impact. Generate at least three materially different approaches for a significant blocker where applicable; rank them and define success criteria. Record the plan in the existing task handoff, not a new per-session document.
 
 Then perform the mandatory conservative repository cleanup in [Repository Hygiene and Context Compaction](REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md), before the primary meta-improvement or research task. Keep one canonical active task pointer. Remove disposable scratch/build clutter and stale active instructions, but preserve historical evidence, source data needed for reproducibility, checksums, manifests, run logs, incident records and research conclusions. Never delete active work or force a clean tree at the expense of provenance.
