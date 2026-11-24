@@ -7,7 +7,15 @@ updates:
       day: monday
       time: "07:00"
       timezone: "Etc/UTC"
-    open-pull-requests-limit: 5
+    groups:
+      research-python-stack:
+        patterns:
+          - "*"
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+    open-pull-requests-limit: 1
+
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
@@ -15,4 +23,11 @@ updates:
       day: monday
       time: "07:00"
       timezone: "Etc/UTC"
-    open-pull-requests-limit: 5
+    groups:
+      github-actions-runtime:
+        patterns:
+          - "*"
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+    open-pull-requests-limit: 1

@@ -19,7 +19,7 @@ class GitHubActionRuntimeTests(unittest.TestCase):
     def test_workflows_use_verified_node24_action_releases(self):
         observed = {}
         pattern = re.compile(
-            r"^\\s*uses:\\s*([^\\s#]+)\\s*(?:#\\s*(v[0-9][^\\s]*))?\\s*$"
+            r"^\s*uses:\s*([^\s#]+)\s*(?:#\s*(v[0-9][^\s]*))?\s*$"
         )
         for workflow in sorted(WORKFLOW_DIR.glob("*.yml")):
             for reference, version_comment in pattern.findall(
