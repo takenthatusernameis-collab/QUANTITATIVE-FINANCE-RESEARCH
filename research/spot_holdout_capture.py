@@ -18,7 +18,7 @@ import math
 import os
 import time
 import zipfile
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -65,6 +65,20 @@ def iso_utc(timestamp_ms: int) -> str:
 def latest_closed_hour_open_ms(now_ms: int) -> int:
     """Return the open timestamp of the latest bar whose close time has passed."""
     return (int(now_ms) // HOUR_MS) * HOUR_MS - HOUR_MS
+
+
+def capture_slot(now_ms: int) -> dict[str, str]:
+    """Identify the latest daily UTC slot whose 04:23 UTC due time has elapsed."""
+    now = datetime.fromtimestamp(int(now_ms) / 1000, tz=timezone.utc)
+    due = now.replace(hour=4, minute=23, second=0, microsecond=0)
+    if now < due:
+        due -= timedelta(days=1)
+    slot_date = due.date().isoformat()
+    return {
+        "date": slot_date,
+        "id": f"binance-spot-1h:prospective-2026-11:{slot_date}",
+        "due_at_utc": due.isoformat().replace("+00:00", "Z"),
+    }
 
 
 def sha256_bytes(payload: bytes) -> str:
@@ -526,6 +540,128 @@ def publish_snapshot_sidecar(
     )
 
 
+def load_existing_slot_snapshot(
+    session: requests.Session,
+    repo: str,
+    release_tag: str,
+    slot: dict[str, str],
+) -> dict[str, Any] | None:
+    """Return a fully hash-verified snapshot already published for this UTC slot.
+
+    The workflow concurrency group serializes capture jobs. The stable slot asset
+    name then makes a second wake-up/run observe and reuse the first result rather
+    than publish a duplicate. An incomplete first result is still returned as
+    incomplete; it is not silently overwritten or retried without diagnosis.
+    """
+    headers = {"Accept": "application/vnd.github+json"}
+    release_url = f"{API_ROOT}/repos/{repo}/releases/tags/{release_tag}"
+    response = session.get(release_url, headers=headers, timeout=30)
+    if response.status_code == 404:
+        return None
+    response.raise_for_status()
+    release = response.json()
+
+    asset_name = f"snapshot-slot-{slot['date']}.zip"
+    sidecar_name = f"snapshot-slot-{slot['date']}.manifest.json"
+    asset = next(
+        (item for item in release.get("assets", []) if item.get("name") == asset_name),
+        None,
+    )
+    if asset is None:
+        return None
+    if (
+        asset.get("state") != "uploaded"
+        or not asset.get("id")
+        or not asset.get("browser_download_url")
+        or not asset.get("created_at")
+        or not asset.get("size")
+    ):
+        raise ValueError("Existing capture-slot ZIP metadata is incomplete")
+    digest = asset.get("digest")
+    if not isinstance(digest, str) or not digest.startswith("sha256:"):
+        raise ValueError("Existing capture-slot ZIP has no GitHub SHA-256 digest")
+
+    zip_response = session.get(asset["browser_download_url"], headers={"Accept": "application/octet-stream"}, timeout=120)
+    zip_response.raise_for_status()
+    zip_payload = zip_response.content
+    archive_sha = sha256_bytes(zip_payload)
+    if len(zip_payload) != asset["size"] or digest != f"sha256:{archive_sha}":
+        raise ValueError("Existing capture-slot ZIP size or digest does not match GitHub metadata")
+
+    with zipfile.ZipFile(io.BytesIO(zip_payload)) as archive:
+        names = set(archive.namelist())
+        manifest = json.loads(archive.read("manifest.json").decode("utf-8"))
+        if (
+            manifest.get("schema_version") != SCHEMA_VERSION
+            or manifest.get("capture_type") != "prospective_binance_spot_hourly"
+            or manifest.get("market") != "spot"
+            or manifest.get("interval") != INTERVAL
+            or manifest.get("capture_slot_id") != slot["id"]
+            or manifest.get("capture_slot_date_utc") != slot["date"]
+            or manifest.get("capture_slot_due_at_utc") != slot["due_at_utc"]
+            or manifest.get("release_asset_name") != asset_name
+        ):
+            raise ValueError("Existing capture-slot ZIP manifest identity does not match its slot")
+        for symbol in SYMBOLS:
+            filename = f"spot_{symbol}_1h.csv"
+            record = manifest.get("files", {}).get(filename)
+            if filename not in names or not isinstance(record, dict):
+                raise ValueError(f"Existing capture-slot ZIP is missing {filename}")
+            payload = archive.read(filename)
+            if sha256_bytes(payload) != record.get("sha256"):
+                raise ValueError(f"Existing capture-slot CSV checksum mismatch: {filename}")
+            read_csv_rows(payload)
+
+    sidecar = next(
+        (item for item in release.get("assets", []) if item.get("name") == sidecar_name),
+        None,
+    )
+    if (
+        not sidecar
+        or sidecar.get("state") != "uploaded"
+        or not sidecar.get("id")
+        or not sidecar.get("browser_download_url")
+        or not sidecar.get("size")
+        or not isinstance(sidecar.get("digest"), str)
+        or not sidecar["digest"].startswith("sha256:")
+    ):
+        raise ValueError("Existing capture-slot sidecar is missing or has incomplete metadata")
+    sidecar_response = session.get(
+        sidecar["browser_download_url"],
+        headers={"Accept": "application/json"},
+        timeout=30,
+    )
+    sidecar_response.raise_for_status()
+    sidecar_payload = sidecar_response.content
+    if len(sidecar_payload) != sidecar["size"] or sidecar["digest"] != f"sha256:{sha256_bytes(sidecar_payload)}":
+        raise ValueError("Existing capture-slot sidecar size or digest does not match GitHub metadata")
+    sidecar_manifest = json.loads(sidecar_payload.decode("utf-8"))
+    sidecar_storage = sidecar_manifest.get("storage", {})
+    if (
+        sidecar_manifest.get("capture_slot_id") != slot["id"]
+        or sidecar_manifest.get("files") != manifest.get("files")
+        or sidecar_storage.get("asset_id") != asset["id"]
+        or sidecar_storage.get("asset_name") != asset_name
+        or sidecar_storage.get("asset_digest") != digest
+        or sidecar_storage.get("archive_sha256") != archive_sha
+        or sidecar_storage.get("sidecar_asset_name") != sidecar_name
+    ):
+        raise ValueError("Existing capture-slot sidecar does not reconcile to its ZIP and manifest")
+
+    manifest["storage"] = {
+        **sidecar_storage,
+        "sidecar_asset_id": sidecar["id"],
+        "sidecar_asset_name": sidecar_name,
+        "sidecar_asset_url": sidecar["browser_download_url"],
+        "sidecar_asset_size_bytes": sidecar["size"],
+        "sidecar_asset_digest": sidecar["digest"],
+        "sidecar_idempotent_reuse": True,
+        "platform_immutable": bool(release.get("immutable", False)),
+    }
+    manifest["idempotent_slot_reuse"] = True
+    return manifest
+
+
 def write_snapshot(
     output_dir: Path,
     repo: str,
@@ -537,11 +673,18 @@ def write_snapshot(
     token: str,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
+    slot = capture_slot(now_ms)
+    existing_slot = load_existing_slot_snapshot(session, repo, RELEASE_TAG, slot)
+    if existing_slot is not None:
+        manifest_path = output_dir / "manifest.json"
+        manifest_path.write_text(json.dumps(existing_slot, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        return existing_slot
+
     end_open_ms = latest_closed_hour_open_ms(now_ms)
     if end_open_ms < CAPTURE_START_MS:
         raise ValueError("Current time precedes the prospective capture start")
-    asset_name = f"snapshot-{run_id}-attempt-{run_attempt}.zip"
-    sidecar_name = f"snapshot-{run_id}-attempt-{run_attempt}.manifest.json"
+    asset_name = f"snapshot-slot-{slot['date']}.zip"
+    sidecar_name = f"snapshot-slot-{slot['date']}.manifest.json"
     previous = load_previous_snapshot(session, repo, RELEASE_TAG, asset_name)
     previous_sidecar = publish_snapshot_sidecar(session, repo, token, previous) if previous else None
 
@@ -566,6 +709,10 @@ def write_snapshot(
         "previous_snapshot": None,
         "release_tag": RELEASE_TAG,
         "release_asset_name": asset_name,
+        "capture_slot_id": slot["id"],
+        "capture_slot_date_utc": slot["date"],
+        "capture_slot_due_at_utc": slot["due_at_utc"],
+        "capture_trigger_event": os.environ.get("GITHUB_EVENT_NAME", "direct"),
         "run_id": str(run_id),
         "run_attempt": str(run_attempt),
         "commit_sha": commit_sha or None,
@@ -735,6 +882,7 @@ def main() -> int:
         "status": manifest["status"],
         "data_quality_complete": manifest["data_quality_complete"],
         "research_evaluation_authorized": manifest["research_evaluation_authorized"],
+        "idempotent_slot_reuse": bool(manifest.get("idempotent_slot_reuse", False)),
         "requested_start_utc": manifest["requested_start_utc"],
         "requested_end_open_utc": manifest["requested_end_open_utc"],
         "symbols": {

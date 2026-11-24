@@ -4,6 +4,7 @@ import io
 import json
 import tempfile
 import unittest
+from datetime import datetime, timezone
 import zipfile
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -16,6 +17,7 @@ from spot_holdout_capture import (
     LEGACY_RELEASE_BODY,
     RELEASE_BODY,
     build_durable_sidecar,
+    capture_slot,
     HOUR_MS,
     CAPTURE_START_MS,
     fetch_klines,
@@ -60,6 +62,15 @@ class SpotHoldoutCaptureTests(unittest.TestCase):
     def test_latest_closed_hour_excludes_current_open_hour(self):
         now = CAPTURE_START_MS + 10 * HOUR_MS + 15 * 60_000
         self.assertEqual(latest_closed_hour_open_ms(now), CAPTURE_START_MS + 9 * HOUR_MS)
+
+    def test_capture_slot_uses_first_daily_utc_due_time_that_has_elapsed(self):
+        before = int(datetime(2026, 11, 24, 4, 22, tzinfo=timezone.utc).timestamp() * 1000)
+        due = int(datetime(2026, 11, 24, 4, 23, tzinfo=timezone.utc).timestamp() * 1000)
+        after = int(datetime(2026, 11, 24, 10, 5, tzinfo=timezone.utc).timestamp() * 1000)
+        self.assertEqual(capture_slot(before)["date"], "2026-11-23")
+        self.assertEqual(capture_slot(due)["date"], "2026-11-24")
+        self.assertEqual(capture_slot(after)["id"], "binance-spot-1h:prospective-2026-11:2026-11-24")
+        self.assertEqual(capture_slot(after)["due_at_utc"], "2026-11-24T04:23:00Z")
 
     def test_validate_rows_accepts_sorted_closed_utc_bars(self):
         start = CAPTURE_START_MS
@@ -309,7 +320,7 @@ class SpotHoldoutCaptureTests(unittest.TestCase):
         self.assertEqual(sidecar["files"]["spot_BTCUSDT_1h.csv"]["sha256"], "2" * 64)
 
     def test_write_snapshot_publishes_zip_and_durable_sidecar(self):
-        rows = [make_row(CAPTURE_START_MS + i * HOUR_MS) for i in range(3)]
+        rows = [make_row(CAPTURE_START_MS + i * HOUR_MS) for i in range(5)]
         captured_sidecars = []
 
         def fake_publish(**kwargs):
@@ -339,12 +350,13 @@ class SpotHoldoutCaptureTests(unittest.TestCase):
             }
 
         with tempfile.TemporaryDirectory() as directory:
-            with patch("spot_holdout_capture.load_previous_snapshot", return_value=None), \
+            with patch("spot_holdout_capture.load_existing_slot_snapshot", return_value=None), \
+                 patch("spot_holdout_capture.load_previous_snapshot", return_value=None), \
                  patch("spot_holdout_capture.fetch_klines", return_value=rows), \
                  patch("spot_holdout_capture.publish_release_asset", side_effect=fake_publish) as publish:
                 manifest = write_snapshot(
                     Path(directory), "owner/repo", "42", "1", "commit-sha",
-                    CAPTURE_START_MS + 3 * HOUR_MS + 10 * 60_000, Mock(), "token",
+                    CAPTURE_START_MS + 5 * HOUR_MS + 10 * 60_000, Mock(), "token",
                 )
             self.assertEqual(publish.call_count, 2)
             self.assertEqual(publish.call_args_list[0].kwargs["content_type"], "application/zip")
@@ -360,11 +372,45 @@ class SpotHoldoutCaptureTests(unittest.TestCase):
                 "sha256:" + sidecar["storage"]["archive_sha256"],
             )
             self.assertEqual(manifest["storage"]["sidecar_asset_id"], 102)
-            zip_path = Path(directory) / "snapshot-42-attempt-1.zip"
+            zip_path = Path(directory) / "snapshot-slot-2026-11-01.zip"
             with zipfile.ZipFile(zip_path) as archive:
                 embedded = json.loads(archive.read("manifest.json").decode("utf-8"))
-            self.assertEqual(embedded["storage"]["sidecar_asset_name"], "snapshot-42-attempt-1.manifest.json")
+            self.assertEqual(embedded["storage"]["sidecar_asset_name"], "snapshot-slot-2026-11-01.manifest.json")
+            self.assertEqual(manifest["capture_slot_id"], "binance-spot-1h:prospective-2026-11:2026-11-01")
+            self.assertEqual(manifest["capture_slot_due_at_utc"], "2026-11-01T04:23:00Z")
             self.assertFalse(embedded["storage"]["platform_immutable"])
+
+
+    def test_write_snapshot_reuses_existing_slot_without_duplicate_fetch_or_publication(self):
+        existing = {
+            "schema_version": 1,
+            "capture_type": "prospective_binance_spot_hourly",
+            "status": "COMPLETE",
+            "data_quality_complete": True,
+            "research_evaluation_authorized": False,
+            "capture_slot_id": "binance-spot-1h:prospective-2026-11:2026-11-24",
+            "capture_slot_date_utc": "2026-11-24",
+            "capture_slot_due_at_utc": "2026-11-24T04:23:00Z",
+            "files": {},
+            "storage": {"asset_id": 77, "sidecar_asset_id": 78},
+        }
+        now = int(datetime(2026, 11, 24, 10, 5, tzinfo=timezone.utc).timestamp() * 1000)
+        with tempfile.TemporaryDirectory() as directory:
+            with patch("spot_holdout_capture.load_existing_slot_snapshot", return_value=existing) as find_slot, \
+                 patch("spot_holdout_capture.load_previous_snapshot") as previous, \
+                 patch("spot_holdout_capture.fetch_klines") as fetch, \
+                 patch("spot_holdout_capture.publish_release_asset") as publish:
+                result = write_snapshot(
+                    Path(directory), "owner/repo", "99", "1", "commit-sha",
+                    now, Mock(), "token",
+                )
+            self.assertTrue(result["idempotent_slot_reuse"])
+            self.assertEqual(find_slot.call_args.args[3]["id"], existing["capture_slot_id"])
+            previous.assert_not_called()
+            fetch.assert_not_called()
+            publish.assert_not_called()
+            persisted = json.loads((Path(directory) / "manifest.json").read_text(encoding="utf-8"))
+            self.assertTrue(persisted["idempotent_slot_reuse"])
 
     def test_release_asset_idempotent_reuse_requires_exact_digest_and_size(self):
         payload = b"same-manifest"

@@ -95,3 +95,14 @@ Release [spot-holdout-2026](https://github.com/takenthatusernameis-collab/QUANTI
 - The connected GitHub tool catalog still exposes no workflow-dispatch POST action. No independently operated scheduler, repository-scoped GitHub App installation token, external secret-manager credential, durable per-slot dispatch ledger or independent watchdog is available in this execution path. These are the exact owner-side prerequisites. Do not substitute the PR-comment command, GitHub cron, or a manual capture; do not weaken actor gates or create credentials/permissions speculatively.
 
 **Disposition:** remain `IN PROGRESS / BLOCKED` with the original one-substantive-cycle budget and hard deadline **2026-11-25 17:30 UTC** unchanged. Keep the holdout and queued successor closed. No market-data capture, strategy backtest, funding access, paid-data acquisition, venue merge, live trading or capital deployment occurred.
+
+
+## First-agent wake-up fallback and stable slot protection — 2026-11-24
+
+The expected capture due at 04:23 UTC was not delivered by GitHub Actions cron. The factory now treats cron only as an opportunistic trigger. The first authorized agent wake-up after the due time must inspect the live Actions/release state and start the missing operation through an already-authorized path rather than waiting for another schedule event or an unprovisioned external scheduler.
+
+The implementation uses a deterministic UTC daily slot ID, `binance-spot-1h:prospective-2026-11:YYYY-MM-DD`, and stable release names `snapshot-slot-YYYY-MM-DD.zip` plus `snapshot-slot-YYYY-MM-DD.manifest.json`. Before fetching data, the capture verifies any existing slot ZIP and sidecar by GitHub SHA-256 digest, size, embedded manifest identity and per-file hashes. A second serialized run for the same slot reuses the existing result and does not fetch or publish again. Existing incomplete snapshots remain immutable evidence and are not silently overwritten.
+
+The existing exact-owner PR-comment authorization route remains available as the direct-agent fallback; no actor allowlist, credential or permission has been broadened. The first wake-up must confirm the connector-authored comment actually has the authorized owner identity and that the real Actions run followed. The external scheduler and separate watchdog remain unprovisioned; agent wake-up recovery is not a real-time SLA and does not establish `DELIVERY_VERIFIED`.
+
+No data has yet been captured by this fallback as of this handoff; execution and data acceptance remain pending the actual authenticated run.

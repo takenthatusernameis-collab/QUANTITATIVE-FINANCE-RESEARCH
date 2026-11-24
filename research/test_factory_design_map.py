@@ -66,6 +66,8 @@ class FactoryDesignMapTests(unittest.TestCase):
         self.assertIn("durable dispatch ledger", content)
         self.assertIn("separate independent watchdog", content)
         self.assertIn("never tell a user or the next agent to wait for another github cron tick", content)
+        self.assertIn("first authorized agent wake-up after it passes", content)
+        self.assertIn("directly perform the smallest safe", content)
 
     def test_research_and_operational_outcomes_remain_separate(self):
         content = MAP.read_text(encoding="utf-8")

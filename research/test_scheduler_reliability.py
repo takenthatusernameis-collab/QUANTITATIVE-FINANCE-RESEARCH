@@ -30,6 +30,26 @@ class ExternalSchedulerReliabilityTests(unittest.TestCase):
         self.assertIn("do not wait for the next github cron tick", task)
         self.assertNotIn("next natural capture opportunity", task)
 
+    def test_policy_requires_first_agent_wakeup_fallback_when_automation_is_missing(self):
+        policy = POLICY.read_text(encoding="utf-8").lower()
+        for phrase in (
+            "first authorized agent",
+            "after the task's explicit due time",
+            "direct-agent fallback",
+            "stable task/slot idempotency key",
+            "do not wait for another attempt",
+        ):
+            self.assertIn(phrase, policy)
+
+    def test_task_and_workflow_support_serialized_direct_agent_recovery(self):
+        task = TASK.read_text(encoding="utf-8").lower()
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("first authorized agent wake-up", task)
+        self.assertIn("snapshot-slot-yyyy-mm-dd.zip", task)
+        self.assertIn("group: spot-holdout-capture", workflow)
+        self.assertIn("queue: max", workflow)
+        self.assertIn("cancel-in-progress: false", workflow)
+
     def test_policy_requires_observed_run_and_independent_watchdog(self):
         policy = POLICY.read_text(encoding="utf-8").lower()
         for phrase in (

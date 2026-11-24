@@ -68,3 +68,8 @@ The detailed previous queue history is preserved in [archive/ACTIVE-QUEUE-HISTOR
 ## Trigger reliability correction — 2026-11-24
 
 GitHub Actions `schedule` is best-effort and must not be the primary clock or sole trigger for any time-sensitive, deadline-bound or freshness-sensitive research operation. The failed 04:23 UTC capture expectation was a design error: the expected event never created a run, and the task must not be parked until another cron tick. Follow [External Scheduler and Dispatch Reliability](../docs/EXTERNAL-SCHEDULER-AND-DISPATCH-RELIABILITY.md). For this holdout, the external authenticated dispatcher, idempotent slot handling and independent watchdog remain unprovisioned; do not represent the pipeline as autonomously scheduled until all three are verified.
+
+
+## Direct-agent recovery default — 2026-11-24
+
+Time-sensitive work no longer waits indefinitely for a deterministic trigger. When the due time has passed, the first authorized agent wake-up must inspect the durable slot/output state and directly resume the missing task if no verified result or active run exists. For the Spot holdout, the November 24 slot is `binance-spot-1h:prospective-2026-11:2026-11-24`; use the owner-exact PR command only after checking release assets and active Actions runs. Stable slot assets and the workflow concurrency group prevent duplicate captures. General rule: automation first, first-agent direct execution as the last line of defense, with identical authorization and acceptance gates. See [factory design map](../docs/QUANTITATIVE-RESEARCH-FACTORY-DESIGN-MAP.md) and [scheduler reliability policy](../docs/EXTERNAL-SCHEDULER-AND-DISPATCH-RELIABILITY.md).

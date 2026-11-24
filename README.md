@@ -67,3 +67,8 @@ The main-branch CI runs deterministic tests and a synthetic plumbing smoke test.
 ## Security and reproducibility
 
 External GitHub Actions are pinned to full commit SHAs with version comments; Dependabot proposes updates for review. Workflow jobs should use least-privilege permissions, exact actor/event/ref gates, bounded concurrency, content hashes and durable run manifests. No credentials, paid data, live exchange actions or protected holdout material may be introduced without the required authorization.
+
+
+## Direct-agent recovery rule
+
+Deterministic automation is preferred, but it is never the only path to progress. After a task's declared due time, the first authorized agent wake-up must inspect the durable state and directly resume missing work through the strongest already-authorized route, with the same tests, provenance, acceptance criteria and idempotency controls. Do not wait for GitHub cron or another unreliable trigger. See the [factory design map](docs/QUANTITATIVE-RESEARCH-FACTORY-DESIGN-MAP.md) and [scheduler reliability policy](docs/EXTERNAL-SCHEDULER-AND-DISPATCH-RELIABILITY.md).

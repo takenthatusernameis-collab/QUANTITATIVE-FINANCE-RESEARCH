@@ -17,7 +17,7 @@ At every wake-up, behave as the coordinator of an evidence-producing research fa
 
 **A wake-up is complete only when it has made a verified contribution to the current objective, durably recorded a genuine blocker and its recovery route, or explicitly established that no safe/high-value action is available.** A passing unit test, a new task file, a commit count or a positive backtest is not a substitute for that standard.
 
-**Missed-time rule:** when a time-sensitive slot or expected run is absent, mark operations `DEGRADED`, inspect the independent scheduler ledger, dispatch/API responses and watchdog evidence, and execute bounded idempotent recovery through the authorized external route. Never tell a user or the next agent to wait for another GitHub cron tick; never create a duplicate side effect to compensate for an ambiguous trigger.
+**Missed-time rule:** when a time-sensitive slot or expected run is absent, mark operations `DEGRADED`, inspect the independent scheduler ledger, dispatch/API responses and watchdog evidence, then use the first authorized agent wake-up after the due time as the direct-execution fallback. The agent must claim/check the stable slot, use the authorized execution route and perform bounded idempotent recovery. Never tell a user or the next agent to wait for another GitHub cron tick; never create a duplicate side effect to compensate for an ambiguous trigger.
 
 ## 1. Factory objective and governing design principles
 
@@ -196,6 +196,20 @@ Unit tests, synthetic smoke tests, a manual owner run, workflow configuration an
 Use the canonical active queue as the portfolio board. Make ownership, blockers, due times, priorities, dependencies, evidence locations and resource reservations visible. Prefer event-driven handoffs and durable job/slot state over polling-only loops. Keep queue guardian or automation as a policy-enforcement tool, not an assumed clock. Avoid cancellation races, unsafe concurrency, orphaned runs and ambiguous retries. Before dispatch, inspect queued/in-progress/completed attempts and artifacts. For shared mutable resources, use explicit leases/locks and idempotency; for Git writes, use expected-head updates.
 
 Every event that can change durable state must be auditable: who/what initiated it, why it was authorized, which inputs and versions were used, what changed, and what output was produced. Alert on missing expected output, not merely on an exception inside a process that may never have started.
+
+### 5.4 First-agent wake-up fallback and general deterministic-process recovery
+
+Automation-first does not mean automation-only. A deterministic workflow, scheduler, bot, CI job or runner is preferred for repeatability, but it must never be the only route by which the factory can make progress.
+
+For every task with a future wait or deadline, preregister the exact UTC due time, stable task/slot key, expected output, acceptance criteria, expiry, authorization boundary and direct-agent fallback. At every wake-up, the coordinator checks whether that due time has passed. Before it passes, do not run time-dependent work early; advance independent work. At the first authorized agent wake-up after it passes:
+
+1. Reconstruct live state and inspect the output store, ledger, active/completed runs and artifacts.
+2. Reuse already verified output; observe an active valid run; do not duplicate either.
+3. If the deterministic trigger did not deliver or its execution failed, take the task directly through the best authorized workflow/runner/API/command, using the same frozen scope, tests, data contracts and provenance rules.
+4. Use stable idempotency keys and durable serialization/leases so simultaneous automation or agent wake-ups cannot create duplicate side effects. If atomic claiming is unavailable, serialize through a shared workflow concurrency group or stop before a competing write.
+5. If the agent lacks the permission or execution surface, isolate that exact prerequisite and continue every independent safe task. Never impersonate an owner or bypass a security, data or scientific gate.
+
+This rule applies beyond captures: research code, data audits, empirical validation, CI recovery, report generation, repository hygiene, artifact handling and handoffs should remain executable by an authorized agent when deterministic helpers are absent or flaky. It is a last line of defense, not a reason to avoid useful automation or create permanent manual toil. The fallback is not a real-time SLA: record the actual late execution time and never backdate evidence.
 
 ## 6. Failure, stop-the-line and adaptation protocol
 

@@ -30,7 +30,26 @@ For every time-sensitive research capture, market-data refresh, reconciliation, 
 - Never count a `schedule` event as the only proof that the independent scheduler is installed or healthy.
 - `workflow_run` events are useful event-driven handoffs after an actual workflow completes, but are not a substitute for the independent clock/watchdog.
 
-## 4. Acceptance and incident semantics
+## 4. First-agent wake-up fallback — mandatory when automation is absent or late
+
+An independent scheduler is the preferred timing mechanism, but its absence must not turn a research task into an indefinite wait. **The first authorized agent that wakes after a task's explicit due time is the last line of defense and must directly resume the due operation when its expected output/run is missing.**
+
+For every time-gated task, record in the task file: `not_before_utc` or `due_at_utc`, a stable slot/task idempotency key, expected output, acceptance criteria, authorized execution route, lease/serialization mechanism, bounded retry rule, task expiry and the direct-agent fallback.
+
+At each agent wake:
+
+1. Compare current UTC time with the task's due time. Never execute a time-dependent capture early; continue independent safe work while it is not due.
+2. After the due time, inspect the durable ledger, Actions/API state, artifacts and target storage. If the expected output is already complete and verified, reuse it and do not repeat the side effect. If a valid run is active, observe it rather than launching another.
+3. If the operation is missing, failed or materially incomplete, the first authorized agent takes ownership using the stable task/slot key and the strongest available durable serialization (workflow concurrency, lease or atomic claim), then performs the same bounded task directly through an already-authorized workflow, runner or API route. Apply the exact same code, acceptance criteria, provenance and safety gates.
+4. If an automation process failed, do not wait for another attempt of that same unreliable trigger. Preserve its failure evidence, use direct agent execution or a materially different authorized route, and add regression coverage for the cause.
+5. If no available tool/permission can execute the operation, do not impersonate an owner, invent credentials, weaken allowlists or mark the task complete. Record the exact owner-only prerequisite, continue independent safe work and surface the blocker.
+6. Before every retry, recheck the slot key and durable state. Agent wake-ups, multiple agents and automation events can race; the side effect must be effectively-once. If no atomic claim/serialization is available, do not launch competing side effects.
+
+This fallback is not a real-time scheduling SLA: a late wake means a late execution and must be reported as such. For cumulative snapshots, one verified catch-up snapshot at the actual execution time may supersede missed intermediate slots only when the full history and provenance contract proves no observations were lost. Never backdate acquisition timestamps or fabricate historical execution.
+
+**General repository rule:** deterministic automation is the first choice for repeatable work, but never the only path to progress. If CI, dispatch, a runner, a bot or another deterministic process is absent or demonstrably unreliable, the first agent that resumes the task should directly perform the smallest safe, independently verifiable unit of the work, using the same requirements and tests. Keep direct execution as a permanent last line of defense for research implementation, data audits, validation, reporting, repository maintenance and recovery. This is not a bypass of authorization or scientific gates.
+
+## 5. Acceptance and incident semantics
 
 The scheduler is **not operational** until an end-to-end test proves: dispatch request → authenticated workflow run → correct run identity/slot → capture/reconciliation → durable artifact publication → independent watchdog observation.
 
@@ -44,11 +63,11 @@ Use explicit statuses:
 
 No software unit test, synthetic smoke test, successful manual run, valid cron syntax or repository activity may be promoted to `DELIVERY_VERIFIED`.
 
-## 5. Current Spot holdout application
+## 6. Current Spot holdout application
 
-The first owner-authorized capture (run [45242319210](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45242319210)) succeeded. The expected GitHub cron event on 2026-11-24 04:23 UTC did not create a capture run. The external scheduler, GitHub App identity/credential, per-slot idempotency and independent watchdog remain unprovisioned or unverified. The workflow's existing exact-actor gate must remain intact until the external identity is actually observed and reviewed.
+The first owner-authorized capture (run [45242319210](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45242319210)) succeeded. The expected GitHub cron event on 2026-11-24 04:23 UTC did not create a capture run. The external scheduler, GitHub App identity/credential and independent watchdog remain unprovisioned or unverified. The workflow's existing exact-actor gate must remain intact until any new external identity is actually observed and reviewed. The capture now uses a stable UTC daily slot identity and deterministic release-asset names; a serialized second wake-up for the same slot verifies and reuses the existing ZIP/sidecar instead of creating another capture.
 
-Therefore the current state is **UNCONFIGURED / DEGRADED**, not "waiting for the next cron." The holdout remains closed until an authenticated external dispatch is observed and all snapshot/sidecar reconciliation criteria pass.
+The state is **UNCONFIGURED / DEGRADED** for external scheduling, not "waiting for the next cron." The holdout remains closed until a snapshot is captured/reconciled and its data acceptance criteria pass. If no external scheduler is available, the first authorized agent wake-up after 04:23 UTC is the required backup executor through the existing owner-exact PR command; the agent must inspect the release and active runs first and must not duplicate a successful or active slot.
 
 ## References
 

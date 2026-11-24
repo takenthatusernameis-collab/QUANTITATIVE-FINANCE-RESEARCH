@@ -18,7 +18,7 @@ The [Quantitative Research Factory — Production Design Map](QUANTITATIVE-RESEA
 8. [Model Implementation Timebox Policy](MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md): difficulty-based cycle limits, hard deadlines and terminal outcomes.
 9. [Repository Hygiene and Context Compaction](REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md): safe cleanup and evidence preservation.
 10. [ChatGPT-to-GitHub Dispatch](CHATGPT-WORKFLOW-DISPATCH.md): exact connected-actor bridge, event validation and autonomous run verification.
-11. [External Scheduler and Dispatch Reliability](EXTERNAL-SCHEDULER-AND-DISPATCH-RELIABILITY.md): independent scheduling, authenticated dispatch, idempotency, delivery verification and watchdog requirements.
+11. [External Scheduler and Dispatch Reliability](EXTERNAL-SCHEDULER-AND-DISPATCH-RELIABILITY.md): independent scheduling, authenticated dispatch, first-agent wake-up recovery, idempotency, delivery verification and watchdog requirements.
 
 Lower-level documents may impose stricter controls but may not weaken higher-level rules.
 
