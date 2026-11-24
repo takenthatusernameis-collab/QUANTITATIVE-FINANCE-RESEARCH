@@ -96,7 +96,7 @@ Representative official sources:
 - [2019 token-delisting notice](https://www.binance.com/en/support/announcement/detail/360023570292)
 - [ACM/TRY removal, 2024-12-27](https://www.binance.com/en/support/announcement/detail/f1b4fd16b90947aeaa25721940c4b594)
 - [ACM/TRY reopening, 2025-11-26](https://www.binance.com/en/support/announcement/detail/52d33c3e07344e51848368a67b8e584c)
-- [2026-09-25 pair-removal notice](https://www.binance.com/en/support/announcement/detail/545ca5ad28254999b793bcf1ddd51f93)
+- [2026-09-25 pair-removal notice](https://www.binance.com/en-IN/support/announcement/detail/545ca5ad28254999b793bcf1ddd51f93)
 
 The official [Binance Public Data issue #479](https://github.com/binance/binance-public-data/issues/479) remains open as of this checkpoint. It asks for a complete historical Spot symbol manifest and archive-boundary clarification; the inspected issue snapshot contained user follow-ups but no maintainer answer. This is a lead, not proof that no such internal or undocumented record exists.
 
@@ -130,3 +130,28 @@ Main CI [45397358320](https://github.com/takenthatusernameis-collab/QUANTITATIVE
 - Synthetic pipeline smoke test passed.
 
 This is engineering/CI evidence only. It is not historical-data acceptance or strategy validation.
+
+
+## Appendix A — sampled pair symbols used for the status cross-check
+
+The following is the exact non-exhaustive 106-symbol sample checked against the current catalogue. For several notices the sample deliberately used only a subset of the pairs named in the article; this is not a transcription of every pair in every notice.
+
+- 2023-09-08: AUDIOBUSD, BATBUSD, BSWBUSD, CITYBUSD, CVXBUSD, FORTHBUSD, JUVBUSD, MOBBUSD, OGNBUSD, OMGBUSD, PLABUSD, POLSBUSD
+- 2023-10-13: BELBUSD, C98BUSD, CTXCBUSD, DARBUSD, DOTGBP, ENSBUSD, FISBUSD, FLUXBUSD, ICXBUSD, KDABUSD, LAZIOBUSD, NEOBUSD
+- 2023-11-24: APTBUSD, AXSBUSD, BAKEBUSD, CFXBUSD, CHZBUSD, ETCBUSD, FILBUSD, GASBUSD, TRBBUSD, USTCBUSD
+- 2023-12-29: ADAGBP, BNBGBP, BTCGBP, DOGEGBP, ETHGBP, GBPUSDT, LINKGBP, LTCGBP, MATICGBP, SOLGBP, XRPGBP
+- 2024-02-09: FLOWBNB, GMTETH, ONEBNB, PUNDIXETH
+- 2024-06-28: BLURFDUSD, LINKTUSD, MEMEETH, METISFDUSD, NFPBNB, OSMOBTC, SHIBTUSD
+- 2024-07-26: AVAXTUSD, MATICTUSD, VOXELBTC
+- 2024-08-23: ARKMTUSD, IOTAFDUSD, OMNIBNB, REZBNB, SUPERFDUSD
+- 2024-11-08: COSBTC, FXSBTC
+- 2024-12-13: DCRBTC, PEPETUSD, ZENETH
+- 2024-12-27: ACEBTC, ACMTRY, BOMEBTC, DYMBTC, MTLTRY, PIXELBNB, PIXELFDUSD, QKCBTC, RADBTC, REZFDUSD, TUSDTRY
+- 2025-05-23: ACABTC, MASKBNB, TRUBTC
+- 2025-08-29: BABYBNB, NXPCFDUSD, SXTFDUSD
+- 2025-09-26: AETH, AUCTIONFDUSD, RESOLVBNB
+- 2025-10-17: ANKRBTC, BOMEEUR, DATABTC, HOMEBNB, SHELLBNB, SPKBNB
+- 2025-10-24: AFDUSD, AXSBNB, GALABTC, PNUTBRL
+- 2026-09-25: AIXBTUSDC, DOLOUSDC, ENJUSDC, HUMAUSDC, SXTUSDC, TNSRUSDC, TURTLEUSDC
+
+Additional current-catalogue records associated with the 2018/2019 token-delisting notices: BCNBTC, BCNETH, BCNBNB, CHATBTC, CHATETH, ICNETH, ICNBTC, TRIGBTC, TRIGETH, TRIGBNB, CLOAKBTC, CLOAKETH, MODBTC, MODETH, SALTBTC, SALTETH, SUBBTC, SUBETH, WINGSBTC, WINGSETH. All 20 were present with status BREAK.
