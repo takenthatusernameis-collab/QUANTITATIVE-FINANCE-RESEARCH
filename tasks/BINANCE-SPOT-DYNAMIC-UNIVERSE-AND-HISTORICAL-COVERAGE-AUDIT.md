@@ -28,7 +28,7 @@ This task tests whether a broader, dynamically discovered universe can be eviden
 - **workstream_id:** `BINANCE-SPOT-DYNAMIC-UNIVERSE-AUDIT-2026-11-24`
 - **started_at_utc:** `2026-11-24T12:28:44Z`
 - **expires_at_utc:** `2026-11-29T12:28:44Z`
-- **max_cycles / cycles_used:** 4 / 3 at the 2026-11-24 13:21 UTC checkpoint. The initial catalogue and direct-archive probes were completed in the first substantive wake-up; the present artifact and lifecycle reconciliation is the second. Workflow-run count is not used as a substitute for the agent-cycle count.
+- **max_cycles / cycles_used:** 4 / 3 at the 2026-11-24 13:31 UTC checkpoint. The initial catalogue and direct-archive probes were completed in the first substantive wake-up; the present artifact and lifecycle reconciliation is the second. Workflow-run count is not used as a substitute for the agent-cycle count.
 - **Activation authority:** canonical [active queue](ACTIVE-QUEUE.md); this task's MEDIUM score and five-day ceiling remain unchanged.
 - **No strategy, holdout evaluation, paid data, credentials, or trading authorization is created by activation.**
 
@@ -67,15 +67,16 @@ Full evidence and exact classifications: [Binance Spot Dynamic-Universe and Hist
 - Current classification: current catalogue VERIFIED; direct archive objects SAMPLE_ONLY; sampled delisted-pair presence SAMPLE_ONLY; complete delisted inventory UNKNOWN; point-in-time membership and universe-wide archive completeness UNKNOWN. No strategy is admitted.
 
 **Next action at the second checkpoint (completed at the third checkpoint):** inspect the official Binance announcement categories and reconcile a bounded older event sample. The third-checkpoint report records the result and the scope deviation; do not repeat the archive sample or call undocumented endpoints.
-## Third wake-up checkpoint — 2026-11-24 13:21 UTC
+## Third wake-up checkpoint — 2026-11-24 13:31 UTC
 
 Full findings are in the [third-checkpoint report](../reports/BINANCE-SPOT-DYNAMIC-UNIVERSE-AUDIT-2026-11-24.md).
 
 - The visible New Cryptocurrency Listing and Delisting category pages expose 231 and 45 pages respectively, but their first pages mix Spot, Futures, token, Margin, bStocks/stock-options and Alpha items. The inspection surface did not permit verification of page 2 or the oldest page; no official completeness guarantee was found.
 - A bounded sample of 18 pair records from four 2022 listing/removal notices and the ACM/TRY removal/reopening sequence was reconciled against the retained 2026-11-24 catalogue: all 18 records are present; 15 are BREAK and 3 are TRADING. This remains SAMPLE_ONLY and does not establish a complete lifecycle ledger.
-- One undocumented public BAPI list endpoint was inadvertently opened during route discovery. Its response is excluded from evidence and no further use is permitted. The accepted event evidence is from individual official announcement pages.
+- Undocumented public BAPI list endpoints were inadvertently opened during route discovery. Its response is excluded from evidence and no further use is permitted. The accepted event evidence is from individual official announcement pages.
 - The single pre-listing archive URL attempt was inaccessible through the inspection surface and yielded no HTTP status or bytes; it is not a verified negative control and must not be retried in this task.
 - Current catalogue remains VERIFIED for its snapshot; direct archive objects and sampled lifecycle records remain SAMPLE_ONLY; complete historical membership, announcement-history completeness and universe-wide archive coverage remain UNKNOWN.
+- Latest main CI [45404093861](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45404093861) passed 346 deterministic tests in 15.485 seconds and the synthetic smoke test on commit `1459356eeb93c017920d6ab016249493b4ccb67b`.
 - Workstream remains ACTIVE / MEDIUM / cycle 3 of 4. No strategy is admitted.
 
 **Next action:** use the final cycle for an independent evidence review and, only if supported visible UI navigation is available, verify older announcement pages. Otherwise close INCONCLUSIVE/INFEASIBLE with the exact missing dimensions. Do not use undocumented endpoints, repeat archive probes, or start a strategy.

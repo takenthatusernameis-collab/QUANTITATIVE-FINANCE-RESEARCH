@@ -1,6 +1,6 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-24 13:21 UTC  
+**Updated:** 2026-11-24 13:31 UTC  
 **Canonical queue:** this file remains the single active-work index; it may contain one primary critical-path task plus independently admitted parallel workstreams.  
 **Currently executing workstreams:** 1.  
 **Primary active workstream:** [Binance Spot Dynamic-Universe and Historical-Coverage Feasibility Audit](BINANCE-SPOT-DYNAMIC-UNIVERSE-AND-HISTORICAL-COVERAGE-AUDIT.md) — ACTIVE; MEDIUM; cycle 3/4; expires 2026-11-29 12:28:44 UTC.  
@@ -31,9 +31,9 @@ The [dated checkpoint report](../reports/BINANCE-SPOT-DYNAMIC-UNIVERSE-AUDIT-202
 - Direct archive sample remains unchanged: four accepted of five monthly files; one USDCAED month explicitly rejected as incomplete. Five metadata/API requests, 11 archive objects, 155,377 downloaded bytes. No repeat was performed.
 - Official announcement category pages visibly expose 231 New Cryptocurrency Listing pages and 45 Delisting pages, but both are mixed-product categories. Page 2/oldest-page navigation and completeness were not verified; no official retention guarantee was found.
 - Older event cross-check: 18 unique pairs from four 2022 notices plus the ACM/TRY removal/reopening sequence; all 18 appear in the current catalogue (15 BREAK, 3 TRADING). This remains SAMPLE_ONLY, not a complete lifecycle ledger.
-- One undocumented public BAPI list endpoint was inadvertently opened during route discovery; its output is excluded from evidence and further use is prohibited. The pre-listing archive URL attempt was inaccessible with no HTTP status/bytes and is not an accepted negative control.
+- Undocumented public BAPI list endpoints were inadvertently opened during route discovery; its output is excluded from evidence and further use is prohibited. The pre-listing archive URL attempt was inaccessible with no HTTP status/bytes and is not an accepted negative control.
 - Current catalogue VERIFIED for the snapshot; direct archive and sampled lifecycle records SAMPLE_ONLY; complete historical membership, announcement-history completeness and universe-wide archive coverage UNKNOWN. No strategy start.
-- Latest main CI [45399689896](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45399689896) passed 346 deterministic tests in 14.158 seconds and the synthetic smoke test on commit `b12cc9ad8d7b4b819f96c1ea7efaae6aa21c59a7`. This is engineering evidence only.
+- Latest main CI [45404093861](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45404093861) passed 346 deterministic tests in 15.485 seconds and the synthetic smoke test on commit `1459356eeb93c017920d6ab016249493b4ccb67b`. This is engineering evidence only.
 
 ## Repository governance upgrade — completed 2026-11-24
 
@@ -91,7 +91,7 @@ All successor work must satisfy:
 - **External scheduler:** still UNCONFIGURED / DEGRADED; no independent scheduler, dedicated GitHub App credential or separate watchdog is provisioned. GitHub cron is best-effort only and must never be treated as the primary clock or recovery plan.
 - **First-agent recovery:** exercised successfully for the November 24 holdout slot. The direct-agent route checks due time, live Actions state and Release assets, then uses the exact-owner command only if the stable slot is missing and no capture is active. A second authorized wake-up proved exact ZIP/sidecar reuse; do not duplicate.
 - **Queue guardian:** five-minute cron cadence remains unproven and is not an SLA. Event-driven capture handoffs [45373479882](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373479882), [45373736534](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373736534) and [45373756502](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45373756502) completed successfully.
-- **Research CI:** latest main CI [45399689896](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45399689896) passed 346 deterministic tests in 14.158 seconds and the synthetic pipeline smoke test on commit `b12cc9ad8d7b4b819f96c1ea7efaae6aa21c59a7`. This validates code, not archive completeness or a trading edge.
+- **Research CI:** latest main CI [45404093861](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45404093861) passed 346 deterministic tests in 15.485 seconds and the synthetic pipeline smoke test on commit `1459356eeb93c017920d6ab016249493b4ccb67b`. This validates code, not archive completeness or a trading edge.
 - **Control PR:** PR #2 remains the exact-owner command surface; do not execute or merge PR-head code. Existing exact actor/ref/event gates remain intact.
 - **Current active workstream:** Binance Spot Dynamic-Universe and Historical-Coverage Feasibility Audit — MEDIUM, cycle 3/4, expires 2026-11-29 12:28:44 UTC. See [checkpoint report](../reports/BINANCE-SPOT-DYNAMIC-UNIVERSE-AUDIT-2026-11-24.md). No strategy successor is currently admitted.
 ## Handoff discipline

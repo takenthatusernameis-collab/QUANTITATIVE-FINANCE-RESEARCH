@@ -1,7 +1,7 @@
 # Binance Spot Dynamic-Universe and Historical-Coverage Audit — checkpoint
 
 **First checkpoint time:** 2026-11-24 12:53:20 UTC
-**Latest checkpoint:** 2026-11-24 13:21 UTC  
+**Latest checkpoint:** 2026-11-24 13:31 UTC  
 **Workstream:** BINANCE-SPOT-DYNAMIC-UNIVERSE-AUDIT-2026-11-24  
 **Status:** ACTIVE — third substantive wake-up completed; 3 of 4 cycles used.  
 **Scope:** public, read-only Binance Spot metadata and archive feasibility. No strategy, backtest, holdout inspection, credentials, paid data or trading.
@@ -125,14 +125,14 @@ The workstream remains ACTIVE at cycle 2/4. The next wake-up should:
 4. If no documented completeness guarantee or reproducible event ledger can be established, close INCONCLUSIVE/INFEASIBLE with the exact missing dimensions. Do not admit a strategy or broaden the universe by assumption.
 
 
-## 7. Third wake-up checkpoint — 2026-11-24 13:21 UTC
+## 7. Third wake-up checkpoint — 2026-11-24 13:31 UTC
 
 ### Official announcement-category inspection
 
 - The official [New Cryptocurrency Listing category](https://www.binance.com/en/support/announcement/list/48) visibly exposes **231 pages**. Its first page mixes Spot-pair announcements with token listings, Futures products, bStocks and stock-options notices; it is not a Spot-pair-only event feed.
-- The official [Delisting category](https://www.binance.com/en/support/announcement/list/0161/) visibly exposes **45 pages**. Its first page mixes Spot pair removals with Margin, Futures, token and Binance Alpha removals; it is not a Spot-pair-only event feed.
-- The visible controls establish that both categories are multi-page. The available read-only inspection surface did not expose usable page-number links: attempts to open page 2 or a page-number variant were inaccessible, so neither page 2 nor the oldest page was verified. Binance's [delisting FAQ](https://www.binance.com/en/support/faq/detail/2068a768949b4ccab0cd7ac962465ddd) explains where users can view notices but provides no historical-retention or completeness guarantee.
-- **Scope deviation recorded:** while identifying the public page feed, one publicly reachable but undocumented BAPI list endpoint was opened. Its response is excluded from accepted evidence; no completeness or pagination conclusion relies on it, and it must not be used again. Accepted category evidence above comes from the visible support pages; accepted event evidence below comes from individual official announcement pages.
+- The official [Delisting category](https://www.binance.com/en/support/announcement/list/161?navId=161) visibly exposes **45 pages**. Its first page mixes Spot pair removals with Margin, Futures, token and Binance Alpha removals; it is not a Spot-pair-only event feed.
+- The visible controls establish that both categories are multi-page. The available read-only inspection surface did not expose usable page-number links: attempts to open page 2 or a page-number variant were inaccessible, so neither page 2 nor the oldest page was verified. Binance's [delisting FAQ](https://www.binance.com/en/support/faq/detail/2068a768949b4ccab0cd7ac962465ddd) explains how to access notices and the notification process, but does not state a historical-retention or completeness guarantee.
+- **Scope deviation recorded:** while identifying the public page feed, undocumented public BAPI list endpoints were opened. Its response is excluded from accepted evidence; no completeness or pagination conclusion relies on it, and it must not be used again. Accepted category evidence above comes from the visible support pages; accepted event evidence below comes from individual official announcement pages.
 - Result: visible pagination is **SAMPLE_ONLY** evidence of a multi-page interface, not proof of complete historical retention, stable supported pagination, or a complete pair-lifecycle ledger.
 
 ### Bounded older listing/removal/relisting sample
@@ -180,6 +180,8 @@ Use cycle 4 only for a final independent review of the existing evidence and any
 Main CI [45397358320](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45397358320) passed on commit c67b6d686475c5bbc96c43516bcd248d442d020e:
 - 346 deterministic tests passed in 15.555 seconds.
 - Synthetic pipeline smoke test passed.
+
+Third-checkpoint documentation commit [45404093861](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45404093861) passed 346 deterministic tests in 15.485 seconds and the synthetic pipeline smoke test on commit `1459356eeb93c017920d6ab016249493b4ccb67b`.
 
 This is engineering/CI evidence only. It is not historical-data acceptance or strategy validation.
 
