@@ -18,7 +18,7 @@ Continuously improve the probability that each agent cycle produces trustworthy,
 
 ## Current research state
 
-The current assignment is [Post-Holdout Research Environment and Portfolio Review](tasks/POST-HOLDOUT-RESEARCH-ENVIRONMENT-AND-PORTFOLIO-REVIEW.md) — ACTIVE, LOW difficulty, started 2026-11-24T10:27:16Z, expires 2026-11-26T10:27:16Z, maximum 2 substantive cycles. Recheck live state and the canonical queue before acting.
+The next ready assignment is [Binance Spot Dynamic-Universe and Historical-Coverage Feasibility Audit](tasks/BINANCE-SPOT-DYNAMIC-UNIVERSE-AND-HISTORICAL-COVERAGE-AUDIT.md) — an environment-enabling task, MEDIUM difficulty, maximum 4 substantive cycles / 5 elapsed days, absolute deadline 2026-12-02 17:30 UTC. Its exact start and expiry must be frozen in the canonical queue before its first substantive action. The Post-Holdout Research Environment and Portfolio Review completed on 2026-11-24 after one of two allowed cycles; it selected no strategy. Current verified Spot history remains pair-specific to ETHUSDT/BTCUSDT; point-in-time and delisted-symbol universe coverage are not yet verified.
 
 - Binance Spot mean-reversion: **NO-GO**, concluded November 22, 2026.
 - ETH/BTC Spot relative-momentum rotation: **NO-GO**, concluded November 23, 2026; frozen and closed.
