@@ -1,7 +1,7 @@
 # Binance Spot Dynamic-Universe and Historical-Coverage Feasibility Audit
 
 **Project ID:** `BINANCE-SPOT-DYNAMIC-UNIVERSE-AUDIT-2026-11-24`  
-**Status:** ACTIVE — third substantive wake-up checkpoint completed 2026-11-24; 3 of 4 cycles used. The canonical active queue remains authoritative for the frozen start, expiry and cycle counter.  
+**Status:** CLOSED — INCONCLUSIVE; final substantive wake-up completed 2026-11-24 14:53 UTC; 4 of 4 cycles used. The cycle cap was reached; no extension or expiry reset was granted.  
 **Priority:** P2 — environment-enabling prerequisite for any broader asset-level research.  
 **Project kind:** `environment_enabling`; this is not a strategy hypothesis or backtest.
 
@@ -28,7 +28,7 @@ This task tests whether a broader, dynamically discovered universe can be eviden
 - **workstream_id:** `BINANCE-SPOT-DYNAMIC-UNIVERSE-AUDIT-2026-11-24`
 - **started_at_utc:** `2026-11-24T12:28:44Z`
 - **expires_at_utc:** `2026-11-29T12:28:44Z`
-- **max_cycles / cycles_used:** 4 / 3 at the 2026-11-24 13:31 UTC checkpoint. The initial catalogue and direct-archive probes were completed in the first substantive wake-up; the present artifact and lifecycle reconciliation is the second. Workflow-run count is not used as a substitute for the agent-cycle count.
+- **max_cycles / cycles_used:** 4 / 4 at final closure (2026-11-24 14:53 UTC). The fourth cycle was limited to independent source review and terminal disposition; workflow-run count is not used as a substitute for agent-cycle count.
 - **Activation authority:** canonical [active queue](ACTIVE-QUEUE.md); this task's MEDIUM score and five-day ceiling remain unchanged.
 - **No strategy, holdout evaluation, paid data, credentials, or trading authorization is created by activation.**
 
@@ -109,20 +109,57 @@ Do not choose a trading model in this task. Do not inherit ETHUSDT/BTCUSDT as th
 - No venue merge, funding research, protected holdout access, strategy backtest, signal/performance inspection, live order or capital deployment.
 - The sample is explicitly non-exhaustive. It must not be used to claim universe-wide historical completeness or justify a permanent top-N universe.
 
-## Acceptance criteria
 
-- [ ] Complete current Spot catalogue response is retained by SHA-256 with exact request/time and symbol counts.
-- [ ] Every catalogue symbol has a normalized identity/status/quote/permission record or a documented parse failure.
-- [ ] Archive-listing/index semantics and pagination are verified, or the exact limitation is recorded.
-- [ ] Delisted-symbol and historical membership coverage are VERIFIED or explicitly UNKNOWN/UNAVAILABLE; current symbols are not treated as historical constituents.
-- [ ] Deterministic sample selection is reproducible, non-exhaustive and not an arbitrary fixed ticker list.
-- [ ] Positive and negative controls behave as expected; sampled archive checksums/schema/coverage pass or are explicitly rejected.
-- [ ] No raw data are committed or uploaded; provenance and manifest hashes are retained.
-- [ ] The final report distinguishes VERIFIED from SAMPLE_ONLY and states whether any broader hypothesis is actually ready.
-- [ ] Any later hypothesis receives its own identity, preregistration, independent holdout and difficulty/timebox before implementation.
+## Acceptance criteria — final disposition 2026-11-24 14:53 UTC
+
+- [x] Complete current Spot catalogue response retained by SHA-256 with exact request/time and symbol counts.
+- [x] Every returned catalogue symbol normalized with identity/status/quote/permission fields or a documented parse failure; 3,751/3,751 normalized with zero parse errors.
+- [x] Archive-listing/index semantics and pagination investigated; the tested prefix route's HTML/schema failure and lack of verified supported pagination are explicitly recorded.
+- [x] Delisted-symbol and historical membership coverage explicitly classified: sampled presence is SAMPLE_ONLY; complete lifecycle and point-in-time membership remain UNKNOWN.
+- [x] Deterministic, non-exhaustive sample selection and its limitations are documented.
+- [x] Positive and negative controls behaved as expected; sampled archive checksums/schema/coverage were accepted or explicitly rejected. No pre-listing negative-control result is claimed.
+- [x] No raw market data committed or uploaded; provenance, hashes and compact catalogue artifact retained.
+- [x] Final report distinguishes VERIFIED from SAMPLE_ONLY/UNKNOWN and concludes that no broader universe or strategy is ready.
+- [x] Any future hypothesis remains subject to its own identity, preregistration, independent holdout and mandatory difficulty/timebox gate.
 
 ## Stop conditions
 
 Stop the affected route immediately on an authorization restriction, HTTP 403/418/451, unexpected request volume, unbounded archive listing, incomplete pagination, schema ambiguity or any indication that the 250 MB / 12-object / 50-request budget would be exceeded. Do not retry an unchanged permanent failure or bypass the restriction.
 
 If point-in-time universe or historical archive completeness cannot be established within the frozen timebox, close INCONCLUSIVE/INFEASIBLE and preserve the exact blocker. Do not force a strategy selection merely to keep the research queue occupied.
+
+
+## Final cycle and terminal disposition — 2026-11-24 14:53 UTC
+
+**Decision: INCONCLUSIVE.** The audit established a complete current snapshot and several useful samples, but did not establish a complete historical Spot universe or archive-coverage contract. This is not proof that Binance has no internal or other historical records; it means no sufficiently complete, authorized and reproducible public evidence route was verified within the frozen four-cycle budget.
+
+### Independent source review
+
+- The official [New Cryptocurrency Listing category](https://www.binance.com/en/support/announcement/list/48) currently renders **231 pages**. Its visible first-page entries mix Spot trading-pair announcements with token listings, Futures products, bStocks and other products. Numeric pagination is visible, but the available read-only inspection surface exposes no clickable destination for page 2 or the oldest page. No unsupported page URL or undocumented endpoint was guessed.
+- The official [Delisting category](https://www.binance.com/en/support/announcement/list/161) currently renders **45 pages**. Its visible first page mixes Spot pair removals with Margin, Futures, token and Binance Alpha removals. It is not a Spot-pair-only lifecycle feed.
+- Binance's [delisting-information FAQ](https://www.binance.com/en/support/faq/detail/2068a768949b4ccab0cd7ac962465ddd), published 2022-10-27 and updated 2026-01-07, explains where users can find delisting announcements and how notifications work. It does not state a complete historical-retention guarantee or provide a point-in-time pair-membership ledger.
+- The official [Binance Public Data README](https://github.com/binance/binance-public-data/blob/master/README.md) describes daily/monthly public archives and checksum files and points to a helper for obtaining current running symbols. It does not document a complete dated historical Spot symbol manifest, lifecycle event ledger or exhaustive archive-directory index.
+- Upstream [binance/binance-public-data issue #479](https://github.com/binance/binance-public-data/issues/479), which asks for a historical Spot symbol manifest and archive-boundary guarantees, remains OPEN as of 2026-11-24 08:51:49 UTC. Its two visible comments are user follow-ups; no maintainer answer or authoritative completeness statement is present. This is supporting context, not proof that no private or unindexed source exists.
+
+### Final evidence classification
+
+| Dimension | Final classification | Basis |
+|---|---|---|
+| Current Spot catalogue | VERIFIED for the 2026-11-24 snapshot | 3,751/3,751 normalized; raw and normalized hashes retained |
+| Direct monthly archive objects | SAMPLE_ONLY | Four accepted of five sampled files; one incomplete month explicitly rejected |
+| Announcement-category pagination | SAMPLE_ONLY | 231 and 45 visible pages; mixed-product categories; older-page navigation and retention completeness unverified |
+| Older pair lifecycle reconciliation | SAMPLE_ONLY | 18 selected pairs from 2022 events and ACM/TRY removal/reopening all present; 15 BREAK, 3 TRADING |
+| Complete historical delisted-symbol inventory | UNKNOWN | No exhaustive authoritative pair-event ledger |
+| Point-in-time listing/delisting/relisting membership | UNKNOWN | Current exchangeInfo status does not encode effective lifecycle dates |
+| Universe-wide historical archive completeness | UNKNOWN | No complete symbol/month index or exhaustive symbol-month validation |
+
+The prior archive sample was not repeated, the inaccessible pre-listing URL was not retried, undocumented BAPI endpoints were not used again, and no additional market-data downloads were made.
+
+### Four-axis outcome and handoff
+
+- **Engineering:** PASS for the bounded audit implementation and existing tests; latest main CI [45404411941](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45404411941) completed successfully on b2d6d3271bbfa2cf2559fd4be68a7a2d919a233b. The preceding full run [45404093861](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45404093861) passed 346 deterministic tests and the synthetic pipeline smoke test.
+- **Data:** PARTIAL; current catalogue is VERIFIED for its snapshot, while historical universe/archive dimensions remain SAMPLE_ONLY or UNKNOWN.
+- **Empirical research:** NOT RUN / NOT APPLICABLE; no strategy or backtest was authorized by this audit.
+- **Operations:** the audit's owner-authorized read-only workflow run [45396976562](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45396976562) completed successfully and its 496,162-byte catalogue artifact remains available with digest sha256:f6749853ea829a013490e9af394d6b24e39a51e96433cbcfee7ed9070dcd5e66. This does not establish factory-wide scheduler delivery.
+
+**Closure:** cycle 4/4 reached; no extension. No broader Spot universe, strategy hypothesis or successor workstream is admitted. Reconsider only if materially new authoritative evidence or a separately authorized, documented source route becomes available.

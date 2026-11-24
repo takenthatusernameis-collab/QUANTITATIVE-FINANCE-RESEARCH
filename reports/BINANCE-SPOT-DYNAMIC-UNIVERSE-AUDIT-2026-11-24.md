@@ -1,9 +1,9 @@
 # Binance Spot Dynamic-Universe and Historical-Coverage Audit — checkpoint
 
 **First checkpoint time:** 2026-11-24 12:53:20 UTC
-**Latest checkpoint:** 2026-11-24 13:31 UTC  
+**Latest checkpoint:** 2026-11-24 14:53 UTC  
 **Workstream:** BINANCE-SPOT-DYNAMIC-UNIVERSE-AUDIT-2026-11-24  
-**Status:** ACTIVE — third substantive wake-up completed; 3 of 4 cycles used.  
+**Status:** CLOSED — INCONCLUSIVE; final substantive wake-up completed; 4 of 4 cycles used.  
 **Scope:** public, read-only Binance Spot metadata and archive feasibility. No strategy, backtest, holdout inspection, credentials, paid data or trading.
 
 ## Executive result
@@ -209,3 +209,39 @@ The following is the exact non-exhaustive 106-symbol sample checked against the 
 - 2026-09-25: AIXBTUSDC, DOLOUSDC, ENJUSDC, HUMAUSDC, SXTUSDC, TNSRUSDC, TURTLEUSDC
 
 Additional current-catalogue records associated with the 2018/2019 token-delisting notices: BCNBTC, BCNETH, BCNBNB, CHATBTC, CHATETH, ICNETH, ICNBTC, TRIGBTC, TRIGETH, TRIGBNB, CLOAKBTC, CLOAKETH, MODBTC, MODETH, SALTBTC, SALTETH, SUBBTC, SUBETH, WINGSBTC, WINGSETH. All 20 were present with status BREAK.
+
+
+## 11. Final independent review and closure — 2026-11-24 14:53 UTC
+
+**Terminal disposition: INCONCLUSIVE.** The final cycle did not produce a supported, complete historical-universe route. The result is not a claim that Binance has no other records; it is a finding that the authorized public evidence inspected here does not establish point-in-time Spot membership or universe-wide archive completeness.
+
+### Official visible announcement surfaces
+
+- [New Cryptocurrency Listing](https://www.binance.com/en/support/announcement/list/48): the current official page renders **231 pages**. Its first page contains mixed product types, including Spot-pair notices, token listings, Futures products and bStocks. Numeric pagination is visible, but the available read-only page representation does not expose page-number link targets. Page 2 and the oldest page therefore remain unverified.
+- [Delisting](https://www.binance.com/en/support/announcement/list/161): the current official page renders **45 pages**. Its first page mixes Spot pair removals with Margin, Futures, token and Binance Alpha notices. It is not a Spot-only pair lifecycle feed.
+- [Binance delisting FAQ](https://www.binance.com/en/support/faq/detail/2068a768949b4ccab0cd7ac962465ddd), published 2022-10-27 and updated 2026-01-07, explains how to find announcements and notification behavior. It does not publish a historical completeness/retention guarantee or a dated pair-membership ledger.
+- [Binance Public Data README](https://github.com/binance/binance-public-data/blob/master/README.md) documents public daily/monthly archives, checksums and a helper for current running symbols. It does not document a complete historical Spot symbol manifest, lifecycle event ledger or exhaustive archive index.
+- [Upstream issue #479](https://github.com/binance/binance-public-data/issues/479) remains open; its latest update at 2026-11-24 08:51:49 UTC contains two user follow-ups requesting a historical Spot manifest and archive-boundary clarification, with no visible maintainer response or authoritative completeness statement.
+
+No attempt was made to guess page-number URLs, use undocumented APIs, repeat the failed archive-list route or retry the inaccessible pre-listing archive object.
+
+### Final classification
+
+| Dimension | Classification | Final evidence |
+|---|---|---|
+| Current Spot catalogue | VERIFIED for 2026-11-24 snapshot | 3,751/3,751 normalized with retained raw and normalized hashes |
+| Direct monthly archive objects | SAMPLE_ONLY | Four accepted of five samples; one incomplete month rejected |
+| Announcement category pagination | SAMPLE_ONLY | 231 and 45 visible pages; mixed product types; older-page reachability and retention unverified |
+| Older pair lifecycle sample | SAMPLE_ONLY | 18 selected pairs reconciled; all present, 15 BREAK and 3 TRADING |
+| Complete historical delisted-symbol inventory | UNKNOWN | No exhaustive authoritative event ledger |
+| Point-in-time membership | UNKNOWN | Current status does not provide listing/delisting/relisting effective dates |
+| Universe-wide historical archive completeness | UNKNOWN | No complete symbol/month index or exhaustive validation |
+
+### Four-axis outcome
+
+- **Engineering:** PASS for bounded audit code/tests. Latest main CI [45404411941](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45404411941) succeeded on b2d6d3271bbfa2cf2559fd4be68a7a2d919a233b; the preceding full run [45404093861](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45404093861) passed 346 deterministic tests and the synthetic smoke test.
+- **Data:** PARTIAL; the current snapshot is VERIFIED, while historical membership and archive completeness remain SAMPLE_ONLY/UNKNOWN.
+- **Empirical research:** NOT RUN; no strategy was admitted.
+- **Operations:** the owner-authorized audit run [45396976562](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45396976562) succeeded and its catalogue artifact remains available. This is not factory-wide scheduler verification.
+
+**Final decision:** close workstream BINANCE-SPOT-DYNAMIC-UNIVERSE-AUDIT-2026-11-24 as **INCONCLUSIVE** at cycle 4/4. No extension, strategy start or successor workstream. Reopen only if materially new authoritative evidence or a separately authorized and documented source route becomes available.
