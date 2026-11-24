@@ -8,7 +8,7 @@ The factory should run independent workstreams in parallel whenever doing so inc
 
 Parallelism is conditional, not a mandate to launch more work. Resolve existing active work first, avoid duplicate experiments, and keep the highest-priority critical-path assignment protected. A queued successor that depends on the active assignment remains queued. Independent work may proceed beside it only after passing this policy's admission checks.
 
-The active queue remains the single canonical index. It may list one primary critical-path workstream and additional independently admitted active workstreams. Every active workstream has its own identity, scope, evidence, start time, cycle counter and hard expiry.
+The active queue remains the single canonical index. It may list one primary critical-path workstream and additional independently admitted active workstreams. Every newly activated workstream has its own identity, scope, evidence, start time, cycle counter and hard expiry. Work already active when this policy is adopted retains its previously frozen cycle budget and hard deadline; do not retroactively reset its clock or invent an unrecorded start time. Before admitting a new concurrent workstream, add isolation metadata for every existing active workstream to the canonical queue so the validator can compare paths, resources and holdouts.
 
 ## 1. Independence and admission checks
 
