@@ -38,7 +38,22 @@ def workflow_path(run: dict[str, Any]) -> str:
 
 
 def group_for(run: dict[str, Any]) -> str | None:
-    return WORKFLOW_GROUPS.get(workflow_path(run))
+    path = workflow_path(run)
+    if path == ".github/workflows/binance-spot-universe-audit.yml":
+        actor = run.get("actor") or {}
+        head_repository = run.get("head_repository") or {}
+        authorized = (
+            run.get("display_title") == "Authorized Binance Spot universe audit"
+            and run.get("event") == "issue_comment"
+            and actor.get("login") == "takenthatusernameis-collab"
+            and run.get("head_branch") == "main"
+            and head_repository.get("full_name")
+            == "takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH"
+        )
+        if authorized:
+            return "binance-spot-universe-audit-main"
+        return f"binance-spot-universe-audit-ignored-{run.get('id', 'unknown')}"
+    return WORKFLOW_GROUPS.get(path)
 
 
 def build_run_inventory(runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -52,6 +67,7 @@ def build_run_inventory(runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "run_id": int(run["id"]),
             "workflow_path": path,
             "workflow_name": OBSERVABILITY_WORKFLOWS[path],
+            "display_title": run.get("display_title"),
             "event": run.get("event"),
             "status": run.get("status"),
             "conclusion": run.get("conclusion"),
