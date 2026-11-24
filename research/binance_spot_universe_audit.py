@@ -293,6 +293,29 @@ def normalize_exchange_info(payload: bytes) -> tuple[list[dict], list[dict], dic
     return records, errors, summary
 
 
+def _stable_stratum_choice(items: list[dict], group_fields: tuple[str, ...]) -> tuple[dict | None, dict | None]:
+    if not items:
+        return None, None
+    groups = Counter(tuple(item[field] for field in group_fields) for item in items)
+    rarest = min(groups.values())
+    chosen_group = sorted(group for group, count in groups.items() if count == rarest)[0]
+    group_items = [
+        item for item in items
+        if tuple(item[field] for field in group_fields) == chosen_group
+    ]
+    chosen = min(
+        group_items,
+        key=lambda item: hashlib.sha256(
+            f'{item["quoteAsset"]}|{item["status"]}|{item["symbol"]}'.encode("utf-8")
+        ).hexdigest(),
+    )
+    return chosen, {
+        "stratum": dict(zip(group_fields, chosen_group)),
+        "population": len(group_items),
+        "candidate_group_count": len(groups),
+    }
+
+
 def select_sample(records: list[dict]) -> tuple[list[str], dict]:
     lookup = {item["symbol"]: item for item in records}
     missing_seeds = [symbol for symbol in SEED_SYMBOLS if symbol not in lookup]
@@ -303,40 +326,52 @@ def select_sample(records: list[dict]) -> tuple[list[str], dict]:
     if not candidates:
         raise ValueError("No non-seed symbol available for deterministic sample")
 
-    def diversity_score(item: dict) -> int:
-        return int(item["quoteAsset"] != "USDT") + int(item["status"] != "TRADING")
-
-    best_score = max(diversity_score(item) for item in candidates)
-    pool = [item for item in candidates if diversity_score(item) == best_score]
-    group_counts = Counter((item["quoteAsset"], item["status"]) for item in pool)
-    rarest = min(group_counts.values())
-    eligible_groups = sorted(group for group, count in group_counts.items() if count == rarest)
-    chosen_group = eligible_groups[0]
-    group_items = [
-        item for item in pool
-        if (item["quoteAsset"], item["status"]) == chosen_group
-    ]
-    chosen = min(
-        group_items,
-        key=lambda item: hashlib.sha256(
-            f'{item["quoteAsset"]}|{item["status"]}|{item["symbol"]}'.encode("utf-8")
-        ).hexdigest(),
+    # One inactive/status stratum and one currently spot-tradable non-USDT quote
+    # stratum are sampled when available. This avoids letting a rare inactive
+    # quote/status pair stand in for a positive non-seed archive control.
+    inactive = [item for item in candidates if item["status"] != "TRADING"]
+    inactive_non_usdt = [item for item in inactive if item["quoteAsset"] != "USDT"]
+    inactive_pool = inactive_non_usdt or inactive
+    status_sample, status_meta = _stable_stratum_choice(
+        inactive_pool, ("quoteAsset", "status")
     )
-    symbols = [*SEED_SYMBOLS, chosen["symbol"]]
+
+    active = [
+        item for item in candidates
+        if item["status"] == "TRADING" and item["isSpotTradingAllowed"] is True
+    ]
+    active_non_usdt = [item for item in active if item["quoteAsset"] != "USDT"]
+    active_pool = active_non_usdt or active
+    active_sample, active_meta = _stable_stratum_choice(
+        active_pool, ("quoteAsset", "status")
+    )
+
+    non_seed_samples = []
+    if status_sample:
+        non_seed_samples.append(status_sample["symbol"])
+    if active_sample and active_sample["symbol"] not in non_seed_samples:
+        non_seed_samples.append(active_sample["symbol"])
+    if not non_seed_samples:
+        fallback, fallback_meta = _stable_stratum_choice(candidates, ("quoteAsset", "status"))
+        if fallback:
+            non_seed_samples.append(fallback["symbol"])
+            status_meta = fallback_meta
+
+    symbols = [*SEED_SYMBOLS, *non_seed_samples]
     return symbols, {
         "method": (
-            "mandatory BTCUSDT/ETHUSDT controls; among all other catalogue entries, "
-            "maximize (non-USDT quote, non-TRADING status), select the least-populated "
-            "remaining quote/status stratum, then choose the minimum SHA-256 rank"
+            "mandatory BTCUSDT/ETHUSDT controls; choose one inactive non-USDT "
+            "quote/status stratum when available, then one TRADING and "
+            "isSpotTradingAllowed=true non-USDT quote/status stratum when available; "
+            "within each stratum choose the least-populated group and minimum SHA-256 rank"
         ),
         "sample_symbols": symbols,
-        "non_seed_symbol": chosen["symbol"],
-        "selected_quote_status_stratum": {
-            "quoteAsset": chosen["quoteAsset"], "status": chosen["status"]
-        },
-        "diversity_score": best_score,
+        "non_seed_symbols": non_seed_samples,
+        "inactive_status_sample": status_sample["symbol"] if status_sample else None,
+        "inactive_status_selection": status_meta,
+        "active_non_seed_sample": active_sample["symbol"] if active_sample else None,
+        "active_non_seed_selection": active_meta,
         "candidate_count": len(candidates),
-        "selected_stratum_population": len(group_items),
         "sample_is_non_exhaustive": True,
     }
 
@@ -346,7 +381,10 @@ def _local_name(tag: str) -> str:
 
 
 def parse_s3_listing(payload: bytes) -> dict:
-    root = ET.fromstring(payload)
+    try:
+        root = ET.fromstring(payload)
+    except ET.ParseError as exc:
+        raise ValueError(f"Archive index response is not valid XML: {exc}") from exc
     if _local_name(root.tag) != "ListBucketResult":
         raise ValueError(f"Unexpected archive listing root: {_local_name(root.tag)}")
     values: dict[str, list[str] | str | None] = {
@@ -706,75 +744,30 @@ def run_audit(output_dir: Path, run_id: str | None = None) -> dict:
         sample_symbols, sample_method = select_sample(normalized_records)
         manifest["sample"] = sample_method
 
-        # A delimiter listing enumerates symbol directories without downloading market data.
-        try:
-            index = list_s3_prefix(
-                client, "data/spot/monthly/klines/", delimiter="/"
-            )
-            manifest["archive_index"] = {
-                key: value for key, value in index.items() if key != "common_prefixes"
-            }
-            archive_prefixes = index.get("common_prefixes", [])
-            if archive_prefixes:
-                archive_symbols = sorted(symbol_from_prefix(item) for item in archive_prefixes)
-                current_symbols = {item["symbol"] for item in normalized_records}
-                archive_symbol_set = set(archive_symbols)
-                manifest["archive_index"].update({
-                    "archive_symbol_prefixes_count": len(archive_symbols),
-                    "archive_only_prefix_count": len(archive_symbol_set - current_symbols),
-                    "archive_only_prefix_sample": sorted(archive_symbol_set - current_symbols)[:100],
-                    "current_catalogue_without_archive_prefix_count": len(current_symbols - archive_symbol_set),
-                    "current_catalogue_without_archive_prefix_sample": sorted(current_symbols - archive_symbol_set)[:100],
-                })
-                archive_prefixes = sorted(archive_prefixes)
-                (output_dir / "archive_symbol_prefixes.json").write_text(
-                    json.dumps({
-                        "retrieved_at_utc": now_utc(),
-                        "complete": index.get("complete", False),
-                        "prefixes": archive_prefixes,
-                    }, indent=2, sort_keys=True),
-                    encoding="utf-8",
-                )
-        except (RestrictedRoute, BudgetExceeded, NetworkFailure, AuditStop, ValueError) as exc:
-            manifest["archive_index"] = {
-                "status": "UNAVAILABLE_OR_INCOMPLETE",
-                "complete": False,
-                "error": f"{type(exc).__name__}: {exc}",
-            }
-            manifest["stop_reasons"].append(
-                "Archive listing/index route stopped; direct documented object URLs remain a separate route"
-            )
-
-        # Per-symbol 1h folder listings establish month-key semantics for the bounded sample.
-        if manifest["archive_index"].get("status") == "OK":
-            sample_month_indexes = []
-            for symbol in sample_symbols:
-                try:
-                    listing = list_s3_prefix(
-                        client, f"data/spot/monthly/klines/{symbol}/1h/"
-                    )
-                    month_keys = listing.get("keys", [])
-                    sample_month_indexes.append({
-                        "symbol": symbol,
-                        "status": listing.get("status"),
-                        "complete": listing.get("complete"),
-                        "pages": listing.get("pages"),
-                        "key_count": listing.get("key_count"),
-                        "keys_for_recent_month": [
-                            key for key in month_keys if key.endswith(f"-{recent_month}.zip")
-                        ],
-                        "keys_for_historical_month": [
-                            key for key in month_keys if key.endswith(f"-{HISTORICAL_MONTH}.zip")
-                        ],
-                    })
-                except (RestrictedRoute, BudgetExceeded, NetworkFailure, AuditStop, ValueError) as exc:
-                    sample_month_indexes.append({
-                        "symbol": symbol,
-                        "status": "STOPPED",
-                        "error": f"{type(exc).__name__}: {exc}",
-                    })
-                    break
-            manifest["archive_index"]["sample_symbol_month_indexes"] = sample_month_indexes
+        # The first ListObjectsV2 probe returned HTTP 200 text/html rather than
+        # an XML ListBucketResult. Per the schema-ambiguity stop rule, do not
+        # retry this listing route or probe alternate directory-index paths.
+        manifest["archive_index"] = {
+            "status": "UNAVAILABLE_SCHEMA_AMBIGUITY",
+            "complete": False,
+            "pagination_verified": False,
+            "probe_run_id": 45395322993,
+            "request_url": "https://data.binance.vision/",
+            "final_url": "https://data.binance.vision/?list-type=2&prefix=data%2Fspot%2Fmonthly%2Fklines%2F&max-keys=1000&delimiter=%2F",
+            "retrieved_at_utc": "2026-11-24T12:37:46.772990Z",
+            "http_status": 200,
+            "content_type": "text/html",
+            "response_bytes": 2712,
+            "error": (
+                "The ListObjectsV2 prefix request returned HTML, not an XML "
+                "ListBucketResult. The listing/index route is stopped; no retry, "
+                "alternate index path or pagination claim is made. Direct documented "
+                "object URLs are a separate public route and may be sampled."
+            ),
+        }
+        manifest["stop_reasons"].append(
+            "Archive listing/index route stopped after HTTP 200 text/html schema ambiguity; direct object URLs remain a separate route"
+        )
 
         # Earliest available kline is an independent sample-level inception proxy, not delisting evidence.
         for symbol in sample_symbols:
@@ -791,15 +784,11 @@ def run_audit(output_dir: Path, run_id: str | None = None) -> dict:
                 manifest["stop_reasons"].append("Kline API route stopped; no alternate identity or route used")
                 break
 
-        # Five positive archive objects plus their sidecars, then one negative control: 11 objects maximum.
+        # Recent month for all selected strata plus one historical positive control,
+        # then one nonexistent-symbol negative control: at most 11 unique objects.
         checks = []
-        plan = [
-            (SEED_SYMBOLS[0], recent_month),
-            (SEED_SYMBOLS[1], recent_month),
-            (sample_symbols[2], recent_month),
-            (SEED_SYMBOLS[0], HISTORICAL_MONTH),
-            (SEED_SYMBOLS[1], HISTORICAL_MONTH),
-        ]
+        plan = [(symbol, recent_month) for symbol in sample_symbols]
+        plan.append((SEED_SYMBOLS[0], HISTORICAL_MONTH))
         archive_route_stopped = False
         for symbol, month in plan:
             try:
