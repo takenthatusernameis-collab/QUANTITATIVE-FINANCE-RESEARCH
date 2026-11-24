@@ -6,33 +6,34 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW_DIR = ROOT / ".github" / "workflows"
 EXPECTED_NODE24_ACTIONS = {
-    "actions/checkout": "v7.0.1",
-    "actions/setup-python": "v7.1.0",
-    "actions/cache": "v6.1.0",
-    "actions/cache/restore": "v6.1.0",
-    "actions/cache/save": "v6.1.0",
-    "actions/upload-artifact": "v7.0.2",
+    "actions/checkout": ("3d3c42e5aac5ba805825da76410c181273ba90b1", "v7.0.1"),
+    "actions/setup-python": ("6d4fd22b20465ccc0f7354476588e8df7c9ca0e0", "v7.1.0"),
+    "actions/cache": ("55cc8345863c7cc4c66a329aec7e433d2d1c52a9", "v6.1.0"),
+    "actions/cache/restore": ("55cc8345863c7cc4c66a329aec7e433d2d1c52a9", "v6.1.0"),
+    "actions/cache/save": ("55cc8345863c7cc4c66a329aec7e433d2d1c52a9", "v6.1.0"),
+    "actions/upload-artifact": ("cf430e030ddbb5b0abf93d22962f4752f3646cd9", "v7.0.2"),
 }
 
 
 class GitHubActionRuntimeTests(unittest.TestCase):
     def test_workflows_use_verified_node24_action_releases(self):
         observed = {}
+        pattern = re.compile(
+            r"^\\s*uses:\\s*([^\\s#]+)\\s*(?:#\\s*(v[0-9][^\\s]*))?\\s*$"
+        )
         for workflow in sorted(WORKFLOW_DIR.glob("*.yml")):
-            for line in workflow.read_text(encoding="utf-8").splitlines():
-                stripped = line.strip()
-                if not stripped.startswith("uses:"):
+            for reference, version_comment in pattern.findall(
+                workflow.read_text(encoding="utf-8")
+            ):
+                if reference.startswith("./") or "@" not in reference:
                     continue
-                reference = stripped.split("uses:", 1)[1].strip()
-                if "@" not in reference:
-                    continue
-                action, version = reference.rsplit("@", 1)
+                action, revision = reference.rsplit("@", 1)
                 if action in EXPECTED_NODE24_ACTIONS:
-                    observed.setdefault(action, set()).add(version)
+                    observed.setdefault(action, set()).add((revision, version_comment))
 
         self.assertEqual(
             observed,
-            {name: {version} for name, version in EXPECTED_NODE24_ACTIONS.items()},
+            {name: {expected} for name, expected in EXPECTED_NODE24_ACTIONS.items()},
         )
 
     def test_bitget_public_download_probe_is_exactly_allowlisted(self):
@@ -208,7 +209,7 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         )
         self.assertIsNotNone(cache_match, "archive cache step must be present")
         cache_step = cache_match.group("step")
-        self.assertIn("actions/cache@v6.1.0", cache_step)
+        self.assertIn("actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0", cache_step)
         self.assertIn("path: data/cache/", cache_step)
         self.assertIn("key: binance-archives-run-${{ github.run_id }}-${{ github.run_attempt }}", cache_step)
         self.assertIn("restore-keys:", cache_step)
@@ -235,8 +236,8 @@ class GitHubActionRuntimeTests(unittest.TestCase):
         self.assertIn("group: binance-archive-cache-warm", warm)
         self.assertNotIn("issue_comment:", warm)
         self.assertNotIn("workflow_run:", warm)
-        self.assertIn("actions/cache/restore@v6.1.0", warm)
-        self.assertIn("actions/cache/save@v6.1.0", warm)
+        self.assertIn("actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0", warm)
+        self.assertIn("actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0", warm)
         self.assertIn("key: binance-archives-warm-${{ github.run_id }}-${{ github.run_attempt }}", warm)
         self.assertIn("--start 2024-01-01", warm)
         self.assertIn("--end 2024-01-31", warm)
