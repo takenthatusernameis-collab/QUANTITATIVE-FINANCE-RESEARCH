@@ -79,6 +79,7 @@ class WorkflowControlTests(unittest.TestCase):
             workflow,
         )
         self.assertIn("github.event.workflow_run.event == 'issue_comment'", workflow)
+        self.assertIn("github.event.workflow_run.display_title == 'Authorized Binance Spot universe audit'", workflow)
         self.assertIn("github.event.workflow_run.head_branch == github.event.repository.default_branch", workflow)
         self.assertIn("github.event.workflow_run.actor.login == 'takenthatusernameis-collab'", workflow)
 
@@ -172,6 +173,13 @@ class QueueDecisionTests(unittest.TestCase):
             26, "binance-spot-universe-audit", "in_progress",
             NOW - timedelta(hours=1),
         )
+        for item in (queued, active):
+            item["display_title"] = "Authorized Binance Spot universe audit"
+            item["head_branch"] = "main"
+            item["head_repository"] = {
+                "full_name": "takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH"
+            }
+            item["actor"] = {"login": "takenthatusernameis-collab"}
         self.assertEqual(group_for(queued), "binance-spot-universe-audit-main")
         self.assertEqual(queue_decision(queued, [queued], NOW)["action"], "cancel_overdue")
         self.assertEqual(
@@ -182,6 +190,26 @@ class QueueDecisionTests(unittest.TestCase):
         self.assertEqual(
             inventory[0]["workflow_name"],
             "Binance Spot dynamic-universe feasibility audit",
+        )
+        self.assertEqual(
+            inventory[0]["display_title"],
+            "Authorized Binance Spot universe audit",
+        )
+
+    def test_unauthorized_spot_audit_run_gets_its_own_queue_group(self):
+        item = make_run(
+            27, "binance-spot-universe-audit", "queued",
+            NOW - timedelta(minutes=16),
+        )
+        item["display_title"] = "Ignored Binance Spot audit comment 999"
+        item["event"] = "issue_comment"
+        self.assertEqual(
+            group_for(item),
+            "binance-spot-universe-audit-ignored-27",
+        )
+        self.assertEqual(
+            queue_decision(item, [item], NOW)["action"],
+            "cancel_overdue",
         )
 
     def test_timestamp_must_include_timezone(self):
