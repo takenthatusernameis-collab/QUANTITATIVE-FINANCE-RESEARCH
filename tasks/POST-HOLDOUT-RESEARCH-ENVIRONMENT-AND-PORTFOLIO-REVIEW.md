@@ -1,6 +1,6 @@
 # Post-Holdout Research Environment and Portfolio Review
 
-**Status:** READY — prerequisite [First Scheduled Holdout Run Validation](PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md) closed on 2026-11-24. Record the actual start time and two-day expiry when substantive review begins; the timebox does not run while READY.  
+**Status:** ACTIVE — started 2026-11-24T10:27:16Z; expires 2026-11-26T10:27:16Z; LOW tier, maximum 2 substantive cycles, cycles_used=0. Absolute completion deadline **2026-11-27 17:30 UTC**; the earlier expiry controls.  
 **Priority:** P2 — research portfolio selection and admin-agent calibration.  
 **Project kind:** environment assessment / research-factory improvement; not a strategy backtest.  
 **Budget:** LOW difficulty, maximum 2 substantive cycles and 2 elapsed calendar days from activation; absolute completion deadline **2026-11-27 17:30 UTC**. The earlier limit controls.
@@ -10,6 +10,21 @@
 The predecessor is RECOVERED: the first-agent fallback captured and validated the 2026-11-24 Binance Spot slot, the same-slot replay proved idempotent ZIP/sidecar reuse, and the queue-guardian handoffs succeeded. The predecessor's research/evidence yield was infrastructure-only; no strategy returns were measured and no strategy is promoted. Its technical-delivery lesson is that GitHub cron failed, while direct first-agent wake-up recovery succeeded. The external scheduler/watchdog remain UNCONFIGURED and must not be conflated with per-slot recovery.
 
 The difficulty assessment remains LOW. On activation, freeze `started_at_utc`, `expires_at_utc` (no later than two calendar days after start and no later than the existing absolute deadline), `max_cycles=2`, `cycles_used=0`, dependencies, write scope and resource reservations in the canonical queue before generating candidate hypotheses.
+
+## Frozen activation record
+
+- **Workstream ID:** `post-holdout-environment-review`.
+- **Difficulty:** LOW; a bounded review of existing repository evidence and a small public-data access probe, with no new historical acquisition, strategy implementation or protected-holdout access.
+- **Started:** 2026-11-24T10:27:16Z.
+- **Expires:** 2026-11-26T10:27:16Z (two calendar days; earlier than the absolute deadline).
+- **Budget:** maximum 2 substantive cycles; `cycles_used=0` at activation.
+- **Dependency:** `spot-holdout-first-scheduled-validation` — completed.
+- **Write scope:** `tasks/ACTIVE-QUEUE.md`, this task file, `README.md`, `docs/PARALLEL-RESEARCH-WORKSTREAM-AND-EXPIRY-POLICY.md`, `reports/POST-HOLDOUT-RESEARCH-ENVIRONMENT-AND-PORTFOLIO-REVIEW-2026-11-24.md`, and one successor task only if justified by evidence.
+- **Exclusive resources:** none. The review uses existing read-only evidence and public metadata only.
+- **Confirmatory holdout IDs:** none; do not access or evaluate the protected capture data.
+- **Independence rationale:** the predecessor is closed. This review can complete without implementation, new credentials, paid data, or empirical access to the holdout.
+- **Terminal rule:** complete both retrospective axes, the environment matrix, one measurable admin calibration decision and one justified successor/no-project decision by the earlier cycle/expiry limit. Do not start a strategy implementation under this task.
+
 
 ## Objective
 

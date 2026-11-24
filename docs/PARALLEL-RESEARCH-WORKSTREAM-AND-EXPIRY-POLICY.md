@@ -75,8 +75,8 @@ Expiry applies only to the affected workstream. Other admitted workstreams conti
 - A workstream may continue while another is blocked only if it does not rely on the blocked output, share a conflicting resource or expose a confirmatory holdout.
 - Do not let parallel work starve the highest-priority assignment or exceed observed infrastructure/provider limits.
 
-## 5. Current activation
+## 5. Current activation and status source
 
-The existing **First Scheduled Holdout Run Validation** remains the primary active workstream, with its existing scope, deadline and acceptance criteria unchanged. The queued **Post-Holdout Research Environment and Portfolio Review** remains dependency-gated and must not be started early.
+Live workstream status is maintained exclusively in [the canonical active queue](../tasks/ACTIVE-QUEUE.md), not in this generic policy. The former First Scheduled Holdout Run Validation closed as RECOVERED on 2026-11-24; the Post-Holdout Research Environment and Portfolio Review is now active with its own frozen LOW-tier clock. Future agents must read the live queue rather than infer current task status from this policy.
 
-This policy enables future independent workstreams; it does not itself create or dispatch a new research experiment. No additional parallel workstream is currently admitted by this policy until a concrete task passes the admission checks and has its own frozen timebox.
+This policy enables independent workstreams but does not itself create or dispatch one. Each additional workstream must pass the admission checks and receive its own frozen timebox before substantive work begins.

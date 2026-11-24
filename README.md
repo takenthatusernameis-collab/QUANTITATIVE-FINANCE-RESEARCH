@@ -18,7 +18,7 @@ Continuously improve the probability that each agent cycle produces trustworthy,
 
 ## Current research state
 
-The next ready assignment is [Post-Holdout Research Environment and Portfolio Review](tasks/POST-HOLDOUT-RESEARCH-ENVIRONMENT-AND-PORTFOLIO-REVIEW.md). The November 24 holdout capture/recovery workstream is closed; the review's timebox starts when its first substantive work begins. Recheck live state and the canonical queue before acting.
+The current assignment is [Post-Holdout Research Environment and Portfolio Review](tasks/POST-HOLDOUT-RESEARCH-ENVIRONMENT-AND-PORTFOLIO-REVIEW.md) — ACTIVE, LOW difficulty, started 2026-11-24T10:27:16Z, expires 2026-11-26T10:27:16Z, maximum 2 substantive cycles. Recheck live state and the canonical queue before acting.
 
 - Binance Spot mean-reversion: **NO-GO**, concluded November 22, 2026.
 - ETH/BTC Spot relative-momentum rotation: **NO-GO**, concluded November 23, 2026; frozen and closed.

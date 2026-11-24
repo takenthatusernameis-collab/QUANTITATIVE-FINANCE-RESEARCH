@@ -1,9 +1,9 @@
 # Active Repository Queue
 
-**Updated:** 2026-11-24 10:22 UTC  
+**Updated:** 2026-11-24 10:35 UTC  
 **Canonical queue:** this file remains the single active-work index; it may contain one primary critical-path task plus independently admitted parallel workstreams.  
-**Currently executing workstreams:** none at this checkpoint.  
-**Next ready workstream:** [Post-Holdout Research Environment and Portfolio Review](POST-HOLDOUT-RESEARCH-ENVIRONMENT-AND-PORTFOLIO-REVIEW.md). Its prerequisite is closed; its LOW-tier clock begins on its first substantive action, not while READY.  
+**Currently executing workstreams:** [Post-Holdout Research Environment and Portfolio Review](POST-HOLDOUT-RESEARCH-ENVIRONMENT-AND-PORTFOLIO-REVIEW.md) — ACTIVE; LOW; started 2026-11-24T10:27:16Z; expires 2026-11-26T10:27:16Z; maximum 2 cycles; cycles_used=0.  
+**Next ready workstream:** none.  
 **Additional admitted parallel workstreams:** none currently.
 
 ## Repository governance upgrade — completed 2026-11-24
@@ -24,6 +24,17 @@ The evidence-first lifecycle, dual-axis retrospectives, tested project-readiness
 - No strategy backtest, empirical strategy evaluation, funding research, paid-data acquisition, venue merge, live trading or capital deployment occurred.
 
 **Residual operating limitation:** the external scheduler, GitHub App dispatch credential and independent watchdog remain `UNCONFIGURED / DEGRADED`. This slot is `RECOVERED` by the agent fallback; this does not promote the external scheduler to `DELIVERY_VERIFIED`. GitHub cron remains non-authoritative.
+
+## Current active workstream — Post-Holdout Research Environment and Portfolio Review
+
+- **ID/status:** `post-holdout-environment-review` / ACTIVE.
+- **Difficulty/timebox:** LOW; 2026-11-24T10:27:16Z to 2026-11-26T10:27:16Z; maximum 2 substantive cycles, cycles_used=0. Absolute deadline: 2026-11-27 17:30 UTC; the earlier expiry controls.
+- **Dependency:** first scheduled holdout validation closed as RECOVERED; evidence is in [the final November 24 checkpoint](../reports/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-SCHEDULED-VALIDATION-2026-11-24.md).
+- **Write scope:** task, canonical queue, README, parallel-workstream status pointer, review report and one evidence-justified successor task if needed.
+- **Exclusive resources / confirmatory holdouts:** none; read-only evidence review, no protected data access or strategy evaluation.
+- **Objective:** complete both predecessor feedback axes, build a verified environment matrix, make one measurable admin-agent calibration decision, then select one feasible successor or record a no-project decision. Do not implement a model under this review.
+
+
 ## Research-track status
 
 | Workstream | Status | Rule |
