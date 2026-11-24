@@ -88,11 +88,14 @@ class ProjectReadinessTests(unittest.TestCase):
         assessment["dimensions"]["point_in_time_universe_and_delisting_coverage"].pop("rationale")
         self.assertFalse(evaluate_environment_assessment(assessment)["assessment_valid"])
 
-    def test_claimed_or_unknown_environment_blocks_hypothesis_design(self):
+    def test_claimed_environment_is_classified_but_not_verified_for_hypothesis_use(self):
         assessment = complete_environment({"actual_source_access": "claimed_unverified"})
         result = evaluate_environment_assessment(assessment)
         self.assertTrue(result["assessment_valid"])
-        self.assertFalse(result["ready_for_hypothesis_design"])
+        self.assertTrue(result["ready_for_hypothesis_design"])
+        self.assertIn("actual_source_access", result["unverified_dimensions"])
+        fit = evaluate_hypothesis_environment_fit(assessment, ["actual_source_access"])
+        self.assertFalse(fit["allowed"])
 
     def test_verified_dimension_requires_evidence(self):
         assessment = complete_environment()
@@ -104,9 +107,14 @@ class ProjectReadinessTests(unittest.TestCase):
         result = evaluate_hypothesis_environment_fit(assessment, ["historical_coverage_and_product_inception"])
         self.assertFalse(result["allowed"])
 
-    def test_any_unresolved_environment_dimension_blocks_hypothesis(self):
+    def test_unresolved_unrequired_dimension_does_not_block_hypothesis_fit(self):
         assessment = complete_environment({"compute_runtime_and_api_limits": "unknown"})
         result = evaluate_hypothesis_environment_fit(assessment, ["actual_source_access"])
+        self.assertTrue(result["allowed"], result["blockers"])
+
+    def test_unresolved_required_dimension_blocks_hypothesis_fit(self):
+        assessment = complete_environment({"compute_runtime_and_api_limits": "unknown"})
+        result = evaluate_hypothesis_environment_fit(assessment, ["compute_runtime_and_api_limits"])
         self.assertFalse(result["allowed"])
 
     def test_difficulty_maps_to_timebox(self):

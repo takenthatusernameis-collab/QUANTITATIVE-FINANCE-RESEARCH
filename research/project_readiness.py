@@ -80,17 +80,18 @@ def evaluate_environment_assessment(assessment: Mapping[str, Any]) -> dict[str, 
             blockers.append(f"{name}: NOT_APPLICABLE requires a rationale")
 
     classification_complete = len(normalized) == len(ENVIRONMENT_DIMENSIONS)
-    readiness_blockers = list(blockers)
-    for name, status in normalized.items():
-        if status not in {"verified", "not_applicable"}:
-            readiness_blockers.append(f"{name}: {status} is not sufficient for hypothesis design")
+    unverified_dimensions = [
+        name for name, status in normalized.items()
+        if status not in {"verified", "not_applicable"}
+    ]
     return {
         "assessment_valid": not blockers,
         "classification_complete": classification_complete,
-        "ready_for_hypothesis_design": classification_complete and not readiness_blockers,
+        "ready_for_hypothesis_design": classification_complete and not blockers,
         "statuses": normalized,
+        "unverified_dimensions": unverified_dimensions,
         "blockers": blockers,
-        "readiness_blockers": readiness_blockers,
+        "readiness_blockers": list(blockers),
     }
 
 
@@ -99,7 +100,7 @@ def evaluate_hypothesis_environment_fit(
 ) -> dict[str, Any]:
     """Require all dimensions used by a hypothesis to be VERIFIED."""
     env = evaluate_environment_assessment(assessment)
-    blockers = list(env["readiness_blockers"])
+    blockers = list(env["blockers"])
     if not isinstance(required_dimensions, Sequence) or isinstance(required_dimensions, (str, bytes)):
         required_dimensions = ()
     required = list(required_dimensions)
