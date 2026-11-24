@@ -1,6 +1,6 @@
 # Prospective Spot Holdout — First Scheduled Run and Recovery Validation
 
-**Status:** IN PROGRESS — durable sidecar implementation committed; pre-schedule checkpoint recorded; scheduled-run validation pending  
+**Status:** IN PROGRESS — scheduled event due 2026-11-24 04:23 UTC not observed by the 04:33 UTC checkpoint; no duplicate/manual dispatch; sidecar validation pending  
 **Priority:** P1 research-enabling infrastructure  
 **Task budget:** 1 substantive cycle; hard deadline **2026-11-25 17:30 UTC**. No automatic extension.
 
@@ -56,6 +56,16 @@ Verify that the scheduled capture appends a new, complete snapshot, validates an
 
 The next checkpoint must inspect the actual schedule-triggered capture and its queue-guardian completion handoff. Do not dispatch a duplicate to compensate for an event that has not yet become due or is merely delayed.
 
+
+## Post-schedule checkpoint — 2026-11-24 04:33 UTC
+
+- The scheduled capture workflow remains present on the default branch main and declares cron 23 4 * * * UTC. Main was at [79057751](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/79057751de40bd7862416ff6de90a51d0aee9f75). A fresh Actions query for runs created at or after 04:23 UTC returned **zero**; no schedule-triggered capture had appeared by this checkpoint. The authorization/capture jobs therefore have no new run to inspect.
+- No queued or in-progress Actions runs were present. PR #2 remains open and the last owner command remains the prior /qfr-capture-spot-holdout; no newer command was issued.
+- Release [spot-holdout-2026](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/releases/tag/spot-holdout-2026) still contains only ZIP asset [784136576](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/releases/download/spot-holdout-2026/snapshot-45242319210-attempt-1.zip), size 63,517 bytes, GitHub digest sha256:b1200bdea3a01e56963b8afda0cab497d4396e0eaae21344bfc624d8a518b0cf. No JSON sidecar or second ZIP is present. Release metadata remains immutable=false; its description still uses the word immutable, so do not treat it as write-once storage.
+- The queue guardian still declares a five-minute schedule, but its latest observed scheduled run remains [45273577143](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45273577143) at 2026-11-23 21:49:36 UTC. Its latest qualifying event-driven run is [45306164079](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45306164079), completed at 01:35:30 UTC with no actions or errors; its 375-run inventory was truncated. No later scheduled or event-driven run was visible by this checkpoint.
+- The capture schedule and queue-guardian schedule are configured on the default branch; no configuration defect was identified in the inspected workflow files. GitHub schedule delivery is best-effort and may be delayed or dropped. **Do not manually dispatch or duplicate the capture** merely because the scheduled event is not yet visible. Recheck the run inventory and release before taking any further action.
+- Latest main CI run [45309054784](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45309054784) completed successfully on this main commit. The preceding full run [45308874842](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45308874842) passed 300 deterministic tests and the synthetic plumbing smoke test. This is engineering validation only; no new holdout data or strategy evidence was produced.
+- No backtest, strategy/performance inspection, funding access, paid-data acquisition, venue merge, credential creation, live trading or capital deployment occurred.
 ## Acceptance criteria
 
 - [ ] First scheduled event is found and its result is independently inspected.
