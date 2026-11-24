@@ -1,6 +1,6 @@
 # Prospective Spot Holdout — Capture and First-Agent Recovery Validation
 
-**Status:** COMPLETE — November 24 slot RECOVERED by first-authorized-agent wake-up; complete snapshot and sidecars verified; second same-slot wake-up proved idempotent reuse. External scheduler/watchdog remain UNCONFIGURED and are not represented as DELIVERY_VERIFIED.
+**Status:** COMPLETE — November 24 slot RECOVERED by first-authorized-agent wake-up; complete snapshot and sidecars verified; second same-slot wake-up proved idempotent reuse. External scheduler and independent watchdog remain UNCONFIGURED and are not represented as DELIVERY_VERIFIED.
 **Latest checkpoint:** [2026-11-24 10:22 UTC final recovery checkpoint](../reports/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-SCHEDULED-VALIDATION-2026-11-24.md).  
 **Priority:** P1 research-enabling infrastructure  
 **Task budget:** 1 substantive cycle; hard deadline **2026-11-25 17:30 UTC**. No automatic extension.
