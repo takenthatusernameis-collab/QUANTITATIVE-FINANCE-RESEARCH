@@ -22,6 +22,17 @@ The first daily Binance Spot capture is scheduled for **2026-11-24 04:23 UTC**. 
 
 **Asset-universe boundary:** ETHUSDT/BTCUSDT are the two symbols of this capture-validation task only. They do not define or restrict the factory's future asset universe. Future research discovery must follow [the open asset-universe policy](../docs/ASSET-UNIVERSE-DISCOVERY-AND-SCOPE-POLICY.md).
 
+### Primary workstream isolation record
+
+| Field | Current value |
+|---|---|
+| Workstream ID / status | `spot-holdout-first-scheduled-validation` / active |
+| Write scope | `tasks/PROSPECTIVE-HOLDOUT-FIRST-SCHEDULED-RUN-VALIDATION.md`; `tasks/ACTIVE-QUEUE.md`; `reports/PROSPECTIVE-BINANCE-SPOT-HOLDOUT-CAPTURE-2026-11-23.md`; `.github/workflows/spot-holdout-capture.yml`; `research/spot_holdout_capture.py`; `research/test_spot_holdout_capture.py` |
+| Exclusive resources | `github-actions:spot-holdout-capture`; `github-release:spot-holdout-2026`; `binance-spot-capture:1h` |
+| Confirmatory holdout ID | `binance-spot-1h:prospective-2026-11` |
+
+This pre-policy assignment retains its original one-substantive-cycle budget and 2026-11-25 17:30 UTC deadline in the task file. Its clock is not reset or retrospectively re-rated. Do not admit another workstream that overlaps these paths, reserves the same exclusive resources, or consumes this confirmatory dataset outside a jointly preregistered evaluation with multiplicity control.
+
 ## Research-track status
 
 | Workstream | Status | Rule |
