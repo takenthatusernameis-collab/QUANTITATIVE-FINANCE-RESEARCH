@@ -316,12 +316,12 @@ jobs:
     timeout-minutes: 360
     steps:
       - name: Checkout repository default branch only
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
 
       - name: Set up Python
-        uses: actions/setup-python@v7.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
           cache: pip
@@ -330,7 +330,7 @@ jobs:
       - name: Cache Binance archives
         # issue_comment is low-trust and defaults to read-only cache access.
         # Do not override with cache-mode: write here; use a separate trusted cache warmer.
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: data/cache/
           # Unique primary keys prevent immutable old snapshots shadowing newer warm caches.
@@ -405,7 +405,7 @@ jobs:
 
       - name: Upload research outputs and manifests (never raw CSV market data)
         if: always()
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: eth-btc-research-${{ github.run_number }}
           path: |
@@ -423,20 +423,20 @@ jobs:
     timeout-minutes: 360
     steps:
       - name: Checkout repository default branch only
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v7.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
           cache: pip
           cache-dependency-path: research/requirements.txt
 
       - name: Restore verified Binance Spot archive cache
-        uses: actions/cache@v6.1.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: data/cache/
           key: binance-archives-momentum-${{ github.run_id }}-${{ github.run_attempt }}
@@ -462,7 +462,7 @@ jobs:
 
       - name: Upload momentum outputs and Spot provenance only
         if: always()
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: eth-btc-spot-momentum-${{ github.run_number }}
           path: |
@@ -480,12 +480,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout repository default branch only
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
 
       - name: Set up Python
-        uses: actions/setup-python@v7.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
 
@@ -502,7 +502,7 @@ jobs:
 
       - name: Upload Tardis sample and manifests
         if: always()
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tardis-funding-probe-${{ github.run_id }}
           path: reports/generated/tardis-funding-probe-${{ needs.authorize.outputs.start }}/*.json
@@ -516,12 +516,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout repository default branch only
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
 
       - name: Set up Python
-        uses: actions/setup-python@v7.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
 
@@ -544,7 +544,7 @@ jobs:
 
       - name: Upload MEXC manifests (never raw pages)
         if: always()
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: mexc-funding-probe-${{ github.run_id }}
           path: reports/generated/mexc-funding-probe-${{ github.run_id }}/*.json
@@ -558,12 +558,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout repository default branch only
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
 
       - name: Set up Python
-        uses: actions/setup-python@v7.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
 
@@ -582,7 +582,7 @@ jobs:
 
       - name: Upload Bybit sample manifests (never raw responses)
         if: always()
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: bybit-funding-probe-${{ github.run_id }}
           path: reports/generated/bybit-funding-probe-${{ github.run_id }}/*.json
@@ -599,12 +599,12 @@ jobs:
       TARGET_URL: ${{ needs.authorize.outputs.command == 'bitget-probe' && 'https://www.bitget.com/trade-info/funding_rate' || 'https://www.okx.com/historical-data' }}
     steps:
       - name: Checkout repository default branch only
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
 
       - name: Set up Python
-        uses: actions/setup-python@v7.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
 
@@ -619,7 +619,7 @@ jobs:
 
       - name: Upload UI evidence only (no raw downloads)
         if: always()
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: funding-ui-probe-${{ github.run_id }}
           path: |
@@ -635,12 +635,12 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout repository default branch only
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
 
       - name: Set up Python
-        uses: actions/setup-python@v7.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
 
@@ -661,7 +661,7 @@ jobs:
 
       - name: Upload compact evidence only (never raw ZIP or CSV)
         if: always()
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: kraken-funding-${{ needs.authorize.outputs.command }}-${{ github.run_id }}
           path: |
@@ -678,12 +678,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout repository default branch only
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
 
       - name: Set up Python
-        uses: actions/setup-python@v7.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
 
@@ -699,7 +699,7 @@ jobs:
 
       - name: Upload manifest only (never raw API rows)
         if: always()
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: kraken-api-cap-audit-${{ github.run_id }}
           path: reports/generated/kraken-api-cap-audit-${{ github.run_id }}/manifest.json
@@ -714,12 +714,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout repository default branch only
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
 
       - name: Set up Python
-        uses: actions/setup-python@v7.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
 
@@ -732,7 +732,7 @@ jobs:
 
       - name: Upload derived manifest only (never raw CSV or API payloads)
         if: always()
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: kraken-tardis-timestamp-${{ github.run_id }}
           path: reports/generated/kraken-tardis-timestamp-${{ github.run_id }}/manifest.json
@@ -747,12 +747,12 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout repository default branch only
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
 
       - name: Set up Python
-        uses: actions/setup-python@v7.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
 
@@ -764,7 +764,7 @@ jobs:
 
       - name: Upload derived manifest only (never raw CSV or API payloads)
         if: always()
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: kraken-tardis-gap-${{ github.run_id }}
           path: reports/generated/kraken-tardis-gap-${{ github.run_id }}/manifest.json
@@ -779,12 +779,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout repository default branch only
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
 
       - name: Set up Python
-        uses: actions/setup-python@v7.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
 
@@ -796,7 +796,7 @@ jobs:
 
       - name: Upload compact manifest only (no raw candle arrays)
         if: always()
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: kraken-pi-price-validation-${{ github.run_id }}
           path: reports/generated/kraken-pi-price-validation-${{ github.run_id }}/manifest.json
@@ -811,12 +811,12 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout repository default branch only
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
 
       - name: Set up Python
-        uses: actions/setup-python@v7.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.11'
 
@@ -836,7 +836,7 @@ jobs:
 
       - name: Upload bounded button-probe evidence (no downloaded data)
         if: always() && needs.authorize.outputs.command == 'okx-button-probe'
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: okx-funding-button-probe-${{ github.run_id }}
           path: |
@@ -847,7 +847,7 @@ jobs:
 
       - name: Upload bounded field-information evidence (no downloaded data)
         if: always() && needs.authorize.outputs.command == 'okx-field-info-probe'
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: okx-funding-field-info-probe-${{ github.run_id }}
           path: |
@@ -861,7 +861,7 @@ jobs:
 
       - name: Upload bounded symbol-options evidence (no downloaded data)
         if: always() && needs.authorize.outputs.command == 'okx-symbol-options-probe'
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: okx-funding-symbol-options-probe-${{ github.run_id }}
           path: |

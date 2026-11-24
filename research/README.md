@@ -3,6 +3,17 @@
 
 **Repository-wide operating rules:** follow the [General Antifragile Autonomous Operating Mindset](../docs/GENERAL-ANTIFRAGILE-AUTONOMOUS-OPERATING-MINDSET.md), [Adaptive Execution Standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md), and [Repository Hygiene preflight](../docs/REPOSITORY-HYGIENE-AND-CONTEXT-COMPACTION.md). The single current task pointer is [tasks/ACTIVE-QUEUE.md](../tasks/ACTIVE-QUEUE.md).
 
+## New-project intake (mandatory before hypothesis design)
+
+The research factory is evidence-first. Review research/performance and technical-delivery feedback from the previous task, calibrate repository-admin decisions, and inventory actual accessible sources before designing a model. Required evidence covers authorized access, product/history coverage, point-in-time population, market/time semantics, quality controls, execution costs, compute/API limits, storage, provenance and workflow permissions.
+
+Only VERIFIED required dimensions may support a new hypothesis. Sample-only or claimed source support is a bounded pilot, not model readiness. If the environment is insufficient, scope a bounded environment-enabling project rather than bending the data/infrastructure around a favored model.
+
+- [Evidence-First Project Lifecycle](../docs/RESEARCH-ENVIRONMENT-FIRST-PROJECT-LIFECYCLE.md)
+- [Project Retrospective and Admin-Agent Calibration](../docs/PROJECT-RETROSPECTIVE-AND-ADMIN-CALIBRATION.md)
+- [Project intake template](../templates/PROJECT-INTAKE-TEMPLATE.json)
+- Deterministic gate: `project_readiness.py`
+
 ## Run
 
 From the repository root, install the dependencies and run:

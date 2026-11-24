@@ -11,13 +11,21 @@ The system should become stronger through friction. Every meaningful failure, de
 The default is autonomous progress within existing authorized scope. Do not make the user perform routine research, data retrieval, test activation, artifact transfer, report generation, repository cleanup or repeatable orchestration. If one specific operation encounters a genuine security, legal, privacy, permission or live-financial boundary, isolate that action and continue every independent safe task.
 
 
-### Mandatory model timebox and conclusion deadline — ACTIVE
+## 1A. Mandatory evidence-first project selection
 
-The deferred activation trigger was met when the prior Binance Spot ETH/BTC mean-reversion study reached **NO-GO on 2026-11-22**. From this point onward, every new quantitative model must receive a difficulty assessment, a finite implementation budget and an exact final-conclusion deadline **before substantive implementation or empirical-result inspection**. The unresolved USDⓈ-M funding-aware study is a separate workstream and does not suspend this rule.
+No quantitative hypothesis may be designed or selected before the actual information and operating environment have been assessed. This gate applies to every new model, not only replacements for an infeasible idea.
 
-This is mandatory, not advisory. A model without a frozen timebox is not ready to begin. Apply [Model Implementation Timebox and Research Conclusion Deadline Policy](MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md), including its LOW/MEDIUM/HIGH cycle and calendar caps. The current ETH/BTC Spot Momentum model is already assigned MEDIUM difficulty, a four-cycle cap, an implementation deadline of **2026-11-26 18:00 UTC**, and a final conclusion deadline of **2026-11-28 18:00 UTC**.
+The mandatory order is: review both research/performance and technical-delivery feedback from the previous task; calibrate repository-admin decisions from that evidence; inventory actual authorized data/tools, history, point-in-time population, semantics, quality, costs, compute, storage, permissions and reproducibility; generate and rank only hypotheses fitting VERIFIED evidence; then assess difficulty and freeze cycles and deadlines before implementation.
 
-A deadline cannot override scientific or safety gates. If a valid result is not possible by expiry, close the attempt as **INCONCLUSIVE/INFEASIBLE**, not NO-GO, and do not silently extend or restart its clock.
+Use the [Evidence-First Project Lifecycle](RESEARCH-ENVIRONMENT-FIRST-PROJECT-LIFECYCLE.md), [Project Retrospective and Admin-Agent Calibration](PROJECT-RETROSPECTIVE-AND-ADMIN-CALIBRATION.md), and `research/project_readiness.py`. Unknown, sample-only, claimed or restricted data cannot become accepted just because a proposed model needs them. A bounded environment-enabling project is allowed; forcing an unverified hypothesis is not.
+
+Every successor must inherit both feedback axes. If the predecessor did not measure empirical strategy performance, record that explicitly and carry its research/evidence yield instead. Technical feedback is mandatory for every task. At least one evidence-backed admin-agent calibration decision and validation metric are required before the next project opens.
+
+### Difficulty-based timebox — MANDATORY
+
+Assign project difficulty only after environment and scope assessment. Rate data novelty, methodological complexity, integration burden, statistical validation and compute/operational burden with evidence-backed rationales. Use the LOW/MEDIUM/HIGH ceilings in [the Model Implementation Timebox Policy](MODEL-IMPLEMENTATION-TIMEBOX-POLICY.md). The earlier of cycle cap or calendar deadline controls. Deadlines never weaken scientific, data, security or financial-safety gates.
+
+The previous Spot Relative-Momentum Rotation concluded NO-GO on 2026-11-23 and is closed. It must not be tuned on its OOS sample. The original USD-M funding-aware study remains separately INCONCLUSIVE; this does not defer the evidence-first rule or authorize paid data/credentials.
 
 ## 2. Canonical adaptive research decision hierarchy
 
@@ -59,7 +67,7 @@ Only after higher-priority uncertainties and bottlenecks are addressed should is
 
 Apply the hierarchy lexicographically: Priority 0 is a veto; Priority 1 selects worthwhile compounding process improvements; Priority 2 resolves existing state and chooses the highest-value current bottleneck; Priority 3 pursues the original objective; Priority 4 changes provider or architecture when evidence requires it; Priority 5 replaces an infeasible hypothesis; Priority 6 is last. This ordering is a decision discipline, not a requirement to finish every item in a tier before independent safe work can proceed.
 
-Use the executable policy functions in research/adaptive_decision.py for provider scoring/acceptance, repeated-failure escalation, experiment identity, market separation, duplicate-dispatch protection, hypothesis replacement and the six-input empirical gate. Documentation governs judgment; the tested functions enforce machine-checkable decisions where inputs are available.
+Use research/adaptive_decision.py for provider scoring/acceptance, repeated-failure escalation, experiment identity, market separation, duplicate-dispatch protection, hypothesis replacement and the six-input empirical gate. Use research/project_readiness.py for environment classification, hypothesis fit, predecessor feedback and difficulty-based timebox assessment. Documentation governs judgment; tested functions enforce machine-checkable decisions where inputs are available.
 
 ## 3. Mandatory session planning before action
 
@@ -126,7 +134,7 @@ Every session should answer:
 
 Prefer compounding improvements: reusable adapters, robust dispatch paths, deterministic queue guardians, deduplicated incident records, tested recovery procedures, schema fixtures, provider failover, common quality gates, concise indexes and reproducible artifacts.
 
-A successful session does not require a positive strategy result. It requires a trustworthy conclusion or a clearly classified blocker, meaningful safe progress, preserved evidence, a cleaner/more capable operating system, and one clear next action. A negative or inconclusive empirical result is preferable to fabricated certainty.
+A successful session does not require a positive strategy result. It requires a trustworthy conclusion or clearly classified blocker, meaningful safe progress, preserved evidence, a cleaner/more capable operating system, and one clear next action. Before selecting that next action, complete both feedback axes and document how they recalibrate repository-admin decisions.
 
 ## 9. Scope of application
 

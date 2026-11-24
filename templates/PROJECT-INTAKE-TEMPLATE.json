@@ -1,0 +1,138 @@
+{
+  "$schema_note": "Template only. Replace placeholders and unknown states with evidence before submitting. This template intentionally fails the readiness gate.",
+  "project_id": "REPLACE_WITH_UNIQUE_PROJECT_ID",
+  "project_kind": "hypothesis_research",
+  "objective": "State the decision-useful objective.",
+  "previous_task_feedback": {
+    "previous_task_id": "REQUIRED_CANONICAL_TASK_PATH_OR_PROJECT_ID",
+    "research_feedback": {
+      "summary": "Summarize the research/performance outcome, or state why empirical performance was not measured.",
+      "evidence_refs": [
+        "reports/REPLACE_WITH_EVIDENCE.md"
+      ],
+      "performance_metrics": {},
+      "not_measured_reason": "Required when the predecessor did not measure model/strategy performance."
+    },
+    "technical_feedback": {
+      "summary": "Summarize engineering and operational delivery.",
+      "evidence_refs": [
+        "https://github.com/OWNER/REPO/actions/runs/RUN_ID"
+      ],
+      "metrics": {
+        "replace_with_measured_metric": 0
+      }
+    },
+    "admin_calibration": [
+      {
+        "decision": "change_or_retain_or_retire",
+        "rationale": "Evidence-backed admin-agent decision.",
+        "evidence_refs": [
+          "reports/REPLACE_WITH_EVIDENCE.md"
+        ],
+        "expected_effect": "Specific future improvement.",
+        "validation_metric": "Metric and denominator used to verify the change."
+      }
+    ]
+  },
+  "environment_assessment": {
+    "assessment_id": "REPLACE_WITH_UNIQUE_ASSESSMENT_ID",
+    "assessed_at_utc": "YYYY-MM-DDTHH:MM:SSZ",
+    "dimensions": {
+      "legal_and_authorized_access": {
+        "status": "unknown",
+        "evidence_refs": [],
+        "rationale": "Replace with tested evidence or an explicit not-applicable rationale."
+      },
+      "actual_source_access": {
+        "status": "unknown",
+        "evidence_refs": [],
+        "rationale": "Replace with tested evidence or an explicit not-applicable rationale."
+      },
+      "historical_coverage_and_product_inception": {
+        "status": "unknown",
+        "evidence_refs": [],
+        "rationale": "Replace with tested evidence or an explicit not-applicable rationale."
+      },
+      "point_in_time_universe_and_delisting_coverage": {
+        "status": "unknown",
+        "evidence_refs": [],
+        "rationale": "Replace with tested evidence or an explicit not-applicable rationale."
+      },
+      "timestamp_schema_and_market_semantics": {
+        "status": "unknown",
+        "evidence_refs": [],
+        "rationale": "Replace with tested evidence or an explicit not-applicable rationale."
+      },
+      "data_quality_and_control_design": {
+        "status": "unknown",
+        "evidence_refs": [],
+        "rationale": "Replace with tested evidence or an explicit not-applicable rationale."
+      },
+      "cost_and_execution_economics": {
+        "status": "unknown",
+        "evidence_refs": [],
+        "rationale": "Replace with tested evidence or an explicit not-applicable rationale."
+      },
+      "compute_runtime_and_api_limits": {
+        "status": "unknown",
+        "evidence_refs": [],
+        "rationale": "Replace with tested evidence or an explicit not-applicable rationale."
+      },
+      "storage_retention_and_artifact_recovery": {
+        "status": "unknown",
+        "evidence_refs": [],
+        "rationale": "Replace with tested evidence or an explicit not-applicable rationale."
+      },
+      "provenance_and_reproducibility": {
+        "status": "unknown",
+        "evidence_refs": [],
+        "rationale": "Replace with tested evidence or an explicit not-applicable rationale."
+      },
+      "workflow_permissions_and_automation": {
+        "status": "unknown",
+        "evidence_refs": [],
+        "rationale": "Replace with tested evidence or an explicit not-applicable rationale."
+      }
+    }
+  },
+  "difficulty_assessment": {
+    "data_novelty": {
+      "score": null,
+      "rationale": "Score 1-3 only after the environment and project scope are assessed."
+    },
+    "methodological_complexity": {
+      "score": null,
+      "rationale": "Score 1-3 only after the environment and project scope are assessed."
+    },
+    "integration_burden": {
+      "score": null,
+      "rationale": "Score 1-3 only after the environment and project scope are assessed."
+    },
+    "statistical_validation_burden": {
+      "score": null,
+      "rationale": "Score 1-3 only after the environment and project scope are assessed."
+    },
+    "compute_operational_burden": {
+      "score": null,
+      "rationale": "Score 1-3 only after the environment and project scope are assessed."
+    }
+  },
+  "hypothesis": {
+    "research_question": "Falsifiable question tied to verified fields.",
+    "required_environment_dimensions": [
+      "actual_source_access",
+      "historical_coverage_and_product_inception"
+    ],
+    "primary_metric": "Frozen primary outcome.",
+    "baseline": "Frozen benchmark.",
+    "cost_model": "Fees, spread, slippage, funding/borrow and execution assumptions.",
+    "holdout_policy": "Independent chronological holdout and access controls.",
+    "acceptance_criteria": [
+      "Frozen quantitative criteria."
+    ],
+    "stop_conditions": [
+      "Data, security, validity and deadline stop conditions."
+    ],
+    "preregistration_path": "tasks/REPLACE-WITH-PREREGISTRATION.md"
+  }
+}

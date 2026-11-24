@@ -4,6 +4,14 @@
 
 This policy prevents technically open-ended model development. Every proposed model receives a precommitted, difficulty-proportionate implementation-and-conclusion budget before substantive implementation or model-result inspection begins. The deadline controls how long the repository spends reaching a trustworthy decision; it never authorizes weaker data, code, statistical, security or financial-safety standards.
 
+## 0. Mandatory project-feasibility precondition
+
+A model timebox may be assigned only after the [Evidence-First Project Lifecycle](RESEARCH-ENVIRONMENT-FIRST-PROJECT-LIFECYCLE.md) has been completed. Assess actual data/source access, permissions, history, point-in-time population, market semantics, quality, execution economics, compute/runtime, storage/retention, provenance and workflow capabilities before writing the hypothesis. Design the hypothesis to fit VERIFIED evidence; do not reverse this order.
+
+The [Project Retrospective and Admin-Agent Calibration](PROJECT-RETROSPECTIVE-AND-ADMIN-CALIBRATION.md) must also be completed using both predecessor feedback axes. If the predecessor did not measure strategy performance, record that explicitly and use its research/evidence outcome.
+
+Only after both gates pass should the agent rate difficulty and freeze implementation and final-conclusion deadlines. Use `research/project_readiness.py`; missing, unverified or sample-only required data blocks hypothesis implementation.
+
 ## 1. Activation trigger and scope
 
 The deferred activation trigger has been met: the previously active Binance Spot ETH/BTC mean-reversion study reached its documented **NO-GO** conclusion on 2026-11-22. The timebox policy therefore applies to the subsequent, separately preregistered **ETH/BTC Spot Relative-Momentum Rotation** and every later distinct quantitative model.
@@ -14,7 +22,7 @@ This policy applies to new quantitative hypotheses, strategies, model replacemen
 
 ## 2. Mandatory preregistration fields
 
-Before substantive model implementation or inspection of empirical model results, the active task or preregistration must record, in UTC:
+After the environment and predecessor-feedback gates pass, and before substantive model implementation or inspection of empirical model results, the active task or preregistration must record, in UTC:
 
 1. **Model/experiment identity** and frozen research question.
 2. **Expected implementation difficulty:** LOW, MEDIUM or HIGH.

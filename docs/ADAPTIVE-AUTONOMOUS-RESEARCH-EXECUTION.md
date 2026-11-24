@@ -11,6 +11,14 @@ An agent's responsibility is not merely to execute the initially proposed method
 **Do not confuse the requested outcome with the first implementation idea.** A blocked route is a reason to diagnose and adapt—not a reason to stop, repeat the same attempt, or make the human perform routine agent work.
 
 
+## Mandatory project-entry sequence: feedback and environment before hypothesis
+
+Every new project must follow the [Evidence-First Project Lifecycle](RESEARCH-ENVIRONMENT-FIRST-PROJECT-LIFECYCLE.md). Do not begin with a preselected model and then attempt to obtain, invent, splice or repair data/infrastructure to fit it.
+
+Before new hypothesis design: review the previous task's research/performance and technical-delivery feedback; record an evidence-backed repository-admin calibration decision; inventory actual data/source access, permissions, history, point-in-time coverage, semantics, quality controls, economic inputs, compute/API limits, storage, provenance and autonomous execution; classify every dimension with evidence; permit hypotheses only against VERIFIED required dimensions; and assign difficulty/timebox only after feasibility and scope are established.
+
+Use `research/project_readiness.py` and the [project-intake template](../templates/PROJECT-INTAKE-TEMPLATE.json). Passing tests does not prove data availability or empirical performance. Complete the [retrospective/admin-calibration standard](PROJECT-RETROSPECTIVE-AND-ADMIN-CALIBRATION.md) before creating a successor task.
+
 ## General mindset and higher-order optimization priority
 
 This standard is governed by the [General Antifragile Autonomous Operating Mindset](GENERAL-ANTIFRAGILE-AUTONOMOUS-OPERATING-MINDSET.md). It applies across every safe repository activity, not only the ETH/BTC research pipeline.
@@ -201,7 +209,11 @@ For data access, it means testing the exact endpoint, symbol, time range, schema
 - Do not create broad `push` or recurring `schedule` triggers merely to force progress. Prefer exact, allowlisted agent-triggered commands for routine audits and historical backtests; missing activation is an engineering failure to repair, not a reason to request a human click.
 - If all safe autonomous routes require an owner-only permission or credential, finish every independently executable part, prepare the exact minimal setup, and state the single precise owner prerequisite. Continue the rest of the research/engineering work where possible.
 
-### 7. Persist the learning
+### 7. Persist the learning and calibrate the next project
+
+Record both scientific/research outcome and technical-delivery outcome. Use the [Project Retrospective and Admin-Agent Calibration](PROJECT-RETROSPECTIVE-AND-ADMIN-CALIBRATION.md) standard. The next project must cite both evidence sets and state at least one repository-admin decision to change, retain or retire, with an expected effect and validation metric.
+
+
 
 Update the relevant README, standard, task, or report with:
 - the bottleneck and its evidence;
