@@ -1,0 +1,120 @@
+{
+  "data_sources": {
+    "CBBTCUSD": {
+      "first_date": "2016-11-25",
+      "last_date": "2026-11-24",
+      "rows": 3651,
+      "sha256": "f880fe67dc22fcedb36457bae9565852c841cf186063162e0cac6917f7cbc1c2",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=CBBTCUSD&cosd=2016-11-25"
+    },
+    "DTWEXBGS": {
+      "first_date": "2016-11-25",
+      "last_date": "2026-11-20",
+      "rows": 2492,
+      "sha256": "7a79b7799ad44d1c8e1829efc7abeb04a1b552682c79d39531959e9c2a4f16c9",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DTWEXBGS&cosd=2016-11-25"
+    }
+  },
+  "disposition": "REJECTED \u2014 the augmented model fails to improve either period and paired-loss inference indicates it is worse",
+  "event_construction": {
+    "candidate_origins": 605,
+    "event_spacing_btc_observations": 6,
+    "events": 601,
+    "signal_rule": "BTC close on t; latest DTWEXBGS observation with date strictly less than t",
+    "skipped": {
+      "incomplete_btc_pre_return_window": 3,
+      "incomplete_btc_target_window": 1,
+      "insufficient_usd_history": 0,
+      "no_strictly_prior_usd_observation": 0,
+      "overlapping_target_window": 0,
+      "stale_usd_observation": 0
+    },
+    "target_btc_observations": 5
+  },
+  "hypothesis_id": "QFR-2026-11-25-BTC-LAGGED-BROAD-USD-MOMENTUM-01",
+  "limitations": [
+    "CBBTCUSD observations are Coinbase data as of 5 PM Pacific Time and are copyrighted; raw data are not committed.",
+    "DTWEXBGS is a daily U.S. business-day series; the strict prior-date rule deliberately lags it and can leave weekend BTC signals with a stale Friday observation.",
+    "FRED current-vintage observations were used; historical release vintages were not reconstructed.",
+    "Forecasting only: no causal claim, hedge/safe-haven conclusion, transaction-cost model, instrument-level strategy P&L or live deployment."
+  ],
+  "methodology": {
+    "augmented_features": [
+      "btc_mom5_pct",
+      "btc_mom20_pct",
+      "btc_rv5_pct",
+      "btc_rv20_pct",
+      "usd_mom5_pct"
+    ],
+    "baseline_features": [
+      "btc_mom5_pct",
+      "btc_mom20_pct",
+      "btc_rv5_pct",
+      "btc_rv20_pct"
+    ],
+    "bootstrap_block_events": 4,
+    "bootstrap_reps": 2000,
+    "bootstrap_seed": 20261126,
+    "event_spacing_btc_observations": 6,
+    "rolling_training_events": 104,
+    "signal_rule": "BTC signal close on t; use only latest DTWEXBGS observation dated strictly before t",
+    "target": "100 * log(CBBTCUSD[t+5] / CBBTCUSD[t]) over next five observed daily BTC closes",
+    "test": "2022-01-01 onward",
+    "training_maturity_rule": "training target_end_date must be strictly earlier than current signal_date",
+    "usd_momentum": "100 * log(DTWEXBGS[d] / DTWEXBGS[d-5]) over five observed dollar-index changes",
+    "validation": "2019-01-01 through 2021-12-31"
+  },
+  "paired_squared_error_bootstrap": {
+    "block_size_events": 4,
+    "bootstrap_fraction_positive": 0.0235,
+    "ci_95_high_pct2": -0.018666230066610754,
+    "ci_95_low_pct2": -1.985420005100251,
+    "mean_baseline_minus_augmented_squared_error_pct2": -0.9532377231839725,
+    "observations": 298,
+    "reps": 2000,
+    "status": "COMPUTED"
+  },
+  "retrieved_at_utc": "2026-11-25T12:19:35.252064+00:00",
+  "rmse_improvement_pct": {
+    "test": -1.291959944402845,
+    "validation": -1.11147425855264
+  },
+  "run_attempt": "1",
+  "run_id": "45612642173",
+  "source_commit_sha": "f41d8777bf60266853d6286e7e3e11783176299e",
+  "status": "REJECTED",
+  "test_metrics": {
+    "augmented": {
+      "directional_accuracy": 0.49328859060402686,
+      "mae_pct": 4.51664702516062,
+      "n": 298,
+      "oos_r2_vs_period_mean": -0.11828747188251598,
+      "rmse_pct": 6.132504083854129
+    },
+    "baseline": {
+      "directional_accuracy": 0.4899328859060403,
+      "mae_pct": 4.453396301084112,
+      "n": 298,
+      "oos_r2_vs_period_mean": -0.08994230697178152,
+      "rmse_pct": 6.054285144862573
+    },
+    "n": 298
+  },
+  "validation_metrics": {
+    "augmented": {
+      "directional_accuracy": 0.5449438202247191,
+      "mae_pct": 6.69983554726097,
+      "n": 178,
+      "oos_r2_vs_period_mean": -0.08726041412219576,
+      "rmse_pct": 9.001213017077042
+    },
+    "baseline": {
+      "directional_accuracy": 0.5280898876404494,
+      "mae_pct": 6.640765794383044,
+      "n": 178,
+      "oos_r2_vs_period_mean": -0.0634882374374417,
+      "rmse_pct": 8.902266615221134
+    },
+    "n": 178
+  }
+}
