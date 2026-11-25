@@ -266,6 +266,7 @@ def build_events(
     price_dates, returns = daily_log_returns(prices)
     events = []
     skipped = {
+        "availability_before_price_history": 0,
         "known_publication_backlog": 0,
         "insufficient_crowding_history": 0,
         "no_signal_close": 0,
@@ -284,6 +285,9 @@ def build_events(
             skipped["insufficient_crowding_history"] += 1
             continue
         availability_date = report_date + dt.timedelta(days=PUBLICATION_LAG_DAYS)
+        if availability_date < price_dates[0]:
+            skipped["availability_before_price_history"] += 1
+            continue
         signal_index = bisect.bisect_left(price_dates, availability_date)
         if signal_index >= len(price_dates):
             skipped["no_signal_close"] += 1

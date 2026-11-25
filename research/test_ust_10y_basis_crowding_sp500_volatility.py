@@ -343,5 +343,38 @@ class Ust10yBasisCrowdingTests(unittest.TestCase):
             model.validate_source_coverage(cot_rows, prices, vix, today)
 
 
+    def test_report_availability_before_price_history_has_its_own_skip_reason(self):
+        prices, vix = self.market_data(
+            start=dt.date(2016, 11, 28),
+            end=dt.date(2017, 2, 28),
+        )
+        cot = [{
+            "report_date": dt.date(2010, 1, 5),
+            "net_short_pct_oi": 0.3,
+            "net_short_percentile": 0.95,
+            "high_crowding": True,
+        }]
+        events, meta = model.build_events(cot, prices, vix)
+        self.assertEqual(events, [])
+        self.assertEqual(meta["skipped"]["availability_before_price_history"], 1)
+        self.assertEqual(meta["skipped"]["signal_close_too_far_after_lag"], 0)
+
+    def test_actual_post_lag_market_data_gap_is_still_rejected(self):
+        prices, vix = self.market_data()
+        for day in list(prices):
+            if dt.date(2020, 1, 21) <= day <= dt.date(2020, 1, 26):
+                prices.pop(day)
+                vix.pop(day, None)
+        cot = [{
+            "report_date": dt.date(2020, 1, 7),
+            "net_short_pct_oi": 0.3,
+            "net_short_percentile": 0.95,
+            "high_crowding": True,
+        }]
+        events, meta = model.build_events(cot, prices, vix)
+        self.assertEqual(events, [])
+        self.assertEqual(meta["skipped"]["signal_close_too_far_after_lag"], 1)
+
+
 if __name__ == "__main__":
     unittest.main()
