@@ -2,7 +2,7 @@
 
 - **Hypothesis ID:** QFR-2026-11-25-JPY-CARRY-UNWIND-SP500-RV-01
 - **Registered:** 2026-11-25T18:26:40Z, before empirical result inspection.
-- **Status:** IDEA / FEASIBILITY CHECK IN PROGRESS.
+- **Status:** INCONCLUSIVE — closed on 2026-11-25T18:34:20Z under the frozen decision rule after one successful real-data run. No tuning or further cycles under this hypothesis ID.
 - **Difficulty:** MEDIUM.
 - **Difficulty rationale:** three public daily series, a one-sided five-observation FX shock, strict prior-date alignment, an existing walk-forward OLS harness and block-bootstrap inference. No credentials, paid data, new venue or custom infrastructure.
 - **Implementation timebox:** start 2026-11-25T18:26:40Z; deadline 2026-11-29T18:26:40Z.
@@ -88,3 +88,15 @@ A promising forecast is not independent validation, a causal finding, an executa
 - FRED current-vintage observations are used; historical release vintages are not reconstructed.
 - The strict prior-date rule deliberately adds a lag to avoid same-day FX fixing/publication ambiguity.
 - Forecasting only: no causal claim, transaction-cost model, tradable strategy, live-deployment conclusion or raw-data redistribution.
+
+
+## Empirical disposition
+
+- **Final status:** INCONCLUSIVE. The augmented model improves validation RMSE but worsens test RMSE; the paired test squared-loss bootstrap interval crosses zero. Neither the frozen promotion nor rejection rule is met.
+- Accepted data: SP500 2,512 rows (2016-11-28 to 2026-11-24); VIXCLS 2,546 rows (2016-11-25 to 2026-11-24); DEXJPUS 2,494 rows (2016-11-25 to 2026-11-20). All three met the preregistered synchronized-coverage gate. Three candidate origins were skipped because the five-change FX window crossed an observation gap greater than four calendar days; no price/VIX or target windows were dropped.
+- Non-overlapping origins: 412/415; validation forecasts: 104; test forecasts: 204.
+- Validation RMSE: baseline 0.34343148; augmented 0.33581993; improvement +2.2163%.
+- Test RMSE: baseline 0.26545570; augmented 0.26840481; improvement -1.1110%.
+- Test paired squared-log-loss difference (baseline minus augmented): -0.00157442; 2,000-replication circular-block bootstrap 95% CI [-0.00349663, +0.00037001]; 5.85% of bootstrap draws positive.
+- **Decision:** no promotion and no claim of incremental predictive value. The test period favors the baseline on RMSE and paired loss, but the confidence interval includes zero and validation improves; therefore the preregistered rejection rule is not met. Close this hypothesis ID without tuning.
+- **Evidence:** [GitHub Actions run 45676485893](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45676485893); [session report](../reports/sessions/2026-11-25/2026-11-25T183418Z_session-jpy-carry-unwind-45676485893.md); [generated manifest](../reports/generated/jpy-carry-unwind/45676485893-attempt-1/manifest.json).
