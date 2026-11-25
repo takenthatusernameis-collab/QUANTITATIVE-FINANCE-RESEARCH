@@ -192,7 +192,7 @@ class TreasuryAuctionDemandTests(unittest.TestCase):
         rows = ["observation_date,DGS10"]
         for offset in range(1000):
             rows.append(f"{(start + dt.timedelta(days=offset)).isoformat()},4.0")
-        return ("\\n".join(rows) + "\\n").encode("utf-8")
+        return ("\n".join(rows) + "\n").encode("utf-8")
 
     def test_treasury_all_pages_crosscheck_uses_zero_based_pagination(self):
         fred_body = self._fred_csv_with_1000_rows()
