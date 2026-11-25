@@ -1,0 +1,53 @@
+name: Treasury auction demand forecast backtest
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/daily-research-backtest.yml"
+      - "research/treasury_auction_demand.py"
+      - "research/test_treasury_auction_demand.py"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qfr-treasury-auction-backtest-main
+  cancel-in-progress: false
+
+jobs:
+  forecast-backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout trusted default branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Run deterministic regression tests
+        run: python -m unittest discover -s research -p "test_treasury_auction_demand.py" -v
+
+      - name: Retrieve official data and run walk-forward forecast backtest
+        id: research
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python research/treasury_auction_demand.py
+          echo "=== SESSION REPORT ==="
+          report="$(find reports/sessions -type f -name "*session-treasury-auction-${GITHUB_RUN_ID}.md" | sort | tail -n 1)"
+          test -n "$report"
+          cat "$report"
+          echo "=== GENERATED MANIFEST ==="
+          cat "reports/generated/treasury-auction-demand/${GITHUB_RUN_ID}-attempt-${GITHUB_RUN_ATTEMPT}/manifest.json"
