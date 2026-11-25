@@ -24,19 +24,32 @@ Admitted QFR-2026-11-25-ANFCI-TIGHTENING-SP500-RV-01: test whether the four-week
 
 ## Implementation admitted
 
-Atomic commit includes the preregistration, event/backtest runner (using the repository's shared parser/OLS/bootstrap helpers), deterministic tests, least-privilege Actions workflow, registry entry, this session report and README first-line restoration. Eleven ANFCI tests and all three admission-guard regression tests passed locally. The local harness used the repository helper implementations for parsing, OLS and bootstrap; network retrieval remains for the Actions runner. The new workflow includes workflow_dispatch and the exact job-level admission condition; the guard test scans every research workflow dynamically.
+Atomic admission commit a69ecbe8bd0d99e2d6a39831233a1ca591e405e4 includes the preregistration, event/backtest runner, deterministic tests, least-privilege Actions workflow, registry entry, this session report and README first-line restoration. Eleven ANFCI tests and all three admission-guard regression tests passed locally. The new workflow includes workflow_dispatch and the exact job-level admission condition; the guard test scans every research workflow dynamically.
+
+The positive admission path was then exercised by the actual push. Research workflow [45714834063](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45714834063) and admission-guard workflow [45714833981](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45714833981) both completed successfully. The research workflow fetched all three FRED sources, passed deterministic tests, generated its report/manifest, updated the registry and committed evidence.
 
 ## Daily KPI
 
 **MET before this additional study** by multiple distinct real-data walk-forward backtests completed on 2026-11-25. This ANFCI study is additional research, not quota-driven duplication.
 
+## Execution result
+
+- Data: ANFCI 522 weekly rows (2016-11-25 to 2026-11-20); SP500 2,512 daily rows and VIXCLS 2,546 daily rows (both through 2026-11-24). Source hashes and exact URLs are in the generated manifest.
+- Event construction: 430 accepted non-overlapping weekly events from 522 observations; 115 validation forecasts and 210 test forecasts.
+- Validation RMSE (log1p RV): baseline 0.32873609; augmented 0.34562528; change -5.1376%.
+- Test RMSE (log1p RV): baseline 0.24834593; augmented 0.25211829; change -1.5190%.
+- Test paired squared-loss bootstrap: mean baseline-minus-augmented loss -0.00188793; 95% CI [-0.00397162, -0.00001551]; 2.35% of bootstrap samples positive.
+- Frozen decision: **REJECTED**. Adding the ANFCI four-week change worsened RMSE in both periods, and the paired-loss interval indicates the augmented model is worse.
+- Research evidence commit: [b444ae0b7532174e1136ca5fafb38cf5965fb8c1](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/b444ae0b7532174e1136ca5fafb38cf5965fb8c1).
+- Generated report: [ANFCI session report](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/blob/main/reports/sessions/2026-11-25/2026-11-25T223740Z_session-anfci-tightening-shock-45714834063.md); manifest: [manifest.json](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/blob/main/reports/generated/anfci-tightening-shock/45714834063-attempt-1/manifest.json).
+
 ## Verified / unverified
 
 **VERIFIED:** repository/registry state; official ANFCI release semantics and calendar; local compilation; eleven ANFCI tests; three admission-guard tests; exact marker and atomic commit preparation.
 
-**PENDING:** actual positive admission-branch Actions run; current FRED CSV freshness, coverage and hashes; real-data metrics and final disposition; generated report/manifest persistence.
+**VERIFIED:** positive [QFR-ADMIT] branch executed; both Actions runs succeeded; FRED CSV freshness/coverage/hashes passed; report, manifest and REJECTED registry disposition were persisted to main.
 
-**LIMITATIONS:** current-vintage ANFCI revisions are a material point-in-time limitation. No causal inference, executable strategy, trading P&L or live-trading action is authorized.
+**LIMITATIONS:** current-vintage ANFCI revisions are a material point-in-time limitation. The hypothesis is REJECTED under its frozen rule; no retuning or follow-up is permitted under this ID. No causal inference, executable strategy, trading P&L or live-trading action is authorized.
 
 ## Next
 
