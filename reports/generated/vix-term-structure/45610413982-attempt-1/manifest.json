@@ -16,7 +16,7 @@
       "rows": 2512
     }
   },
-  "daily_kpi": "MET before this additional study \u2014 three distinct Treasury real-data backtests and the CFTC real-data backtest were already completed on 2026-11-25",
+  "daily_kpi": "MET before this additional study — three distinct Treasury real-data backtests and the CFTC real-data backtest were already completed on 2026-11-25",
   "data_sources": {
     "SP500": {
       "first_date": "2016-11-25",
@@ -40,7 +40,7 @@
       "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VXVCLS&cosd=2016-11-25"
     }
   },
-  "disposition": "INCONCLUSIVE \u2014 evidence is mixed, statistically uncertain or insufficient under the frozen decision rule",
+  "disposition": "INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen decision rule",
   "event_construction": {
     "candidate_origins": 415,
     "event_spacing_sessions": 6,
@@ -98,7 +98,10 @@
     "term_slope": "log(VIXCLS / VXVCLS); positive values indicate inversion",
     "test": "2022-01-01 onward",
     "training_maturity_rule": "training target_end_date must be strictly earlier than current signal_date",
-    "validation": "2019-01-01 through 2021-12-31"
+    "validation": "2019-01-01 through 2021-12-31",
+    "paired_bootstrap_seed": 20261126,
+    "inversion_bootstrap_seed": 20261127,
+    "bootstrap_seed_base": 20261125
   },
   "paired_squared_loss_bootstrap": {
     "block_size_events": 4,
@@ -148,5 +151,6 @@
       "rmse_log1p_rv": 0.3288139316582688
     },
     "n": 107
-  }
+  },
+  "interpretation": "RMSE improved in both periods, but the paired test-loss confidence interval crosses zero. The positive inversion-event contrast is based on only 12 inverted test events. The preregistered promotion rule is not met."
 }
