@@ -732,8 +732,6 @@ def run_research() -> dict:
     source_hashes = {}
     source_hashes.update(auction_meta["hashes"])
     source_hashes.update(yield_meta["hashes"])
-    if fred_meta.get("sha256"):
-        source_hashes["fred_dgs10_crosscheck"] = fred_meta["sha256"]
 
     summary_metrics = {
         "all_oos_n": len(all_rows),
