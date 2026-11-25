@@ -1,0 +1,145 @@
+{
+  "auction_source": {
+    "attempts": [
+      "Auction route failed (narrow nominal fixed-rate 10-year filter; selected fields): Non-retryable HTTP 404 for https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query?filter=auction_date%3Agte%3A2008-01-01%2Cauction_date%3Alte%3A2026-11-24%2Csecurity_type%3Aeq%3ANote%2Coriginal_security_term%3Aeq%3A10-Year%2Ctips%3Aeq%3Afalse%2Cfloating_rate%3Aeq%3Afalse&sort=auction_date&page%5Bsize%5D=10000&page%5Bnumber%5D=1&fields=record_date%2Cauction_date%2Ccusip%2Csecurity_type%2Csecurity_term%2Coriginal_security_term%2Ctips%2Cfloating_rate%2Creopening%2Ccomp_accepted%2Ctotal_accepted%2Cbid_to_cover_ratio%2Cprimary_dealer_accepted%2Cdirect_bidder_accepted%2Cindirect_bidder_accepted",
+      "Auction route failed (narrow nominal fixed-rate 10-year filter; full-row fallback): Non-retryable HTTP 404 for https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query?filter=auction_date%3Agte%3A2008-01-01%2Cauction_date%3Alte%3A2026-11-24%2Csecurity_type%3Aeq%3ANote%2Coriginal_security_term%3Aeq%3A10-Year%2Ctips%3Aeq%3Afalse%2Cfloating_rate%3Aeq%3Afalse&sort=auction_date&page%5Bsize%5D=10000&page%5Bnumber%5D=1",
+      "Auction route failed (broad Note filter; selected fields): Non-retryable HTTP 404 for https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query?filter=auction_date%3Agte%3A2008-01-01%2Cauction_date%3Alte%3A2026-11-24%2Csecurity_type%3Aeq%3ANote&sort=auction_date&page%5Bsize%5D=10000&page%5Bnumber%5D=1&fields=record_date%2Cauction_date%2Ccusip%2Csecurity_type%2Csecurity_term%2Coriginal_security_term%2Ctips%2Cfloating_rate%2Creopening%2Ccomp_accepted%2Ctotal_accepted%2Cbid_to_cover_ratio%2Cprimary_dealer_accepted%2Cdirect_bidder_accepted%2Cindirect_bidder_accepted",
+      "Treasury Fiscal Data legacy auctions_query succeeded: broad Note filter; full-row fallback"
+    ],
+    "quality": {
+      "denominator_mismatch_over_5pct": 0,
+      "duplicate_cusip": 0,
+      "missing_fields": 2,
+      "not_note": 0,
+      "not_original_10y": 1094,
+      "record_date_fallback_to_auction_date": 0,
+      "rows_returned": 1430,
+      "selected": 226,
+      "unknown_or_floating": 0,
+      "unknown_or_tips": 108
+    },
+    "rows_returned": 1430,
+    "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query"
+  },
+  "daily_kpi": "MET",
+  "data_scope": "10-year nominal Treasury notes, 2008-05-07 to 2026-10-07; daily Treasury 10-year par yields 2008-01-02 to 2026-11-23",
+  "disposition": "INCONCLUSIVE — mixed predictive evidence; do not promote or claim an economic edge",
+  "event_construction": {
+    "events_with_targets": 226,
+    "model_training_rule": "Only prior events whose five-business-day target end date is strictly before the current auction record_date are eligible.",
+    "rolling_demand_lookback_auctions": 26,
+    "rolling_model_window_events": 52,
+    "skipped": {
+      "insufficient_pre_history": 0,
+      "no_future_yield_window": 0
+    },
+    "target_horizon_business_days": 5
+  },
+  "hypothesis_id": "QFR-2026-11-25-UST-AUCTION-ABSORPTION-01",
+  "limitations": [
+    "This is a forecast backtest on official par-yield observations, not a tradable futures/ETF P&L.",
+    "No CAGR, Sharpe, Sortino, turnover or drawdown is claimed.",
+    "Auction result publication is conservatively lagged: the target starts at the first yield-curve observation strictly after record_date.",
+    "The Treasury par yield curve is a reference curve, not an executable quote.",
+    "No forward-filling or synthetic observations are used.",
+    "Incremental predictive value requires independent robustness and a separate tradable-instrument data source before any economic interpretation."
+  ],
+  "retrieved_at_utc": "2026-11-25T03:52:47.356104+00:00",
+  "run_attempt": "1",
+  "run_id": "45542932737",
+  "sample_end_cutoff": "2026-11-24",
+  "sample_start": "2008-01-01",
+  "source_commit_sha": "8c8748d211292bcfb337b45bcea36d773da9ff70",
+  "source_sha256": {
+    "auction_page_1": "6cd980fa5db190f46e0f467805e8e0a3e1e5160c668de70e5440d8383c2dba20",
+    "fred_dgs10_primary": "39224fa29fdfaf670ba1fb452ff7d8f0e3527cf99d173bc6ba51c990ef10b4f3"
+  },
+  "status": "INCONCLUSIVE",
+  "summary_metrics": {
+    "all_oos_n": 96,
+    "test_augmented_directional_accuracy": 0.5333,
+    "test_augmented_mae_bp": 9.0236,
+    "test_augmented_rmse_bp": 11.329,
+    "test_baseline_directional_accuracy": 0.4667,
+    "test_baseline_mae_bp": 9.1571,
+    "test_baseline_rmse_bp": 11.4001,
+    "test_n": 46,
+    "test_rmse_improvement_pct": 0.624,
+    "validation_n": 50,
+    "weak_demand_bootstrap_ci_high_bp": null,
+    "weak_demand_bootstrap_ci_low_bp": null,
+    "weak_demand_mean_difference_bp": -7.969
+  },
+  "test_metrics": {
+    "augmented": {
+      "directional_accuracy": 0.5333333333333333,
+      "mae_bp": 9.02363287303241,
+      "mean_actual_bp": 0.7826086956521717,
+      "n": 46,
+      "oos_r2_vs_mean": -0.04497057882256583,
+      "rmse_bp": 11.328975966169182
+    },
+    "baseline": {
+      "directional_accuracy": 0.4666666666666667,
+      "mae_bp": 9.157112242423214,
+      "mean_actual_bp": 0.7826086956521717,
+      "n": 46,
+      "oos_r2_vs_mean": -0.05813504595770702,
+      "rmse_bp": 11.400113449258905
+    },
+    "weak_demand_event_study": {
+      "bootstrap": null,
+      "difference_bp": -7.968992248061988,
+      "other_mean_bp": 1.302325581395345,
+      "other_n": 43,
+      "weak_mean_bp": -6.666666666666643,
+      "weak_n": 3
+    }
+  },
+  "treasury_xml_crosscheck": {
+    "rows": 0,
+    "sample_year_counts": {
+      "2008": 0,
+      "2012": 0,
+      "2016": 0,
+      "2020": 0,
+      "2023": 0,
+      "2026": 0
+    },
+    "status": "NO_OVERLAP"
+  },
+  "validation_metrics": {
+    "augmented": {
+      "directional_accuracy": 0.46938775510204084,
+      "mae_bp": 8.758854389019824,
+      "mean_actual_bp": -1.5400000000000018,
+      "n": 50,
+      "oos_r2_vs_mean": -0.16715227640435404,
+      "rmse_bp": 11.368241030283086
+    },
+    "baseline": {
+      "directional_accuracy": 0.4489795918367347,
+      "mae_bp": 8.462744469825855,
+      "mean_actual_bp": -1.5400000000000018,
+      "n": 50,
+      "oos_r2_vs_mean": -0.11633930132063486,
+      "rmse_bp": 11.118024316053269
+    }
+  },
+  "yield_source": {
+    "attempts": [
+      "FRED DGS10 primary succeeded with 4726 observations",
+      "Treasury XML cross-check 2008 unavailable: RuntimeError: Request failed after 2 bounded attempts: https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2008: The read operation timed out",
+      "Treasury XML cross-check 2012 unavailable: RuntimeError: Request failed after 2 bounded attempts: https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2012: The read operation timed out",
+      "Treasury XML cross-check 2016 unavailable: RuntimeError: Request failed after 2 bounded attempts: https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2016: The read operation timed out",
+      "Treasury XML cross-check 2020 unavailable: RuntimeError: Request failed after 2 bounded attempts: https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2020: The read operation timed out",
+      "Treasury XML cross-check 2023 unavailable: RuntimeError: Request failed after 2 bounded attempts: https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2023: The read operation timed out",
+      "Treasury XML cross-check 2026 unavailable: RuntimeError: Request failed after 2 bounded attempts: https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2026: The read operation timed out"
+    ],
+    "first_date": "2008-01-02",
+    "last_date": "2026-11-23",
+    "max_calendar_gap_days": 4,
+    "observations": 4726,
+    "provider": "FRED DGS10 (Federal Reserve) with direct Treasury XML sample cross-check"
+  }
+}

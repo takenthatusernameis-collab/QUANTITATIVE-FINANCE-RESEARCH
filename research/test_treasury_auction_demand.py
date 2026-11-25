@@ -1,5 +1,6 @@
 import datetime as dt
 import unittest
+from unittest.mock import patch
 
 import treasury_auction_demand as qfr
 
@@ -184,6 +185,42 @@ class TreasuryAuctionDemandTests(unittest.TestCase):
         second = qfr.bootstrap_mean_difference(rows, reps=100)
         self.assertEqual(first, second)
         self.assertGreater(first["ci_95_high_bp"], first["ci_95_low_bp"])
+
+
+    def _fred_csv_with_1000_rows(self):
+        start = dt.date(2008, 1, 2)
+        rows = ["observation_date,DGS10"]
+        for offset in range(1000):
+            rows.append(f"{(start + dt.timedelta(days=offset)).isoformat()},4.0")
+        return ("\\n".join(rows) + "\\n").encode("utf-8")
+
+    def test_treasury_all_pages_crosscheck_uses_zero_based_pagination(self):
+        fred_body = self._fred_csv_with_1000_rows()
+        page_zero = (
+            b"<feed>"
+            b"<entry><NEW_DATE>2008-01-02</NEW_DATE><BC_10YEAR>4.0</BC_10YEAR></entry>"
+            b"<entry><NEW_DATE>2008-01-03</NEW_DATE><BC_10YEAR>4.0</BC_10YEAR></entry>"
+            b"</feed>"
+        )
+        empty_page = b"<feed></feed>"
+        with patch.object(qfr, "fetch_bytes", side_effect=[fred_body, page_zero, empty_page]) as fetch:
+            values, meta = qfr.fetch_treasury_yields(dt.date(2010, 10, 1))
+        self.assertEqual(len(values), 1000)
+        self.assertEqual(meta["treasury_xml_crosscheck"]["status"], "VERIFIED")
+        self.assertEqual(meta["treasury_xml_crosscheck"]["rows"], 2)
+        self.assertIn("H.15 via FRED", meta["provider"])
+        self.assertEqual(fetch.call_count, 3)
+        self.assertIn("page=0", fetch.call_args_list[1].args[0])
+        self.assertIn("page=1", fetch.call_args_list[2].args[0])
+
+    def test_treasury_crosscheck_timeout_is_unavailable_not_zero_overlap(self):
+        fred_body = self._fred_csv_with_1000_rows()
+        with patch.object(qfr, "fetch_bytes", side_effect=[fred_body, TimeoutError("Treasury XML timeout")]):
+            values, meta = qfr.fetch_treasury_yields(dt.date(2010, 10, 1))
+        self.assertEqual(len(values), 1000)
+        self.assertEqual(meta["treasury_xml_crosscheck"]["status"], "UNAVAILABLE")
+        self.assertEqual(meta["treasury_xml_crosscheck"]["rows"], 0)
+        self.assertIn("timeout", meta["treasury_xml_crosscheck"]["error"].lower())
 
 
 if __name__ == "__main__":

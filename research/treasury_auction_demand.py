@@ -276,12 +276,14 @@ def parse_fred_dgs10(body: bytes) -> dict[dt.date, float]:
     return values
 
 
-def parse_treasury_xml_year(body: bytes, end_date: dt.date) -> dict[dt.date, float]:
+def parse_treasury_xml_page(body: bytes, end_date: dt.date) -> tuple[dict[dt.date, float], int]:
     root = ET.fromstring(body)
     values: dict[dt.date, float] = {}
+    entry_count = 0
     for entry in root.iter():
         if local_name(entry.tag) != "entry":
             continue
+        entry_count += 1
         fields: dict[str, str] = {}
         for node in entry.iter():
             name = local_name(node.tag)
@@ -291,12 +293,58 @@ def parse_treasury_xml_year(body: bytes, end_date: dt.date) -> dict[dt.date, flo
         value = parse_float(fields.get("BC_10YEAR"))
         if obs_date is not None and value is not None and START_DATE <= obs_date <= end_date:
             values[obs_date] = value
+    return values, entry_count
+
+
+def parse_treasury_xml_year(body: bytes, end_date: dt.date) -> dict[dt.date, float]:
+    values, _ = parse_treasury_xml_page(body, end_date)
     return values
 
 
+def fetch_treasury_xml_all_pages(end_date: dt.date) -> tuple[dict[dt.date, float], dict]:
+    values: dict[dt.date, float] = {}
+    hashes: dict[str, str] = {}
+    attempts: list[str] = []
+    page_limit = 64
+    for page in range(page_limit):
+        params = {
+            "data": "daily_treasury_yield_curve",
+            "field_tdr_date_value": "all",
+            "page": str(page),
+        }
+        url = YIELD_URL + "?" + urllib.parse.urlencode(params)
+        body = fetch_bytes(url, timeout=20)
+        page_values, entry_count = parse_treasury_xml_page(body, end_date)
+        hashes[f"treasury_yield_curve_all_page_{page}"] = sha256(body)
+        attempts.append(
+            f"Treasury XML all-years page {page}: {entry_count} feed entries; "
+            f"{len(page_values)} in-scope 10-year observations"
+        )
+        if entry_count == 0:
+            if page == 0:
+                raise RuntimeError("Treasury XML all-years feed returned no entries on page 0")
+            break
+        for obs_date, value in page_values.items():
+            prior = values.get(obs_date)
+            if prior is not None and abs(prior - value) > 1e-9:
+                raise RuntimeError(
+                    f"Treasury XML pagination returned conflicting duplicate {obs_date}: {prior} vs {value}"
+                )
+            values[obs_date] = value
+        time.sleep(0.1)
+    else:
+        raise RuntimeError(f"Treasury XML all-years feed did not terminate within {page_limit} pages")
+    if not values:
+        raise RuntimeError("Treasury XML all-years feed contained no in-scope 10-year observations")
+    return values, {
+        "hashes": hashes,
+        "attempts": attempts,
+        "pages_fetched": len(hashes),
+        "rows": len(values),
+    }
+
 def fetch_treasury_yields(end_date: dt.date) -> tuple[dict[dt.date, float], dict]:
     attempts: list[str] = []
-    hashes: dict[str, str] = {}
     fred_url = FRED_URL + "?" + urllib.parse.urlencode({
         "id": "DGS10",
         "cosd": START_DATE.isoformat(),
@@ -307,47 +355,44 @@ def fetch_treasury_yields(end_date: dt.date) -> tuple[dict[dt.date, float], dict
         fred_values = parse_fred_dgs10(fred_body)
         if len(fred_values) < 1000:
             raise RuntimeError(f"FRED DGS10 returned only {len(fred_values)} observations")
-        hashes["fred_dgs10_primary"] = sha256(fred_body)
+        hashes = {"fred_dgs10_primary": sha256(fred_body)}
         attempts.append(f"FRED DGS10 primary succeeded with {len(fred_values)} observations")
 
-        # Direct Treasury XML is used as a bounded, independently retrieved cross-check
-        # across the sample, rather than making 19 serial full-history requests.
-        sample_years = sorted(set([START_DATE.year, 2012, 2016, 2020, 2023, end_date.year]))
-        treasury_sample: dict[dt.date, float] = {}
-        sample_counts: dict[str, int] = {}
-        for year in sample_years:
-            params = {
-                "data": "daily_treasury_yield_curve",
-                "field_tdr_date_value": str(year),
-            }
-            url = YIELD_URL + "?" + urllib.parse.urlencode(params)
-            try:
-                body = fetch_bytes(url, timeout=15)
-                hashes[f"treasury_yield_curve_{year}"] = sha256(body)
-                year_values = parse_treasury_xml_year(body, end_date)
-                sample_counts[str(year)] = len(year_values)
-                treasury_sample.update(year_values)
-                attempts.append(f"Treasury XML cross-check {year}: {len(year_values)} observations")
-            except Exception as exc:
-                sample_counts[str(year)] = 0
-                attempts.append(f"Treasury XML cross-check {year} unavailable: {type(exc).__name__}: {exc}")
-
-        overlap = sorted(set(fred_values).intersection(treasury_sample))
-        if overlap:
-            differences = [abs(fred_values[date] - treasury_sample[date]) * 100.0 for date in overlap]
+        try:
+            treasury_values, treasury_meta = fetch_treasury_xml_all_pages(end_date)
+            hashes.update(treasury_meta["hashes"])
+            attempts.extend(treasury_meta["attempts"])
+            overlap = sorted(set(fred_values).intersection(treasury_values))
+            if overlap:
+                differences = [abs(fred_values[date] - treasury_values[date]) * 100.0 for date in overlap]
+                crosscheck = {
+                    "status": "VERIFIED" if max(differences) <= 0.5 else "DISCREPANCY",
+                    "rows": len(overlap),
+                    "pages_fetched": treasury_meta["pages_fetched"],
+                    "max_abs_difference_bp": max(differences),
+                    "mean_abs_difference_bp": statistics.fmean(differences),
+                    "first_date": overlap[0].isoformat(),
+                    "last_date": overlap[-1].isoformat(),
+                }
+            else:
+                crosscheck = {
+                    "status": "NO_OVERLAP",
+                    "rows": 0,
+                    "pages_fetched": treasury_meta["pages_fetched"],
+                }
+        except Exception as treasury_error:
+            attempts.append(
+                f"Treasury XML all-years cross-check unavailable: "
+                f"{type(treasury_error).__name__}: {treasury_error}"
+            )
             crosscheck = {
-                "status": "VERIFIED" if max(differences) <= 0.5 else "DISCREPANCY",
-                "rows": len(overlap),
-                "sample_year_counts": sample_counts,
-                "max_abs_difference_bp": max(differences),
-                "mean_abs_difference_bp": statistics.fmean(differences),
-                "first_date": overlap[0].isoformat(),
-                "last_date": overlap[-1].isoformat(),
+                "status": "UNAVAILABLE",
+                "rows": 0,
+                "error": f"{type(treasury_error).__name__}: {treasury_error}",
             }
-        else:
-            crosscheck = {"status": "NO_OVERLAP", "rows": 0, "sample_year_counts": sample_counts}
+
         return fred_values, {
-            "provider": "FRED DGS10 (Federal Reserve) with direct Treasury XML sample cross-check",
+            "provider": "FRED DGS10 (Board of Governors H.15 via FRED); Treasury XML all-years cross-check attempted",
             "hashes": hashes,
             "attempts": attempts,
             "treasury_xml_crosscheck": crosscheck,
@@ -355,30 +400,22 @@ def fetch_treasury_yields(end_date: dt.date) -> tuple[dict[dt.date, float], dict
         }
     except Exception as fred_error:
         attempts.append(f"FRED DGS10 primary failed: {type(fred_error).__name__}: {fred_error}")
-
-    # Materially different fallback: direct US Treasury daily par-yield XML by year.
-    treasury_values: dict[dt.date, float] = {}
-    for year in range(START_DATE.year, end_date.year + 1):
-        params = {
-            "data": "daily_treasury_yield_curve",
-            "field_tdr_date_value": str(year),
+        treasury_values, treasury_meta = fetch_treasury_xml_all_pages(end_date)
+        attempts.extend(treasury_meta["attempts"])
+        if len(treasury_values) < 1000:
+            raise RuntimeError(
+                f"FRED failed and Treasury XML returned only {len(treasury_values)} observations"
+            ) from fred_error
+        return treasury_values, {
+            "provider": "U.S. Treasury daily par-yield curve XML all-years feed (FRED unavailable)",
+            "hashes": treasury_meta["hashes"],
+            "attempts": attempts,
+            "treasury_xml_crosscheck": {
+                "status": "PRIMARY_SOURCE",
+                "rows": len(treasury_values),
+                "pages_fetched": treasury_meta["pages_fetched"],
+            },
         }
-        url = YIELD_URL + "?" + urllib.parse.urlencode(params)
-        body = fetch_bytes(url, timeout=15)
-        hashes[f"treasury_yield_curve_{year}"] = sha256(body)
-        year_values = parse_treasury_xml_year(body, end_date)
-        if not year_values:
-            raise RuntimeError(f"FRED failed and Treasury XML returned no 10-year observations for {year}")
-        treasury_values.update(year_values)
-        attempts.append(f"Treasury XML fallback {year}: {len(year_values)} observations")
-    if len(treasury_values) < 1000:
-        raise RuntimeError(f"FRED failed and Treasury XML returned only {len(treasury_values)} observations")
-    return treasury_values, {
-        "provider": "US Treasury daily par yield curve XML fallback",
-        "hashes": hashes,
-        "attempts": attempts,
-        "treasury_xml_crosscheck": {"status": "PRIMARY_SOURCE", "rows": len(treasury_values)},
-    }
 
 def fetch_fred_crosscheck(end_date: dt.date) -> tuple[dict[dt.date, float] | None, dict]:
     params = {
@@ -638,7 +675,7 @@ def update_registry(status: str, disposition: str, data_scope: str, evidence_pat
     else:
         text = "# Hypothesis Registry\n\n| Hypothesis ID | Status | Mechanism / falsifiable claim | Data scope | Disposition | Evidence |\n|---|---|---|---|---|---|\n"
     row = (
-        f"| {HYPOTHESIS_ID} | {status} | Auction bidder composition adds incremental predictive information about the next five-business-day 10-year par-yield change beyond bid-to-cover and recent yield movement. | {data_scope} | {disposition}; {metrics_text} | [{evidence_path}]({evidence_path}) |"
+        f"| {HYPOTHESIS_ID} | {status} | Primary-dealer accepted share adds incremental walk-forward predictive information about the next five-business-day 10-year yield change beyond bid-to-cover and recent yield movement; weak demand is expected to precede higher yields. | {data_scope} | {disposition}; {metrics_text} | [{evidence_path}]({evidence_path}) |"
     )
     lines = text.splitlines()
     found = False
@@ -665,8 +702,9 @@ def write_outputs(result: dict, report: str) -> tuple[str, str]:
     disposition = result.get("disposition", "INCONCLUSIVE")
     metrics = result.get("summary_metrics") or {}
     metrics_text = (
-        f"test OOS n={metrics.get('test_n', 0)}, augmented RMSE={metrics.get('test_augmented_rmse_bp')}, "
-        f"baseline RMSE={metrics.get('test_baseline_rmse_bp')}"
+        f"test OOS n={metrics.get('test_n', 0)}, augmented RMSE={metrics.get('test_augmented_rmse_bp')} bp, "
+        f"baseline RMSE={metrics.get('test_baseline_rmse_bp')} bp, RMSE improvement={metrics.get('test_rmse_improvement_pct')}%, "
+        f"weak-demand events={((result.get('test_metrics') or {}).get('weak_demand_event_study') or {}).get('weak_n', 0)}"
     )
     data_scope = result.get("data_scope", "Data scope unresolved")
     update_registry(status, disposition, data_scope, '../' + str(report_path.relative_to(ROOT)), metrics_text)
@@ -759,7 +797,7 @@ def run_research() -> dict:
         "retrieved_at_utc": SESSION_TIME.isoformat(),
         "sample_start": START_DATE.isoformat(),
         "sample_end_cutoff": end_date.isoformat(),
-        "data_scope": f"10-year nominal Treasury notes, {auctions[0]['auction_date']} to {auctions[-1]['auction_date']}; daily Treasury 10-year par yields {yield_dates[0]} to {yield_dates[-1]}",
+        "data_scope": f"10-year nominal Treasury notes, {auctions[0]['auction_date']} to {auctions[-1]['auction_date']}; {yield_meta['provider']} daily yield observations {yield_dates[0]} to {yield_dates[-1]}",
         "auction_source": {
             "url": BASE_URL,
             "rows_returned": auction_meta["rows_returned"],
@@ -795,10 +833,12 @@ def run_research() -> dict:
         },
         "summary_metrics": summary_metrics,
         "limitations": [
-            "This is a forecast backtest on official par-yield observations, not a tradable futures/ETF P&L.",
+            "This is a yield-forecasting backtest, not a tradable futures/ETF P&L.",
             "No CAGR, Sharpe, Sortino, turnover or drawdown is claimed.",
-            "Auction result publication is conservatively lagged: the target starts at the first yield-curve observation strictly after record_date.",
-            "The Treasury par yield curve is a reference curve, not an executable quote.",
+            "The run uses H.15 DGS10 from the Board of Governors via FRED when that source succeeds; it is not assumed identical to the direct Treasury daily par-yield curve.",
+            "The direct Treasury daily par-yield XML all-years feed is independently cross-checked when accessible; its status is recorded separately and a failed request is not treated as a zero-observation source.",
+            "Auction result publication is conservatively lagged: the target starts at the first yield-series observation strictly after record_date.",
+            "The yield series is a reference series, not an executable quote.",
             "No forward-filling or synthetic observations are used.",
             "Incremental predictive value requires independent robustness and a separate tradable-instrument data source before any economic interpretation.",
         ],
@@ -825,9 +865,9 @@ def render_report(result: dict, error: str | None = None) -> str:
         "",
         "## Research question and preregistered test",
         "",
-        "Does primary-dealer accepted share add walk-forward predictive information about the next five-business-day change in the 10-year Treasury par yield beyond the published bid-to-cover ratio and the latest five-business-day yield move? The directional prediction is that weak auction demand (high dealer absorption and low bid-to-cover) precedes higher yields.",
+        "Does primary-dealer accepted share add walk-forward predictive information about the next five-business-day change in the 10-year yield beyond the published bid-to-cover ratio and the latest five-business-day yield move? The directional prediction is that weak auction demand (high dealer absorption and low bid-to-cover) precedes higher yields. When FRED DGS10 is the available primary series, this is explicitly an H.15 constant-maturity-yield proxy test; it is not represented as a direct Treasury par-yield-curve test.",
         "",
-        "The baseline model uses bid-to-cover and the latest five-business-day yield change. The augmented model adds primary-dealer accepted share. Both use a rolling 52-event OLS window. Training observations are admitted only when their target window ended strictly before the current auction record_date. Weak-demand scores use only the preceding 26 auctions; the top-quartile cutoff is fixed at 0.75.",
+        "The baseline model uses bid-to-cover and the latest five-business-day yield change. The augmented model adds primary-dealer accepted share. Both use a rolling 52-event OLS window. Training observations are admitted only when their target window ended strictly before the current auction record_date. Weak-demand scores use only the preceding 26 auctions; the fixed weak-score threshold is 0.75 (not a guaranteed 25% event share).",
         "",
         "## Verified data and provenance",
         "",
@@ -868,10 +908,12 @@ def render_report(result: dict, error: str | None = None) -> str:
         "",
         "## Failure handling and alternatives",
         "",
-        "- Primary yield source: official Treasury daily par-yield XML, queried by calendar year.",
-        "- Independent yield cross-check/fallback: FRED DGS10 CSV.",
+        f"- Primary yield source: {yield_source.get('provider', 'unknown')}.",
+        f"- Independent direct Treasury XML cross-check: {treasury_crosscheck.get('status', 'unknown')} ({treasury_crosscheck.get('rows', 0)} overlapping observations).",
+        f"- Yield-source retrieval attempts: {'; '.join(yield_source.get('attempts', []))}",
+        "- Direct Treasury XML all-years pagination is attempted as a materially different route from the previously timed-out per-year requests.",
         "- Auction source: Treasury Fiscal Data legacy auctions_query endpoint; selected-field query with full-row fallback.",
-        "- No raw data are committed; source response SHA-256 hashes are retained in the generated manifest.",
+        "- Raw market/source rows are not committed; response SHA-256 hashes are retained in the generated manifest.",
         "",
         "## Reproducibility",
         "",
@@ -933,8 +975,8 @@ def main() -> int:
             "alternatives_attempted": [
                 "Treasury Fiscal Data legacy auctions_query selected-field route",
                 "Treasury Fiscal Data legacy auctions_query full-row fallback",
-                "Official Treasury daily par-yield XML by year",
-                "FRED DGS10 CSV fallback/cross-check",
+                "Official Treasury daily par-yield XML all-years paginated feed",
+                "FRED DGS10 CSV primary/fallback",
             ],
             "error": f"{type(exc).__name__}: {exc}",
         }
