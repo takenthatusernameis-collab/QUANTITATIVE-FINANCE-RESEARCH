@@ -403,7 +403,7 @@ def main() -> None:
             "baseline_features": BASELINE_FEATURES,
             "augmented_features": AUGMENTED_FEATURES,
             "signal_rule": "BTC signal close on t; use only latest DFII10 observation dated strictly before t",
-            "real_yield_change": "100 * log(DFII10[d] / DFII10[d-5]) over five observed real-yield-index changes",
+            "real_yield_change": "100 * (DFII10[d] - DFII10[d-5]) basis points over five observed real-yield observations",
             "target": "100 * log(CBBTCUSD[t+5] / CBBTCUSD[t]) over next five observed daily BTC closes",
             "event_spacing_btc_observations": EVENT_STEP_SESSIONS,
             "rolling_training_events": MODEL_WINDOW,
