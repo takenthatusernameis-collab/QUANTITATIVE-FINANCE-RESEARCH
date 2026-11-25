@@ -405,7 +405,7 @@ def compare_updated_auction_sample_to_legacy(
         ("record_date", parse_date(crosswalk.get("record_date")), legacy.get("record_date"), None),
         ("bid_to_cover", parse_float(crosswalk.get("bid_to_cover_ratio")), legacy.get("bid_to_cover"), 1e-9),
         ("comp_accepted", parse_float(crosswalk.get("comp_accepted")), legacy.get("comp_accepted"), 1.0),
-        ("primary_dealer_accepted", parse_float(crosswalk.get("primary_dealer_accepted")), legacy.get("comp_accepted") and parse_float(str(legacy.get("bidder_total", ""))) if False else legacy.get("primary_dealer_accepted"), 1.0),
+        ("primary_dealer_accepted", parse_float(crosswalk.get("primary_dealer_accepted")), legacy.get("primary_dealer_accepted"), 1.0),
         ("direct_bidder_accepted", parse_float(crosswalk.get("direct_bidder_accepted")), legacy.get("direct_bidder_accepted"), 1.0),
         ("indirect_bidder_accepted", parse_float(crosswalk.get("indirect_bidder_accepted")), legacy.get("indirect_bidder_accepted"), 1.0),
     )
@@ -850,6 +850,9 @@ def select_ten_year_nominal_auctions(rows: list[dict]) -> tuple[list[dict], dict
             "bid_to_cover": btc,
             "dealer_share": dealer_share,
             "comp_accepted": comp_accepted,
+            "primary_dealer_accepted": primary,
+            "direct_bidder_accepted": direct,
+            "indirect_bidder_accepted": indirect,
             "bidder_total": bidder_total,
             "security_term": row.get("security_term"),
             "original_security_term": row.get("original_security_term"),
