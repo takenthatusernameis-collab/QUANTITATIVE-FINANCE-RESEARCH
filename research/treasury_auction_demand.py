@@ -263,35 +263,47 @@ def fetch_treasury_yields(end_date: dt.date) -> tuple[dict[dt.date, float], dict
     values: dict[dt.date, float] = {}
     hashes: dict[str, str] = {}
     attempts: list[str] = []
-    for year in range(START_DATE.year, end_date.year + 1):
-        params = {
-            "data": "daily_treasury_yield_curve",
-            "field_tdr_date_value": str(year),
-        }
-        url = YIELD_URL + "?" + urllib.parse.urlencode(params)
-        body = fetch_bytes(url)
-        hashes[f"treasury_yield_curve_{year}"] = sha256(body)
-        root = ET.fromstring(body)
-        year_count = 0
-        for entry in root.iter():
-            if local_name(entry.tag) != "entry":
-                continue
-            fields: dict[str, str] = {}
-            for node in entry.iter():
-                name = local_name(node.tag)
-                if name in {"NEW_DATE", "BC_10YEAR"}:
-                    fields[name] = (node.text or "").strip()
-            obs_date = parse_date(fields.get("NEW_DATE"))
-            value = parse_float(fields.get("BC_10YEAR"))
-            if obs_date is None or value is None:
-                continue
-            if START_DATE <= obs_date <= end_date:
-                values[obs_date] = value
-                year_count += 1
-        attempts.append(f"Treasury XML {year}: {year_count} 10-year observations")
-        time.sleep(0.12)
-    if values:
+    treasury_error: Exception | None = None
+    missing_years: list[int] = []
+    try:
+        for year in range(START_DATE.year, end_date.year + 1):
+            params = {
+                "data": "daily_treasury_yield_curve",
+                "field_tdr_date_value": str(year),
+            }
+            url = YIELD_URL + "?" + urllib.parse.urlencode(params)
+            body = fetch_bytes(url)
+            hashes[f"treasury_yield_curve_{year}"] = sha256(body)
+            root = ET.fromstring(body)
+            year_count = 0
+            for entry in root.iter():
+                if local_name(entry.tag) != "entry":
+                    continue
+                fields: dict[str, str] = {}
+                for node in entry.iter():
+                    name = local_name(node.tag)
+                    if name in {"NEW_DATE", "BC_10YEAR"}:
+                        fields[name] = (node.text or "").strip()
+                obs_date = parse_date(fields.get("NEW_DATE"))
+                value = parse_float(fields.get("BC_10YEAR"))
+                if obs_date is None or value is None:
+                    continue
+                if START_DATE <= obs_date <= end_date:
+                    values[obs_date] = value
+                    year_count += 1
+            attempts.append(f"Treasury XML {year}: {year_count} 10-year observations")
+            if year_count == 0:
+                missing_years.append(year)
+            time.sleep(0.12)
+        if missing_years:
+            raise RuntimeError(f"Treasury XML returned no 10-year observations for years {missing_years}")
+        if len(values) < 1000:
+            raise RuntimeError(f"Treasury XML returned only {len(values)} observations")
         return values, {"provider": "US Treasury daily par yield curve XML", "hashes": hashes, "attempts": attempts}
+    except Exception as exc:
+        treasury_error = exc
+        attempts.append(f"Treasury XML route incomplete/failed: {type(exc).__name__}: {exc}")
+        values = {}
 
     # Materially different official fallback: FRED republishes the DGS10 series.
     params = {
@@ -308,11 +320,12 @@ def fetch_treasury_yields(end_date: dt.date) -> tuple[dict[dt.date, float], dict
         value = parse_float(row.get("DGS10"))
         if obs_date is not None and value is not None:
             values[obs_date] = value
-    if not values:
-        raise RuntimeError("Treasury XML and FRED DGS10 fallback returned no usable yields")
-    attempts.append("Treasury XML unavailable; FRED DGS10 CSV fallback succeeded")
+    if len(values) < 1000:
+        raise RuntimeError(
+            f"Treasury XML failed ({treasury_error}); FRED fallback returned only {len(values)} observations"
+        )
+    attempts.append("Treasury XML unavailable/incomplete; FRED DGS10 CSV fallback succeeded")
     return values, {"provider": "FRED DGS10 fallback", "hashes": hashes, "attempts": attempts}
-
 
 def fetch_fred_crosscheck(end_date: dt.date) -> tuple[dict[dt.date, float] | None, dict]:
     params = {
@@ -603,7 +616,7 @@ def write_outputs(result: dict, report: str) -> tuple[str, str]:
         f"baseline RMSE={metrics.get('test_baseline_rmse_bp')}"
     )
     data_scope = result.get("data_scope", "Data scope unresolved")
-    update_registry(status, disposition, data_scope, str(report_path.relative_to(ROOT)), metrics_text)
+    update_registry(status, disposition, data_scope, '../' + str(report_path.relative_to(ROOT)), metrics_text)
     return str(report_path.relative_to(ROOT)), str(manifest_path.relative_to(ROOT))
 
 
