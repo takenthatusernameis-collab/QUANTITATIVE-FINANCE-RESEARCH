@@ -139,6 +139,8 @@ def fetch_symbol(
     first_meta, first_rows = parse_page_payload(first_payload, symbol, 1, page_size)
     total_count = first_meta["total_count"]
     total_pages = first_meta["total_pages"]
+    if total_count == 0 or total_pages == 0:
+        raise ValueError(f"no funding history rows returned for {symbol}")
     if total_pages > max_pages or total_count > max_records:
         raise ValueError(f"bounded probe exceeded limits: {total_pages} pages, {total_count} rows")
     rows = list(first_rows)

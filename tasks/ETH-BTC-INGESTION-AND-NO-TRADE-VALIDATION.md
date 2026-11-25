@@ -1,8 +1,8 @@
-# Active Task: Repair ETH/BTC Data Ingestion and Validate No-Trade Intervals
+# Historical Task Record: ETH/BTC Data Ingestion and No-Trade Validation
 
-**Status:** In progress — Spot NO-GO complete; Binance funding remains blocked; Kraken archive/API quality and union audit complete; shared two-hour intervals and full-history completeness unresolved; funding remains PROVISIONAL_NOT_ACCEPTED  
-**Updated:** 2026-11-23
-**Priority:** High  
+**Status:** NOT ACTIVE / NOT ADMITTED — historical execution record. The post-holdout environment review and its dynamic-universe successor have since closed; the canonical queue currently admits no successor workstream. Original Binance USD-M funding remains INCONCLUSIVE and Kraken funding remains PROVISIONAL_NOT_ACCEPTED. Do not execute the historical next-task instructions without a fresh evidence-first readiness review and explicit queue admission.  
+**Historical record refreshed:** 2026-11-25
+**Priority at last active execution:** High  
 **Type:** Data-source resilience, parser correctness, missing-observation policy, and reproducible audit  
 **Scope:** Historical research/backtesting only. No live orders, capital deployment, live credentials, or strategy promotion.
 
@@ -15,7 +15,7 @@ Start from [the 2026-11-22 audit report](../reports/ETH-BTC-AUDIT-ARTIFACT-REVIE
 
 ## Autonomous execution and adaptive recovery requirements
 
-This is the current controlling task for the unresolved ETH/BTC input and gap problem. Execute all safe steps agent-initiated within existing permissions; never wait for routine user activation, approval, or a workflow UI click. Follow the repository-wide [Adaptive Autonomous Research Execution Standard](../docs/ADAPTIVE-AUTONOMOUS-RESEARCH-EXECUTION.md) and [dispatch runbook](../docs/CHATGPT-WORKFLOW-DISPATCH.md).
+This paragraph records the operating requirements that governed the historical execution; it is not a current controlling task or authorization to resume. The live [canonical queue](ACTIVE-QUEUE.md), factory [production design map](../docs/QUANTITATIVE-RESEARCH-FACTORY-DESIGN-MAP.md), and current evidence-first readiness review govern any new work. Preserve the historical findings below; do not repeat old probes or reactivate this task without a new admitted workstream.
 
 - Audit every independent input even when another fails. Continue useful parser, schema, test, provider and methodology work while any one source is blocked.
 - After the first meaningful source/parser/runner/dispatch failure, diagnose it and test materially different alternatives. After two independent identical non-transient failures on the same route, stop that route. Use positive controls, negative controls, provenance and immutable hashes.
@@ -466,6 +466,8 @@ The report records the exact per-symbol coverage, cadence distributions, union c
 
 Completed status correlation for the five synchronized API gaps, verified the documented 2022-09-29 12:00 UTC 4h-to-1h historical schedule transition, checked the official API history parameters and built Decimal-based PF/PI payout helpers with deterministic examples. The five gaps classify as three direct futures/derivatives incident overlaps, one general API connectivity overlap, and one unexplained interval. None proves whether the funding event was skipped or omitted. The API has no documented retention/refresh or cursor policy; the observed lower boundary is 2025-11-19 09:00 UTC. The PI API rate summary also contains extrema above the current ±0.25% cap; timestamps were not retained. See [the updated report](../reports/ETH-BTC-KRAKEN-API-TAIL-QUALITY-2026-11-23.md). Local validation passed 22 new tests; hosted CI was queued at handoff. Keep all Kraken series PROVISIONAL_NOT_ACCEPTED.
 
-## Current next task — Kraken archive residual anomalies and PI rate-cap audit
+## Historical next task at the 2026-11-23 handoff — Kraken archive residual anomalies and PI rate-cap audit
+
+This was the next action recorded at the historical 2026-11-23 handoff. It is not currently admitted; consult the canonical queue before any further execution.
 
 Follow [KRAKEN-ARCHIVE-ANOMALY-AND-RATE-CAP-VALIDATION.md](KRAKEN-ARCHIVE-ANOMALY-AND-RATE-CAP-VALIDATION.md). Extract exact timestamps for the archive's five two-hour and one three-hour intervals and timestamped API rate extrema for all four symbols, especially PI values above the current cap. Reconcile with date-specific specifications, the derivatives parameter changelog, historical API/settlement semantics, and the PI delisting. A single targeted checksum-verified ephemeral archive read is justified because the prior compact artifact omitted exact anomaly timestamps; never commit or upload raw market data. Do not clip rates, interpolate funding, backtest, or merge Kraken into Binance before acceptance.

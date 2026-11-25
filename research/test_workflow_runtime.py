@@ -37,6 +37,33 @@ class GitHubActionRuntimeTests(unittest.TestCase):
             {name: {expected} for name, expected in EXPECTED_NODE24_ACTIONS.items()},
         )
 
+    def test_mexc_public_funding_probe_is_exactly_allowlisted_and_manifest_only(self):
+        workflow = (WORKFLOW_DIR / "eth-btc-research.yml").read_text(encoding="utf-8")
+        command = "/qfr-probe-mexc-funding-history"
+        self.assertIn(f'"{command}"', workflow)
+        self.assertIn(f'"{command}")', workflow)
+        self.assertIn('COMMAND="mexc-probe"', workflow)
+        self.assertIn("command == 'mexc-probe'", workflow)
+        self.assertIn("github.event.comment.user.login != 'takenthatusernameis-collab'", workflow)
+        self.assertIn("github.event.issue.number != 2", workflow)
+        self.assertIn("mexc-funding-probe:", workflow)
+        job = workflow.split("  mexc-funding-probe:", 1)[1].split("\n  bybit-funding-probe:", 1)[0]
+        self.assertIn("ref: ${{ github.event.repository.default_branch }}", job)
+        self.assertIn("python research/mexc_funding_probe.py", job)
+        self.assertIn("MAX_PAGES: '200'", job)
+        self.assertIn("MAX_RECORDS: '200000'", job)
+        self.assertIn("--max-pages", job)
+        self.assertIn("--max-records", job)
+        self.assertIn("Upload MEXC manifests (never raw pages)", job)
+        artifact = job.split("      - name: Upload MEXC manifests (never raw pages)", 1)[1]
+        self.assertIn("reports/generated/mexc-funding-probe-", artifact)
+        self.assertNotIn("data/cache/mexc-funding-probe-", artifact)
+        probe = (ROOT / "research" / "mexc_funding_probe.py").read_text(encoding="utf-8")
+        self.assertIn("historical_retention_officially_documented", probe)
+        self.assertIn("accepted_for_full_history_backtest", probe)
+        self.assertIn("MAX_PAGES = 200", probe)
+        self.assertIn("MAX_RECORDS = 200_000", probe)
+
     def test_bitget_public_download_probe_is_exactly_allowlisted(self):
         workflow = (WORKFLOW_DIR / "eth-btc-research.yml").read_text(encoding="utf-8")
         command = "/qfr-probe-bitget-funding-download"

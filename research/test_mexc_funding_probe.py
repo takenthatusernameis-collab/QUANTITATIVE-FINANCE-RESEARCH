@@ -60,6 +60,15 @@ class MexcFundingProbeTests(unittest.TestCase):
             parse_page_payload(payload("BTC_USDT", 1, [row("BTC_USDT", "0.1", 1000), row("BTC_USDT", "0.1", 2000)]),
                               "BTC_USDT", 2, 2)
 
+    def test_empty_history_is_not_reported_as_observed_complete(self):
+        empty = payload("BTC_USDT", 1, [], total_count=0, total_pages=0, page_size=2)
+        with self.assertRaisesRegex(ValueError, "no funding history rows returned"):
+            fetch_symbol(
+                "BTC_USDT", 2, 3, 10,
+                lambda *_: (empty, b"empty-response"),
+                sleeper=lambda _: None,
+            )
+
     def test_fetches_all_pages_and_sorts_records(self):
         page1 = payload("BTC_USDT", 1, [row("BTC_USDT", "0.0001", 3000), row("BTC_USDT", "0.0002", 1000)])
         page2 = payload("BTC_USDT", 2, [row("BTC_USDT", "0.0003", 2000)], 3, 2, 2)
