@@ -519,5 +519,95 @@ class TreasuryAuctionDemandTests(unittest.TestCase):
         self.assertEqual(fetch.call_count, 3)
 
 
+    def test_updated_auction_legacy_xml_schema_and_billions_offering_amount_reconcile(self):
+        sample = {
+            "record_date": "2026-10-15",
+            "cusip": "91282CRF0",
+            "security_type": "Note",
+            "security_desc": "9-Year 10-Month Note",
+            "comp_auction_close_date": "2026-10-07",
+            "inflation_protected": "No",
+            "floating_rate": "No",
+            "reopening": "Yes",
+            "result_fields": {
+                "bid_to_cover_ratio": "2.77",
+                "offering_amt": "39000000000",
+                "prim_deal_comp_par_awarded": "984000000",
+                "dir_bid_comp_par_awarded": "6618200000",
+                "indir_bid_comp_par_awarded": "31063238000",
+                "subtot_comp_inside_awrd": "38665438000",
+                "subtot_comp_outside_awrd": "null",
+                "grand_total_par_awarded": "39926321900",
+                "prim_deal_comp_par_recog": "52876000000",
+                "dir_bid_comp_par_recog": "14852200000",
+                "indir_bid_comp_par_recog": "40006206000",
+                "subtot_comp_inside_recog": "107734406000",
+                "subtot_comp_outside_recog": "null",
+                "grand_total_par_recog": "108995289900",
+            },
+            "result_xml": {
+                "status": "PARSED",
+                "candidate_values": [
+                    {"name": "SecurityTermWeekYear", "value": "9-YEAR"},
+                    {"name": "SecurityTermDayMonth", "value": "10-MONTH"},
+                    {"name": "SecurityType", "value": "NOTE"},
+                    {"name": "CUSIP", "value": "91282CRF0"},
+                    {"name": "AuctionDate", "value": "2026-10-07"},
+                    {"name": "OfferingAmount", "value": "39.000"},
+                    {"name": "InflationIndexSecurity", "value": "N"},
+                    {"name": "FloatingRate", "value": "N"},
+                    {"name": "ReOpeningIndicator", "value": "Y"},
+                    {"name": "BidToCoverRatio", "value": "2.77"},
+                    {"name": "PrimaryDealerAccepted", "value": "984000000"},
+                    {"name": "DirectBidderAccepted", "value": "6618200000"},
+                    {"name": "IndirectBidderAccepted", "value": "31063238000"},
+                    {"name": "CompetitiveAccepted", "value": "38665438000"},
+                    {"name": "TotalAccepted", "value": "39926321900"},
+                    {"name": "PrimaryDealerTendered", "value": "52876000000"},
+                    {"name": "DirectBidderTendered", "value": "14852200000"},
+                    {"name": "IndirectBidderTendered", "value": "40006206000"},
+                    {"name": "CompetitiveTendered", "value": "107734406000"},
+                    {"name": "TotalTendered", "value": "108995289900"},
+                ],
+            },
+        }
+        result = qfr.reconcile_updated_auction_sample(sample)
+        self.assertEqual(result["status"], "RECONCILED_SAMPLE_ONLY")
+        self.assertEqual(result["schema_variant"], "LEGACY_AUCTION_RESULT_XML")
+        self.assertEqual(result["legacy_crosswalk"]["comp_accepted"], 38665438000.0)
+        self.assertAlmostEqual(
+            result["legacy_crosswalk"]["dealer_share"],
+            984000000 / 38665438000,
+            places=12,
+        )
+        self.assertEqual(
+            result["award_identity"]["denominator_source"],
+            "official XML CompetitiveAccepted; legacy API outside-award split unavailable",
+        )
+        self.assertEqual(
+            result["optional_absent_fields"],
+            ["subtot_comp_outside_awrd", "subtot_comp_outside_recog"],
+        )
+        checks = {item["api_field"]: item for item in result["field_checks"]}
+        self.assertEqual(checks["offering_amt"]["xml_scale_factor"], 1_000_000_000.0)
+        self.assertEqual(checks["comp_auction_close_date"]["xml_field"], "AuctionDate")
+        self.assertEqual(checks["reopening"]["xml_field"], "ReOpeningIndicator")
+        self.assertEqual(checks["security_desc"]["xml_field"], "SecurityTermWeekYear+SecurityTermDayMonth")
+
+        legacy = [{
+            "cusip": "91282CRF0",
+            "auction_date": dt.date(2026, 10, 7),
+            "record_date": dt.date(2026, 10, 15),
+            "bid_to_cover": 2.77,
+            "comp_accepted": 38665438000.0,
+            "primary_dealer_accepted": 984000000.0,
+            "direct_bidder_accepted": 6618200000.0,
+            "indirect_bidder_accepted": 31063238000.0,
+        }]
+        sample["reconciliation"] = result
+        overlap = qfr.compare_updated_auction_sample_to_legacy(sample, legacy)
+        self.assertEqual(overlap["status"], "MATCH")
+
+
 if __name__ == "__main__":
     unittest.main()

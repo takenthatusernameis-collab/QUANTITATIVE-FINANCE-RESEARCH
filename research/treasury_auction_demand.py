@@ -172,13 +172,36 @@ UPDATED_AUCTION_XML_FIELD_MAP = (
     ("grand_total_par_recog", "GrandTotalParRecognized", "number", 1.0),
 )
 
+UPDATED_AUCTION_XML_ALIASES = {
+    "comp_auction_close_date": ("CompetitiveAuctionCloseDate", "AuctionDate"),
+    "inflation_protected": ("InflationProtected", "InflationIndexSecurity"),
+    "reopening": ("Reopening", "ReOpeningIndicator"),
+    "prim_deal_comp_par_awarded": ("PrimaryDealersCompetitiveParAwarded", "PrimaryDealerAccepted"),
+    "dir_bid_comp_par_awarded": ("DirectBiddersCompetitiveParAwarded", "DirectBidderAccepted"),
+    "indir_bid_comp_par_awarded": ("IndirectBiddersCompetitiveParAwarded", "IndirectBidderAccepted"),
+    "subtot_comp_inside_awrd": ("SubtotalCompetitiveParAwardedInsideOfOfferingAmount", "CompetitiveAccepted"),
+    "grand_total_par_awarded": ("GrandTotalParAwarded", "TotalAccepted"),
+    "prim_deal_comp_par_recog": ("PrimaryDealersCompetitiveParRecognized", "PrimaryDealerTendered"),
+    "dir_bid_comp_par_recog": ("DirectBiddersCompetitiveParRecognized", "DirectBidderTendered"),
+    "indir_bid_comp_par_recog": ("IndirectBiddersCompetitiveParRecognized", "IndirectBidderTendered"),
+    "subtot_comp_inside_recog": ("SubtotalCompetitiveParRecognizedInsideOfOfferingAmount", "CompetitiveTendered"),
+    "grand_total_par_recog": ("GrandTotalParRecognized", "TotalTendered"),
+}
+
+UPDATED_AUCTION_OPTIONAL_BOTH_MISSING = {
+    "subtot_comp_outside_awrd",
+    "subtot_comp_outside_recog",
+}
+
 
 def reconcile_updated_auction_sample(sample: dict | None) -> dict:
-    """Reconcile one updated-table API row against its official auction-result XML.
+    """Reconcile updated-table API fields against either published Treasury XML schema.
 
-    Only awarded amounts map to the legacy accepted-amount fields. Recognized
-    amounts are separately cross-checked and deliberately excluded from the
-    competitive-award denominator.
+    The newer result XML uses explicit awarded/recognized field names and USD
+    amounts. Some October 2026 result XML files retain the prior schema: auction
+    date and bidder aliases differ, the security description is encoded as term
+    components, and OfferingAmount is expressed in USD billions. The aliases and
+    scale conversion below are explicit and are recorded in the field checks.
     """
     if not sample:
         return {"status": "NO_SAMPLE"}
@@ -198,6 +221,7 @@ def reconcile_updated_auction_sample(sample: dict | None) -> dict:
         return {"status": "INCOMPLETE", "reason": "Floating-rate status is missing or unrecognized"}
     if floating_rate:
         return {"status": "MISMATCH", "reason": "floating_rate is true; row cannot be reconciled as a nominal fixed-rate Note"}
+
     result_xml = sample.get("result_xml") or {}
     if result_xml.get("status") != "PARSED":
         return {
@@ -207,6 +231,9 @@ def reconcile_updated_auction_sample(sample: dict | None) -> dict:
 
     xml_values = {}
     required_xml_names = {item[1] for item in UPDATED_AUCTION_XML_FIELD_MAP}
+    for aliases in UPDATED_AUCTION_XML_ALIASES.values():
+        required_xml_names.update(aliases)
+    required_xml_names.update({"SecurityTermWeekYear", "SecurityTermDayMonth"})
     for item in result_xml.get("candidate_values", []):
         name = str(item.get("name") or "")
         value = str(item.get("value") or "").strip()
@@ -222,51 +249,98 @@ def reconcile_updated_auction_sample(sample: dict | None) -> dict:
     result_fields = sample.get("result_fields") or {}
     checks = []
     missing = []
+    optional_absent = []
     for api_field, xml_field, kind, tolerance in UPDATED_AUCTION_XML_FIELD_MAP:
         api_value = sample.get(api_field) if api_field in sample else result_fields.get(api_field)
-        xml_value = xml_values.get(xml_field)
-        if api_value is None or xml_value is None:
-            missing.append({"api_field": api_field, "xml_field": xml_field})
-            continue
+        aliases = UPDATED_AUCTION_XML_ALIASES.get(api_field, (xml_field,))
+        actual_xml_field = next((name for name in aliases if name in xml_values), None)
+        xml_value = xml_values.get(actual_xml_field)
+
+        if api_field == "security_desc" and xml_value is None:
+            week_year = xml_values.get("SecurityTermWeekYear")
+            day_month = xml_values.get("SecurityTermDayMonth")
+            security_type = str(sample.get("security_type") or "").strip().title()
+            if week_year and day_month and security_type:
+                xml_value = f"{str(week_year).title()} {str(day_month).title()} {security_type}"
+                actual_xml_field = "SecurityTermWeekYear+SecurityTermDayMonth"
+
         if kind == "number":
             left = parse_float(api_value)
             right = parse_float(xml_value)
-            if left is None or right is None:
-                missing.append({"api_field": api_field, "xml_field": xml_field})
+            if (
+                api_field in UPDATED_AUCTION_OPTIONAL_BOTH_MISSING
+                and left is None
+                and right is None
+            ):
+                optional_absent.append(api_field)
                 continue
-            difference = left - right
+            if left is None or right is None:
+                missing.append({
+                    "api_field": api_field,
+                    "xml_fields": list(aliases),
+                })
+                continue
+            scale_factor = 1.0
+            if abs(left - right) > tolerance and api_field == "offering_amt":
+                if abs(left - right * 1_000_000_000.0) <= tolerance:
+                    scale_factor = 1_000_000_000.0
+            normalized_xml_value = right * scale_factor
+            difference = left - normalized_xml_value
             matched = abs(difference) <= tolerance
+        elif api_value is None or xml_value is None:
+            missing.append({
+                "api_field": api_field,
+                "xml_fields": list(aliases),
+            })
+            continue
         elif kind == "date":
             left = parse_date(api_value)
             right = parse_date(xml_value)
             difference = None
             matched = left is not None and left == right
+            scale_factor = 1.0
+            normalized_xml_value = str(right) if right is not None else None
         elif kind == "boolean":
             left = parse_bool(api_value)
             right = parse_bool(xml_value)
             if left is None or right is None:
-                missing.append({"api_field": api_field, "xml_field": xml_field})
+                missing.append({
+                    "api_field": api_field,
+                    "xml_fields": list(aliases),
+                })
                 continue
             difference = None
             matched = left == right
+            scale_factor = 1.0
+            normalized_xml_value = right
         else:
             left = str(api_value).strip().lower()
             right = str(xml_value).strip().lower()
             difference = None
             matched = bool(left) and left == right
+            scale_factor = 1.0
+            normalized_xml_value = right
+
         checks.append({
             "api_field": api_field,
-            "xml_field": xml_field,
+            "xml_field": actual_xml_field or xml_field,
             "api_value": str(api_value),
             "xml_value": str(xml_value),
+            "normalized_xml_value": str(normalized_xml_value),
+            "xml_scale_factor": scale_factor,
             "matched": matched,
             "difference": difference,
         })
         if not matched:
             return {
                 "status": "MISMATCH",
-                "reason": f"API/XML mismatch for {api_field} versus {xml_field}",
+                "reason": f"API/XML mismatch for {api_field} versus {actual_xml_field or xml_field}",
                 "field_checks": checks,
+                "schema_variant": (
+                    "LEGACY_AUCTION_RESULT_XML"
+                    if "AuctionDate" in xml_values and "CompetitiveAuctionCloseDate" not in xml_values
+                    else "UPDATED_AUCTION_RESULT_XML"
+                ),
             }
 
     if missing:
@@ -275,6 +349,7 @@ def reconcile_updated_auction_sample(sample: dict | None) -> dict:
             "reason": "Required API/XML crosswalk fields are missing or non-numeric",
             "missing_fields": missing,
             "field_checks": checks,
+            "optional_absent_fields": optional_absent,
         }
 
     primary = parse_float(result_fields.get("prim_deal_comp_par_awarded"))
@@ -283,9 +358,36 @@ def reconcile_updated_auction_sample(sample: dict | None) -> dict:
     inside = parse_float(result_fields.get("subtot_comp_inside_awrd"))
     outside = parse_float(result_fields.get("subtot_comp_outside_awrd"))
     bid_to_cover = parse_float(result_fields.get("bid_to_cover_ratio"))
-    if any(value is None or value < 0 for value in (primary, direct, indirect, inside, outside)):
-        return {"status": "INCOMPLETE", "reason": "Competitive awarded amounts are missing or negative"}
-    competitive_awards = inside + outside
+    xml_competitive_total = parse_float(xml_values.get("CompetitiveAccepted"))
+
+    if any(value is None or value < 0 for value in (primary, direct, indirect)):
+        return {"status": "INCOMPLETE", "reason": "Competitive bidder awards are missing or negative"}
+    if inside is not None and outside is not None:
+        competitive_awards = inside + outside
+        denominator_source = "API competitive awarded inside plus outside"
+        if xml_competitive_total is not None and abs(competitive_awards - xml_competitive_total) > 1.0:
+            return {
+                "status": "MISMATCH",
+                "reason": "API competitive award total disagrees with official XML CompetitiveAccepted",
+                "api_competitive_awards": competitive_awards,
+                "xml_competitive_awards": xml_competitive_total,
+            }
+    elif xml_competitive_total is not None:
+        competitive_awards = xml_competitive_total
+        denominator_source = "official XML CompetitiveAccepted; legacy API outside-award split unavailable"
+        if inside is not None and abs(inside - competitive_awards) > 1.0:
+            return {
+                "status": "MISMATCH",
+                "reason": "API competitive inside-award subtotal disagrees with official XML CompetitiveAccepted",
+                "api_competitive_inside_awards": inside,
+                "xml_competitive_awards": xml_competitive_total,
+            }
+    else:
+        return {
+            "status": "INCOMPLETE",
+            "reason": "No complete competitive awarded denominator is available from the API or official XML",
+        }
+
     bidder_awards = primary + direct + indirect
     award_difference = bidder_awards - competitive_awards
     if competitive_awards <= 0 or abs(award_difference) > 1.0:
@@ -301,12 +403,23 @@ def reconcile_updated_auction_sample(sample: dict | None) -> dict:
 
     recognized_primary = parse_float(result_fields.get("prim_deal_comp_par_recog"))
     recognized_competitive = parse_float(result_fields.get("subtot_comp_inside_recog"))
+    recognized_competitive_outside = parse_float(result_fields.get("subtot_comp_outside_recog"))
+    schema_variant = (
+        "LEGACY_AUCTION_RESULT_XML"
+        if "AuctionDate" in xml_values and "CompetitiveAuctionCloseDate" not in xml_values
+        else "UPDATED_AUCTION_RESULT_XML"
+    )
     return {
         "status": "RECONCILED_SAMPLE_ONLY",
+        "schema_variant": schema_variant,
         "field_checks": checks,
+        "optional_absent_fields": optional_absent,
         "award_identity": {
             "primary_direct_indirect_sum": bidder_awards,
-            "competitive_awards_inside_plus_outside": competitive_awards,
+            "competitive_awards_total": competitive_awards,
+            "competitive_awards_inside": inside,
+            "competitive_awards_outside": outside,
+            "denominator_source": denominator_source,
             "difference": award_difference,
         },
         "legacy_crosswalk": {
@@ -323,10 +436,10 @@ def reconcile_updated_auction_sample(sample: dict | None) -> dict:
         "recognized_amounts_not_used_for_award_share": {
             "primary_dealer_competitive_recognized": recognized_primary,
             "competitive_inside_recognized": recognized_competitive,
+            "competitive_outside_recognized": recognized_competitive_outside,
             "reason": "Recognized amounts are separately reported from awarded amounts; the accepted-share crosswalk uses the awarded fields only.",
         },
     }
-
 
 def is_updated_ten_year_note(row: dict) -> bool:
     if str(row.get("security_type") or "").strip().lower() != "note":
@@ -599,6 +712,10 @@ def fetch_updated_auction_probe(
             status: reconciliation_statuses.count(status)
             for status in sorted(set(reconciliation_statuses))
         }
+        schema_variant_counts: dict[str, int] = {}
+        for sample in candidate_samples:
+            variant = (sample.get("reconciliation") or {}).get("schema_variant", "UNKNOWN")
+            schema_variant_counts[variant] = schema_variant_counts.get(variant, 0) + 1
         overlap_statuses = [
             (sample.get("legacy_overlap") or {}).get("status") for sample in candidate_samples
         ]
@@ -641,6 +758,7 @@ def fetch_updated_auction_probe(
                 "unclassified_rows": unclassified_rows,
                 "reconciled_rows": status_counts.get("RECONCILED_SAMPLE_ONLY", 0),
                 "status_counts": status_counts,
+                "schema_variant_counts": schema_variant_counts,
                 "duplicate_identities": duplicate_identities,
                 "historical_completeness": "NOT_ESTABLISHED",
                 "page_complete": page_complete,
@@ -659,7 +777,7 @@ def fetch_updated_auction_probe(
             "limitations": [
                 "Diagnostic only: updated-table rows are not merged into the historical model sample.",
                 "Page completeness requires every API page and a matching API total-count.",
-                "Every identifiable nominal fixed-rate 10-year Note in the retrieved page is reconciled against its official result XML; missing, ambiguous or duplicate identities fail closed.",
+                "Every identifiable nominal fixed-rate 10-year Note in the retrieved page is reconciled against its official result XML, including both current and legacy result-XML field conventions; missing, ambiguous or duplicate identities fail closed.",
                 "The API slice begins 2026-10-01 and does not establish historical population completeness.",
                 "Legacy overlap is checked by CUSIP and auction date; rows without a legacy match remain unmerged.",
                 "Only competitive awarded amounts map to legacy accepted fields; recognized amounts are cross-checked but excluded from the accepted-share denominator.",
@@ -1528,7 +1646,7 @@ def render_report(result: dict, error: str | None = None) -> str:
         f"- API total-count: {updated_probe.get('total_count', 'unknown')}; pages fetched: {updated_probe.get('pages_fetched', 0)}; page complete: {updated_probe.get('page_complete', False)}",
         f"- Candidate bidder/result fields: {', '.join(updated_probe.get('candidate_result_fields', []))}",
         f"- Nominal fixed-rate 10-year rows: {((updated_probe.get('candidate_population') or {}).get('nominal_fixed_rows', 0))}; row-level XML population status: {((updated_probe.get('candidate_population') or {}).get('status', 'UNKNOWN'))}",
-        f"- Row-level reconciliation counts: {((updated_probe.get('candidate_population') or {}).get('status_counts', {}))}",
+        f"- Row-level reconciliation counts: {((updated_probe.get('candidate_population') or {}).get('status_counts', {}))}; XML schema variants: {((updated_probe.get('candidate_population') or {}).get('schema_variant_counts', {}))}",
         f"- Legacy CUSIP/auction-date overlap: {((updated_probe.get('legacy_overlap') or {}).get('status', 'NOT_CHECKED'))}; matched={((updated_probe.get('legacy_overlap') or {}).get('matched_rows', 0))}; mismatched={((updated_probe.get('legacy_overlap') or {}).get('mismatched_rows', 0))}; no legacy match={((updated_probe.get('legacy_overlap') or {}).get('no_legacy_match_rows', 0))}",
         f"- Target 2026-11-10 result XML: {((updated_probe.get('target_sample') or {}).get('result_xml') or {}).get('status', 'NOT_ATTEMPTED')}",
         f"- Target API/XML award crosswalk: {updated_reconciliation.get('status', 'NOT_ATTEMPTED')}",
