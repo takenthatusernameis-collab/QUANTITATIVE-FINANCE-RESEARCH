@@ -196,6 +196,7 @@ class Ust10yBasisCrowdingTests(unittest.TestCase):
             signal = start + dt.timedelta(days=7 * index)
             events.append({
                 "report_date": signal - dt.timedelta(days=14),
+                "availability_date": signal - dt.timedelta(days=14),
                 "signal_date": signal,
                 "target_start_date": signal + dt.timedelta(days=1),
                 "target_end_date": signal + dt.timedelta(days=5),
@@ -220,6 +221,7 @@ class Ust10yBasisCrowdingTests(unittest.TestCase):
             signal = start + dt.timedelta(days=7 * index)
             events.append({
                 "report_date": signal - dt.timedelta(days=14),
+                "availability_date": signal - dt.timedelta(days=14),
                 "signal_date": signal,
                 "target_start_date": signal + dt.timedelta(days=1),
                 "target_end_date": current_signal,
@@ -234,6 +236,7 @@ class Ust10yBasisCrowdingTests(unittest.TestCase):
             })
         current = {
             "report_date": current_signal - dt.timedelta(days=14),
+            "availability_date": current_signal - dt.timedelta(days=14),
             "signal_date": current_signal,
             "target_start_date": current_signal + dt.timedelta(days=1),
             "target_end_date": current_signal + dt.timedelta(days=5),
@@ -314,6 +317,29 @@ class Ust10yBasisCrowdingTests(unittest.TestCase):
             prices[day] = 100.0 + index
             vix[day] = 15.0 + index / 100.0
         with self.assertRaisesRegex(ValueError, "CFTC latest report is stale"):
+            model.validate_source_coverage(cot_rows, prices, vix, today)
+
+
+    def test_parse_fred_series_rejects_duplicate_dates(self):
+        body = (
+            "observation_date,SP500\n"
+            "2020-01-02,3000\n"
+            "2020-01-02,3010\n"
+        ).encode()
+        with self.assertRaisesRegex(ValueError, "Duplicate FRED SP500 observation date"):
+            model.parse_fred_series(body, "SP500")
+
+    def test_source_coverage_rejects_insufficient_fred_history(self):
+        today = dt.date(2026, 11, 25)
+        latest_cftc = today - dt.timedelta(days=7)
+        cot_rows = [
+            {"report_date": latest_cftc - dt.timedelta(days=7 * (1059 - index))}
+            for index in range(1060)
+        ]
+        start = dt.date(2016, 11, 25)
+        prices = {start + dt.timedelta(days=2 * index): 100.0 + index for index in range(100)}
+        vix = {start + dt.timedelta(days=2 * index): 15.0 + index / 100.0 for index in range(100)}
+        with self.assertRaisesRegex(ValueError, "Insufficient FRED SP500 observations"):
             model.validate_source_coverage(cot_rows, prices, vix, today)
 
 

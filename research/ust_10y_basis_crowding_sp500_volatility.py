@@ -153,11 +153,6 @@ def parse_fred_series(body: bytes, series_id: str) -> dict[dt.date, float]:
         if obs_date in values:
             raise ValueError(f"Duplicate FRED {series_id} observation date: {obs_date}")
         values[obs_date] = value
-    if len(values) < MIN_PRICE_ROWS:
-        raise ValueError(f"Insufficient FRED {series_id} observations: {len(values)}")
-    dates = sorted(values)
-    if dates[0] > PRICE_START + dt.timedelta(days=90):
-        raise ValueError(f"FRED {series_id} history starts unexpectedly late: {dates[0]}")
     return dict(sorted(values.items()))
 
 
@@ -176,6 +171,14 @@ def validate_source_coverage(
         raise ValueError(f"CFTC latest report is stale: {cftc_dates[-1]}")
     price_dates = sorted(prices)
     vix_dates = sorted(vix)
+    for series_id, series_dates, series_values in (
+        ("SP500", price_dates, prices),
+        ("VIXCLS", vix_dates, vix),
+    ):
+        if len(series_values) < MIN_PRICE_ROWS:
+            raise ValueError(f"Insufficient FRED {series_id} observations: {len(series_values)}")
+        if series_dates[0] > PRICE_START + dt.timedelta(days=90):
+            raise ValueError(f"FRED {series_id} history starts unexpectedly late: {series_dates[0]}")
     if abs((price_dates[-1] - vix_dates[-1]).days) > 4:
         raise ValueError("FRED SP500 and VIXCLS latest observations are not synchronized")
     common_end = min(price_dates[-1], vix_dates[-1])
