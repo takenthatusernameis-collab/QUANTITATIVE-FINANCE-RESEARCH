@@ -1,0 +1,202 @@
+{
+  "auction_source": {
+    "attempts": [
+      "Auction route failed (narrow nominal fixed-rate 10-year filter; selected fields): Non-retryable HTTP 404 for https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query?filter=auction_date%3Agte%3A2008-01-01%2Cauction_date%3Alte%3A2026-11-24%2Csecurity_type%3Aeq%3ANote%2Coriginal_security_term%3Aeq%3A10-Year%2Ctips%3Aeq%3Afalse%2Cfloating_rate%3Aeq%3Afalse&sort=auction_date&page%5Bsize%5D=10000&page%5Bnumber%5D=1&fields=record_date%2Cauction_date%2Ccusip%2Csecurity_type%2Csecurity_term%2Coriginal_security_term%2Ctips%2Cfloating_rate%2Creopening%2Ccomp_accepted%2Ctotal_accepted%2Cbid_to_cover_ratio%2Cprimary_dealer_accepted%2Cdirect_bidder_accepted%2Cindirect_bidder_accepted",
+      "Auction route failed (narrow nominal fixed-rate 10-year filter; full-row fallback): Non-retryable HTTP 404 for https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query?filter=auction_date%3Agte%3A2008-01-01%2Cauction_date%3Alte%3A2026-11-24%2Csecurity_type%3Aeq%3ANote%2Coriginal_security_term%3Aeq%3A10-Year%2Ctips%3Aeq%3Afalse%2Cfloating_rate%3Aeq%3Afalse&sort=auction_date&page%5Bsize%5D=10000&page%5Bnumber%5D=1",
+      "Auction route failed (broad Note filter; selected fields): Non-retryable HTTP 404 for https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query?filter=auction_date%3Agte%3A2008-01-01%2Cauction_date%3Alte%3A2026-11-24%2Csecurity_type%3Aeq%3ANote&sort=auction_date&page%5Bsize%5D=10000&page%5Bnumber%5D=1&fields=record_date%2Cauction_date%2Ccusip%2Csecurity_type%2Csecurity_term%2Coriginal_security_term%2Ctips%2Cfloating_rate%2Creopening%2Ccomp_accepted%2Ctotal_accepted%2Cbid_to_cover_ratio%2Cprimary_dealer_accepted%2Cdirect_bidder_accepted%2Cindirect_bidder_accepted",
+      "Treasury Fiscal Data legacy auctions_query succeeded: broad Note filter; full-row fallback"
+    ],
+    "quality": {
+      "denominator_mismatch_over_5pct": 0,
+      "duplicate_cusip": 0,
+      "missing_fields": 2,
+      "not_note": 0,
+      "not_original_10y": 1094,
+      "record_date_fallback_to_auction_date": 0,
+      "rows_returned": 1430,
+      "selected": 226,
+      "unknown_or_floating": 0,
+      "unknown_or_tips": 108
+    },
+    "rows_returned": 1430,
+    "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query"
+  },
+  "daily_kpi": "MET",
+  "data_scope": "10-year nominal Treasury notes, 2008-05-07 to 2026-10-07; FRED DGS10 (Board of Governors H.15 via FRED); Treasury XML all-years cross-check attempted daily yield observations 2008-01-02 to 2026-11-23",
+  "disposition": "INCONCLUSIVE \u2014 mixed predictive evidence; do not promote or claim an economic edge",
+  "event_construction": {
+    "events_with_targets": 226,
+    "model_training_rule": "Only prior events whose five-business-day target end date is strictly before the current auction record_date are eligible.",
+    "rolling_demand_lookback_auctions": 26,
+    "rolling_model_window_events": 52,
+    "skipped": {
+      "insufficient_pre_history": 0,
+      "no_future_yield_window": 0
+    },
+    "target_horizon_business_days": 5
+  },
+  "hypothesis_id": "QFR-2026-11-25-UST-AUCTION-ABSORPTION-01",
+  "limitations": [
+    "This is a yield-forecasting backtest, not a tradable futures/ETF P&L.",
+    "No CAGR, Sharpe, Sortino, turnover or drawdown is claimed.",
+    "The run uses H.15 DGS10 from the Board of Governors via FRED when that source succeeds; it is not assumed identical to the direct Treasury daily par-yield curve.",
+    "The direct Treasury daily par-yield XML all-years feed is independently cross-checked when accessible; its status is recorded separately and a failed request is not treated as a zero-observation source.",
+    "Auction result publication is conservatively lagged: the target starts at the first yield-series observation strictly after record_date.",
+    "The yield series is a reference series, not an executable quote.",
+    "No forward-filling or synthetic observations are used.",
+    "Incremental predictive value requires independent robustness and a separate tradable-instrument data source before any economic interpretation."
+  ],
+  "retrieved_at_utc": "2026-11-25T04:05:07.274692+00:00",
+  "run_attempt": "1",
+  "run_id": "45544314728",
+  "sample_end_cutoff": "2026-11-24",
+  "sample_start": "2008-01-01",
+  "source_commit_sha": "bd5761547802b572c83bdac6ff491f4e4374f5ba",
+  "source_sha256": {
+    "auction_page_1": "6cd980fa5db190f46e0f467805e8e0a3e1e5160c668de70e5440d8383c2dba20",
+    "fred_dgs10_primary": "39224fa29fdfaf670ba1fb452ff7d8f0e3527cf99d173bc6ba51c990ef10b4f3",
+    "treasury_yield_curve_all_page_0": "751623896d53276e22b6fa74b21879e995dd73bafd342696ea2332a0136f9beb",
+    "treasury_yield_curve_all_page_1": "7dad236d4b57805e62ce012f55d23f671f47a9f8c31005d619b79be5ef6fb4f6",
+    "treasury_yield_curve_all_page_10": "a1c0968956b1103e355250123cfc30dbf20f6a7d6f48c3099046624d24ab81a2",
+    "treasury_yield_curve_all_page_11": "e1e67db2a3447126a518f5e9aef920e8a46bac96e7f7fd3fdf26550e327b77da",
+    "treasury_yield_curve_all_page_12": "9ba7be0b60e7756a5eff374f16e448c2ee7eeaf0e6977d3239fda5859942eb7f",
+    "treasury_yield_curve_all_page_13": "d42dcfe9e74a461b11a08113157969f8f335f16757ca503441997dd9c5098474",
+    "treasury_yield_curve_all_page_14": "ff6fc15d164abf0915a5eaf276f65086d3e1aa13bb062e2b93912f68163ddf00",
+    "treasury_yield_curve_all_page_15": "d4cebbb5bf6df635755e91be4ef7f76806e3f4d9c7c2a0659c6669fd5bf772d4",
+    "treasury_yield_curve_all_page_16": "670b84b3012ccde944f9be039ecec16fb44c0c14c20cfa611a96f0a5037f0f3a",
+    "treasury_yield_curve_all_page_17": "6c6cab21da8c9a06ef2e8309b57492c7d69b592fe48c240f7c7383e412772def",
+    "treasury_yield_curve_all_page_18": "5bf3c4f4afc5c6a4046ddd98a5c99f0385137aaa2f927b3f198328753fb385a6",
+    "treasury_yield_curve_all_page_19": "bd94d292ec1cc379c952e16a80f159c6dd2aebc95cd37f8166ae1e42f1f2dced",
+    "treasury_yield_curve_all_page_2": "2c58355e96d57598d012fc92f3b089f9b769a77f18896dcc8e9821e5b2ae45e8",
+    "treasury_yield_curve_all_page_20": "ddde2d7fe68a13673aaa623cf5b3e9c256f937ecc473269f7c7b130668f3b735",
+    "treasury_yield_curve_all_page_21": "5ce5eccdcf8bf48418708b07bae25981979d7d363efab0cf88b4ddca59365962",
+    "treasury_yield_curve_all_page_22": "9be97be2c3168312524584dd53788057a0fb3a7982d7b399d9cb61b41f5a8674",
+    "treasury_yield_curve_all_page_23": "6f2712827192e7bdea3559ac21ecb35084d51705fa8520412af38d0eb5796b48",
+    "treasury_yield_curve_all_page_24": "0feaab47cf16f155eb63b48cc32b202194f615fdf645449bc48763f60cb9e27e",
+    "treasury_yield_curve_all_page_25": "4d48ae53254f8317f26c5fe2b051d2d8fa89686b989fdfb2476b358045ee6084",
+    "treasury_yield_curve_all_page_26": "5e1acb8f8d378d02da1e869b82d94ead0efad17bd309482303e668d325706278",
+    "treasury_yield_curve_all_page_27": "2b1f7bece1723ff4e522079011ab527e175a61687103d437605cb32286eb9d9e",
+    "treasury_yield_curve_all_page_28": "d3d1f31ca9e9321d537061dffefa3231db116a2c52ffb13f4687d32a51bb7ca4",
+    "treasury_yield_curve_all_page_29": "fe3c8b41885893861c466487c625ad91029bcd5d6f9391434719d84fda5ad551",
+    "treasury_yield_curve_all_page_3": "8955eb8d9af1bd5c1d1228e1c0f551df9774f3270bc2f49597125e7d6c568d51",
+    "treasury_yield_curve_all_page_30": "44dd7af9663d89297b45e21b6e9c08266d43fe4e7c7269746d86103e61bbd04e",
+    "treasury_yield_curve_all_page_31": "d043b965073b5a99255cb477332065ba68d0c9d966fdf28e386ff0bc5bccae23",
+    "treasury_yield_curve_all_page_4": "d525891e8473653b92e3c86c76b79be9c4f85dd4d6f785d76399321f660434da",
+    "treasury_yield_curve_all_page_5": "f5f545bfc3d3d67dafaba6165924bcacb4bdca3452650ca77c3e33f7558888d8",
+    "treasury_yield_curve_all_page_6": "993c581f7afad9aafddea55b8d795424b2650905ade6c2ae12e41e8bfe8413b6",
+    "treasury_yield_curve_all_page_7": "f973dbf51e84bb266daf94d7fd4ad490410c036e5d544fcef9b612187665035d",
+    "treasury_yield_curve_all_page_8": "e82ea93ba0c30749159904a5ffe4730f44f832ecaadbe52c1434ce5fd8f15d30",
+    "treasury_yield_curve_all_page_9": "5592f9a75a9c5f2bc44235be52e4228408d5cfade204ee2f4178c5154f6bc3c3"
+  },
+  "status": "INCONCLUSIVE",
+  "summary_metrics": {
+    "all_oos_n": 96,
+    "test_augmented_directional_accuracy": 0.5333,
+    "test_augmented_mae_bp": 9.0236,
+    "test_augmented_rmse_bp": 11.329,
+    "test_baseline_directional_accuracy": 0.4667,
+    "test_baseline_mae_bp": 9.1571,
+    "test_baseline_rmse_bp": 11.4001,
+    "test_n": 46,
+    "test_rmse_improvement_pct": 0.624,
+    "validation_n": 50,
+    "weak_demand_bootstrap_ci_high_bp": null,
+    "weak_demand_bootstrap_ci_low_bp": null,
+    "weak_demand_mean_difference_bp": -7.969
+  },
+  "test_metrics": {
+    "augmented": {
+      "directional_accuracy": 0.5333333333333333,
+      "mae_bp": 9.02363287303241,
+      "mean_actual_bp": 0.7826086956521717,
+      "n": 46,
+      "oos_r2_vs_mean": -0.04497057882256583,
+      "rmse_bp": 11.328975966169182
+    },
+    "baseline": {
+      "directional_accuracy": 0.4666666666666667,
+      "mae_bp": 9.157112242423214,
+      "mean_actual_bp": 0.7826086956521717,
+      "n": 46,
+      "oos_r2_vs_mean": -0.05813504595770702,
+      "rmse_bp": 11.400113449258905
+    },
+    "weak_demand_event_study": {
+      "bootstrap": null,
+      "difference_bp": -7.968992248061988,
+      "other_mean_bp": 1.302325581395345,
+      "other_n": 43,
+      "weak_mean_bp": -6.666666666666643,
+      "weak_n": 3
+    }
+  },
+  "treasury_xml_crosscheck": {
+    "first_date": "2008-01-02",
+    "last_date": "2026-11-23",
+    "max_abs_difference_bp": 0.0,
+    "mean_abs_difference_bp": 0.0,
+    "pages_fetched": 32,
+    "rows": 4726,
+    "status": "VERIFIED"
+  },
+  "validation_metrics": {
+    "augmented": {
+      "directional_accuracy": 0.46938775510204084,
+      "mae_bp": 8.758854389019824,
+      "mean_actual_bp": -1.5400000000000018,
+      "n": 50,
+      "oos_r2_vs_mean": -0.16715227640435404,
+      "rmse_bp": 11.368241030283086
+    },
+    "baseline": {
+      "directional_accuracy": 0.4489795918367347,
+      "mae_bp": 8.462744469825855,
+      "mean_actual_bp": -1.5400000000000018,
+      "n": 50,
+      "oos_r2_vs_mean": -0.11633930132063486,
+      "rmse_bp": 11.118024316053269
+    }
+  },
+  "yield_source": {
+    "attempts": [
+      "FRED DGS10 primary succeeded with 4726 observations",
+      "Treasury XML all-years page 0: 300 feed entries; 0 in-scope 10-year observations",
+      "Treasury XML all-years page 1: 300 feed entries; 0 in-scope 10-year observations",
+      "Treasury XML all-years page 2: 300 feed entries; 0 in-scope 10-year observations",
+      "Treasury XML all-years page 3: 300 feed entries; 0 in-scope 10-year observations",
+      "Treasury XML all-years page 4: 300 feed entries; 0 in-scope 10-year observations",
+      "Treasury XML all-years page 5: 300 feed entries; 0 in-scope 10-year observations",
+      "Treasury XML all-years page 6: 300 feed entries; 0 in-scope 10-year observations",
+      "Treasury XML all-years page 7: 300 feed entries; 0 in-scope 10-year observations",
+      "Treasury XML all-years page 8: 300 feed entries; 0 in-scope 10-year observations",
+      "Treasury XML all-years page 9: 300 feed entries; 0 in-scope 10-year observations",
+      "Treasury XML all-years page 10: 300 feed entries; 0 in-scope 10-year observations",
+      "Treasury XML all-years page 11: 300 feed entries; 0 in-scope 10-year observations",
+      "Treasury XML all-years page 12: 300 feed entries; 0 in-scope 10-year observations",
+      "Treasury XML all-years page 13: 300 feed entries; 0 in-scope 10-year observations",
+      "Treasury XML all-years page 14: 300 feed entries; 0 in-scope 10-year observations",
+      "Treasury XML all-years page 15: 300 feed entries; 297 in-scope 10-year observations",
+      "Treasury XML all-years page 16: 300 feed entries; 300 in-scope 10-year observations",
+      "Treasury XML all-years page 17: 300 feed entries; 299 in-scope 10-year observations",
+      "Treasury XML all-years page 18: 300 feed entries; 300 in-scope 10-year observations",
+      "Treasury XML all-years page 19: 300 feed entries; 300 in-scope 10-year observations",
+      "Treasury XML all-years page 20: 300 feed entries; 300 in-scope 10-year observations",
+      "Treasury XML all-years page 21: 300 feed entries; 300 in-scope 10-year observations",
+      "Treasury XML all-years page 22: 300 feed entries; 300 in-scope 10-year observations",
+      "Treasury XML all-years page 23: 300 feed entries; 300 in-scope 10-year observations",
+      "Treasury XML all-years page 24: 300 feed entries; 300 in-scope 10-year observations",
+      "Treasury XML all-years page 25: 300 feed entries; 300 in-scope 10-year observations",
+      "Treasury XML all-years page 26: 300 feed entries; 300 in-scope 10-year observations",
+      "Treasury XML all-years page 27: 300 feed entries; 300 in-scope 10-year observations",
+      "Treasury XML all-years page 28: 300 feed entries; 300 in-scope 10-year observations",
+      "Treasury XML all-years page 29: 300 feed entries; 300 in-scope 10-year observations",
+      "Treasury XML all-years page 30: 231 feed entries; 231 in-scope 10-year observations",
+      "Treasury XML all-years page 31: 0 feed entries; 0 in-scope 10-year observations"
+    ],
+    "first_date": "2008-01-02",
+    "last_date": "2026-11-23",
+    "max_calendar_gap_days": 4,
+    "observations": 4726,
+    "provider": "FRED DGS10 (Board of Governors H.15 via FRED); Treasury XML all-years cross-check attempted"
+  }
+}
