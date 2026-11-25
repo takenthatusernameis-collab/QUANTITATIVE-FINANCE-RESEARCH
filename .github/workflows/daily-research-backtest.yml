@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: qfr-treasury-auction-backtest-main
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   forecast-backtest:
