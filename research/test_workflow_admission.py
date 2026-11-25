@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW_DIR = ROOT / ".github" / "workflows"
 README = ROOT / "README.md"
 ADMISSION_IF = (
-    "github.event_name != 'push' || "
+    "if: github.event_name != 'push' || "
     "contains(github.event.head_commit.message, '[QFR-ADMIT]')"
 )
 NON_RESEARCH_WORKFLOWS = {"workflow-admission-tests.yml"}
