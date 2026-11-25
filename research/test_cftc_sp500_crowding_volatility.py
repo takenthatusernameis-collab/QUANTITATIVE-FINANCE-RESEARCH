@@ -71,9 +71,10 @@ class CftcSp500CrowdingTests(unittest.TestCase):
             "abs_net_pct_oi": 0.1,
         })
         features = model.build_crowding_features(rows)
-        self.assertEqual(len(features), 1)
-        self.assertEqual(features[0]["crowding_percentile"], 0.0)
-        self.assertFalse(features[0]["high_crowding"])
+        self.assertEqual(len(features), model.CROWDING_LOOKBACK + 1)
+        self.assertIsNone(features[0]["crowding_percentile"])
+        self.assertEqual(features[-1]["crowding_percentile"], 0.0)
+        self.assertFalse(features[-1]["high_crowding"])
 
     def test_known_backlog_is_excluded(self):
         self.assertTrue(model.is_backlog_report(dt.date(2025, 9, 30)))
@@ -91,7 +92,7 @@ class CftcSp500CrowdingTests(unittest.TestCase):
             model.realized_volatility([0.01, None, -0.02])
 
     def test_signal_uses_first_close_after_fourteen_day_availability_lag(self):
-        start = dt.date(2020, 1, 1)
+        start = dt.date(2019, 10, 1)
         prices = {}
         day = start
         index = 0
@@ -116,7 +117,7 @@ class CftcSp500CrowdingTests(unittest.TestCase):
         self.assertEqual(events[0]["record_date"], events[0]["signal_date"])
 
     def test_overlapping_five_session_targets_are_excluded(self):
-        start = dt.date(2020, 1, 1)
+        start = dt.date(2019, 10, 1)
         prices = {}
         day = start
         index = 0
