@@ -91,11 +91,25 @@ class BitcoinRealYieldShockTests(unittest.TestCase):
         self.assertEqual(events[0]["real_yield_observation_date"], dt.date(2017, 1, 20))
         for event in events:
             self.assertLess(event["real_yield_observation_date"], event["signal_date"])
+            yield_dates = sorted(real_yields)
+            position = yield_dates.index(event["real_yield_observation_date"])
+            old_date = yield_dates[position - 5]
+            expected_change_bp = 100.0 * (real_yields[event["real_yield_observation_date"]] - real_yields[old_date])
+            self.assertAlmostEqual(event["real_yield_change_bp"], expected_change_bp)
             self.assertLess(event["target_start_date"], event["target_end_date"])
         for previous, current in zip(events, events[1:]):
             self.assertLess(previous["target_end_date"], current["target_start_date"])
         self.assertEqual(meta["events"], len(events))
         self.assertEqual(meta["skipped"]["overlapping_target_window"], 0)
+
+    def test_stale_real_yield_observations_are_rejected(self):
+        prices = self._synthetic_prices()
+        all_yields = self._synthetic_real_yields()
+        cutoff = dt.date(2017, 1, 13)
+        stale_yields = {day: value for day, value in all_yields.items() if day <= cutoff}
+        events, meta = model.build_events(prices, stale_yields)
+        self.assertGreater(meta["skipped"]["stale_real_yield_observation"], 0)
+        self.assertEqual(events, [])
 
     def test_same_date_real_yield_observation_is_never_used(self):
         prices = self._synthetic_prices()
