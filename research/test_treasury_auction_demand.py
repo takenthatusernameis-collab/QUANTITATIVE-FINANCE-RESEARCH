@@ -187,6 +187,63 @@ class TreasuryAuctionDemandTests(unittest.TestCase):
         self.assertGreater(first["ci_95_high_bp"], first["ci_95_low_bp"])
 
 
+    def test_paired_squared_loss_bootstrap_is_reproducible_and_favors_augmented(self):
+        rows = []
+        for i in range(46):
+            target = float((i % 9) - 4)
+            baseline_error = 2.0 + (i % 3) * 0.1
+            augmented_error = 1.0 + (i % 2) * 0.1
+            rows.append({
+                "record_date": dt.date(2023, 1, 1) + dt.timedelta(days=i * 14),
+                "cusip": f"C{i:03d}",
+                "target_bp": target,
+                "baseline_prediction_bp": target + baseline_error,
+                "augmented_prediction_bp": target + augmented_error,
+            })
+        first = qfr.bootstrap_paired_squared_loss_difference(rows, reps=200)
+        second = qfr.bootstrap_paired_squared_loss_difference(list(reversed(rows)), reps=200)
+        self.assertEqual(first, second)
+        self.assertEqual(first["observations"], 46)
+        self.assertGreater(first["observed_mean_baseline_minus_augmented_squared_loss_bp2"], 0)
+        self.assertGreater(first["ci_95_low_bp2"], 0)
+        self.assertEqual(first["bootstrap_fraction_positive"], 1.0)
+
+    def test_paired_squared_loss_bootstrap_negative_difference_favors_baseline(self):
+        rows = []
+        for i in range(40):
+            target = float(i % 7)
+            rows.append({
+                "record_date": dt.date(2023, 1, 1) + dt.timedelta(days=i * 14),
+                "cusip": f"N{i:03d}",
+                "target_bp": target,
+                "baseline_prediction_bp": target + 1.0,
+                "augmented_prediction_bp": target + 2.0,
+            })
+        result = qfr.bootstrap_paired_squared_loss_difference(rows, reps=100)
+        self.assertEqual(result["observed_mean_baseline_minus_augmented_squared_loss_bp2"], -3.0)
+        self.assertLess(result["ci_95_high_bp2"], 0)
+
+    def test_paired_squared_loss_bootstrap_rejects_short_or_invalid_samples(self):
+        rows = []
+        for i in range(29):
+            target = float(i % 5)
+            rows.append({
+                "record_date": dt.date(2023, 1, 1) + dt.timedelta(days=i * 14),
+                "cusip": f"S{i:03d}",
+                "target_bp": target,
+                "baseline_prediction_bp": target + 1.0,
+                "augmented_prediction_bp": target + 0.5,
+            })
+        self.assertIsNone(qfr.bootstrap_paired_squared_loss_difference(rows, reps=100))
+        rows.append({
+            "record_date": dt.date(2024, 3, 1),
+            "cusip": "INVALID",
+            "target_bp": 1.0,
+            "baseline_prediction_bp": float("nan"),
+            "augmented_prediction_bp": 0.5,
+        })
+        self.assertIsNone(qfr.bootstrap_paired_squared_loss_difference(rows, reps=100))
+
     def _fred_csv_with_1000_rows(self):
         start = dt.date(2008, 1, 2)
         rows = ["observation_date,DGS10"]

@@ -33,6 +33,7 @@ VALIDATION_START = dt.date(2019, 1, 1)
 BOOTSTRAP_REPS = 2000
 BOOTSTRAP_BLOCK = 4
 RNG_SEED = 20261125
+LOSS_BOOTSTRAP_SEED = RNG_SEED + 1
 BASE_URL = "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query"
 UPDATED_AUCTION_URL = "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/treasury_securities_auctions_v2"
 YIELD_URL = "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml"
@@ -1356,6 +1357,50 @@ def bootstrap_mean_difference(rows: list[dict], reps: int = BOOTSTRAP_REPS) -> d
     }
 
 
+def bootstrap_paired_squared_loss_difference(rows: list[dict], reps: int = BOOTSTRAP_REPS) -> dict | None:
+    """Supplementary circular-block bootstrap of paired squared forecast-loss differences.
+
+    Positive baseline-minus-augmented differences favor the augmented model.
+    This diagnostic does not alter the preregistered acceptance rule.
+    """
+    if len(rows) < 30 or reps < 1:
+        return None
+
+    normalized = []
+    for row in rows:
+        record_date = parse_date(row.get("record_date"))
+        target = parse_float(row.get("target_bp"))
+        baseline = parse_float(row.get("baseline_prediction_bp"))
+        augmented = parse_float(row.get("augmented_prediction_bp"))
+        if record_date is None or target is None or baseline is None or augmented is None:
+            return None
+        difference = (baseline - target) ** 2 - (augmented - target) ** 2
+        if not math.isfinite(difference):
+            return None
+        normalized.append((record_date, str(row.get("cusip") or ""), difference))
+
+    normalized.sort(key=lambda item: (item[0], item[1]))
+    loss_rows = [{"loss_difference_bp2": item[2]} for item in normalized]
+    observed = statistics.fmean(row["loss_difference_bp2"] for row in loss_rows)
+    rng = random.Random(LOSS_BOOTSTRAP_SEED)
+    bootstrap_means = []
+    for _ in range(reps):
+        sample = circular_block_sample(loss_rows, rng, BOOTSTRAP_BLOCK)
+        bootstrap_means.append(statistics.fmean(row["loss_difference_bp2"] for row in sample))
+
+    bootstrap_means.sort()
+    return {
+        "status": "COMPUTED",
+        "observations": len(loss_rows),
+        "reps": len(bootstrap_means),
+        "block_size_events": BOOTSTRAP_BLOCK,
+        "observed_mean_baseline_minus_augmented_squared_loss_bp2": observed,
+        "ci_95_low_bp2": bootstrap_means[int(0.025 * (len(bootstrap_means) - 1))],
+        "ci_95_high_bp2": bootstrap_means[int(0.975 * (len(bootstrap_means) - 1))],
+        "bootstrap_fraction_positive": sum(value > 0 for value in bootstrap_means) / len(bootstrap_means),
+    }
+
+
 def summarize_weak_demand(rows: list[dict]) -> dict:
     weak = [row["target_bp"] for row in rows if row["weak_demand"] is True]
     other = [row["target_bp"] for row in rows if row["weak_demand"] is False]
@@ -1440,6 +1485,8 @@ def write_outputs(result: dict, report: str) -> tuple[str, str]:
     metrics_text = (
         f"test OOS n={metrics.get('test_n', 0)}, augmented RMSE={metrics.get('test_augmented_rmse_bp')} bp, "
         f"baseline RMSE={metrics.get('test_baseline_rmse_bp')} bp, RMSE improvement={metrics.get('test_rmse_improvement_pct')}%, "
+        f"paired squared-loss delta={metrics.get('test_paired_squared_loss_mean_diff_bp2')} bp^2, "
+        f"95% block-bootstrap CI=[{metrics.get('test_paired_squared_loss_bootstrap_ci_low_bp2')}, {metrics.get('test_paired_squared_loss_bootstrap_ci_high_bp2')}] bp^2; "
         f"weak-demand events={((result.get('test_metrics') or {}).get('weak_demand_event_study') or {}).get('weak_n', 0)}; "
         f"updated auctions API probe={updated_probe.get('status', 'UNAVAILABLE')}, "
         f"10-year nominal rows={((updated_probe.get('candidate_population') or {}).get('nominal_fixed_rows', 0))}, "
@@ -1480,6 +1527,7 @@ def run_research() -> dict:
     augmented_test = forecast_metrics(test_rows, "augmented_prediction_bp")
     weak_test = summarize_weak_demand([row for row in test_rows if row["weak_demand"] is not None])
     weak_test_rows = [row for row in test_rows if row["weak_demand"] is not None]
+    paired_loss_bootstrap = bootstrap_paired_squared_loss_difference(test_rows)
 
     test_n = len(test_rows)
     mae_improvement = None
@@ -1537,6 +1585,10 @@ def run_research() -> dict:
         "weak_demand_mean_difference_bp": safe_round(weak_test.get("difference_bp")),
         "weak_demand_bootstrap_ci_low_bp": safe_round(bootstrap.get("ci_95_low_bp")),
         "weak_demand_bootstrap_ci_high_bp": safe_round(bootstrap.get("ci_95_high_bp")),
+        "test_paired_squared_loss_mean_diff_bp2": safe_round(paired_loss_bootstrap.get("observed_mean_baseline_minus_augmented_squared_loss_bp2") if paired_loss_bootstrap else None, 6),
+        "test_paired_squared_loss_bootstrap_ci_low_bp2": safe_round(paired_loss_bootstrap.get("ci_95_low_bp2") if paired_loss_bootstrap else None, 6),
+        "test_paired_squared_loss_bootstrap_ci_high_bp2": safe_round(paired_loss_bootstrap.get("ci_95_high_bp2") if paired_loss_bootstrap else None, 6),
+        "test_paired_squared_loss_bootstrap_fraction_positive": safe_round(paired_loss_bootstrap.get("bootstrap_fraction_positive") if paired_loss_bootstrap else None, 4),
     }
     return {
         "hypothesis_id": HYPOTHESIS_ID,
@@ -1583,6 +1635,7 @@ def run_research() -> dict:
             "baseline": baseline_test,
             "augmented": augmented_test,
             "weak_demand_event_study": weak_test,
+            "paired_squared_loss_bootstrap": paired_loss_bootstrap,
         },
         "summary_metrics": summary_metrics,
         "limitations": [
@@ -1595,6 +1648,7 @@ def run_research() -> dict:
             "No forward-filling or synthetic observations are used.",
             "Every identifiable nominal fixed-rate 10-year Note in the retrieved post-2026-10-01 Treasury auctions API slice is cross-checked against official result XML and compared with any CUSIP/auction-date legacy overlap; this remains diagnostic because historical population completeness is not established and no updated rows are merged.",
             "Incremental predictive value requires independent robustness and a separate tradable-instrument data source before any economic interpretation.",
+            "The paired circular-block squared-loss bootstrap is supplementary and does not alter the preregistered acceptance criteria.",
         ],
     }
 
@@ -1675,6 +1729,16 @@ def render_report(result: dict, error: str | None = None) -> str:
         f"- Difference (bp): {summary.get('weak_demand_mean_difference_bp')}",
         f"- Moving-block bootstrap 95% CI (bp): [{summary.get('weak_demand_bootstrap_ci_low_bp')}, {summary.get('weak_demand_bootstrap_ci_high_bp')}]",
         "",
+        "### Supplementary paired squared-loss bootstrap (test period)",
+        "",
+        f"- Test observations: {((test.get('paired_squared_loss_bootstrap') or {}).get('observations', 0))}",
+        f"- Mean baseline-minus-augmented squared loss: {summary.get('test_paired_squared_loss_mean_diff_bp2')} bp^2",
+        f"- 95% circular-block percentile interval: [{summary.get('test_paired_squared_loss_bootstrap_ci_low_bp2')}, {summary.get('test_paired_squared_loss_bootstrap_ci_high_bp2')}] bp^2",
+        f"- Resamples: {((test.get('paired_squared_loss_bootstrap') or {}).get('reps', 0))}; block length: {((test.get('paired_squared_loss_bootstrap') or {}).get('block_size_events', 0))} consecutive auction events",
+        f"- Share of resampled mean differences above zero: {summary.get('test_paired_squared_loss_bootstrap_fraction_positive')}",
+        "- Positive differences favor the augmented model; negative differences favor the baseline.",
+        "- This is a supplementary uncertainty summary, not a standalone p-value or a change to the preregistered acceptance rule.",
+        "",
         "## Scientific interpretation",
         "",
         result.get("disposition", "No disposition established."),
@@ -1701,7 +1765,7 @@ def render_report(result: dict, error: str | None = None) -> str:
         "## Daily KPI and next action",
         "",
         f"- DAILY KPI: {result.get('daily_kpi', 'MISSED')}.",
-        "- Next: if the incremental forecast survives, run regime/term controls and obtain a separately authorized public or licensed-free tradable 10-year futures/ETF price source. If rejected, preserve the negative result and test a different market mechanism.",
+        "- Next: interpret the supplementary paired-loss bootstrap without changing the preregistered disposition; complete only independently justified source or robustness checks, then close this hypothesis or move to a materially different mechanism rather than tune thresholds.",
         "",
         "## Claims ledger",
         "",
