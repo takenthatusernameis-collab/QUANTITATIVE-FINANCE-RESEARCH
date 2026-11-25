@@ -1,12 +1,12 @@
 # Preregistration — Treasury yield-curve volatility and S&P 500 realized volatility
 
 - **Hypothesis ID:** QFR-2026-11-25-TREASURY-CURVE-VOL-SP500-RV-01
-- **Registered:** 2026-11-25T17:15:00Z, before empirical result inspection.
+- **Registered:** 2026-11-25T17:14:08Z, before empirical result inspection.
 - **Status:** INCONCLUSIVE — closed on 2026-11-25T17:16:24Z under the frozen decision rule; one successful real-data run completed after two deterministic-test repairs. No tuning or further cycles under this hypothesis ID.
 - **Difficulty:** MEDIUM.
 - **Difficulty rationale:** three public daily series, strict prior-date alignment for the Treasury spread, rolling feature construction, an existing walk-forward OLS harness and block-bootstrap inference. No credentials, paid data, new venue or custom infrastructure.
-- **Implementation timebox:** start 2026-11-25T17:15:00Z; deadline 2026-11-29T17:15:00Z.
-- **Research conclusion deadline:** 2026-12-01T17:15:00Z.
+- **Implementation timebox:** start 2026-11-25T17:14:08Z; deadline 2026-11-29T17:14:08Z.
+- **Research conclusion deadline:** 2026-12-01T17:14:08Z.
 - **Maximum substantive implementation/research cycles:** 4.
 - **Expiry rule:** if accepted source coverage, deterministic implementation or the frozen empirical decision is incomplete by the applicable deadline, close INCONCLUSIVE/INFEASIBLE with the exact blocker. No automatic extension, reset or tuning under this hypothesis ID.
 
