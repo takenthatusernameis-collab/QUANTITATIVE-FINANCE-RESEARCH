@@ -117,11 +117,33 @@ def fetch_bytes(url: str, timeout: int = 15) -> bytes:
             time.sleep(1)
     raise RuntimeError(f"Request failed after 2 bounded attempts: {url}: {last_error}")
 
+def parse_treasury_result_xml(body: bytes) -> dict:
+    root = ET.fromstring(body)
+    tag_names = set()
+    candidate_values = []
+    tokens = ("primary", "prim", "direct", "indir", "competitive", "comp", "accepted", "award", "tender", "bid", "total", "cusip", "date", "yield")
+    for node in root.iter():
+        name = local_name(node.tag)
+        tag_names.add(name)
+        value = (node.text or "").strip()
+        if value and any(token in name.lower() for token in tokens):
+            candidate_values.append({"name": name, "value": value})
+        for attr_name, attr_value in node.attrib.items():
+            attr_local = local_name(attr_name)
+            if any(token in attr_local.lower() for token in tokens):
+                candidate_values.append({"name": attr_local, "value": str(attr_value)})
+    return {
+        "root_tag": local_name(root.tag),
+        "tag_names": sorted(tag_names),
+        "candidate_values": candidate_values[:250],
+    }
+
+
 def fetch_updated_auction_probe(end_date: dt.date) -> dict:
     """Bounded schema/coverage probe for Treasury's post-2026-10-01 updated auctions table.
 
-    This probe deliberately does not merge the new table into the historical model sample.
-    The changed schema and bidder-result semantics must be verified before those rows are accepted.
+    The updated table is not merged into model events until bidder amount semantics,
+    publication timing and overlap with the legacy table have been reconciled.
     """
     params = {
         "filter": f"record_date:gte:2026-10-01,record_date:lte:{end_date.isoformat()}",
@@ -137,10 +159,17 @@ def fetch_updated_auction_probe(end_date: dt.date) -> dict:
         if not isinstance(rows, list):
             raise RuntimeError("Updated Treasury auctions response has no data array")
         meta = payload.get("meta") or {}
+        raw_total_pages = meta.get("total-pages") or meta.get("total_pages")
+        raw_total_count = meta.get("total-count") or meta.get("total_count")
         try:
-            total_pages = int(meta.get("total-pages") or meta.get("total_pages") or 1)
+            total_pages = int(raw_total_pages) if raw_total_pages is not None else None
         except (TypeError, ValueError):
-            total_pages = 1
+            total_pages = None
+        try:
+            total_count = int(raw_total_count) if raw_total_count is not None else None
+        except (TypeError, ValueError):
+            total_count = None
+        page_complete = bool(rows) and total_pages == 1 and total_count == len(rows)
         record_dates = sorted(
             date for date in (parse_date(row.get("record_date")) for row in rows) if date is not None
         )
@@ -148,7 +177,11 @@ def fetch_updated_auction_probe(end_date: dt.date) -> dict:
             date for date in (parse_date(row.get("comp_auction_close_date")) for row in rows) if date is not None
         )
         schema_fields = sorted({str(key) for row in rows for key in row})
-        result_tokens = ("accepted", "bidder", "bid_to_cover", "dealer", "direct", "indirect", "competitive", "tender", "offering")
+        result_tokens = (
+            "accepted", "bidder", "bid_to_cover", "dealer", "direct", "indirect",
+            "competitive", "tender", "offering", "par_awarded", "par_recog",
+            "inside_awrd", "outside_awrd", "comp_par", "xml_filenm", "pdf_filenm",
+        )
         candidate_result_fields = sorted(
             field for field in schema_fields if any(token in field.lower() for token in result_tokens)
         )
@@ -161,24 +194,49 @@ def fetch_updated_auction_probe(end_date: dt.date) -> dict:
                 and "10year" in description
                 and auction_date == dt.date(2026, 11, 10)
             ):
-                result_fields = {
-                    key: row.get(key)
-                    for key in candidate_result_fields
-                    if key in row
+                metadata_fields = (
+                    "record_date", "cusip", "security_type", "security_desc",
+                    "comp_auction_close_date", "issue_date", "maturity_date",
+                    "security_term", "original_security_term", "inflation_protected",
+                    "floating_rate", "reopening", "xml_filenm_comp_results",
+                    "pdf_filenm_comp_results",
+                )
+                target_sample = {key: row.get(key) for key in metadata_fields if key in row}
+                target_sample["result_fields"] = {
+                    key: row.get(key) for key in candidate_result_fields if key in row
                 }
-                target_matches.append({
-                    "record_date": row.get("record_date"),
-                    "cusip": row.get("cusip"),
-                    "security_type": row.get("security_type"),
-                    "security_desc": row.get("security_desc"),
-                    "comp_auction_close_date": row.get("comp_auction_close_date"),
-                    "result_fields": result_fields,
-                })
+                xml_file_name = str(row.get("xml_filenm_comp_results") or "").strip()
+                if xml_file_name:
+                    safe_name = urllib.parse.quote(xml_file_name, safe="._-")
+                    xml_url = (
+                        "https://fiscaldata.treasury.gov/static-data/published-reports/"
+                        f"auctions-query/results/{safe_name}"
+                    )
+                    try:
+                        xml_body = fetch_bytes(xml_url, timeout=20)
+                        target_sample["result_xml"] = {
+                            "status": "PARSED",
+                            "file_name": xml_file_name,
+                            "url": xml_url,
+                            "sha256": sha256(xml_body),
+                            **parse_treasury_result_xml(xml_body),
+                        }
+                    except Exception as xml_exc:
+                        target_sample["result_xml"] = {
+                            "status": "UNAVAILABLE",
+                            "file_name": xml_file_name,
+                            "url": xml_url,
+                            "error": f"{type(xml_exc).__name__}: {xml_exc}",
+                        }
+                else:
+                    target_sample["result_xml"] = {"status": "NO_FILENAME"}
+                target_matches.append(target_sample)
         return {
-            "status": "SAMPLE_ONLY" if rows and total_pages == 1 else ("PARTIAL" if rows else "NO_DATA"),
+            "status": "SAMPLE_ONLY" if page_complete else ("PARTIAL" if rows else "NO_DATA"),
             "url": url,
             "rows_returned": len(rows),
             "total_pages": total_pages,
+            "total_count": total_count,
             "page_size": 1000,
             "first_record_date": record_dates[0].isoformat() if record_dates else None,
             "last_record_date": record_dates[-1].isoformat() if record_dates else None,
@@ -189,11 +247,12 @@ def fetch_updated_auction_probe(end_date: dt.date) -> dict:
             "target_matches": len(target_matches),
             "target_sample": target_matches[0] if target_matches else None,
             "sha256": sha256(body),
-            "page_complete": bool(rows) and total_pages == 1,
+            "page_complete": page_complete,
             "limitations": [
                 "Diagnostic only: updated-table rows are not merged into the historical model sample.",
-                "One-page probe is complete only when the API reports one page.",
+                "The filtered page is complete only when API total-pages is one and total-count equals rows returned.",
                 "Field presence does not by itself validate bidder-result semantics or historical completeness.",
+                "The result XML is parsed for field discovery; its values are not accepted into the model until reconciled.",
             ],
         }
     except Exception as exc:
@@ -272,6 +331,44 @@ def is_no(value: object) -> bool:
 
 def normalize_term(value: object) -> str:
     return "".join(ch for ch in str(value or "").lower() if ch.isalnum())
+
+
+def attach_updated_target_window(probe: dict, yields: dict[dt.date, float]) -> None:
+    sample = probe.get("target_sample")
+    if not sample:
+        return
+    record_date = parse_date(sample.get("record_date"))
+    yield_dates = sorted(yields)
+    if record_date is None or not yield_dates:
+        probe["target_window"] = {"status": "UNKNOWN"}
+        return
+    start_index = next((i for i, date in enumerate(yield_dates) if date > record_date), None)
+    if start_index is None:
+        probe["target_window"] = {
+            "status": "NO_POST_PUBLICATION_YIELD",
+            "record_date": record_date.isoformat(),
+            "latest_yield_date": yield_dates[-1].isoformat(),
+        }
+        return
+    end_index = start_index + TARGET_HORIZON
+    target_start = yield_dates[start_index]
+    if end_index >= len(yield_dates):
+        probe["target_window"] = {
+            "status": "INCOMPLETE",
+            "record_date": record_date.isoformat(),
+            "target_start": target_start.isoformat(),
+            "target_end": None,
+            "latest_yield_date": yield_dates[-1].isoformat(),
+            "required_observations_after_start": TARGET_HORIZON,
+        }
+        return
+    probe["target_window"] = {
+        "status": "COMPLETE",
+        "record_date": record_date.isoformat(),
+        "target_start": target_start.isoformat(),
+        "target_end": yield_dates[end_index].isoformat(),
+        "latest_yield_date": yield_dates[-1].isoformat(),
+    }
 
 
 def select_ten_year_nominal_auctions(rows: list[dict]) -> tuple[list[dict], dict]:
@@ -798,7 +895,8 @@ def write_outputs(result: dict, report: str) -> tuple[str, str]:
         f"baseline RMSE={metrics.get('test_baseline_rmse_bp')} bp, RMSE improvement={metrics.get('test_rmse_improvement_pct')}%, "
         f"weak-demand events={((result.get('test_metrics') or {}).get('weak_demand_event_study') or {}).get('weak_n', 0)}; "
         f"updated auctions API probe={updated_probe.get('status', 'UNAVAILABLE')}, "
-        f"2026-11-10 10-year matches={updated_probe.get('target_matches', 0)}"
+        f"2026-11-10 10-year matches={updated_probe.get('target_matches', 0)}, "
+        f"result XML={((updated_probe.get('target_sample') or {}).get('result_xml') or {}).get('status', 'NOT_ATTEMPTED')}"
     )
     data_scope = result.get("data_scope", "Data scope unresolved")
     update_registry(status, disposition, data_scope, '../' + str(report_path.relative_to(ROOT)), metrics_text)
@@ -816,6 +914,7 @@ def run_research() -> dict:
             f"need at least {MODEL_WINDOW + 30} for rolling training plus evaluation."
         )
     yields, yield_meta = fetch_treasury_yields(end_date)
+    attach_updated_target_window(updated_auction_probe, yields)
     if len(yields) < 1000:
         raise RuntimeError(f"Insufficient Treasury 10-year yield observations: {len(yields)}")
     treasury_xml_crosscheck = yield_meta.get("treasury_xml_crosscheck", {"status": "NOT_AVAILABLE"})
@@ -867,6 +966,9 @@ def run_research() -> dict:
     source_hashes.update(yield_meta["hashes"])
     if updated_auction_probe.get("sha256"):
         source_hashes["updated_auction_probe"] = updated_auction_probe["sha256"]
+    target_xml = ((updated_auction_probe.get("target_sample") or {}).get("result_xml") or {})
+    if target_xml.get("sha256"):
+        source_hashes["updated_auction_result_xml"] = target_xml["sha256"]
 
     summary_metrics = {
         "all_oos_n": len(all_rows),
@@ -986,7 +1088,10 @@ def render_report(result: dict, error: str | None = None) -> str:
         f"- Rows returned: {updated_probe.get('rows_returned', 0)}; API pages: {updated_probe.get('total_pages', 'unknown')}",
         f"- Record-date coverage: {updated_probe.get('first_record_date', 'unknown')} to {updated_probe.get('last_record_date', 'unknown')}",
         f"- 2026-11-10 10-year note matches: {updated_probe.get('target_matches', 0)}",
+        f"- API total-count: {updated_probe.get('total_count', 'unknown')}; page complete: {updated_probe.get('page_complete', False)}",
         f"- Candidate bidder/result fields: {', '.join(updated_probe.get('candidate_result_fields', []))}",
+        f"- Target result XML: {((updated_probe.get('target_sample') or {}).get('result_xml') or {}).get('status', 'NOT_ATTEMPTED')}",
+        f"- Target five-business-day yield window: {(updated_probe.get('target_window') or {}).get('status', 'UNKNOWN')}",
         "- The updated-table probe is not merged into the historical backtest until field semantics and coverage are validated.",
         "",
         "## Out-of-sample forecast results",

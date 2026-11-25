@@ -222,24 +222,34 @@ class TreasuryAuctionDemandTests(unittest.TestCase):
         self.assertEqual(meta["treasury_xml_crosscheck"]["rows"], 0)
         self.assertIn("timeout", meta["treasury_xml_crosscheck"]["error"].lower())
 
-    def test_updated_auction_probe_discovers_november_ten_year_result_fields(self):
+    def test_updated_auction_probe_discovers_schema_and_result_xml(self):
         payload = {
             "data": [
                 {
-                    "record_date": "2026-11-10",
-                    "cusip": "91282CRX1",
+                    "record_date": "2026-11-16",
+                    "cusip": "TESTCUSIP",
                     "security_type": "Note",
                     "security_desc": "10-Year Note",
                     "comp_auction_close_date": "2026-11-10",
-                    "bid_to_cover_ratio": "2.46",
-                    "comp_accepted": "41852615000",
-                    "primary_dealer_accepted": "3736150000",
-                    "direct_bidder_accepted": "8321500000",
-                    "indirect_bidder_accepted": "29794965000",
+                    "issue_date": "2026-11-16",
+                    "maturity_date": "2036-11-15",
+                    "original_security_term": "10-Year",
+                    "security_term": "10-Year",
+                    "inflation_protected": "No",
+                    "floating_rate": "No",
+                    "reopening": "No",
+                    "bid_to_cover_ratio": "2.5",
+                    "offering_amt": "1000",
+                    "prim_deal_comp_par_awarded": "100",
+                    "dir_bid_comp_par_awarded": "200",
+                    "indir_bid_comp_par_awarded": "300",
+                    "subtot_comp_inside_awrd": "600",
+                    "xml_filenm_comp_results": "R_TEST.xml",
+                    "pdf_filenm_comp_results": "R_TEST.pdf",
                 },
                 {
                     "record_date": "2026-11-24",
-                    "cusip": "91282CRZ6",
+                    "cusip": "TESTCUSIP5",
                     "security_type": "Note",
                     "security_desc": "5-Year Note",
                     "comp_auction_close_date": "2026-11-24",
@@ -248,15 +258,51 @@ class TreasuryAuctionDemandTests(unittest.TestCase):
             "meta": {"total-pages": "1", "total-count": "2"},
         }
         body = qfr.json.dumps(payload).encode("utf-8")
-        with patch.object(qfr, "fetch_bytes", return_value=body) as fetch:
+        xml_body = b"<AuctionResult><PrimaryDealerAccepted>100</PrimaryDealerAccepted><DirectBidderAccepted>200</DirectBidderAccepted><IndirectBidderAccepted>300</IndirectBidderAccepted></AuctionResult>"
+        with patch.object(qfr, "fetch_bytes", side_effect=[body, xml_body]) as fetch:
             probe = qfr.fetch_updated_auction_probe(dt.date(2026, 11, 24))
         self.assertEqual(probe["status"], "SAMPLE_ONLY")
         self.assertEqual(probe["rows_returned"], 2)
         self.assertEqual(probe["target_matches"], 1)
-        self.assertEqual(probe["target_sample"]["cusip"], "91282CRX1")
-        self.assertIn("primary_dealer_accepted", probe["target_sample"]["result_fields"])
-        self.assertIn("bid_to_cover_ratio", probe["candidate_result_fields"])
-        self.assertIn("page%5Bsize%5D=1000", fetch.call_args.args[0])
+        self.assertEqual(probe["target_sample"]["cusip"], "TESTCUSIP")
+        self.assertIn("prim_deal_comp_par_awarded", probe["target_sample"]["result_fields"])
+        self.assertIn("dir_bid_comp_par_awarded", probe["candidate_result_fields"])
+        self.assertEqual(probe["target_sample"]["result_xml"]["status"], "PARSED")
+        self.assertIn("PrimaryDealerAccepted", probe["target_sample"]["result_xml"]["tag_names"])
+        self.assertEqual(fetch.call_count, 2)
+        self.assertIn("page%5Bsize%5D=1000", fetch.call_args_list[0].args[0])
+
+    def test_updated_auction_probe_requires_total_count_for_complete_page(self):
+        payload = {
+            "data": [{
+                "record_date": "2026-11-16",
+                "cusip": "TESTCUSIP",
+                "security_type": "Note",
+                "security_desc": "10-Year Note",
+                "comp_auction_close_date": "2026-11-10",
+            }],
+            "meta": {"total-pages": "1"},
+        }
+        body = qfr.json.dumps(payload).encode("utf-8")
+        with patch.object(qfr, "fetch_bytes", return_value=body):
+            probe = qfr.fetch_updated_auction_probe(dt.date(2026, 11, 24))
+        self.assertEqual(probe["status"], "PARTIAL")
+        self.assertFalse(probe["page_complete"])
+
+    def test_updated_target_window_is_incomplete_until_five_observations_are_available(self):
+        probe = {"target_sample": {"record_date": "2026-11-16"}}
+        yields = {
+            dt.date(2026, 11, 17): 4.0,
+            dt.date(2026, 11, 18): 4.1,
+            dt.date(2026, 11, 19): 4.2,
+            dt.date(2026, 11, 20): 4.3,
+            dt.date(2026, 11, 23): 4.4,
+        }
+        qfr.attach_updated_target_window(probe, yields)
+        self.assertEqual(probe["target_window"]["status"], "INCOMPLETE")
+        self.assertEqual(probe["target_window"]["target_start"], "2026-11-17")
+        self.assertEqual(probe["target_window"]["latest_yield_date"], "2026-11-23")
+
 
     def test_updated_auction_probe_fails_closed_when_endpoint_unavailable(self):
         with patch.object(qfr, "fetch_bytes", side_effect=RuntimeError("endpoint unavailable")):
