@@ -1,0 +1,190 @@
+import datetime as dt
+import unittest
+
+import treasury_auction_demand as qfr
+
+
+class TreasuryAuctionDemandTests(unittest.TestCase):
+    def test_parse_helpers_reject_missing_and_preserve_values(self):
+        self.assertEqual(qfr.parse_date("2026-11-24T00:00:00"), dt.date(2026, 11, 24))
+        self.assertEqual(qfr.parse_float("4.125"), 4.125)
+        self.assertIsNone(qfr.parse_float("."))
+        self.assertIsNone(qfr.parse_date("null"))
+
+    def test_selects_only_nominal_fixed_rate_ten_year_notes(self):
+        rows = [
+            {
+                "security_type": "Note",
+                "original_security_term": "10-Year",
+                "security_term": "9-Year 11-Month",
+                "inflation_index_security": "No",
+                "floating_rate": "No",
+                "record_date": "2020-01-15",
+                "auction_date": "2020-01-14",
+                "cusip": "A",
+                "bid_to_cover_ratio": "2.4",
+                "comp_accepted": "100",
+                "primary_dealer_accepted": "20",
+                "direct_bidder_accepted": "20",
+                "indirect_bidder_accepted": "60",
+            },
+            {
+                "security_type": "Note",
+                "original_security_term": "10-Year",
+                "security_term": "10-Year",
+                "inflation_index_security": "Yes",
+                "floating_rate": "No",
+                "record_date": "2020-01-15",
+                "auction_date": "2020-01-14",
+                "cusip": "B",
+                "bid_to_cover_ratio": "2.4",
+                "comp_accepted": "100",
+                "primary_dealer_accepted": "20",
+                "direct_bidder_accepted": "20",
+                "indirect_bidder_accepted": "60",
+            },
+            {
+                "security_type": "Note",
+                "original_security_term": "10-Year",
+                "security_term": "10-Year",
+                "inflation_index_security": "No",
+                "floating_rate": "Yes",
+                "record_date": "2020-01-15",
+                "auction_date": "2020-01-14",
+                "cusip": "C",
+                "bid_to_cover_ratio": "2.4",
+                "comp_accepted": "100",
+                "primary_dealer_accepted": "20",
+                "direct_bidder_accepted": "20",
+                "indirect_bidder_accepted": "60",
+            },
+            {
+                "security_type": "Note",
+                "original_security_term": "5-Year",
+                "security_term": "5-Year",
+                "inflation_index_security": "No",
+                "floating_rate": "No",
+                "record_date": "2020-01-15",
+                "auction_date": "2020-01-14",
+                "cusip": "D",
+                "bid_to_cover_ratio": "2.4",
+                "comp_accepted": "100",
+                "primary_dealer_accepted": "20",
+                "direct_bidder_accepted": "20",
+                "indirect_bidder_accepted": "60",
+            },
+        ]
+        selected, counts = qfr.select_ten_year_nominal_auctions(rows)
+        self.assertEqual(len(selected), 1)
+        self.assertEqual(selected[0]["cusip"], "A")
+        self.assertAlmostEqual(selected[0]["dealer_share"], 0.20)
+        self.assertEqual(counts["selected"], 1)
+
+    def test_missing_record_date_uses_auction_date_conservatively(self):
+        row = {
+            "security_type": "Note",
+            "original_security_term": "10-Year",
+            "security_term": "10-Year",
+            "inflation_index_security": "No",
+            "floating_rate": "No",
+            "auction_date": "2020-01-14",
+            "cusip": "A",
+            "bid_to_cover_ratio": "2.4",
+            "comp_accepted": "100",
+            "primary_dealer_accepted": "20",
+            "direct_bidder_accepted": "20",
+            "indirect_bidder_accepted": "60",
+        }
+        selected, counts = qfr.select_ten_year_nominal_auctions([row])
+        self.assertEqual(selected[0]["record_date"], dt.date(2020, 1, 14))
+        self.assertEqual(counts["record_date_fallback_to_auction_date"], 1)
+
+    def test_weak_score_uses_only_prior_auctions(self):
+        auctions = []
+        for i in range(27):
+            auctions.append({
+                "dealer_share": 0.10 + i * 0.01,
+                "bid_to_cover": 3.0 - i * 0.02,
+            })
+        qfr.add_weak_demand_scores(auctions, lookback=26)
+        self.assertIsNone(auctions[0]["weak_score"])
+        self.assertIsNotNone(auctions[26]["weak_score"])
+        self.assertGreaterEqual(auctions[26]["weak_score"], 0.75)
+
+    def test_target_starts_after_record_date_and_uses_five_observed_business_steps(self):
+        dates = [dt.date(2020, 1, day) for day in [2, 3, 6, 7, 8, 9, 10, 13, 14]]
+        yields = {date: 2.0 + index * 0.01 for index, date in enumerate(dates)}
+        auction = {
+            "cusip": "A",
+            "auction_date": dt.date(2020, 1, 3),
+            "record_date": dt.date(2020, 1, 6),
+            "bid_to_cover": 2.4,
+            "dealer_share": 0.2,
+        }
+        events, skipped = qfr.build_events([auction], yields)
+        self.assertEqual(skipped["no_future_yield_window"], 0)
+        self.assertEqual(events[0]["yield_start_date"], dt.date(2020, 1, 7))
+        self.assertEqual(events[0]["yield_end_date"], dt.date(2020, 1, 14))
+        self.assertAlmostEqual(events[0]["target_bp"], 5.0)
+
+    def test_walk_forward_requires_prior_targets_to_be_completed_before_signal(self):
+        events = []
+        base = dt.date(2020, 1, 1)
+        for i in range(60):
+            record_date = base + dt.timedelta(days=i * 10)
+            events.append({
+                "record_date": record_date,
+                "yield_end_date": record_date + dt.timedelta(days=5),
+                "cusip": str(i),
+                "bid_to_cover": 2.0 + (i % 5) * 0.1,
+                "dealer_share": 0.2 + (i % 7) * 0.01,
+                "pre_yield_5d_bp": (i % 9) - 4,
+                "target_bp": (i % 11) - 5,
+                "weak_score": 0.5,
+                "weak_demand": False,
+            })
+        predictions = qfr.walk_forward_predictions(events)
+        self.assertTrue(predictions)
+        first = predictions[0]
+        current = next(row for row in events if row["cusip"] == first["cusip"])
+        eligible = [
+            row for row in events
+            if row["record_date"] < current["record_date"]
+            and row["yield_end_date"] < current["record_date"]
+        ]
+        self.assertEqual(len(eligible), qfr.MODEL_WINDOW)
+
+    def test_ols_recovers_linear_relationship(self):
+        train = []
+        for i in range(60):
+            x1 = 1.5 + i * 0.02
+            x2 = (i % 7) * 0.1
+            x3 = (i % 5) - 2
+            y = 2.0 + 3.0 * x1 - 1.5 * x2 + 0.25 * x3
+            train.append({
+                "x1": x1,
+                "x2": x2,
+                "x3": x3,
+                "target_bp": y,
+            })
+        current = {"x1": 2.0, "x2": 0.3, "x3": 1.0}
+        prediction = qfr.fit_ols_predict(train, current, ["x1", "x2", "x3"])
+        expected = 2.0 + 3.0 * 2.0 - 1.5 * 0.3 + 0.25 * 1.0
+        self.assertAlmostEqual(prediction, expected, places=5)
+
+    def test_bootstrap_is_reproducible(self):
+        rows = []
+        for i in range(80):
+            weak = i % 4 == 0
+            rows.append({
+                "weak_demand": weak,
+                "target_bp": (2.0 if weak else -0.5) + (i % 5) * 0.01,
+            })
+        first = qfr.bootstrap_mean_difference(rows, reps=100)
+        second = qfr.bootstrap_mean_difference(rows, reps=100)
+        self.assertEqual(first, second)
+        self.assertGreater(first["ci_95_high_bp"], first["ci_95_low_bp"])
+
+
+if __name__ == "__main__":
+    unittest.main()
