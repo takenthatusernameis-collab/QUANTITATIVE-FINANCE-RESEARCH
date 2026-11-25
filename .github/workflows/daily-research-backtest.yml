@@ -7,6 +7,7 @@ on:
       - ".github/workflows/daily-research-backtest.yml"
       - "research/treasury_auction_demand.py"
       - "research/test_treasury_auction_demand.py"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,6 +18,8 @@ concurrency:
 
 jobs:
   forecast-backtest:
+    # Admit expensive research only from an explicitly complete atomic commit.
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[QFR-ADMIT]')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
