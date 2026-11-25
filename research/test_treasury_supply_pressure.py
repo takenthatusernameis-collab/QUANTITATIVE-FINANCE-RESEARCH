@@ -42,13 +42,13 @@ class TreasurySupplyPressureTests(unittest.TestCase):
         start = dt.date(2020, 1, 1)
         dates = [start + dt.timedelta(days=i) for i in range(12)]
         yields = {d: 2.0 + i * 0.01 for i, d in enumerate(dates)}
-        auction = {"cusip": "A", "auction_date": dates[4], "record_date": dates[4],
+        auction = {"cusip": "A", "auction_date": dates[4], "record_date": dates[5],
                    "offering_amt": 120.0, "bid_to_cover": 2.5, "supply_log_ratio": math.log(1.2), "high_supply": True}
         events, skipped = qfr.build_supply_events([auction], yields)
         self.assertEqual(skipped["no_future_yield_window"], 0)
         self.assertEqual(len(events), 1)
-        self.assertEqual(events[0]["yield_start_date"], dates[5])
-        self.assertEqual(events[0]["yield_end_date"], dates[6])
+        self.assertEqual(events[0]["yield_start_date"], dates[6])
+        self.assertEqual(events[0]["yield_end_date"], dates[7])
         self.assertAlmostEqual(events[0]["target_bp"], 1.0, places=10)
 
     def test_missing_supply_feature_is_skipped(self):
