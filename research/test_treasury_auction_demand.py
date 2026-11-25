@@ -422,5 +422,102 @@ class TreasuryAuctionDemandTests(unittest.TestCase):
         self.assertIn("floating_rate", mismatch["reason"])
 
 
+    def test_updated_ten_year_note_classifier_uses_original_term_and_security_type(self):
+        self.assertTrue(qfr.is_updated_ten_year_note({
+            "security_type": "Note",
+            "original_security_term": "10-Year",
+            "security_desc": "9-Year 11-Month Note",
+        }))
+        self.assertFalse(qfr.is_updated_ten_year_note({
+            "security_type": "Note",
+            "original_security_term": "5-Year",
+            "security_desc": "5-Year Note",
+        }))
+        self.assertFalse(qfr.is_updated_ten_year_note({
+            "security_type": "Bill",
+            "original_security_term": "10-Year",
+            "security_desc": "10-Year Bill",
+        }))
+
+    def test_updated_api_xml_crosswalk_checks_record_date_order(self):
+        sample = self._updated_auction_sample()
+        sample["record_date"] = "2026-11-09"
+        result = qfr.reconcile_updated_auction_sample(sample)
+        self.assertEqual(result["status"], "MISMATCH")
+        self.assertIn("precedes", result["reason"])
+
+    def test_updated_api_population_reconciles_every_nominal_ten_year_row_and_legacy_overlap(self):
+        base = self._updated_auction_sample()
+
+        def make_row(cusip, auction_date, record_date, xml_name, inflation="No", floating="No", term="10-Year"):
+            xml_values = [
+                {"name": item["name"], "value": item["value"]}
+                for item in base["result_xml"]["candidate_values"]
+            ]
+            for item in xml_values:
+                if item["name"] == "CUSIP":
+                    item["value"] = cusip
+                elif item["name"] == "CompetitiveAuctionCloseDate":
+                    item["value"] = auction_date
+            xml_body = (
+                "<AuctionResult>"
+                + "".join(f"<{item['name']}>{item['value']}</{item['name']}>" for item in xml_values)
+                + "</AuctionResult>"
+            ).encode("utf-8")
+            row = {
+                "record_date": record_date,
+                "cusip": cusip,
+                "security_type": "Note",
+                "security_desc": "10-Year Note" if term == "10-Year" else "5-Year Note",
+                "comp_auction_close_date": auction_date,
+                "original_security_term": term,
+                "inflation_protected": inflation,
+                "floating_rate": floating,
+                "reopening": "No",
+                "xml_filenm_comp_results": xml_name,
+                **base["result_fields"],
+            }
+            return row, xml_body
+
+        first, first_xml = make_row("91282CRX0", "2026-10-07", "2026-10-08", "R_20261007.xml")
+        second, second_xml = make_row("91282CRX1", "2026-11-10", "2026-11-16", "R_20261110.xml")
+        tips, _ = make_row("TIPS-CUSIP", "2026-10-15", "2026-10-16", "R_TIPS.xml", inflation="Yes")
+        five_year, _ = make_row("FIVE-CUSIP", "2026-10-20", "2026-10-21", "R_5Y.xml", term="5-Year")
+        payload = {
+            "data": [first, second, tips, five_year],
+            "meta": {"total-pages": "1", "total-count": "4"},
+        }
+        legacy = [{
+            "cusip": "91282CRX0",
+            "auction_date": dt.date(2026, 10, 7),
+            "record_date": dt.date(2026, 10, 8),
+            "bid_to_cover": 2.46,
+            "comp_accepted": 41757418700.0,
+            "primary_dealer_accepted": 4080513500.0,
+            "direct_bidder_accepted": 12109950200.0,
+            "indirect_bidder_accepted": 25566955000.0,
+        }]
+        with patch.object(
+            qfr,
+            "fetch_bytes",
+            side_effect=[qfr.json.dumps(payload).encode("utf-8"), first_xml, second_xml],
+        ) as fetch:
+            probe = qfr.fetch_updated_auction_probe(
+                dt.date(2026, 11, 24), legacy_auctions=legacy
+            )
+        self.assertTrue(probe["page_complete"])
+        self.assertEqual(probe["candidate_population"]["ten_year_note_rows"], 3)
+        self.assertEqual(probe["candidate_population"]["nominal_fixed_rows"], 2)
+        self.assertEqual(probe["candidate_population"]["excluded_tips_or_floating"], 1)
+        self.assertEqual(probe["candidate_population"]["reconciled_rows"], 2)
+        self.assertEqual(probe["candidate_population"]["status"], "RECONCILED_SAMPLE_ONLY")
+        self.assertEqual(probe["legacy_overlap"]["status"], "VERIFIED")
+        self.assertEqual(probe["legacy_overlap"]["matched_rows"], 1)
+        self.assertEqual(probe["legacy_overlap"]["no_legacy_match_rows"], 1)
+        self.assertEqual(probe["target_matches"], 1)
+        self.assertEqual(probe["target_sample"]["cusip"], "91282CRX1")
+        self.assertEqual(fetch.call_count, 3)
+
+
 if __name__ == "__main__":
     unittest.main()

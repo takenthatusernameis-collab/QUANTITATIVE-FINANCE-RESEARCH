@@ -182,6 +182,16 @@ def reconcile_updated_auction_sample(sample: dict | None) -> dict:
     """
     if not sample:
         return {"status": "NO_SAMPLE"}
+    record_date = parse_date(sample.get("record_date"))
+    auction_date = parse_date(sample.get("comp_auction_close_date"))
+    if record_date is None or auction_date is None:
+        return {"status": "INCOMPLETE", "reason": "Record date or competitive auction close date is missing"}
+    if record_date < auction_date:
+        return {"status": "MISMATCH", "reason": "Record date precedes competitive auction close date"}
+    if parse_bool(sample.get("inflation_protected")) is not False:
+        return {"status": "INCOMPLETE", "reason": "Inflation-protection status is not verified false"}
+    if parse_bool(sample.get("floating_rate")) is not False:
+        return {"status": "INCOMPLETE", "reason": "Floating-rate status is not verified false"}
     result_xml = sample.get("result_xml") or {}
     if result_xml.get("status") != "PARSED":
         return {
@@ -312,11 +322,124 @@ def reconcile_updated_auction_sample(sample: dict | None) -> dict:
     }
 
 
-def fetch_updated_auction_probe(end_date: dt.date) -> dict:
-    """Bounded schema/coverage probe for Treasury's post-2026-10-01 updated auctions table.
+def is_updated_ten_year_note(row: dict) -> bool:
+    if str(row.get("security_type") or "").strip().lower() != "note":
+        return False
+    original_term = normalize_term(row.get("original_security_term"))
+    if original_term:
+        return original_term == "10year"
+    description = normalize_term(row.get("security_desc"))
+    if "10year" in description:
+        return True
+    return normalize_term(row.get("security_term")) == "10year"
 
-    The updated table is not merged into model events until bidder amount semantics,
-    publication timing and overlap with the legacy table have been reconciled.
+
+def build_updated_auction_sample(row: dict, candidate_result_fields: list[str]) -> dict:
+    metadata_fields = (
+        "record_date", "cusip", "security_type", "security_desc",
+        "comp_auction_close_date", "issue_date", "maturity_date",
+        "security_term", "original_security_term", "inflation_protected",
+        "floating_rate", "reopening", "xml_filenm_comp_results",
+        "pdf_filenm_comp_results",
+    )
+    sample = {key: row.get(key) for key in metadata_fields if key in row}
+    sample["result_fields"] = {
+        key: row.get(key) for key in candidate_result_fields if key in row
+    }
+    xml_file_name = str(row.get("xml_filenm_comp_results") or "").strip()
+    if not xml_file_name:
+        sample["result_xml"] = {"status": "NO_FILENAME"}
+        sample["reconciliation"] = reconcile_updated_auction_sample(sample)
+        return sample
+
+    safe_name = urllib.parse.quote(xml_file_name, safe="._-")
+    xml_url = (
+        "https://fiscaldata.treasury.gov/static-data/published-reports/"
+        f"auctions-query/results/{safe_name}"
+    )
+    try:
+        xml_body = fetch_bytes(xml_url, timeout=20)
+        sample["result_xml"] = {
+            "status": "PARSED",
+            "file_name": xml_file_name,
+            "url": xml_url,
+            "sha256": sha256(xml_body),
+            **parse_treasury_result_xml(xml_body),
+        }
+    except Exception as xml_exc:
+        sample["result_xml"] = {
+            "status": "UNAVAILABLE",
+            "file_name": xml_file_name,
+            "url": xml_url,
+            "error": f"{type(xml_exc).__name__}: {xml_exc}",
+        }
+    sample["reconciliation"] = reconcile_updated_auction_sample(sample)
+    return sample
+
+
+def compare_updated_auction_sample_to_legacy(
+    sample: dict, legacy_auctions: list[dict] | None
+) -> dict:
+    if legacy_auctions is None:
+        return {"status": "NOT_CHECKED"}
+    reconciliation = sample.get("reconciliation") or {}
+    if reconciliation.get("status") != "RECONCILED_SAMPLE_ONLY":
+        return {"status": "NOT_COMPARABLE", "reason": "API/XML reconciliation did not pass"}
+
+    crosswalk = reconciliation.get("legacy_crosswalk") or {}
+    cusip = str(crosswalk.get("cusip") or "").strip()
+    auction_date = parse_date(crosswalk.get("auction_date"))
+    legacy = next(
+        (
+            row for row in legacy_auctions
+            if str(row.get("cusip") or "").strip() == cusip
+            and row.get("auction_date") == auction_date
+        ),
+        None,
+    )
+    if legacy is None:
+        return {"status": "NO_LEGACY_MATCH", "cusip": cusip, "auction_date": auction_date.isoformat() if auction_date else None}
+
+    checks = []
+    comparisons = (
+        ("record_date", parse_date(crosswalk.get("record_date")), legacy.get("record_date"), None),
+        ("bid_to_cover", parse_float(crosswalk.get("bid_to_cover_ratio")), legacy.get("bid_to_cover"), 1e-9),
+        ("comp_accepted", parse_float(crosswalk.get("comp_accepted")), legacy.get("comp_accepted"), 1.0),
+        ("primary_dealer_accepted", parse_float(crosswalk.get("primary_dealer_accepted")), legacy.get("comp_accepted") and parse_float(str(legacy.get("bidder_total", ""))) if False else legacy.get("primary_dealer_accepted"), 1.0),
+        ("direct_bidder_accepted", parse_float(crosswalk.get("direct_bidder_accepted")), legacy.get("direct_bidder_accepted"), 1.0),
+        ("indirect_bidder_accepted", parse_float(crosswalk.get("indirect_bidder_accepted")), legacy.get("indirect_bidder_accepted"), 1.0),
+    )
+    for field, updated_value, legacy_value, tolerance in comparisons:
+        if field == "record_date":
+            matched = updated_value is not None and updated_value == legacy_value
+            difference = None
+        else:
+            legacy_number = parse_float(legacy_value)
+            matched = updated_value is not None and legacy_number is not None and abs(updated_value - legacy_number) <= tolerance
+            difference = updated_value - legacy_number if updated_value is not None and legacy_number is not None else None
+        checks.append({
+            "field": field,
+            "updated_value": str(updated_value) if updated_value is not None else None,
+            "legacy_value": str(legacy_value) if legacy_value is not None else None,
+            "difference": difference,
+            "matched": matched,
+        })
+    return {
+        "status": "MATCH" if all(item["matched"] for item in checks) else "MISMATCH",
+        "cusip": cusip,
+        "auction_date": auction_date.isoformat() if auction_date else None,
+        "field_checks": checks,
+    }
+
+
+def fetch_updated_auction_probe(
+    end_date: dt.date, legacy_auctions: list[dict] | None = None
+) -> dict:
+    """Reconcile every identifiable nominal fixed-rate 10-year Note in the updated API slice.
+
+    This remains a diagnostic sample: rows are not merged into the historical
+    model until the updated population's historical coverage and legacy overlap
+    are independently established.
     """
     params = {
         "filter": f"record_date:gte:2026-10-01,record_date:lte:{end_date.isoformat()}",
@@ -324,32 +447,64 @@ def fetch_updated_auction_probe(end_date: dt.date) -> dict:
         "page[size]": "1000",
         "page[number]": "1",
     }
-    url = UPDATED_AUCTION_URL + "?" + urllib.parse.urlencode(params)
+    base_url = UPDATED_AUCTION_URL + "?" + urllib.parse.urlencode(params)
     try:
-        body = fetch_bytes(url, timeout=20)
-        payload = json.loads(body.decode("utf-8"))
-        rows = payload.get("data")
-        if not isinstance(rows, list):
-            raise RuntimeError("Updated Treasury auctions response has no data array")
-        meta = payload.get("meta") or {}
-        raw_total_pages = meta.get("total-pages") or meta.get("total_pages")
-        raw_total_count = meta.get("total-count") or meta.get("total_count")
-        try:
-            total_pages = int(raw_total_pages) if raw_total_pages is not None else None
-        except (TypeError, ValueError):
-            total_pages = None
-        try:
-            total_count = int(raw_total_count) if raw_total_count is not None else None
-        except (TypeError, ValueError):
-            total_count = None
-        page_complete = bool(rows) and total_pages == 1 and total_count == len(rows)
+        all_rows: list[dict] = []
+        page_hashes: dict[str, str] = {}
+        total_pages = None
+        total_count = None
+        page_errors = []
+        page_limit = 20
+        first_page_url = base_url
+
+        for page_number in range(1, page_limit + 1):
+            page_params = dict(params)
+            page_params["page[number]"] = str(page_number)
+            page_url = UPDATED_AUCTION_URL + "?" + urllib.parse.urlencode(page_params)
+            try:
+                body = fetch_bytes(page_url, timeout=20)
+                payload = json.loads(body.decode("utf-8"))
+                page_rows = payload.get("data")
+                if not isinstance(page_rows, list):
+                    raise RuntimeError("Updated Treasury auctions response has no data array")
+                meta = payload.get("meta") or {}
+                if page_number == 1:
+                    for key, target in (("total-pages", "pages"), ("total-count", "count")):
+                        raw = meta.get(key) or meta.get(key.replace("-", "_"))
+                        try:
+                            parsed = int(raw) if raw is not None else None
+                        except (TypeError, ValueError):
+                            parsed = None
+                        if target == "pages":
+                            total_pages = parsed
+                        else:
+                            total_count = parsed
+                all_rows.extend(page_rows)
+                page_hashes[f"page_{page_number}"] = sha256(body)
+            except Exception as page_exc:
+                page_errors.append(f"page {page_number}: {type(page_exc).__name__}: {page_exc}")
+                break
+
+            if total_pages is None or total_pages < 1 or page_number >= min(total_pages, page_limit):
+                break
+            time.sleep(0.1)
+
+        page_complete = (
+            bool(all_rows)
+            and total_pages is not None
+            and total_count is not None
+            and total_pages <= page_limit
+            and len(page_hashes) == total_pages
+            and len(all_rows) == total_count
+            and not page_errors
+        )
         record_dates = sorted(
-            date for date in (parse_date(row.get("record_date")) for row in rows) if date is not None
+            date for date in (parse_date(row.get("record_date")) for row in all_rows) if date is not None
         )
         auction_dates = sorted(
-            date for date in (parse_date(row.get("comp_auction_close_date")) for row in rows) if date is not None
+            date for date in (parse_date(row.get("comp_auction_close_date")) for row in all_rows) if date is not None
         )
-        schema_fields = sorted({str(key) for row in rows for key in row})
+        schema_fields = sorted({str(key) for row in all_rows for key in row})
         result_tokens = (
             "accepted", "bidder", "bid_to_cover", "dealer", "direct", "indirect",
             "competitive", "tender", "offering", "par_awarded", "par_recog",
@@ -358,88 +513,151 @@ def fetch_updated_auction_probe(end_date: dt.date) -> dict:
         candidate_result_fields = sorted(
             field for field in schema_fields if any(token in field.lower() for token in result_tokens)
         )
-        target_matches = []
-        for row in rows:
-            description = normalize_term(row.get("security_desc"))
-            auction_date = parse_date(row.get("comp_auction_close_date"))
-            if (
-                str(row.get("security_type", "")).strip().lower() == "note"
-                and "10year" in description
-                and auction_date == dt.date(2026, 11, 10)
-            ):
-                metadata_fields = (
-                    "record_date", "cusip", "security_type", "security_desc",
-                    "comp_auction_close_date", "issue_date", "maturity_date",
-                    "security_term", "original_security_term", "inflation_protected",
-                    "floating_rate", "reopening", "xml_filenm_comp_results",
-                    "pdf_filenm_comp_results",
-                )
-                target_sample = {key: row.get(key) for key in metadata_fields if key in row}
-                target_sample["result_fields"] = {
-                    key: row.get(key) for key in candidate_result_fields if key in row
+
+        ten_year_rows = [row for row in all_rows if is_updated_ten_year_note(row)]
+        nominal_rows = []
+        excluded_tips_or_floating = 0
+        unclassified_rows = []
+        for row in ten_year_rows:
+            inflation = parse_bool(row.get("inflation_protected"))
+            floating = parse_bool(row.get("floating_rate"))
+            if inflation is True or floating is True:
+                excluded_tips_or_floating += 1
+            elif inflation is None or floating is None:
+                unclassified_rows.append({
+                    "cusip": row.get("cusip"),
+                    "comp_auction_close_date": row.get("comp_auction_close_date"),
+                    "reason": "inflation_protected or floating_rate is missing or unrecognized",
+                })
+            else:
+                nominal_rows.append(row)
+
+        candidate_samples = []
+        seen_identities = set()
+        duplicate_identities = 0
+        for row in nominal_rows:
+            sample = build_updated_auction_sample(row, candidate_result_fields)
+            cusip = str(sample.get("cusip") or "").strip()
+            auction_date = parse_date(sample.get("comp_auction_close_date"))
+            identity = (cusip, auction_date.isoformat() if auction_date else None)
+            if not cusip or auction_date is None:
+                sample["reconciliation"] = {
+                    "status": "INCOMPLETE",
+                    "reason": "CUSIP or competitive auction close date is missing",
                 }
-                xml_file_name = str(row.get("xml_filenm_comp_results") or "").strip()
-                if xml_file_name:
-                    safe_name = urllib.parse.quote(xml_file_name, safe="._-")
-                    xml_url = (
-                        "https://fiscaldata.treasury.gov/static-data/published-reports/"
-                        f"auctions-query/results/{safe_name}"
-                    )
-                    try:
-                        xml_body = fetch_bytes(xml_url, timeout=20)
-                        target_sample["result_xml"] = {
-                            "status": "PARSED",
-                            "file_name": xml_file_name,
-                            "url": xml_url,
-                            "sha256": sha256(xml_body),
-                            **parse_treasury_result_xml(xml_body),
-                        }
-                    except Exception as xml_exc:
-                        target_sample["result_xml"] = {
-                            "status": "UNAVAILABLE",
-                            "file_name": xml_file_name,
-                            "url": xml_url,
-                            "error": f"{type(xml_exc).__name__}: {xml_exc}",
-                        }
-                else:
-                    target_sample["result_xml"] = {"status": "NO_FILENAME"}
-                target_sample["reconciliation"] = reconcile_updated_auction_sample(target_sample)
-                target_matches.append(target_sample)
+            elif identity in seen_identities:
+                duplicate_identities += 1
+                sample["reconciliation"] = {
+                    "status": "INCOMPLETE",
+                    "reason": "Duplicate CUSIP and auction-date identity in updated API page",
+                }
+            else:
+                seen_identities.add(identity)
+            sample["legacy_overlap"] = compare_updated_auction_sample_to_legacy(sample, legacy_auctions)
+            candidate_samples.append(sample)
+
+        target_samples = [
+            sample for sample in candidate_samples
+            if parse_date(sample.get("comp_auction_close_date")) == dt.date(2026, 11, 10)
+        ]
+        reconciliation_statuses = [
+            (sample.get("reconciliation") or {}).get("status") for sample in candidate_samples
+        ]
+        if not page_complete or unclassified_rows or duplicate_identities:
+            population_status = "INCOMPLETE"
+        elif "MISMATCH" in reconciliation_statuses:
+            population_status = "MISMATCH"
+        elif "UNAVAILABLE" in reconciliation_statuses:
+            population_status = "UNAVAILABLE"
+        elif "INCOMPLETE" in reconciliation_statuses or not candidate_samples:
+            population_status = "INCOMPLETE" if candidate_samples else "NO_CANDIDATES"
+        elif all(status == "RECONCILED_SAMPLE_ONLY" for status in reconciliation_statuses):
+            population_status = "RECONCILED_SAMPLE_ONLY"
+        else:
+            population_status = "INCOMPLETE"
+
+        status_counts = {
+            status: reconciliation_statuses.count(status)
+            for status in sorted(set(reconciliation_statuses))
+        }
+        overlap_statuses = [
+            (sample.get("legacy_overlap") or {}).get("status") for sample in candidate_samples
+        ]
+        overlap_count = overlap_statuses.count("MATCH") + overlap_statuses.count("MISMATCH")
+        overlap_mismatch_count = overlap_statuses.count("MISMATCH")
+        if legacy_auctions is None:
+            overlap_status = "NOT_CHECKED"
+        elif overlap_mismatch_count:
+            overlap_status = "DISCREPANCY"
+        elif overlap_count:
+            overlap_status = "VERIFIED"
+        else:
+            overlap_status = "NO_OVERLAP"
+
+        target_sample = target_samples[0] if target_samples else None
+        page_digest = sha256("\n".join(f"{key}:{value}" for key, value in sorted(page_hashes.items())).encode("utf-8"))
         return {
-            "status": "SAMPLE_ONLY" if page_complete else ("PARTIAL" if rows else "NO_DATA"),
-            "url": url,
-            "rows_returned": len(rows),
+            "status": "SAMPLE_ONLY" if page_complete else ("PARTIAL" if all_rows else "NO_DATA"),
+            "url": first_page_url,
+            "rows_returned": len(all_rows),
             "total_pages": total_pages,
             "total_count": total_count,
+            "pages_fetched": len(page_hashes),
             "page_size": 1000,
+            "page_errors": page_errors,
             "first_record_date": record_dates[0].isoformat() if record_dates else None,
             "last_record_date": record_dates[-1].isoformat() if record_dates else None,
             "first_auction_date": auction_dates[0].isoformat() if auction_dates else None,
             "last_auction_date": auction_dates[-1].isoformat() if auction_dates else None,
             "schema_fields": schema_fields,
             "candidate_result_fields": candidate_result_fields,
-            "target_matches": len(target_matches),
-            "target_sample": target_matches[0] if target_matches else None,
-            "sha256": sha256(body),
+            "target_matches": len(target_samples),
+            "target_sample": target_sample,
+            "candidate_samples": candidate_samples,
+            "candidate_population": {
+                "status": population_status,
+                "ten_year_note_rows": len(ten_year_rows),
+                "nominal_fixed_rows": len(nominal_rows),
+                "excluded_tips_or_floating": excluded_tips_or_floating,
+                "unclassified_rows": unclassified_rows,
+                "reconciled_rows": status_counts.get("RECONCILED_SAMPLE_ONLY", 0),
+                "status_counts": status_counts,
+                "duplicate_identities": duplicate_identities,
+                "historical_completeness": "NOT_ESTABLISHED",
+                "page_complete": page_complete,
+            },
+            "legacy_overlap": {
+                "status": overlap_status,
+                "overlap_rows": overlap_count,
+                "matched_rows": overlap_statuses.count("MATCH"),
+                "mismatched_rows": overlap_mismatch_count,
+                "no_legacy_match_rows": overlap_statuses.count("NO_LEGACY_MATCH"),
+                "not_comparable_rows": overlap_statuses.count("NOT_COMPARABLE"),
+            },
+            "page_sha256": page_hashes,
+            "sha256": page_digest,
             "page_complete": page_complete,
             "limitations": [
                 "Diagnostic only: updated-table rows are not merged into the historical model sample.",
-                "The filtered page is complete only when API total-pages is one and total-count equals rows returned.",
-                "Field presence does not by itself validate bidder-result semantics or historical completeness.",
-                "The selected 2026-11-10 sample is cross-checked against result XML; this does not establish historical population completeness.",
+                "Page completeness requires every API page and a matching API total-count.",
+                "Every identifiable nominal fixed-rate 10-year Note in the retrieved page is reconciled against its official result XML; missing, ambiguous or duplicate identities fail closed.",
+                "The API slice begins 2026-10-01 and does not establish historical population completeness.",
+                "Legacy overlap is checked by CUSIP and auction date; rows without a legacy match remain unmerged.",
                 "Only competitive awarded amounts map to legacy accepted fields; recognized amounts are cross-checked but excluded from the accepted-share denominator.",
             ],
         }
     except Exception as exc:
         return {
             "status": "UNAVAILABLE",
-            "url": url,
+            "url": base_url,
             "error": f"{type(exc).__name__}: {exc}",
             "rows_returned": 0,
             "target_matches": 0,
+            "candidate_samples": [],
+            "candidate_population": {"status": "UNAVAILABLE", "historical_completeness": "NOT_ESTABLISHED"},
+            "legacy_overlap": {"status": "NOT_CHECKED"},
             "page_complete": False,
         }
-
 
 def fetch_auction_pages(end_date: dt.date) -> tuple[list[dict], dict]:
     all_rows: list[dict] = []
@@ -509,42 +727,56 @@ def normalize_term(value: object) -> str:
 
 
 def attach_updated_target_window(probe: dict, yields: dict[dt.date, float]) -> None:
-    sample = probe.get("target_sample")
-    if not sample:
-        return
-    record_date = parse_date(sample.get("record_date"))
     yield_dates = sorted(yields)
-    if record_date is None or not yield_dates:
-        probe["target_window"] = {"status": "UNKNOWN"}
-        return
-    start_index = next((i for i, date in enumerate(yield_dates) if date > record_date), None)
-    if start_index is None:
-        probe["target_window"] = {
-            "status": "NO_POST_PUBLICATION_YIELD",
-            "record_date": record_date.isoformat(),
-            "latest_yield_date": yield_dates[-1].isoformat(),
-        }
-        return
-    end_index = start_index + TARGET_HORIZON
-    target_start = yield_dates[start_index]
-    if end_index >= len(yield_dates):
-        probe["target_window"] = {
-            "status": "INCOMPLETE",
+
+    def window_for(record_date_value: object) -> dict:
+        record_date = parse_date(record_date_value)
+        if record_date is None or not yield_dates:
+            return {"status": "UNKNOWN"}
+        start_index = next((i for i, date in enumerate(yield_dates) if date > record_date), None)
+        if start_index is None:
+            return {
+                "status": "NO_POST_PUBLICATION_YIELD",
+                "record_date": record_date.isoformat(),
+                "latest_yield_date": yield_dates[-1].isoformat(),
+            }
+        end_index = start_index + TARGET_HORIZON
+        target_start = yield_dates[start_index]
+        if end_index >= len(yield_dates):
+            return {
+                "status": "INCOMPLETE",
+                "record_date": record_date.isoformat(),
+                "target_start": target_start.isoformat(),
+                "target_end": None,
+                "latest_yield_date": yield_dates[-1].isoformat(),
+                "required_observations_after_start": TARGET_HORIZON,
+            }
+        return {
+            "status": "COMPLETE",
             "record_date": record_date.isoformat(),
             "target_start": target_start.isoformat(),
-            "target_end": None,
+            "target_end": yield_dates[end_index].isoformat(),
             "latest_yield_date": yield_dates[-1].isoformat(),
-            "required_observations_after_start": TARGET_HORIZON,
         }
-        return
-    probe["target_window"] = {
-        "status": "COMPLETE",
-        "record_date": record_date.isoformat(),
-        "target_start": target_start.isoformat(),
-        "target_end": yield_dates[end_index].isoformat(),
-        "latest_yield_date": yield_dates[-1].isoformat(),
-    }
 
+    samples = probe.get("candidate_samples") or []
+    for sample in samples:
+        sample["target_window"] = window_for(sample.get("record_date"))
+
+    target_sample = probe.get("target_sample")
+    if target_sample:
+        target_sample["target_window"] = window_for(target_sample.get("record_date"))
+        probe["target_window"] = target_sample["target_window"]
+    elif not samples:
+        probe["target_window"] = {"status": "NO_TARGET_SAMPLE"}
+
+    population = probe.get("candidate_population")
+    if population is not None:
+        counts: dict[str, int] = {}
+        for sample in samples:
+            status = (sample.get("target_window") or {}).get("status", "UNKNOWN")
+            counts[status] = counts.get(status, 0) + 1
+        population["target_window_counts"] = counts
 
 def select_ten_year_nominal_auctions(rows: list[dict]) -> tuple[list[dict], dict]:
     selected: list[dict] = []
@@ -1070,9 +1302,9 @@ def write_outputs(result: dict, report: str) -> tuple[str, str]:
         f"baseline RMSE={metrics.get('test_baseline_rmse_bp')} bp, RMSE improvement={metrics.get('test_rmse_improvement_pct')}%, "
         f"weak-demand events={((result.get('test_metrics') or {}).get('weak_demand_event_study') or {}).get('weak_n', 0)}; "
         f"updated auctions API probe={updated_probe.get('status', 'UNAVAILABLE')}, "
-        f"2026-11-10 10-year matches={updated_probe.get('target_matches', 0)}, "
-        f"result XML={((updated_probe.get('target_sample') or {}).get('result_xml') or {}).get('status', 'NOT_ATTEMPTED')}"
-        f" award crosswalk={((updated_probe.get('target_sample') or {}).get('reconciliation') or {}).get('status', 'NOT_ATTEMPTED')}"
+        f"10-year nominal rows={((updated_probe.get('candidate_population') or {}).get('nominal_fixed_rows', 0))}, "
+        f"population crosswalk={((updated_probe.get('candidate_population') or {}).get('status', 'NOT_ATTEMPTED'))}, "
+        f"legacy overlap={((updated_probe.get('legacy_overlap') or {}).get('status', 'NOT_CHECKED'))}"
     )
     data_scope = result.get("data_scope", "Data scope unresolved")
     update_registry(status, disposition, data_scope, '../' + str(report_path.relative_to(ROOT)), metrics_text)
@@ -1081,9 +1313,9 @@ def write_outputs(result: dict, report: str) -> tuple[str, str]:
 
 def run_research() -> dict:
     end_date = END_DATE
-    updated_auction_probe = fetch_updated_auction_probe(end_date)
     auction_rows, auction_meta = fetch_auction_pages(end_date)
     auctions, auction_quality = select_ten_year_nominal_auctions(auction_rows)
+    updated_auction_probe = fetch_updated_auction_probe(end_date, legacy_auctions=auctions)
     if len(auctions) < MODEL_WINDOW + 30:
         raise RuntimeError(
             f"Insufficient selected 10-year nominal auctions ({len(auctions)}); "
@@ -1145,6 +1377,11 @@ def run_research() -> dict:
     target_xml = ((updated_auction_probe.get("target_sample") or {}).get("result_xml") or {})
     if target_xml.get("sha256"):
         source_hashes["updated_auction_result_xml"] = target_xml["sha256"]
+    for index, sample in enumerate(updated_auction_probe.get("candidate_samples") or [], start=1):
+        xml_meta = sample.get("result_xml") or {}
+        if xml_meta.get("sha256"):
+            identity = str(sample.get("cusip") or index)
+            source_hashes[f"updated_auction_result_xml_{identity}"] = xml_meta["sha256"]
 
     summary_metrics = {
         "all_oos_n": len(all_rows),
@@ -1216,7 +1453,7 @@ def run_research() -> dict:
             "Auction result publication is conservatively lagged: the target starts at the first yield-series observation strictly after record_date.",
             "The yield series is a reference series, not an executable quote.",
             "No forward-filling or synthetic observations are used.",
-            "The updated post-2026-10-01 Treasury auctions API has a sample-level API/XML award crosswalk; its rows are not merged into the legacy historical sample until full population coverage, overlap and bidder-result semantics are validated.",
+            "Every identifiable nominal fixed-rate 10-year Note in the retrieved post-2026-10-01 Treasury auctions API slice is cross-checked against official result XML and compared with any CUSIP/auction-date legacy overlap; this remains diagnostic because historical population completeness is not established and no updated rows are merged.",
             "Incremental predictive value requires independent robustness and a separate tradable-instrument data source before any economic interpretation.",
         ],
     }
@@ -1266,14 +1503,17 @@ def render_report(result: dict, error: str | None = None) -> str:
         f"- Rows returned: {updated_probe.get('rows_returned', 0)}; API pages: {updated_probe.get('total_pages', 'unknown')}",
         f"- Record-date coverage: {updated_probe.get('first_record_date', 'unknown')} to {updated_probe.get('last_record_date', 'unknown')}",
         f"- 2026-11-10 10-year note matches: {updated_probe.get('target_matches', 0)}",
-        f"- API total-count: {updated_probe.get('total_count', 'unknown')}; page complete: {updated_probe.get('page_complete', False)}",
+        f"- API total-count: {updated_probe.get('total_count', 'unknown')}; pages fetched: {updated_probe.get('pages_fetched', 0)}; page complete: {updated_probe.get('page_complete', False)}",
         f"- Candidate bidder/result fields: {', '.join(updated_probe.get('candidate_result_fields', []))}",
-        f"- Target result XML: {((updated_probe.get('target_sample') or {}).get('result_xml') or {}).get('status', 'NOT_ATTEMPTED')}",
-        f"- API/XML award crosswalk: {updated_reconciliation.get('status', 'NOT_ATTEMPTED')}",
-        f"- Reconciled competitive award denominator: {crosswalk.get('comp_accepted', 'unknown')}",
-        f"- Reconciled primary-dealer award share: {safe_round(crosswalk.get('dealer_share'))}",
-        f"- Target five-business-day yield window: {(updated_probe.get('target_window') or {}).get('status', 'UNKNOWN')}",
-        "- This one-row crosswalk is sample-level evidence only; no updated-table rows are merged into the historical backtest until full population coverage and overlap are validated.",
+        f"- Nominal fixed-rate 10-year rows: {((updated_probe.get('candidate_population') or {}).get('nominal_fixed_rows', 0))}; row-level XML population status: {((updated_probe.get('candidate_population') or {}).get('status', 'UNKNOWN'))}",
+        f"- Row-level reconciliation counts: {((updated_probe.get('candidate_population') or {}).get('status_counts', {}))}",
+        f"- Legacy CUSIP/auction-date overlap: {((updated_probe.get('legacy_overlap') or {}).get('status', 'NOT_CHECKED'))}; matched={((updated_probe.get('legacy_overlap') or {}).get('matched_rows', 0))}; mismatched={((updated_probe.get('legacy_overlap') or {}).get('mismatched_rows', 0))}; no legacy match={((updated_probe.get('legacy_overlap') or {}).get('no_legacy_match_rows', 0))}",
+        f"- Target 2026-11-10 result XML: {((updated_probe.get('target_sample') or {}).get('result_xml') or {}).get('status', 'NOT_ATTEMPTED')}",
+        f"- Target API/XML award crosswalk: {updated_reconciliation.get('status', 'NOT_ATTEMPTED')}",
+        f"- Target reconciled competitive award denominator: {crosswalk.get('comp_accepted', 'unknown')}",
+        f"- Target reconciled primary-dealer award share: {safe_round(crosswalk.get('dealer_share'))}",
+        f"- Candidate five-business-day target windows: {((updated_probe.get('candidate_population') or {}).get('target_window_counts', {}))}",
+        "- This is a row-level crosswalk of the retrieved post-2026-10-01 slice only; historical completeness is not established and no updated-table rows are merged into the model.",
         "",
         "## Out-of-sample forecast results",
         "",
