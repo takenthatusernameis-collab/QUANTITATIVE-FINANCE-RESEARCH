@@ -12,7 +12,7 @@
 
 ### QFR-2026-11-25-VIX-TERM-STRUCTURE-SP500-RV-01
 
-**Disposition: INCONCLUSIVE — INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen decision rule.**
+**Disposition: INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen decision rule.**
 
 The hypothesis tests whether the simple 30-day/3-month CBOE implied-volatility slope contains incremental information about next-five-session S&P 500 realized volatility beyond recent realized volatility and the VIX level.
 
@@ -34,6 +34,7 @@ The hypothesis tests whether the simple 30-day/3-month CBOE implied-volatility s
 
 - Paired squared-log-loss bootstrap: {"block_size_events": 4, "bootstrap_fraction_positive": 0.734, "ci_95_high": 0.005237632415723959, "ci_95_low": -0.002656211355817704, "mean_baseline_minus_augmented_squared_log_loss": 0.001307604787570931, "observations": 204, "reps": 2000, "status": "COMPUTED"}.
 - Inverted-term-structure event study: {"block_size_events": 4, "ci_95_high_rv_pct": 3.8575693996789724, "ci_95_low_rv_pct": 0.674104597721906, "contango_n": 192, "high_inversion_n": 12, "high_minus_contango_mean_rv_pct": 2.2229281269438985, "mean_contango_rv_pct": 1.9902289666876216, "mean_high_inversion_rv_pct": 4.21315709363152, "reps": 1998}.
+- Interpretation: RMSE improved by 7.76% in validation and 0.85% in test, but the paired test-loss interval crosses zero. The positive inversion-event difference (+2.223 percentage points; 95% interval +0.674 to +3.858) is based on only 12 inverted test events, so the frozen promotion rule is not met.
 
 ## Literature and novelty boundary
 
