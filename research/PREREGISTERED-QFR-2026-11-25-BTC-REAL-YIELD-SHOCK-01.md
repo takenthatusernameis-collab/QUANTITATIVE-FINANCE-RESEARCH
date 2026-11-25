@@ -2,7 +2,8 @@
 
 - **Hypothesis ID:** QFR-2026-11-25-BTC-REAL-YIELD-SHOCK-01
 - **Registered:** 2026-11-25T13:25:00Z, before empirical result inspection.
-- **Status:** FEASIBILITY_CHECKED — official public daily series and source semantics identified; full row-level coverage, freshness and empirical acceptance remain subject to fail-closed workflow checks.
+- **Status:** REJECTED — closed on 2026-11-25 under the frozen decision rule; no tuning or further cycles under this hypothesis ID.
+- **Closed:** 2026-11-25T13:26:20Z after one substantive real-data run; the unused cycle budget is not grounds for extension.
 - **Timebox start:** 2026-11-25T13:25:00Z.
 - **Difficulty:** MEDIUM.
 - **Difficulty rationale:** two public daily series, different seven-day crypto versus five-day Treasury calendars, strict prior-date alignment, signed real-yield observations, non-overlapping five-session targets, rolling OLS and block-bootstrap inference. No credentials, paid data or new venue access.
@@ -49,6 +50,26 @@ A promising incremental forecast result requires all of:
 3. The 95% paired squared-loss bootstrap lower bound for baseline-minus-augmented squared error is above zero.
 
 Reject only if both validation and test RMSE fail to improve and the paired-loss bootstrap upper bound is below zero, indicating evidence that the augmented model is worse. All other outcomes are INCONCLUSIVE. A BACKTESTED result is not independent validation, a causal claim, an investment recommendation, a hedge finding or permission to deploy live. Do not tune features, horizons, event spacing, model window, date splits or bootstrap settings after seeing results.
+
+## Empirical disposition
+
+- Accepted source coverage: CBBTCUSD 2016-11-25 to 2026-11-24 (3,651 rows); DFII10 2016-11-25 to 2026-11-23 (2,498 rows).
+- Accepted non-overlapping signal origins: 601 of 605 candidates; 178 validation forecasts and 298 test forecasts.
+- Validation RMSE: baseline 8.902267%, augmented 9.028444%; improvement **−1.4174%**.
+- Test RMSE: baseline 6.054285%, augmented 6.127806%; improvement **−1.2144%**.
+- Test directional accuracy: baseline 0.4899, augmented 0.4732; the augmented model is also worse on this supplementary test metric.
+- Paired test squared-loss bootstrap: mean baseline-minus-augmented loss **−0.895634 percentage-points²**; 95% block-bootstrap interval **[−1.582877, −0.267794]**; 2,000 replications, four-event blocks, seed 20261127.
+- Both chronological RMSE comparisons fail to improve and the paired-loss upper bound is below zero. **Final status: REJECTED.**
+- The validation directional-accuracy increase does not override the frozen primary-RMSE and paired-loss decision rule.
+- No tuning, alternative horizon, feature substitution or further cycle is authorized under this hypothesis ID. A new materially distinct mechanism requires a new preregistration and timebox.
+- This is a forecast rejection only. It is not evidence that all macro variables are uninformative, and it is not a tradable strategy P&L or causal finding.
+
+## Reproducibility
+
+- Workflow run: https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45623555215
+- Session report: [2026-11-25T132618Z session report](../reports/sessions/2026-11-25/2026-11-25T132618Z_session-wakeup-9-btc-real-yield-45623555215.md)
+- Manifest: [run 45623555215 manifest](../reports/generated/btc-real-yield-shock/45623555215-attempt-1/manifest.json)
+- All 13 deterministic tests passed before the real-data run. The final run's code records the real-yield difference in basis points, including signed and negative DFII10 levels.
 
 ## Literature rationale and novelty boundary
 
