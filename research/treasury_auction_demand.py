@@ -88,7 +88,7 @@ def local_name(tag: str) -> str:
     return tag.rsplit("}", 1)[-1].split(":")[-1]
 
 
-def fetch_bytes(url: str, timeout: int = 30) -> bytes:
+def fetch_bytes(url: str, timeout: int = 15) -> bytes:
     request = urllib.request.Request(
         url,
         headers={
@@ -97,7 +97,7 @@ def fetch_bytes(url: str, timeout: int = 30) -> bytes:
         },
     )
     last_error: Exception | None = None
-    for attempt in range(3):
+    for attempt in range(2):
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 body = response.read()
@@ -112,10 +112,9 @@ def fetch_bytes(url: str, timeout: int = 30) -> bytes:
                 raise RuntimeError(f"Non-retryable HTTP {exc.code} for {url}") from exc
         except (urllib.error.URLError, TimeoutError, OSError, RuntimeError) as exc:
             last_error = exc
-        if attempt < 2:
-            time.sleep((1, 3)[attempt])
-    raise RuntimeError(f"Request failed after 3 attempts: {url}: {last_error}")
-
+        if attempt < 1:
+            time.sleep(1)
+    raise RuntimeError(f"Request failed after 2 bounded attempts: {url}: {last_error}")
 
 def fetch_auction_pages(end_date: dt.date) -> tuple[list[dict], dict]:
     all_rows: list[dict] = []
@@ -266,73 +265,120 @@ def select_ten_year_nominal_auctions(rows: list[dict]) -> tuple[list[dict], dict
     return selected, counts
 
 
-def fetch_treasury_yields(end_date: dt.date) -> tuple[dict[dt.date, float], dict]:
-    values: dict[dt.date, float] = {}
-    hashes: dict[str, str] = {}
-    attempts: list[str] = []
-    treasury_error: Exception | None = None
-    missing_years: list[int] = []
-    try:
-        for year in range(START_DATE.year, end_date.year + 1):
-            params = {
-                "data": "daily_treasury_yield_curve",
-                "field_tdr_date_value": str(year),
-            }
-            url = YIELD_URL + "?" + urllib.parse.urlencode(params)
-            body = fetch_bytes(url)
-            hashes[f"treasury_yield_curve_{year}"] = sha256(body)
-            root = ET.fromstring(body)
-            year_count = 0
-            for entry in root.iter():
-                if local_name(entry.tag) != "entry":
-                    continue
-                fields: dict[str, str] = {}
-                for node in entry.iter():
-                    name = local_name(node.tag)
-                    if name in {"NEW_DATE", "BC_10YEAR"}:
-                        fields[name] = (node.text or "").strip()
-                obs_date = parse_date(fields.get("NEW_DATE"))
-                value = parse_float(fields.get("BC_10YEAR"))
-                if obs_date is None or value is None:
-                    continue
-                if START_DATE <= obs_date <= end_date:
-                    values[obs_date] = value
-                    year_count += 1
-            attempts.append(f"Treasury XML {year}: {year_count} 10-year observations")
-            if year_count == 0:
-                missing_years.append(year)
-            time.sleep(0.12)
-        if missing_years:
-            raise RuntimeError(f"Treasury XML returned no 10-year observations for years {missing_years}")
-        if len(values) < 1000:
-            raise RuntimeError(f"Treasury XML returned only {len(values)} observations")
-        return values, {"provider": "US Treasury daily par yield curve XML", "hashes": hashes, "attempts": attempts}
-    except Exception as exc:
-        treasury_error = exc
-        attempts.append(f"Treasury XML route incomplete/failed: {type(exc).__name__}: {exc}")
-        values = {}
-
-    # Materially different official fallback: FRED republishes the DGS10 series.
-    params = {
-        "id": "DGS10",
-        "cosd": START_DATE.isoformat(),
-        "coed": end_date.isoformat(),
-    }
-    url = FRED_URL + "?" + urllib.parse.urlencode(params)
-    body = fetch_bytes(url)
-    hashes["fred_dgs10_fallback"] = sha256(body)
+def parse_fred_dgs10(body: bytes) -> dict[dt.date, float]:
     reader = csv.DictReader(body.decode("utf-8-sig").splitlines())
+    values: dict[dt.date, float] = {}
     for row in reader:
         obs_date = parse_date(row.get("observation_date") or row.get("DATE"))
         value = parse_float(row.get("DGS10"))
         if obs_date is not None and value is not None:
             values[obs_date] = value
-    if len(values) < 1000:
-        raise RuntimeError(
-            f"Treasury XML failed ({treasury_error}); FRED fallback returned only {len(values)} observations"
-        )
-    attempts.append("Treasury XML unavailable/incomplete; FRED DGS10 CSV fallback succeeded")
-    return values, {"provider": "FRED DGS10 fallback", "hashes": hashes, "attempts": attempts}
+    return values
+
+
+def parse_treasury_xml_year(body: bytes, end_date: dt.date) -> dict[dt.date, float]:
+    root = ET.fromstring(body)
+    values: dict[dt.date, float] = {}
+    for entry in root.iter():
+        if local_name(entry.tag) != "entry":
+            continue
+        fields: dict[str, str] = {}
+        for node in entry.iter():
+            name = local_name(node.tag)
+            if name in {"NEW_DATE", "BC_10YEAR"}:
+                fields[name] = (node.text or "").strip()
+        obs_date = parse_date(fields.get("NEW_DATE"))
+        value = parse_float(fields.get("BC_10YEAR"))
+        if obs_date is not None and value is not None and START_DATE <= obs_date <= end_date:
+            values[obs_date] = value
+    return values
+
+
+def fetch_treasury_yields(end_date: dt.date) -> tuple[dict[dt.date, float], dict]:
+    attempts: list[str] = []
+    hashes: dict[str, str] = {}
+    fred_url = FRED_URL + "?" + urllib.parse.urlencode({
+        "id": "DGS10",
+        "cosd": START_DATE.isoformat(),
+        "coed": end_date.isoformat(),
+    })
+    try:
+        fred_body = fetch_bytes(fred_url, timeout=15)
+        fred_values = parse_fred_dgs10(fred_body)
+        if len(fred_values) < 1000:
+            raise RuntimeError(f"FRED DGS10 returned only {len(fred_values)} observations")
+        hashes["fred_dgs10_primary"] = sha256(fred_body)
+        attempts.append(f"FRED DGS10 primary succeeded with {len(fred_values)} observations")
+
+        # Direct Treasury XML is used as a bounded, independently retrieved cross-check
+        # across the sample, rather than making 19 serial full-history requests.
+        sample_years = sorted(set([START_DATE.year, 2012, 2016, 2020, 2023, end_date.year]))
+        treasury_sample: dict[dt.date, float] = {}
+        sample_counts: dict[str, int] = {}
+        for year in sample_years:
+            params = {
+                "data": "daily_treasury_yield_curve",
+                "field_tdr_date_value": str(year),
+            }
+            url = YIELD_URL + "?" + urllib.parse.urlencode(params)
+            try:
+                body = fetch_bytes(url, timeout=15)
+                hashes[f"treasury_yield_curve_{year}"] = sha256(body)
+                year_values = parse_treasury_xml_year(body, end_date)
+                sample_counts[str(year)] = len(year_values)
+                treasury_sample.update(year_values)
+                attempts.append(f"Treasury XML cross-check {year}: {len(year_values)} observations")
+            except Exception as exc:
+                sample_counts[str(year)] = 0
+                attempts.append(f"Treasury XML cross-check {year} unavailable: {type(exc).__name__}: {exc}")
+
+        overlap = sorted(set(fred_values).intersection(treasury_sample))
+        if overlap:
+            differences = [abs(fred_values[date] - treasury_sample[date]) * 100.0 for date in overlap]
+            crosscheck = {
+                "status": "VERIFIED" if max(differences) <= 0.5 else "DISCREPANCY",
+                "rows": len(overlap),
+                "sample_year_counts": sample_counts,
+                "max_abs_difference_bp": max(differences),
+                "mean_abs_difference_bp": statistics.fmean(differences),
+                "first_date": overlap[0].isoformat(),
+                "last_date": overlap[-1].isoformat(),
+            }
+        else:
+            crosscheck = {"status": "NO_OVERLAP", "rows": 0, "sample_year_counts": sample_counts}
+        return fred_values, {
+            "provider": "FRED DGS10 (Federal Reserve) with direct Treasury XML sample cross-check",
+            "hashes": hashes,
+            "attempts": attempts,
+            "treasury_xml_crosscheck": crosscheck,
+            "primary_url": fred_url,
+        }
+    except Exception as fred_error:
+        attempts.append(f"FRED DGS10 primary failed: {type(fred_error).__name__}: {fred_error}")
+
+    # Materially different fallback: direct US Treasury daily par-yield XML by year.
+    treasury_values: dict[dt.date, float] = {}
+    for year in range(START_DATE.year, end_date.year + 1):
+        params = {
+            "data": "daily_treasury_yield_curve",
+            "field_tdr_date_value": str(year),
+        }
+        url = YIELD_URL + "?" + urllib.parse.urlencode(params)
+        body = fetch_bytes(url, timeout=15)
+        hashes[f"treasury_yield_curve_{year}"] = sha256(body)
+        year_values = parse_treasury_xml_year(body, end_date)
+        if not year_values:
+            raise RuntimeError(f"FRED failed and Treasury XML returned no 10-year observations for {year}")
+        treasury_values.update(year_values)
+        attempts.append(f"Treasury XML fallback {year}: {len(year_values)} observations")
+    if len(treasury_values) < 1000:
+        raise RuntimeError(f"FRED failed and Treasury XML returned only {len(treasury_values)} observations")
+    return treasury_values, {
+        "provider": "US Treasury daily par yield curve XML fallback",
+        "hashes": hashes,
+        "attempts": attempts,
+        "treasury_xml_crosscheck": {"status": "PRIMARY_SOURCE", "rows": len(treasury_values)},
+    }
 
 def fetch_fred_crosscheck(end_date: dt.date) -> tuple[dict[dt.date, float] | None, dict]:
     params = {
@@ -639,8 +685,7 @@ def run_research() -> dict:
     yields, yield_meta = fetch_treasury_yields(end_date)
     if len(yields) < 1000:
         raise RuntimeError(f"Insufficient Treasury 10-year yield observations: {len(yields)}")
-    fred_values, fred_meta = fetch_fred_crosscheck(end_date)
-    fred_comparison = compare_fred(yields, fred_values)
+    treasury_xml_crosscheck = yield_meta.get("treasury_xml_crosscheck", {"status": "NOT_AVAILABLE"})
 
     events, event_quality = build_events(auctions, yields)
     predictions = walk_forward_predictions(events)
@@ -731,7 +776,7 @@ def run_research() -> dict:
             "max_calendar_gap_days": max_gap_days,
             "attempts": yield_meta["attempts"],
         },
-        "fred_crosscheck": fred_meta | {"comparison": fred_comparison},
+        "treasury_xml_crosscheck": treasury_xml_crosscheck,
         "source_sha256": source_hashes,
         "event_construction": {
             "events_with_targets": len(events),
@@ -768,7 +813,7 @@ def render_report(result: dict, error: str | None = None) -> str:
     validation = result.get("validation_metrics") or {}
     auction = result.get("auction_source") or {}
     yield_source = result.get("yield_source") or {}
-    fred = result.get("fred_crosscheck") or {}
+    treasury_crosscheck = result.get("treasury_xml_crosscheck") or {}
     lines = [
         f"# Session report — Treasury auction bidder-composition forecast ({SESSION_STAMP})",
         "",
@@ -795,7 +840,7 @@ def render_report(result: dict, error: str | None = None) -> str:
         f"- Yield observations: {yield_source.get('observations', 'unknown')}",
         f"- Yield coverage: {yield_source.get('first_date', 'unknown')} to {yield_source.get('last_date', 'unknown')}",
         f"- Maximum calendar gap between observed yield dates: {yield_source.get('max_calendar_gap_days', 'unknown')} days",
-        f"- FRED cross-check: {fred.get('comparison', {}).get('status', fred.get('status', 'unknown'))}",
+        f"- Direct Treasury XML cross-check: {treasury_crosscheck.get('status', 'unknown')} ({treasury_crosscheck.get('rows', 0)} overlapping observations)",
         "",
         "## Out-of-sample forecast results",
         "",
