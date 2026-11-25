@@ -193,11 +193,11 @@ def reconcile_updated_auction_sample(sample: dict | None) -> dict:
     if inflation_protected is None:
         return {"status": "INCOMPLETE", "reason": "Inflation-protection status is missing or unrecognized"}
     if inflation_protected:
-        return {"status": "MISMATCH", "reason": "TIPS row cannot be reconciled as a nominal fixed-rate Note"}
+        return {"status": "MISMATCH", "reason": "inflation_protected is true; TIPS row cannot be reconciled as a nominal fixed-rate Note"}
     if floating_rate is None:
         return {"status": "INCOMPLETE", "reason": "Floating-rate status is missing or unrecognized"}
     if floating_rate:
-        return {"status": "MISMATCH", "reason": "Floating-rate row cannot be reconciled as a nominal fixed-rate Note"}
+        return {"status": "MISMATCH", "reason": "floating_rate is true; row cannot be reconciled as a nominal fixed-rate Note"}
     result_xml = sample.get("result_xml") or {}
     if result_xml.get("status") != "PARSED":
         return {
