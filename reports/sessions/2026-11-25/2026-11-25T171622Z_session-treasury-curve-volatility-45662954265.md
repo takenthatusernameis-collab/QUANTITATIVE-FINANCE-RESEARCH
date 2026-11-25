@@ -49,3 +49,15 @@
 - Manifest: reports/generated/treasury-curve-volatility/45662954265-attempt-1/manifest.json
 - Source: research/treasury_curve_volatility_sp500.py
 - Tests: research/test_treasury_curve_volatility_sp500.py
+
+
+## Wake-up execution addendum — validation repairs and final repository check
+
+- The first CI attempt (run 45662738368) stopped before data retrieval because the synthetic walk-forward fixture omitted output fields and the gap test removed too few observations to exceed the four-calendar-day guard.
+- The second CI attempt (run 45662879243) exposed one remaining fixture field and the same gap-test construction issue. The fixture was completed and three consecutive business observations were removed so the test exercises a genuine greater-than-four-calendar-day gap. No empirical data were inspected during either failed test attempt.
+- Final run 45662954265 passed all 14 deterministic tests, source retrieval, the preregistered walk-forward forecast and evidence persistence. All workflow steps succeeded.
+- The workflow committed the report, manifest and registry update. Final main commit at verification: 7b5fb37ca1733e15b771d36123b178f807621cc6.
+- Repository check: no open pull requests or open issues were returned. The historical tasks/ACTIVE-QUEUE.md path is absent on current main; the current README and hypothesis registry are the operative records.
+- Daily research KPI: MET before this additional experiment; this distinct real-data experiment added further evidence. No live orders, capital deployment, raw-data commit or paid-data use occurred.
+- Research output: one additional rates-uncertainty forecast screen, INCONCLUSIVE. Operational work: one preregistration, model, 14-test suite, least-privilege workflow, two test-fixture repairs and persisted evidence. No time-spent estimate is asserted.
+- Next: leave this hypothesis closed and do not tune its feature, horizon, sample or decision rule. Select a new candidate only if it has a materially distinct mechanism and a separate preregistration.
