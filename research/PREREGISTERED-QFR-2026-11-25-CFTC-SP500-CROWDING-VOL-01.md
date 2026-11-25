@@ -2,13 +2,14 @@
 
 - **Hypothesis ID:** QFR-2026-11-25-CFTC-SP500-CROWDING-VOL-01
 - **Registered:** 2026-11-25, before implementation or empirical result inspection
+- **Timebox start:** 2026-11-25T10:29:04Z (UTC; preregistration commit timestamp).
 - **Status:** IDEA pending bounded source and timing validation
 - **Market:** CME E-mini S&P 500 futures positioning (CFTC code 13874A); S&P 500 cash index close series (FRED SP500)
 - **Difficulty:** MEDIUM
 - **Difficulty rationale:** both sources are public and keyless; the work requires careful report-publication timing, holiday/backlog exclusions, daily-to-weekly event construction, walk-forward OLS and block-bootstrap inference, but no new venue credentials or paid data.
 - **Maximum budget:** 4 substantive agent cycles total.
-- **Implementation deadline:** 2026-11-28 10:22 UTC.
-- **Final research conclusion deadline:** 2026-11-30 10:22 UTC.
+- **Implementation deadline:** 2026-11-28 10:30 UTC.
+- **Final research conclusion deadline:** 2026-11-30 10:30 UTC.
 - **Expiry rule:** if the source/timing gates or valid empirical result are incomplete at expiry, close as INCONCLUSIVE/INFEASIBLE with the exact blocker. Expiry is not evidence to reject the economic hypothesis. Do not weaken gates, reset the clock or extend automatically.
 
 ## Distinct mechanism and falsifiable claim
