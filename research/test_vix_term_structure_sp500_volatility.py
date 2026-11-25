@@ -154,5 +154,24 @@ class VixTermStructureTests(unittest.TestCase):
         self.assertEqual(status, "INCONCLUSIVE")
 
 
+    def test_source_coverage_rejects_stale_but_synchronized_sources(self):
+        stale = {dt.date(2026, 11, 10): 1.0}
+        with self.assertRaisesRegex(ValueError, "stale"):
+            model.validate_source_coverage({
+                "SP500": stale,
+                "VIXCLS": stale,
+                "VXVCLS": stale,
+            })
+
+    def test_source_coverage_accepts_recent_synchronized_sources(self):
+        recent = {dt.date(2026, 11, 23): 1.0}
+        coverage = model.validate_source_coverage({
+            "SP500": recent,
+            "VIXCLS": recent,
+            "VXVCLS": recent,
+        })
+        self.assertEqual(coverage["SP500"]["last_date"], "2026-11-23")
+
+
 if __name__ == "__main__":
     unittest.main()
