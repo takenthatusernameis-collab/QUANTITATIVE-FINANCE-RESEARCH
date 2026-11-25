@@ -222,6 +222,51 @@ class TreasuryAuctionDemandTests(unittest.TestCase):
         self.assertEqual(meta["treasury_xml_crosscheck"]["rows"], 0)
         self.assertIn("timeout", meta["treasury_xml_crosscheck"]["error"].lower())
 
+    def test_updated_auction_probe_discovers_november_ten_year_result_fields(self):
+        payload = {
+            "data": [
+                {
+                    "record_date": "2026-11-10",
+                    "cusip": "91282CRX1",
+                    "security_type": "Note",
+                    "security_desc": "10-Year Note",
+                    "comp_auction_close_date": "2026-11-10",
+                    "bid_to_cover_ratio": "2.46",
+                    "comp_accepted": "41852615000",
+                    "primary_dealer_accepted": "3736150000",
+                    "direct_bidder_accepted": "8321500000",
+                    "indirect_bidder_accepted": "29794965000",
+                },
+                {
+                    "record_date": "2026-11-24",
+                    "cusip": "91282CRZ6",
+                    "security_type": "Note",
+                    "security_desc": "5-Year Note",
+                    "comp_auction_close_date": "2026-11-24",
+                },
+            ],
+            "meta": {"total-pages": "1", "total-count": "2"},
+        }
+        body = qfr.json.dumps(payload).encode("utf-8")
+        with patch.object(qfr, "fetch_bytes", return_value=body) as fetch:
+            probe = qfr.fetch_updated_auction_probe(dt.date(2026, 11, 24))
+        self.assertEqual(probe["status"], "SAMPLE_ONLY")
+        self.assertEqual(probe["rows_returned"], 2)
+        self.assertEqual(probe["target_matches"], 1)
+        self.assertEqual(probe["target_sample"]["cusip"], "91282CRX1")
+        self.assertIn("primary_dealer_accepted", probe["target_sample"]["result_fields"])
+        self.assertIn("bid_to_cover_ratio", probe["candidate_result_fields"])
+        self.assertIn("page%5Bsize%5D=1000", fetch.call_args.args[0])
+
+    def test_updated_auction_probe_fails_closed_when_endpoint_unavailable(self):
+        with patch.object(qfr, "fetch_bytes", side_effect=RuntimeError("endpoint unavailable")):
+            probe = qfr.fetch_updated_auction_probe(dt.date(2026, 11, 24))
+        self.assertEqual(probe["status"], "UNAVAILABLE")
+        self.assertEqual(probe["rows_returned"], 0)
+        self.assertEqual(probe["target_matches"], 0)
+        self.assertIn("endpoint unavailable", probe["error"])
+
+
 
 if __name__ == "__main__":
     unittest.main()

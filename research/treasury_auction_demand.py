@@ -34,6 +34,7 @@ BOOTSTRAP_REPS = 2000
 BOOTSTRAP_BLOCK = 4
 RNG_SEED = 20261125
 BASE_URL = "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query"
+UPDATED_AUCTION_URL = "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/treasury_securities_auctions_v2"
 YIELD_URL = "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml"
 FRED_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv"
 ROOT = Path(__file__).resolve().parents[1]
@@ -115,6 +116,96 @@ def fetch_bytes(url: str, timeout: int = 15) -> bytes:
         if attempt < 1:
             time.sleep(1)
     raise RuntimeError(f"Request failed after 2 bounded attempts: {url}: {last_error}")
+
+def fetch_updated_auction_probe(end_date: dt.date) -> dict:
+    """Bounded schema/coverage probe for Treasury's post-2026-10-01 updated auctions table.
+
+    This probe deliberately does not merge the new table into the historical model sample.
+    The changed schema and bidder-result semantics must be verified before those rows are accepted.
+    """
+    params = {
+        "filter": f"record_date:gte:2026-10-01,record_date:lte:{end_date.isoformat()}",
+        "sort": "record_date",
+        "page[size]": "1000",
+        "page[number]": "1",
+    }
+    url = UPDATED_AUCTION_URL + "?" + urllib.parse.urlencode(params)
+    try:
+        body = fetch_bytes(url, timeout=20)
+        payload = json.loads(body.decode("utf-8"))
+        rows = payload.get("data")
+        if not isinstance(rows, list):
+            raise RuntimeError("Updated Treasury auctions response has no data array")
+        meta = payload.get("meta") or {}
+        try:
+            total_pages = int(meta.get("total-pages") or meta.get("total_pages") or 1)
+        except (TypeError, ValueError):
+            total_pages = 1
+        record_dates = sorted(
+            date for date in (parse_date(row.get("record_date")) for row in rows) if date is not None
+        )
+        auction_dates = sorted(
+            date for date in (parse_date(row.get("comp_auction_close_date")) for row in rows) if date is not None
+        )
+        schema_fields = sorted({str(key) for row in rows for key in row})
+        result_tokens = ("accepted", "bidder", "bid_to_cover", "dealer", "direct", "indirect", "competitive", "tender", "offering")
+        candidate_result_fields = sorted(
+            field for field in schema_fields if any(token in field.lower() for token in result_tokens)
+        )
+        target_matches = []
+        for row in rows:
+            description = normalize_term(row.get("security_desc"))
+            auction_date = parse_date(row.get("comp_auction_close_date"))
+            if (
+                str(row.get("security_type", "")).strip().lower() == "note"
+                and "10year" in description
+                and auction_date == dt.date(2026, 11, 10)
+            ):
+                result_fields = {
+                    key: row.get(key)
+                    for key in candidate_result_fields
+                    if key in row
+                }
+                target_matches.append({
+                    "record_date": row.get("record_date"),
+                    "cusip": row.get("cusip"),
+                    "security_type": row.get("security_type"),
+                    "security_desc": row.get("security_desc"),
+                    "comp_auction_close_date": row.get("comp_auction_close_date"),
+                    "result_fields": result_fields,
+                })
+        return {
+            "status": "SAMPLE_ONLY" if rows and total_pages == 1 else ("PARTIAL" if rows else "NO_DATA"),
+            "url": url,
+            "rows_returned": len(rows),
+            "total_pages": total_pages,
+            "page_size": 1000,
+            "first_record_date": record_dates[0].isoformat() if record_dates else None,
+            "last_record_date": record_dates[-1].isoformat() if record_dates else None,
+            "first_auction_date": auction_dates[0].isoformat() if auction_dates else None,
+            "last_auction_date": auction_dates[-1].isoformat() if auction_dates else None,
+            "schema_fields": schema_fields,
+            "candidate_result_fields": candidate_result_fields,
+            "target_matches": len(target_matches),
+            "target_sample": target_matches[0] if target_matches else None,
+            "sha256": sha256(body),
+            "page_complete": bool(rows) and total_pages == 1,
+            "limitations": [
+                "Diagnostic only: updated-table rows are not merged into the historical model sample.",
+                "One-page probe is complete only when the API reports one page.",
+                "Field presence does not by itself validate bidder-result semantics or historical completeness.",
+            ],
+        }
+    except Exception as exc:
+        return {
+            "status": "UNAVAILABLE",
+            "url": url,
+            "error": f"{type(exc).__name__}: {exc}",
+            "rows_returned": 0,
+            "target_matches": 0,
+            "page_complete": False,
+        }
+
 
 def fetch_auction_pages(end_date: dt.date) -> tuple[list[dict], dict]:
     all_rows: list[dict] = []
@@ -701,10 +792,13 @@ def write_outputs(result: dict, report: str) -> tuple[str, str]:
     status = result.get("status", "INCONCLUSIVE")
     disposition = result.get("disposition", "INCONCLUSIVE")
     metrics = result.get("summary_metrics") or {}
+    updated_probe = result.get("updated_auction_probe") or {}
     metrics_text = (
         f"test OOS n={metrics.get('test_n', 0)}, augmented RMSE={metrics.get('test_augmented_rmse_bp')} bp, "
         f"baseline RMSE={metrics.get('test_baseline_rmse_bp')} bp, RMSE improvement={metrics.get('test_rmse_improvement_pct')}%, "
-        f"weak-demand events={((result.get('test_metrics') or {}).get('weak_demand_event_study') or {}).get('weak_n', 0)}"
+        f"weak-demand events={((result.get('test_metrics') or {}).get('weak_demand_event_study') or {}).get('weak_n', 0)}; "
+        f"updated auctions API probe={updated_probe.get('status', 'UNAVAILABLE')}, "
+        f"2026-11-10 10-year matches={updated_probe.get('target_matches', 0)}"
     )
     data_scope = result.get("data_scope", "Data scope unresolved")
     update_registry(status, disposition, data_scope, '../' + str(report_path.relative_to(ROOT)), metrics_text)
@@ -713,6 +807,7 @@ def write_outputs(result: dict, report: str) -> tuple[str, str]:
 
 def run_research() -> dict:
     end_date = END_DATE
+    updated_auction_probe = fetch_updated_auction_probe(end_date)
     auction_rows, auction_meta = fetch_auction_pages(end_date)
     auctions, auction_quality = select_ten_year_nominal_auctions(auction_rows)
     if len(auctions) < MODEL_WINDOW + 30:
@@ -770,6 +865,8 @@ def run_research() -> dict:
     source_hashes = {}
     source_hashes.update(auction_meta["hashes"])
     source_hashes.update(yield_meta["hashes"])
+    if updated_auction_probe.get("sha256"):
+        source_hashes["updated_auction_probe"] = updated_auction_probe["sha256"]
 
     summary_metrics = {
         "all_oos_n": len(all_rows),
@@ -798,6 +895,7 @@ def run_research() -> dict:
         "sample_start": START_DATE.isoformat(),
         "sample_end_cutoff": end_date.isoformat(),
         "data_scope": f"10-year nominal Treasury notes, {auctions[0]['auction_date']} to {auctions[-1]['auction_date']}; {yield_meta['provider']} daily yield observations {yield_dates[0]} to {yield_dates[-1]}",
+        "updated_auction_probe": updated_auction_probe,
         "auction_source": {
             "url": BASE_URL,
             "rows_returned": auction_meta["rows_returned"],
@@ -840,6 +938,7 @@ def run_research() -> dict:
             "Auction result publication is conservatively lagged: the target starts at the first yield-series observation strictly after record_date.",
             "The yield series is a reference series, not an executable quote.",
             "No forward-filling or synthetic observations are used.",
+            "The updated post-2026-10-01 Treasury auctions API is probed separately; its rows are not merged into the legacy historical sample until schema, bidder-result semantics and coverage are validated.",
             "Incremental predictive value requires independent robustness and a separate tradable-instrument data source before any economic interpretation.",
         ],
     }
@@ -852,6 +951,7 @@ def render_report(result: dict, error: str | None = None) -> str:
     auction = result.get("auction_source") or {}
     yield_source = result.get("yield_source") or {}
     treasury_crosscheck = result.get("treasury_xml_crosscheck") or {}
+    updated_probe = result.get("updated_auction_probe") or {}
     lines = [
         f"# Session report — Treasury auction bidder-composition forecast ({SESSION_STAMP})",
         "",
@@ -879,6 +979,15 @@ def render_report(result: dict, error: str | None = None) -> str:
         f"- Yield coverage: {yield_source.get('first_date', 'unknown')} to {yield_source.get('last_date', 'unknown')}",
         f"- Maximum calendar gap between observed yield dates: {yield_source.get('max_calendar_gap_days', 'unknown')} days",
         f"- Direct Treasury XML cross-check: {treasury_crosscheck.get('status', 'unknown')} ({treasury_crosscheck.get('rows', 0)} overlapping observations)",
+        "",
+        "## Updated Treasury auctions API probe (diagnostic only)",
+        "",
+        f"- Status: {updated_probe.get('status', 'UNAVAILABLE')}",
+        f"- Rows returned: {updated_probe.get('rows_returned', 0)}; API pages: {updated_probe.get('total_pages', 'unknown')}",
+        f"- Record-date coverage: {updated_probe.get('first_record_date', 'unknown')} to {updated_probe.get('last_record_date', 'unknown')}",
+        f"- 2026-11-10 10-year note matches: {updated_probe.get('target_matches', 0)}",
+        f"- Candidate bidder/result fields: {', '.join(updated_probe.get('candidate_result_fields', []))}",
+        "- The updated-table probe is not merged into the historical backtest until field semantics and coverage are validated.",
         "",
         "## Out-of-sample forecast results",
         "",
