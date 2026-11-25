@@ -666,5 +666,146 @@ class TreasuryAuctionDemandTests(unittest.TestCase):
         self.assertEqual(overlap["status"], "MATCH")
 
 
+    def _legacy_hybrid_auction(self):
+        return {
+            "cusip": "OLD",
+            "auction_date": dt.date(2026, 10, 7),
+            "record_date": dt.date(2026, 10, 15),
+            "bid_to_cover": 2.5,
+            "dealer_share": 0.10,
+            "comp_accepted": 1000.0,
+            "primary_dealer_accepted": 100.0,
+            "direct_bidder_accepted": 200.0,
+            "indirect_bidder_accepted": 700.0,
+            "bidder_total": 1000.0,
+            "security_term": "9-Year 11-Month",
+            "original_security_term": "10-Year",
+            "reopening": "No",
+        }
+
+    def _hybrid_sample(self, cusip, auction_date, record_date, overlap_status):
+        crosswalk = {
+            "cusip": cusip,
+            "auction_date": auction_date.isoformat(),
+            "record_date": record_date.isoformat(),
+            "bid_to_cover_ratio": 2.5,
+            "comp_accepted": 1000.0,
+            "primary_dealer_accepted": 100.0,
+            "direct_bidder_accepted": 200.0,
+            "indirect_bidder_accepted": 700.0,
+        }
+        return {
+            "cusip": cusip,
+            "record_date": record_date.isoformat(),
+            "comp_auction_close_date": auction_date.isoformat(),
+            "security_type": "Note",
+            "original_security_term": "10-Year",
+            "security_term": "9-Year 11-Month Note",
+            "inflation_protected": "No",
+            "floating_rate": "No",
+            "reopening": "No",
+            "reconciliation": {
+                "status": "RECONCILED_SAMPLE_ONLY",
+                "legacy_crosswalk": crosswalk,
+            },
+            "legacy_overlap": {
+                "status": overlap_status,
+                "field_checks": [{"matched": True}] if overlap_status == "MATCH" else [],
+            },
+        }
+
+    def _hybrid_probe(self, samples, page_complete=True, population_status="RECONCILED_SAMPLE_ONLY",
+                      overlap_status="VERIFIED", matched_rows=1, mismatched_rows=0):
+        return {
+            "status": "SAMPLE_ONLY" if page_complete else "PARTIAL",
+            "page_complete": page_complete,
+            "first_record_date": "2026-10-01",
+            "last_record_date": "2026-11-24",
+            "candidate_samples": samples,
+            "candidate_population": {
+                "status": population_status,
+                "page_complete": page_complete,
+                "nominal_fixed_rows": len(samples),
+                "reconciled_rows": len(samples) if population_status == "RECONCILED_SAMPLE_ONLY" else 0,
+                "unclassified_rows": [],
+                "duplicate_identities": 0,
+            },
+            "legacy_overlap": {
+                "status": overlap_status,
+                "matched_rows": matched_rows,
+                "mismatched_rows": mismatched_rows,
+                "not_comparable_rows": 0,
+            },
+        }
+
+    def test_hybrid_adapter_merges_reconciled_post_legacy_row_and_skips_overlap(self):
+        legacy = [self._legacy_hybrid_auction()]
+        matched = self._hybrid_sample(
+            "OLD", dt.date(2026, 10, 7), dt.date(2026, 10, 15), "MATCH"
+        )
+        new = self._hybrid_sample(
+            "NEW", dt.date(2026, 11, 10), dt.date(2026, 11, 16), "NO_LEGACY_MATCH"
+        )
+        new["target_window"] = {"status": "INCOMPLETE"}
+        probe = self._hybrid_probe([matched, new])
+        merged, meta = qfr.merge_updated_auction_samples(legacy, probe)
+        self.assertEqual(meta["status"], "MERGED_VERIFIED_SLICE")
+        self.assertEqual(meta["verified_overlap_rows"], 1)
+        self.assertEqual(meta["appended_rows"], 1)
+        self.assertEqual(len(merged), 2)
+        self.assertEqual(merged[-1]["cusip"], "NEW")
+        self.assertEqual(merged[-1]["record_date"], dt.date(2026, 11, 16))
+        self.assertEqual(merged[-1]["data_source"], "treasury_auctions_v2")
+
+    def test_hybrid_adapter_blocks_unmatched_row_inside_legacy_date_range(self):
+        legacy = [self._legacy_hybrid_auction()]
+        matched = self._hybrid_sample(
+            "OLD", dt.date(2026, 10, 7), dt.date(2026, 10, 15), "MATCH"
+        )
+        gap = self._hybrid_sample(
+            "GAP", dt.date(2026, 10, 1), dt.date(2026, 10, 8), "NO_LEGACY_MATCH"
+        )
+        merged, meta = qfr.merge_updated_auction_samples(legacy, self._hybrid_probe([matched, gap]))
+        self.assertEqual(meta["status"], "BLOCKED")
+        self.assertEqual(len(merged), 1)
+        self.assertIn("strictly after", meta["reason"])
+
+    def test_hybrid_adapter_blocks_incomplete_page_or_population(self):
+        legacy = [self._legacy_hybrid_auction()]
+        matched = self._hybrid_sample(
+            "OLD", dt.date(2026, 10, 7), dt.date(2026, 10, 15), "MATCH"
+        )
+        new = self._hybrid_sample(
+            "NEW", dt.date(2026, 11, 10), dt.date(2026, 11, 16), "NO_LEGACY_MATCH"
+        )
+        incomplete_page = self._hybrid_probe([matched, new], page_complete=False, population_status="INCOMPLETE")
+        merged, meta = qfr.merge_updated_auction_samples(legacy, incomplete_page)
+        self.assertEqual(meta["status"], "BLOCKED")
+        self.assertEqual(len(merged), 1)
+        incomplete_population = self._hybrid_probe([matched, new], population_status="INCOMPLETE")
+        merged, meta = qfr.merge_updated_auction_samples(legacy, incomplete_population)
+        self.assertEqual(meta["status"], "BLOCKED")
+        self.assertEqual(len(merged), 1)
+
+    def test_hybrid_adapter_blocks_mismatched_or_unanchored_legacy_overlap(self):
+        legacy = [self._legacy_hybrid_auction()]
+        matched = self._hybrid_sample(
+            "OLD", dt.date(2026, 10, 7), dt.date(2026, 10, 15), "MATCH"
+        )
+        new = self._hybrid_sample(
+            "NEW", dt.date(2026, 11, 10), dt.date(2026, 11, 16), "NO_LEGACY_MATCH"
+        )
+        mismatch = self._hybrid_probe(
+            [matched, new], overlap_status="DISCREPANCY", matched_rows=1, mismatched_rows=1
+        )
+        merged, meta = qfr.merge_updated_auction_samples(legacy, mismatch)
+        self.assertEqual(meta["status"], "BLOCKED")
+        no_anchor = self._hybrid_probe(
+            [new], overlap_status="NO_OVERLAP", matched_rows=0, mismatched_rows=0
+        )
+        merged, meta = qfr.merge_updated_auction_samples(legacy, no_anchor)
+        self.assertEqual(meta["status"], "BLOCKED")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -557,9 +557,9 @@ def fetch_updated_auction_probe(
 ) -> dict:
     """Reconcile every identifiable nominal fixed-rate 10-year Note in the updated API slice.
 
-    This remains a diagnostic sample: rows are not merged into the historical
-    model until the updated population's historical coverage and legacy overlap
-    are independently established.
+    The probe remains separate from the model. A downstream hybrid adapter may
+    merge only fully reconciled rows after the legacy source's observed cutoff,
+    with a complete API page and at least one exact legacy overlap.
     """
     params = {
         "filter": f"record_date:gte:2026-10-01,record_date:lte:{end_date.isoformat()}",
@@ -776,11 +776,11 @@ def fetch_updated_auction_probe(
             "sha256": page_digest,
             "page_complete": page_complete,
             "limitations": [
-                "Diagnostic only: updated-table rows are not merged into the historical model sample.",
-                "Page completeness requires every API page and a matching API total-count.",
+                "The probe covers the updated API record-date slice from 2026-10-01 through the requested end date; page completeness requires every API page and a matching total-count.",
                 "Every identifiable nominal fixed-rate 10-year Note in the retrieved page is reconciled against its official result XML, including both current and legacy result-XML field conventions; missing, ambiguous or duplicate identities fail closed.",
-                "The API slice begins 2026-10-01 and does not establish historical population completeness.",
-                "Legacy overlap is checked by CUSIP and auction date; rows without a legacy match remain unmerged.",
+                "The hybrid adapter merges only fully reconciled rows after the latest legacy auction date, requires at least one exact legacy overlap, and fails closed on any mismatch or unmatched row inside the legacy date range.",
+                "The updated API's historical completeness before 2026-10-01 is not established; the legacy endpoint remains the source for earlier auction history.",
+                "Newly merged rows without a complete five-business-day target are retained in source coverage but excluded from forecast events.",
                 "Only competitive awarded amounts map to legacy accepted fields; recognized amounts are cross-checked but excluded from the accepted-share denominator.",
             ],
         }
@@ -796,6 +796,165 @@ def fetch_updated_auction_probe(
             "legacy_overlap": {"status": "NOT_CHECKED"},
             "page_complete": False,
         }
+
+def merge_updated_auction_samples(
+    legacy_auctions: list[dict], probe: dict
+) -> tuple[list[dict], dict]:
+    """Merge only a fully reconciled post-legacy slice; otherwise return legacy unchanged."""
+    unchanged = list(legacy_auctions)
+
+    def blocked(reason: str) -> tuple[list[dict], dict]:
+        return unchanged, {
+            "status": "BLOCKED",
+            "reason": reason,
+            "legacy_rows": len(unchanged),
+            "updated_candidate_rows": len(probe.get("candidate_samples") or []) if isinstance(probe, dict) else 0,
+            "appended_rows": 0,
+            "verified_overlap_rows": 0,
+        }
+
+    if not isinstance(probe, dict) or probe.get("page_complete") is not True:
+        return blocked("Updated API page is unavailable or incomplete")
+    population = probe.get("candidate_population") or {}
+    if population.get("status") != "RECONCILED_SAMPLE_ONLY":
+        return blocked("Not every updated nominal fixed-rate 10-year row passed API/XML reconciliation")
+    if population.get("page_complete") is not True:
+        return blocked("Candidate population does not confirm a complete API page")
+    samples = probe.get("candidate_samples") or []
+    if not samples:
+        return blocked("No reconciled updated nominal fixed-rate 10-year rows are available")
+    if (
+        population.get("nominal_fixed_rows") != len(samples)
+        or population.get("reconciled_rows") != len(samples)
+        or population.get("duplicate_identities", 0) != 0
+        or population.get("unclassified_rows")
+    ):
+        return blocked("Updated candidate counts, identities or classifications are incomplete")
+
+    overlap = probe.get("legacy_overlap") or {}
+    if (
+        overlap.get("status") != "VERIFIED"
+        or overlap.get("matched_rows", 0) < 1
+        or overlap.get("mismatched_rows", 0) != 0
+        or overlap.get("not_comparable_rows", 0) != 0
+    ):
+        return blocked("At least one exact legacy overlap is required, with zero mismatches")
+
+    legacy_by_identity = {}
+    legacy_dates = []
+    for row in unchanged:
+        cusip = str(row.get("cusip") or "").strip()
+        auction_date = parse_date(row.get("auction_date"))
+        if not cusip or auction_date is None:
+            return blocked("Legacy sample contains an invalid CUSIP or auction date")
+        identity = (cusip, auction_date)
+        if identity in legacy_by_identity:
+            return blocked("Legacy sample contains duplicate CUSIP/auction-date identities")
+        legacy_by_identity[identity] = row
+        legacy_dates.append(auction_date)
+    if not legacy_dates:
+        return blocked("Legacy sample has no usable auction-date cutoff")
+    max_legacy_date = max(legacy_dates)
+
+    seen = set(legacy_by_identity)
+    additions = []
+    verified_matches = 0
+    for sample in samples:
+        reconciliation = sample.get("reconciliation") or {}
+        if reconciliation.get("status") != "RECONCILED_SAMPLE_ONLY":
+            return blocked("An updated candidate lacks a complete API/XML reconciliation")
+        crosswalk = reconciliation.get("legacy_crosswalk") or {}
+        cusip = str(crosswalk.get("cusip") or sample.get("cusip") or "").strip()
+        auction_date = parse_date(crosswalk.get("auction_date") or sample.get("comp_auction_close_date"))
+        record_date = parse_date(crosswalk.get("record_date") or sample.get("record_date"))
+        if not cusip or auction_date is None or record_date is None or record_date < auction_date:
+            return blocked("An updated candidate has an invalid identity or publication date")
+        identity = (cusip, auction_date)
+        sample_overlap = sample.get("legacy_overlap") or {}
+        overlap_status = sample_overlap.get("status")
+
+        if overlap_status == "MATCH":
+            legacy = legacy_by_identity.get(identity)
+            if legacy is None:
+                return blocked("Updated sample claims a legacy match that is absent from the legacy dataset")
+            checks = (
+                (record_date == legacy.get("record_date")),
+                (abs(parse_float(crosswalk.get("bid_to_cover_ratio")) - parse_float(legacy.get("bid_to_cover"))) <= 1e-9
+                 if parse_float(crosswalk.get("bid_to_cover_ratio")) is not None and parse_float(legacy.get("bid_to_cover")) is not None else False),
+                (abs(parse_float(crosswalk.get("comp_accepted")) - parse_float(legacy.get("comp_accepted"))) <= 1.0
+                 if parse_float(crosswalk.get("comp_accepted")) is not None and parse_float(legacy.get("comp_accepted")) is not None else False),
+                (abs(parse_float(crosswalk.get("primary_dealer_accepted")) - parse_float(legacy.get("primary_dealer_accepted"))) <= 1.0
+                 if parse_float(crosswalk.get("primary_dealer_accepted")) is not None and parse_float(legacy.get("primary_dealer_accepted")) is not None else False),
+                (abs(parse_float(crosswalk.get("direct_bidder_accepted")) - parse_float(legacy.get("direct_bidder_accepted"))) <= 1.0
+                 if parse_float(crosswalk.get("direct_bidder_accepted")) is not None and parse_float(legacy.get("direct_bidder_accepted")) is not None else False),
+                (abs(parse_float(crosswalk.get("indirect_bidder_accepted")) - parse_float(legacy.get("indirect_bidder_accepted"))) <= 1.0
+                 if parse_float(crosswalk.get("indirect_bidder_accepted")) is not None and parse_float(legacy.get("indirect_bidder_accepted")) is not None else False),
+            )
+            if not all(checks):
+                return blocked("Updated/legacy overlap fields do not match within declared tolerances")
+            verified_matches += 1
+            continue
+
+        if overlap_status != "NO_LEGACY_MATCH":
+            return blocked("An updated candidate has an unresolved or mismatched legacy overlap")
+        if identity in seen:
+            return blocked("An unmatched updated candidate duplicates an existing auction identity")
+        if auction_date <= max_legacy_date:
+            return blocked("An unmatched updated row is not strictly after the latest legacy auction date")
+
+        raw_row = {
+            "record_date": record_date,
+            "auction_date": auction_date,
+            "cusip": cusip,
+            "security_type": sample.get("security_type"),
+            "original_security_term": sample.get("original_security_term") or "10-Year",
+            "security_term": sample.get("security_term") or sample.get("security_desc"),
+            "tips": sample.get("inflation_protected"),
+            "floating_rate": sample.get("floating_rate"),
+            "reopening": sample.get("reopening"),
+            "bid_to_cover_ratio": crosswalk.get("bid_to_cover_ratio"),
+            "comp_accepted": crosswalk.get("comp_accepted"),
+            "primary_dealer_accepted": crosswalk.get("primary_dealer_accepted"),
+            "direct_bidder_accepted": crosswalk.get("direct_bidder_accepted"),
+            "indirect_bidder_accepted": crosswalk.get("indirect_bidder_accepted"),
+        }
+        selected, quality = select_ten_year_nominal_auctions([raw_row])
+        if (
+            len(selected) != 1
+            or quality.get("missing_fields", 0) != 0
+            or quality.get("duplicate_cusip", 0) != 0
+            or quality.get("denominator_mismatch_over_5pct", 0) != 0
+        ):
+            return blocked("A post-legacy updated row failed the legacy feature-selection and denominator checks")
+        normalized = selected[0]
+        normalized["data_source"] = "treasury_auctions_v2"
+        additions.append(normalized)
+        seen.add(identity)
+
+    if verified_matches != overlap.get("matched_rows", 0):
+        return blocked("Verified overlap count does not match the row-level checks")
+    merged = unchanged + additions
+    merged.sort(key=lambda item: (item["record_date"], item["auction_date"], item["cusip"]))
+    return merged, {
+        "status": "MERGED_VERIFIED_SLICE" if additions else "VERIFIED_NO_NEW_ROWS",
+        "legacy_rows": len(unchanged),
+        "updated_candidate_rows": len(samples),
+        "verified_overlap_rows": verified_matches,
+        "appended_rows": len(additions),
+        "max_legacy_auction_date": max_legacy_date.isoformat(),
+        "updated_record_date_range": [probe.get("first_record_date"), probe.get("last_record_date")],
+        "appended_identities": [
+            {
+                "cusip": row["cusip"],
+                "auction_date": row["auction_date"].isoformat(),
+                "record_date": row["record_date"].isoformat(),
+            }
+            for row in additions
+        ],
+        "historical_completeness_before_2026_10_01": "NOT_ESTABLISHED",
+        "scope_note": "Legacy rows supply history through the observed legacy cutoff; only fully reconciled updated rows strictly after that cutoff are appended.",
+    }
+
 
 def fetch_auction_pages(end_date: dt.date) -> tuple[list[dict], dict]:
     all_rows: list[dict] = []
@@ -1485,6 +1644,8 @@ def write_outputs(result: dict, report: str) -> tuple[str, str]:
     metrics_text = (
         f"test OOS n={metrics.get('test_n', 0)}, augmented RMSE={metrics.get('test_augmented_rmse_bp')} bp, "
         f"baseline RMSE={metrics.get('test_baseline_rmse_bp')} bp, RMSE improvement={metrics.get('test_rmse_improvement_pct')}%, "
+        f"hybrid merge={((updated_probe.get('hybrid_merge') or {}).get('status', 'NOT_ATTEMPTED'))}, "
+        f"v2 appended={((updated_probe.get('hybrid_merge') or {}).get('appended_rows', 0))}; "
         f"paired squared-loss delta={metrics.get('test_paired_squared_loss_mean_diff_bp2')} bp^2, "
         f"95% block-bootstrap CI=[{metrics.get('test_paired_squared_loss_bootstrap_ci_low_bp2')}, {metrics.get('test_paired_squared_loss_bootstrap_ci_high_bp2')}] bp^2; "
         f"weak-demand events={((result.get('test_metrics') or {}).get('weak_demand_event_study') or {}).get('weak_n', 0)}; "
@@ -1502,7 +1663,13 @@ def run_research() -> dict:
     end_date = END_DATE
     auction_rows, auction_meta = fetch_auction_pages(end_date)
     auctions, auction_quality = select_ten_year_nominal_auctions(auction_rows)
+    legacy_selected_count = len(auctions)
     updated_auction_probe = fetch_updated_auction_probe(end_date, legacy_auctions=auctions)
+    auctions, hybrid_merge = merge_updated_auction_samples(auctions, updated_auction_probe)
+    updated_auction_probe["hybrid_merge"] = hybrid_merge
+    auction_quality["legacy_selected"] = legacy_selected_count
+    auction_quality["updated_api_appended"] = hybrid_merge.get("appended_rows", 0)
+    auction_quality["selected"] = len(auctions)
     if len(auctions) < MODEL_WINDOW + 30:
         raise RuntimeError(
             f"Insufficient selected 10-year nominal auctions ({len(auctions)}); "
@@ -1510,6 +1677,19 @@ def run_research() -> dict:
         )
     yields, yield_meta = fetch_treasury_yields(end_date)
     attach_updated_target_window(updated_auction_probe, yields)
+    appended_keys = {
+        (item.get("cusip"), item.get("auction_date"))
+        for item in (hybrid_merge.get("appended_identities") or [])
+    }
+    hybrid_merge["appended_target_windows"] = [
+        {
+            "cusip": sample.get("cusip"),
+            "auction_date": sample.get("comp_auction_close_date"),
+            "status": (sample.get("target_window") or {}).get("status", "UNKNOWN"),
+        }
+        for sample in (updated_auction_probe.get("candidate_samples") or [])
+        if (sample.get("cusip"), sample.get("comp_auction_close_date")) in appended_keys
+    ]
     if len(yields) < 1000:
         raise RuntimeError(f"Insufficient Treasury 10-year yield observations: {len(yields)}")
     treasury_xml_crosscheck = yield_meta.get("treasury_xml_crosscheck", {"status": "NOT_AVAILABLE"})
@@ -1572,6 +1752,8 @@ def run_research() -> dict:
             source_hashes[f"updated_auction_result_xml_{identity}"] = xml_meta["sha256"]
 
     summary_metrics = {
+        "auction_rows_selected": len(auctions),
+        "updated_api_appended_rows": hybrid_merge.get("appended_rows", 0),
         "all_oos_n": len(all_rows),
         "validation_n": len(validation_rows),
         "test_n": test_n,
@@ -1601,7 +1783,7 @@ def run_research() -> dict:
         "retrieved_at_utc": SESSION_TIME.isoformat(),
         "sample_start": START_DATE.isoformat(),
         "sample_end_cutoff": end_date.isoformat(),
-        "data_scope": f"10-year nominal Treasury notes, {auctions[0]['auction_date']} to {auctions[-1]['auction_date']}; {yield_meta['provider']} daily yield observations {yield_dates[0]} to {yield_dates[-1]}",
+        "data_scope": f"10-year nominal Treasury notes, source auction coverage {auctions[0]['auction_date']} to {auctions[-1]['auction_date']} (complete five-day target events through {events[-1]['auction_date'] if events else 'none'}); {yield_meta['provider']} daily yield observations {yield_dates[0]} to {yield_dates[-1]}",
         "updated_auction_probe": updated_auction_probe,
         "auction_source": {
             "url": BASE_URL,
@@ -1620,6 +1802,7 @@ def run_research() -> dict:
         "treasury_xml_crosscheck": treasury_xml_crosscheck,
         "source_sha256": source_hashes,
         "event_construction": {
+            "auction_rows_selected": len(auctions),
             "events_with_targets": len(events),
             "skipped": event_quality,
             "target_horizon_business_days": TARGET_HORIZON,
@@ -1646,7 +1829,8 @@ def run_research() -> dict:
             "Auction result publication is conservatively lagged: the target starts at the first yield-series observation strictly after record_date.",
             "The yield series is a reference series, not an executable quote.",
             "No forward-filling or synthetic observations are used.",
-            "Every identifiable nominal fixed-rate 10-year Note in the retrieved post-2026-10-01 Treasury auctions API slice is cross-checked against official result XML and compared with any CUSIP/auction-date legacy overlap; this remains diagnostic because historical population completeness is not established and no updated rows are merged.",
+            "Updated v2 rows are merged only after complete-page validation, row-level official XML reconciliation, at least one exact legacy overlap, zero overlap mismatches, and a strict post-legacy cutoff for every unmatched row.",
+            "Updated v2 historical completeness before 2026-10-01 remains unestablished; the legacy source supplies earlier history. Newly merged rows without complete five-business-day targets remain excluded from forecast events.",
             "Incremental predictive value requires independent robustness and a separate tradable-instrument data source before any economic interpretation.",
             "The paired circular-block squared-loss bootstrap is supplementary and does not alter the preregistered acceptance criteria.",
         ],
@@ -1698,6 +1882,8 @@ def render_report(result: dict, error: str | None = None) -> str:
         f"- Record-date coverage: {updated_probe.get('first_record_date', 'unknown')} to {updated_probe.get('last_record_date', 'unknown')}",
         f"- 2026-11-10 10-year note matches: {updated_probe.get('target_matches', 0)}",
         f"- API total-count: {updated_probe.get('total_count', 'unknown')}; pages fetched: {updated_probe.get('pages_fetched', 0)}; page complete: {updated_probe.get('page_complete', False)}",
+        f"- Hybrid adapter: {((updated_probe.get('hybrid_merge') or {}).get('status', 'NOT_ATTEMPTED'))}; appended rows={((updated_probe.get('hybrid_merge') or {}).get('appended_rows', 0))}; verified legacy overlaps={((updated_probe.get('hybrid_merge') or {}).get('verified_overlap_rows', 0))}; legacy cutoff={((updated_probe.get('hybrid_merge') or {}).get('max_legacy_auction_date', 'unknown'))}",
+        f"- Newly merged target windows: {((updated_probe.get('hybrid_merge') or {}).get('appended_target_windows', []))}",
         f"- Candidate bidder/result fields: {', '.join(updated_probe.get('candidate_result_fields', []))}",
         f"- Nominal fixed-rate 10-year rows: {((updated_probe.get('candidate_population') or {}).get('nominal_fixed_rows', 0))}; row-level XML population status: {((updated_probe.get('candidate_population') or {}).get('status', 'UNKNOWN'))}",
         f"- Row-level reconciliation counts: {((updated_probe.get('candidate_population') or {}).get('status_counts', {}))}; XML schema variants: {((updated_probe.get('candidate_population') or {}).get('schema_variant_counts', {}))}",
@@ -1707,7 +1893,7 @@ def render_report(result: dict, error: str | None = None) -> str:
         f"- Target reconciled competitive award denominator: {crosswalk.get('comp_accepted', 'unknown')}",
         f"- Target reconciled primary-dealer award share: {safe_round(crosswalk.get('dealer_share'))}",
         f"- Candidate five-business-day target windows: {((updated_probe.get('candidate_population') or {}).get('target_window_counts', {}))}",
-        "- This is a row-level crosswalk of the retrieved post-2026-10-01 slice only; historical completeness is not established and no updated-table rows are merged into the model.",
+        "- The hybrid adapter appends only fully reconciled v2 rows strictly after the latest legacy auction date; v2 history before 2026-10-01 remains unestablished.",
         "",
         "## Out-of-sample forecast results",
         "",
@@ -1765,7 +1951,7 @@ def render_report(result: dict, error: str | None = None) -> str:
         "## Daily KPI and next action",
         "",
         f"- DAILY KPI: {result.get('daily_kpi', 'MISSED')}.",
-        "- Next: interpret the supplementary paired-loss bootstrap without changing the preregistered disposition; complete only independently justified source or robustness checks, then close this hypothesis or move to a materially different mechanism rather than tune thresholds.",
+        "- Next: wait for any newly merged auction's five-business-day target to become complete, then reassess the forecast without changing the preregistered disposition from the supplementary bootstrap alone. If the signal remains weak or inconclusive, close it and test a materially different mechanism rather than tune thresholds.",
         "",
         "## Claims ledger",
         "",
