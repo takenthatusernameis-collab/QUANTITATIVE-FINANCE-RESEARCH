@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: qfr-cftc-sp500-crowding-main
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   crowding-volatility-backtest:
