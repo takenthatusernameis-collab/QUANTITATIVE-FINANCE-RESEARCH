@@ -1,0 +1,134 @@
+{
+  "daily_kpi": "MET before this additional study \u2014 multiple distinct real-data backtests were completed earlier on 2026-11-25",
+  "data_scope": "FRED SP500, VIXCLS and DEXJPUS daily; aligned price coverage 2016-11-28 to 2026-11-24; 412 non-overlapping six-session-spaced origins; validation 2019\u20132021; test 2022 onward",
+  "data_sources": {
+    "DEXJPUS": {
+      "first_date": "2016-11-25",
+      "last_date": "2026-11-20",
+      "rows": 2494,
+      "sha256": "557bc16379b855baaf8959ae634979723a3dc48f85abdf484c569427b1f819d6",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DEXJPUS&cosd=2016-11-25"
+    },
+    "SP500": {
+      "first_date": "2016-11-28",
+      "last_date": "2026-11-24",
+      "rows": 2512,
+      "sha256": "6892b6e8b13c7283cb2fe62a453bbe1953a1db4084ae5d795a8ee27ea5a69d11",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=SP500&cosd=2016-11-25"
+    },
+    "VIXCLS": {
+      "first_date": "2016-11-25",
+      "last_date": "2026-11-24",
+      "rows": 2546,
+      "sha256": "fc8adf09eed97d58b761eca77de7cee278d79c257dd89b08747b31482bc8fad7",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS&cosd=2016-11-25"
+    }
+  },
+  "disposition": "INCONCLUSIVE \u2014 evidence is mixed, statistically uncertain or insufficient under the frozen decision rule",
+  "event_construction": {
+    "candidate_origins": 415,
+    "event_spacing_sessions": 6,
+    "events": 412,
+    "fx_window_changes": 5,
+    "signal_rule": "signal-date SP500/VIX close; latest DEXJPUS observation strictly before signal date; target begins next S&P 500 session",
+    "skipped": {
+      "fx_observation_gap": 3,
+      "fx_window_too_wide": 0,
+      "incomplete_future_return_window": 0,
+      "incomplete_pre_return_window": 0,
+      "insufficient_fx_history": 0,
+      "invalid_fx_shock": 0,
+      "missing_vix_on_signal_date": 0,
+      "no_strictly_prior_fx_observation": 0,
+      "overlapping_target_window": 0,
+      "stale_fx_observation": 0
+    },
+    "target_sessions": 5
+  },
+  "hypothesis_id": "QFR-2026-11-25-JPY-CARRY-UNWIND-SP500-RV-01",
+  "limitations": [
+    "DEXJPUS is a daily noon buying reference rate, not an executable FX price or intraday carry-position series.",
+    "A one-sided yen-appreciation shock is only a proxy for potential carry unwind; it does not observe investor leverage, positioning, funding costs or forced liquidation.",
+    "SP500 is a cash price index, not an executable futures series or total-return index.",
+    "FRED current-vintage observations were used; historical release vintages were not reconstructed.",
+    "The latest DEXJPUS observation strictly before each signal date is used; same-date values are excluded.",
+    "Forecasting only: no causal claim, transaction-cost model, tradable strategy or live deployment conclusion.",
+    "No raw source data are committed; only hashes, retrieval metadata and aggregate metrics are retained."
+  ],
+  "methodology": {
+    "augmented_features": [
+      "pre_rv5_log",
+      "pre_rv20_log",
+      "log_vix",
+      "yen_appreciation_5_log"
+    ],
+    "baseline_features": [
+      "pre_rv5_log",
+      "pre_rv20_log",
+      "log_vix"
+    ],
+    "bootstrap_block_events": 4,
+    "bootstrap_reps": 2000,
+    "bootstrap_seed": 20261129,
+    "event_spacing_sessions": 6,
+    "fx_feature": "max(0, -100 * log(DEXJPUS_latest / DEXJPUS_five_observations_earlier)); DEXJPUS is JPY per USD, so a falling quote is yen appreciation",
+    "fx_feature_transform": "log1p(yen_appreciation_5_pct)",
+    "rolling_training_events": 104,
+    "target": "log1p(next-five-session S&P 500 realized volatility in percent)",
+    "target_sessions": 5,
+    "test": "2022-01-01 onward",
+    "training_rule": "training target_end_date must be strictly earlier than current signal_date",
+    "validation": "2019-01-01 through 2021-12-31"
+  },
+  "paired_squared_loss_bootstrap": {
+    "block_size_events": 4,
+    "bootstrap_fraction_positive": 0.0585,
+    "ci_95_high": 0.00037000654117243795,
+    "ci_95_low": -0.0034966308666250483,
+    "mean_baseline_minus_augmented_squared_log_loss": -0.0015744158916652922,
+    "observations": 204,
+    "reps": 2000,
+    "status": "COMPUTED"
+  },
+  "retrieved_at_utc": "2026-11-25T18:34:20.712982+00:00",
+  "run_attempt": "1",
+  "run_id": "45676485893",
+  "source_commit_sha": "15b5a9e93fd3076590002bbdd5f853d72a2d4a7b",
+  "status": "INCONCLUSIVE",
+  "summary_metrics": {
+    "test_improvement_pct": -1.1109630758939466,
+    "test_n": 204,
+    "validation_improvement_pct": 2.2163226888860095,
+    "validation_n": 104
+  },
+  "test_metrics": {
+    "augmented": {
+      "mae_log1p_rv": 0.20819476994345815,
+      "n": 204,
+      "oos_r2_vs_period_mean": 0.3501591874084199,
+      "rmse_log1p_rv": 0.2684048097843322
+    },
+    "baseline": {
+      "mae_log1p_rv": 0.20536287877387227,
+      "n": 204,
+      "oos_r2_vs_period_mean": 0.3643610681004119,
+      "rmse_log1p_rv": 0.2654556950296946
+    },
+    "n": 204
+  },
+  "validation_metrics": {
+    "augmented": {
+      "mae_log1p_rv": 0.27665486901297803,
+      "n": 104,
+      "oos_r2_vs_period_mean": 0.4955836114398997,
+      "rmse_log1p_rv": 0.33581993413559436
+    },
+    "baseline": {
+      "mae_log1p_rv": 0.28016237553792345,
+      "n": 104,
+      "oos_r2_vs_period_mean": 0.4724587096498114,
+      "rmse_log1p_rv": 0.34343148403708623
+    },
+    "n": 104
+  }
+}
