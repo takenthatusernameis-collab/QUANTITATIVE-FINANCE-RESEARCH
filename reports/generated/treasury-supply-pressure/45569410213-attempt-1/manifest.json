@@ -1,0 +1,180 @@
+{
+  "auction_source": {
+    "attempts": [
+      "Auction route failed (narrow nominal fixed-rate 10-year filter; selected fields): Non-retryable HTTP 404 for https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query?filter=auction_date%3Agte%3A2008-01-01%2Cauction_date%3Alte%3A2026-11-24%2Csecurity_type%3Aeq%3ANote%2Coriginal_security_term%3Aeq%3A10-Year%2Ctips%3Aeq%3Afalse%2Cfloating_rate%3Aeq%3Afalse&sort=auction_date&page%5Bsize%5D=10000&page%5Bnumber%5D=1&fields=record_date%2Cauction_date%2Ccusip%2Csecurity_type%2Csecurity_term%2Coriginal_security_term%2Ctips%2Cfloating_rate%2Creopening%2Ccomp_accepted%2Ctotal_accepted%2Cbid_to_cover_ratio%2Cprimary_dealer_accepted%2Cdirect_bidder_accepted%2Cindirect_bidder_accepted%2Coffering_amt",
+      "Auction route failed (narrow nominal fixed-rate 10-year filter; full-row fallback): Non-retryable HTTP 404 for https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query?filter=auction_date%3Agte%3A2008-01-01%2Cauction_date%3Alte%3A2026-11-24%2Csecurity_type%3Aeq%3ANote%2Coriginal_security_term%3Aeq%3A10-Year%2Ctips%3Aeq%3Afalse%2Cfloating_rate%3Aeq%3Afalse&sort=auction_date&page%5Bsize%5D=10000&page%5Bnumber%5D=1",
+      "Auction route failed (broad Note filter; selected fields): Non-retryable HTTP 404 for https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query?filter=auction_date%3Agte%3A2008-01-01%2Cauction_date%3Alte%3A2026-11-24%2Csecurity_type%3Aeq%3ANote&sort=auction_date&page%5Bsize%5D=10000&page%5Bnumber%5D=1&fields=record_date%2Cauction_date%2Ccusip%2Csecurity_type%2Csecurity_term%2Coriginal_security_term%2Ctips%2Cfloating_rate%2Creopening%2Ccomp_accepted%2Ctotal_accepted%2Cbid_to_cover_ratio%2Cprimary_dealer_accepted%2Cdirect_bidder_accepted%2Cindirect_bidder_accepted%2Coffering_amt",
+      "Treasury Fiscal Data legacy auctions_query succeeded: broad Note filter; full-row fallback"
+    ],
+    "quality": {
+      "denominator_mismatch_over_5pct": 0,
+      "duplicate_cusip": 0,
+      "missing_fields": 2,
+      "not_note": 0,
+      "not_original_10y": 1094,
+      "record_date_fallback_to_auction_date": 0,
+      "rows_returned": 1430,
+      "selected": 226,
+      "unknown_or_floating": 0,
+      "unknown_or_tips": 108
+    },
+    "rows_returned": 1430,
+    "selected": 226,
+    "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query"
+  },
+  "daily_kpi": "MET",
+  "data_scope": "Legacy Treasury auctions_query nominal 10-year Notes 2008-05-07 to 2026-10-07; FRED DGS10 (Board of Governors H.15 via FRED); Treasury XML all-years cross-check attempted observations 2008-01-02 to 2026-11-23",
+  "disposition": "REJECTED \u2014 neither chronological forecast period improves and high-supply events do not precede higher yields",
+  "event_construction": {
+    "events_with_targets": 214,
+    "skipped": {
+      "insufficient_pre_history": 0,
+      "missing_supply_history": 12,
+      "no_future_yield_window": 0
+    }
+  },
+  "hypothesis_id": "QFR-2026-11-25-UST-SUPPLY-INTENSITY-01",
+  "limitations": [
+    "Forecasting only; no tradable futures/ETF P&L or risk-adjusted trading metrics.",
+    "Offering amount is a supply-intensity level proxy, not a surprise versus a contemporaneous market expectation.",
+    "Legacy auctions_query history only; no partially reconciled updated-table rows are appended.",
+    "DGS10 is a reference yield, not an executable quote or instrument price.",
+    "Daily target does not isolate intraday auction-window repricing.",
+    "Results do not generalize automatically to other tenors or security types.",
+    "No missing offering amounts are imputed; inadequate coverage fails closed.",
+    "No causal effect, future persistence, or live trading feasibility is established."
+  ],
+  "methodology": {
+    "acceptance": "At least 30 test forecasts; augmented RMSE improves in validation and test; paired test-loss bootstrap lower 95% bound > 0; high-supply mean effect and its block-bootstrap lower 95% bound > 0",
+    "augmented": [
+      "bid_to_cover",
+      "pre_yield_5d_bp",
+      "supply_log_ratio"
+    ],
+    "baseline": [
+      "bid_to_cover",
+      "pre_yield_5d_bp"
+    ],
+    "high_supply_rule": "Nearest-rank 75th percentile of previous 52 available supply_log_ratio values",
+    "minimum_amount_coverage": 0.95,
+    "no_imputation": true,
+    "rolling_window": 52,
+    "signal_timestamp": "record_date (publication date)",
+    "supply_feature": "log(current offering_amt / median(previous 12 valid 10-year nominal offerings))",
+    "target": "first-to-second observed DGS10 change strictly after record_date",
+    "test": "2023-01-01 onward",
+    "training_rule": "Prior target end date must be strictly before current record_date",
+    "validation": "2019-01-01 through 2022-12-31"
+  },
+  "offering_amount": {
+    "coverage": 1.0,
+    "field": "offering_amt",
+    "minimum_required_coverage": 0.95,
+    "missing_examples": [],
+    "missing_or_nonpositive": 0,
+    "selected_auctions": 226,
+    "valid_positive_amounts": 226
+  },
+  "retrieved_at_utc": "2026-11-25T07:36:09.460192+00:00",
+  "run_attempt": "1",
+  "run_id": "45569410213",
+  "source_commit_sha": "0b8cfda926c5f5319eed9a5c032d62749e31eba0",
+  "source_sha256": {
+    "auction_page_1": "6cd980fa5db190f46e0f467805e8e0a3e1e5160c668de70e5440d8383c2dba20",
+    "fred_dgs10_primary": "39224fa29fdfaf670ba1fb452ff7d8f0e3527cf99d173bc6ba51c990ef10b4f3"
+  },
+  "status": "REJECTED",
+  "summary_metrics": {
+    "all_oos_n": 162,
+    "auction_rows_selected": 226,
+    "events_with_targets": 214,
+    "test_augmented_rmse_bp": 5.596,
+    "test_baseline_rmse_bp": 5.543,
+    "test_high_supply_mean_difference_bp": -0.6276,
+    "test_n": 46,
+    "test_paired_loss_ci_high_bp2": -0.0522,
+    "test_paired_loss_ci_low_bp2": -1.2664,
+    "test_rmse_improvement_pct": -0.9552,
+    "validation_augmented_rmse_bp": 5.2544,
+    "validation_baseline_rmse_bp": 5.2459,
+    "validation_n": 50,
+    "validation_rmse_improvement_pct": -0.1621
+  },
+  "test_metrics": {
+    "augmented": {
+      "directional_accuracy": 0.4222222222222222,
+      "mae_bp": 4.343098725334712,
+      "mean_actual_bp": 0.28260869565216984,
+      "n": 46,
+      "oos_r2_vs_mean": -0.22978124960582869,
+      "rmse_bp": 5.595951290526143
+    },
+    "baseline": {
+      "directional_accuracy": 0.4666666666666667,
+      "mae_bp": 4.30548146747801,
+      "mean_actual_bp": 0.28260869565216984,
+      "n": 46,
+      "oos_r2_vs_mean": -0.20661958214816734,
+      "rmse_bp": 5.5430038034694356
+    },
+    "high_supply_event_study": {
+      "bootstrap": {
+        "block_size_events": 4,
+        "ci_95_high_bp": 2.260073260073243,
+        "ci_95_low_bp": -3.2833333333333217,
+        "reps": 2000
+      },
+      "high_minus_other_mean_bp": -0.6276276276276289,
+      "high_supply_mean_bp": -0.22222222222222734,
+      "high_supply_n": 9,
+      "n": 46,
+      "other_mean_bp": 0.40540540540540154,
+      "other_n": 37
+    },
+    "paired_squared_loss_bootstrap": {
+      "block_size_events": 4,
+      "bootstrap_fraction_positive": 0.01,
+      "ci_95_high_bp2": -0.05224702212877633,
+      "ci_95_low_bp2": -1.2663922139320702,
+      "observations": 46,
+      "observed_mean_baseline_minus_augmented_squared_loss_bp2": -0.5897796806645669,
+      "reps": 2000,
+      "status": "COMPUTED"
+    }
+  },
+  "title": "Treasury 10-year auction supply intensity and next-business-day yield response",
+  "validation_metrics": {
+    "augmented": {
+      "directional_accuracy": 0.5111111111111111,
+      "mae_bp": 3.8364358868085766,
+      "mean_actual_bp": 0.6800000000000004,
+      "n": 50,
+      "oos_r2_vs_mean": -0.06774190461641894,
+      "rmse_bp": 5.2544498354070805
+    },
+    "baseline": {
+      "directional_accuracy": 0.5555555555555556,
+      "mae_bp": 3.8065756599595546,
+      "mean_actual_bp": 0.6800000000000004,
+      "n": 50,
+      "oos_r2_vs_mean": -0.06428899129011656,
+      "rmse_bp": 5.245946913683296
+    }
+  },
+  "yield_source": {
+    "attempts": [
+      "FRED DGS10 primary succeeded with 4726 observations",
+      "Treasury XML all-years cross-check unavailable: RuntimeError: Request failed after 2 bounded attempts: https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=all&page=8: The read operation timed out"
+    ],
+    "first_date": "2008-01-02",
+    "last_date": "2026-11-23",
+    "max_calendar_gap_days": 4,
+    "observations": 4726,
+    "provider": "FRED DGS10 (Board of Governors H.15 via FRED); Treasury XML all-years cross-check attempted",
+    "treasury_xml_crosscheck": {
+      "error": "RuntimeError: Request failed after 2 bounded attempts: https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=all&page=8: The read operation timed out",
+      "rows": 0,
+      "status": "UNAVAILABLE"
+    }
+  }
+}
