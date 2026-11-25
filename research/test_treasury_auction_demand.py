@@ -336,9 +336,9 @@ class TreasuryAuctionDemandTests(unittest.TestCase):
             ("SecurityType", "Note"),
             ("SecurityDescription", "10-Year Note"),
             ("CompetitiveAuctionCloseDate", "2026-11-10"),
-            ("InflationProtected", "No"),
-            ("FloatingRate", "No"),
-            ("Reopening", "No"),
+            ("InflationProtected", "N"),
+            ("FloatingRate", "N"),
+            ("Reopening", "N"),
             ("BidToCoverRatio", "2.46"),
             ("OfferingAmount", "42000000000"),
             ("PrimaryDealersCompetitiveParAwarded", "4080513500"),
@@ -405,6 +405,21 @@ class TreasuryAuctionDemandTests(unittest.TestCase):
         sample["result_xml"]["candidate_values"] = []
         result = qfr.reconcile_updated_auction_sample(sample)
         self.assertEqual(result["status"], "INCOMPLETE")
+
+
+    def test_updated_auction_boolean_fields_accept_api_no_and_xml_n(self):
+        sample = self._updated_auction_sample()
+        result = qfr.reconcile_updated_auction_sample(sample)
+        self.assertEqual(result["status"], "RECONCILED_SAMPLE_ONLY")
+        checks = {item["api_field"]: item for item in result["field_checks"]}
+        for field in ("inflation_protected", "floating_rate", "reopening"):
+            self.assertTrue(checks[field]["matched"])
+            self.assertEqual(checks[field]["api_value"], "No")
+            self.assertEqual(checks[field]["xml_value"], "N")
+        sample["floating_rate"] = "Yes"
+        mismatch = qfr.reconcile_updated_auction_sample(sample)
+        self.assertEqual(mismatch["status"], "MISMATCH")
+        self.assertIn("floating_rate", mismatch["reason"])
 
 
 if __name__ == "__main__":

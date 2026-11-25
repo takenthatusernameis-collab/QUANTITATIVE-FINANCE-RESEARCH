@@ -85,6 +85,15 @@ def parse_float(value: object) -> float | None:
     return number if math.isfinite(number) else None
 
 
+def parse_bool(value: object) -> bool | None:
+    text = str(value).strip().lower()
+    if text in {"yes", "y", "true", "1"}:
+        return True
+    if text in {"no", "n", "false", "0"}:
+        return False
+    return None
+
+
 def local_name(tag: str) -> str:
     return tag.rsplit("}", 1)[-1].split(":")[-1]
 
@@ -144,9 +153,9 @@ UPDATED_AUCTION_XML_FIELD_MAP = (
     ("security_type", "SecurityType", "text", 0.0),
     ("security_desc", "SecurityDescription", "text", 0.0),
     ("comp_auction_close_date", "CompetitiveAuctionCloseDate", "date", 0.0),
-    ("inflation_protected", "InflationProtected", "text", 0.0),
-    ("floating_rate", "FloatingRate", "text", 0.0),
-    ("reopening", "Reopening", "text", 0.0),
+    ("inflation_protected", "InflationProtected", "boolean", 0.0),
+    ("floating_rate", "FloatingRate", "boolean", 0.0),
+    ("reopening", "Reopening", "boolean", 0.0),
     ("bid_to_cover_ratio", "BidToCoverRatio", "number", 1e-9),
     ("offering_amt", "OfferingAmount", "number", 1.0),
     ("prim_deal_comp_par_awarded", "PrimaryDealersCompetitiveParAwarded", "number", 1.0),
@@ -216,6 +225,14 @@ def reconcile_updated_auction_sample(sample: dict | None) -> dict:
             right = parse_date(xml_value)
             difference = None
             matched = left is not None and left == right
+        elif kind == "boolean":
+            left = parse_bool(api_value)
+            right = parse_bool(xml_value)
+            if left is None or right is None:
+                missing.append({"api_field": api_field, "xml_field": xml_field})
+                continue
+            difference = None
+            matched = left == right
         else:
             left = str(api_value).strip().lower()
             right = str(xml_value).strip().lower()
@@ -224,6 +241,8 @@ def reconcile_updated_auction_sample(sample: dict | None) -> dict:
         checks.append({
             "api_field": api_field,
             "xml_field": xml_field,
+            "api_value": str(api_value),
+            "xml_value": str(xml_value),
             "matched": matched,
             "difference": difference,
         })
