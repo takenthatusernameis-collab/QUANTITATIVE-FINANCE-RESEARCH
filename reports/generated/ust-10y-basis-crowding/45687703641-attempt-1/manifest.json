@@ -1,0 +1,167 @@
+{
+  "daily_kpi": "MET before this additional study \u2014 multiple distinct real-data backtests were completed earlier on 2026-11-25",
+  "data_scope": "CFTC TFF futures-only 10-year U.S. Treasury Note code 043602; FRED SP500 and VIXCLS daily; common price coverage 2016-11-28 to 2026-11-24; 419 accepted non-overlapping events; validation 2019\u20132021; test 2022 onward",
+  "data_sources": {
+    "CFTC_043602": {
+      "first_date": "2006-06-13",
+      "last_date": "2026-11-17",
+      "rows": 1067,
+      "sha256": "6865a31e5b238fd050fc37667bc4a5c8c2fdb045d3b06d0270b8fac5d7139987",
+      "url": "https://publicreporting.cftc.gov/resource/gpe5-46if.json?%24select=report_date_as_yyyy_mm_dd%2Ccontract_market_name%2Ccftc_contract_market_code%2Copen_interest_all%2Clev_money_positions_long%2Clev_money_positions_short&%24where=cftc_contract_market_code%3D%27043602%27+AND+report_date_as_yyyy_mm_dd+%3E%3D+%272006-06-13%27+AND+report_date_as_yyyy_mm_dd+%3C%3D+%272026-11-25%27&%24order=report_date_as_yyyy_mm_dd+ASC&%24limit=50000"
+    },
+    "SP500": {
+      "first_date": "2016-11-28",
+      "last_date": "2026-11-24",
+      "rows": 2512,
+      "sha256": "6892b6e8b13c7283cb2fe62a453bbe1953a1db4084ae5d795a8ee27ea5a69d11",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=SP500&cosd=2016-11-25&coed=2026-11-25"
+    },
+    "VIXCLS": {
+      "first_date": "2016-11-25",
+      "last_date": "2026-11-24",
+      "rows": 2546,
+      "sha256": "fc8adf09eed97d58b761eca77de7cee278d79c257dd89b08747b31482bc8fad7",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS&cosd=2016-11-25&coed=2026-11-25"
+    }
+  },
+  "disposition": "INCONCLUSIVE \u2014 the preregistered evidence is mixed, statistically uncertain or insufficient",
+  "event_construction": {
+    "candidate_origins": 1067,
+    "crowding_lookback_reports": 156,
+    "events": 419,
+    "high_crowding_threshold": 0.9,
+    "known_backlog_exclusion": [
+      "2025-09-30",
+      "2026-01-20"
+    ],
+    "publication_lag_days": 14,
+    "skipped": {
+      "incomplete_return_window": 0,
+      "insufficient_crowding_history": 156,
+      "insufficient_pre_history_or_future": 5,
+      "known_publication_backlog": 17,
+      "missing_vix_on_signal_date": 0,
+      "no_signal_close": 1,
+      "overlapping_target_window": 81,
+      "signal_close_too_far_after_lag": 388
+    }
+  },
+  "hypothesis_id": "QFR-2026-11-25-UST-10Y-BASIS-CROWDING-SP500-RV-01",
+  "limitations": [
+    "CFTC leveraged-fund categories are not a direct identification of cash-futures basis-trade positions.",
+    "The 14-day publication lag is conservative and does not reconstruct exact historical report release timestamps.",
+    "The known CFTC publication-backlog interval is excluded; the rolling percentile history spans the pre- and post-backlog report sequence.",
+    "FRED current-vintage observations are used; historical release vintages are not reconstructed.",
+    "SP500 is a cash price index, not an executable futures series or total-return index.",
+    "Forecasting only: no causal claim, transaction-cost model, tradable strategy or live-deployment conclusion.",
+    "No raw source data are committed; only hashes, retrieval metadata and aggregate metrics are retained."
+  ],
+  "methodology": {
+    "augmented_features": [
+      "pre_rv5_log",
+      "pre_rv20_log",
+      "log_vix",
+      "net_short_percentile"
+    ],
+    "baseline_features": [
+      "pre_rv5_log",
+      "pre_rv20_log",
+      "log_vix"
+    ],
+    "bootstrap_block_events": 4,
+    "bootstrap_reps": 2000,
+    "bootstrap_seed": 20261125,
+    "cftc_contract_code": "043602",
+    "cftc_dataset": "gpe5-46if",
+    "cftc_position_feature": "(leveraged_fund_short - leveraged_fund_long) / total_open_interest",
+    "crowding_feature": "mid-rank percentile of signed net-short/OI against previous 156 non-backlog reports only",
+    "high_crowding_threshold": 0.9,
+    "publication_lag_days": 14,
+    "rolling_training_events": 104,
+    "target": "log1p(next-five-session S&P 500 realized volatility in percent)",
+    "target_sessions": 5,
+    "test": "2022-01-01 onward",
+    "training_rule": "training target_end_date must be strictly earlier than current signal_date",
+    "validation": "2019-01-01 through 2021-12-31"
+  },
+  "retrieved_at_utc": "2026-11-25T19:41:47.248028+00:00",
+  "run_attempt": "1",
+  "run_id": "45687703641",
+  "source_commit_sha": "bf58ccf255fa9da2ade4e788edda5e5f03417895",
+  "source_coverage": {
+    "CFTC": {
+      "first_date": "2006-06-13",
+      "last_date": "2026-11-17",
+      "rows": 1067
+    },
+    "SP500": {
+      "first_date": "2016-11-28",
+      "last_date": "2026-11-24",
+      "rows": 2512
+    },
+    "VIXCLS": {
+      "first_date": "2016-11-25",
+      "last_date": "2026-11-24",
+      "rows": 2546
+    },
+    "common_price_end": "2026-11-24"
+  },
+  "status": "INCONCLUSIVE",
+  "summary_metrics": {
+    "test_improvement_pct": 2.3342704576458866,
+    "test_n": 198,
+    "validation_improvement_pct": 4.823038134211853,
+    "validation_n": 116
+  },
+  "test_metrics": {
+    "augmented": {
+      "mae_log1p_rv": 0.2067965445400428,
+      "n": 198,
+      "oos_r2_vs_mean": 0.40584110634669013,
+      "rmse_log1p_rv": 0.2668177786880446
+    },
+    "baseline": {
+      "mae_log1p_rv": 0.21372484007442138,
+      "n": 198,
+      "oos_r2_vs_mean": 0.37710018020896463,
+      "rmse_log1p_rv": 0.27319488620861154
+    },
+    "high_crowding_event_study": {
+      "block_size_events": 4,
+      "ci_95_high_rv_pct": -0.3903133851876819,
+      "ci_95_low_rv_pct": -1.233122685692039,
+      "high_minus_other_mean_rv_pct": -0.8134569292918927,
+      "high_n": 84,
+      "mean_high_rv_pct": 1.7123697969483591,
+      "mean_other_rv_pct": 2.525826726240252,
+      "other_n": 114,
+      "reps": 2000
+    },
+    "n": 198,
+    "paired_squared_loss_bootstrap": {
+      "block_size_events": 4,
+      "bootstrap_fraction_positive": 0.9505,
+      "ci_95_high": 0.007488701643384089,
+      "ci_95_low": -0.0006091643346703365,
+      "mean_baseline_minus_augmented_squared_log_loss": 0.003443718826513829,
+      "observations": 198,
+      "reps": 2000,
+      "status": "COMPUTED"
+    }
+  },
+  "validation_metrics": {
+    "augmented": {
+      "mae_log1p_rv": 0.2574190738896815,
+      "n": 116,
+      "oos_r2_vs_mean": 0.5153735731283168,
+      "rmse_log1p_rv": 0.3324605622329576
+    },
+    "baseline": {
+      "mae_log1p_rv": 0.27293660974861333,
+      "n": 116,
+      "oos_r2_vs_mean": 0.4650127677614334,
+      "rmse_log1p_rv": 0.3493078111715418
+    },
+    "n": 116
+  }
+}
