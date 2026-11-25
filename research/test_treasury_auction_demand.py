@@ -112,7 +112,7 @@ class TreasuryAuctionDemandTests(unittest.TestCase):
         self.assertGreaterEqual(auctions[26]["weak_score"], 0.75)
 
     def test_target_starts_after_record_date_and_uses_five_observed_business_steps(self):
-        dates = [dt.date(2020, 1, day) for day in [2, 3, 6, 7, 8, 9, 10, 13, 14]]
+        dates = [dt.date(2019, 12, day) for day in [24, 25, 26, 27, 30]] + [dt.date(2020, 1, day) for day in [2, 3, 6, 7, 8, 9, 10, 13, 14]]
         yields = {date: 2.0 + index * 0.01 for index, date in enumerate(dates)}
         auction = {
             "cusip": "A",
