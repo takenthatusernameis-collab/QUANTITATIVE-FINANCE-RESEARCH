@@ -48,7 +48,7 @@ REGISTRY_PATH = ROOT / "research" / "HYPOTHESIS-REGISTRY.md"
 
 FIELD_LIST = ",".join([
     "record_date", "auction_date", "cusip", "security_type", "security_term",
-    "original_security_term", "inflation_index_security", "floating_rate",
+    "original_security_term", "tips", "floating_rate",
     "reopening", "comp_accepted", "total_accepted", "bid_to_cover_ratio",
     "primary_dealer_accepted", "direct_bidder_accepted", "indirect_bidder_accepted",
 ])
@@ -121,55 +121,60 @@ def fetch_auction_pages(end_date: dt.date) -> tuple[list[dict], dict]:
     all_rows: list[dict] = []
     hashes: dict[str, str] = {}
     attempts: list[str] = []
-    filters = f"auction_date:gte:{START_DATE.isoformat()},auction_date:lte:{end_date.isoformat()},security_type:eq:Note"
-    field_modes = [FIELD_LIST, None]
+    date_filter = f"auction_date:gte:{START_DATE.isoformat()},auction_date:lte:{end_date.isoformat()}"
+    filter_modes = [
+        (date_filter + ",security_type:eq:Note,original_security_term:eq:10-Year,tips:eq:false,floating_rate:eq:false", "narrow nominal fixed-rate 10-year filter"),
+        (date_filter + ",security_type:eq:Note", "broad Note filter"),
+    ]
     last_error: Exception | None = None
 
-    for fields in field_modes:
-        try:
-            page = 1
-            total_pages = 1
-            mode_rows: list[dict] = []
-            mode_hashes: dict[str, str] = {}
-            while page <= total_pages:
-                params = {
-                    "filter": filters,
-                    "sort": "auction_date",
-                    "page[size]": "10000",
-                    "page[number]": str(page),
-                }
-                if fields:
-                    params["fields"] = fields
-                url = BASE_URL + "?" + urllib.parse.urlencode(params)
-                body = fetch_bytes(url)
-                payload = json.loads(body.decode("utf-8"))
-                rows = payload.get("data")
-                if not isinstance(rows, list):
-                    raise RuntimeError("Treasury auction response has no data array")
-                mode_rows.extend(rows)
-                mode_hashes[f"auction_page_{page}"] = sha256(body)
-                meta = payload.get("meta") or {}
-                try:
-                    total_pages = int(meta.get("total-pages") or meta.get("total_pages") or 1)
-                except (TypeError, ValueError):
-                    total_pages = 1
-                if not rows:
+    for filter_text, filter_label in filter_modes:
+        for fields in (FIELD_LIST, None):
+            try:
+                page = 1
+                total_pages = 1
+                mode_rows: list[dict] = []
+                mode_hashes: dict[str, str] = {}
+                while page <= total_pages:
+                    params = {
+                        "filter": filter_text,
+                        "sort": "auction_date",
+                        "page[size]": "10000",
+                        "page[number]": str(page),
+                    }
+                    if fields:
+                        params["fields"] = fields
+                    url = BASE_URL + "?" + urllib.parse.urlencode(params)
+                    body = fetch_bytes(url)
+                    payload = json.loads(body.decode("utf-8"))
+                    rows = payload.get("data")
+                    if not isinstance(rows, list):
+                        raise RuntimeError("Treasury auction response has no data array")
+                    mode_rows.extend(rows)
+                    mode_hashes[f"auction_page_{page}"] = sha256(body)
+                    meta = payload.get("meta") or {}
+                    try:
+                        total_pages = int(meta.get("total-pages") or meta.get("total_pages") or 1)
+                    except (TypeError, ValueError):
+                        total_pages = 1
+                    if not rows:
+                        break
+                    page += 1
+                    time.sleep(0.15)
+                if mode_rows:
+                    all_rows = mode_rows
+                    hashes = mode_hashes
+                    attempts.append(f"Treasury Fiscal Data legacy auctions_query succeeded: {filter_label}; " + ("selected fields" if fields else "full-row fallback"))
                     break
-                page += 1
-                time.sleep(0.15)
-            if mode_rows:
-                all_rows = mode_rows
-                hashes = mode_hashes
-                attempts.append("Treasury Fiscal Data legacy auctions_query succeeded" + (" with selected fields" if fields else " with full-row fallback"))
-                break
-            raise RuntimeError("Treasury auction endpoint returned zero rows")
-        except Exception as exc:
-            last_error = exc
-            attempts.append(f"Auction route failed ({'selected fields' if fields else 'full-row fallback'}): {exc}")
+                raise RuntimeError("Treasury auction endpoint returned zero rows")
+            except Exception as exc:
+                last_error = exc
+                attempts.append(f"Auction route failed ({filter_label}; {'selected fields' if fields else 'full-row fallback'}): {exc}")
+        if all_rows:
+            break
     if not all_rows:
         raise RuntimeError("No usable Treasury auction data. " + " | ".join(attempts)) from last_error
     return all_rows, {"hashes": hashes, "attempts": attempts, "rows_returned": len(all_rows)}
-
 
 def is_no(value: object) -> bool:
     return str(value).strip().lower() in {"no", "false", "0", "n"}
@@ -202,7 +207,9 @@ def select_ten_year_nominal_auctions(rows: list[dict]) -> tuple[list[dict], dict
         if term != "10year":
             counts["not_original_10y"] += 1
             continue
-        inflation = row.get("inflation_index_security")
+        inflation = row.get("tips")
+        if inflation is None:
+            inflation = row.get("inflation_index_security")
         floating = row.get("floating_rate")
         if inflation is None or not is_no(inflation):
             counts["unknown_or_tips"] += 1
