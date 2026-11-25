@@ -4,10 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - ".github/workflows/cftc-sp500-crowding-volatility.yml"
       - "research/cftc_sp500_crowding_volatility.py"
       - "research/test_cftc_sp500_crowding_volatility.py"
-      - "research/PREREGISTERED-QFR-2026-11-25-CFTC-SP500-CROWDING-VOL-01.md"
   workflow_dispatch:
 
 permissions:
