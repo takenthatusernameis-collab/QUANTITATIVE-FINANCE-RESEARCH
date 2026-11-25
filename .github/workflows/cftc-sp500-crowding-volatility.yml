@@ -1,0 +1,75 @@
+name: CFTC leveraged-fund crowding and S&P 500 volatility forecast
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cftc-sp500-crowding-volatility.yml"
+      - "research/cftc_sp500_crowding_volatility.py"
+      - "research/test_cftc_sp500_crowding_volatility.py"
+      - "research/PREREGISTERED-QFR-2026-11-25-CFTC-SP500-CROWDING-VOL-01.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qfr-cftc-sp500-crowding-main
+  cancel-in-progress: false
+
+jobs:
+  crowding-volatility-backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout trusted default branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Run deterministic timing, leakage, schema and bootstrap tests
+        run: python -m unittest discover -s research -p "test_cftc_sp500_crowding_volatility.py" -v
+
+      - name: Retrieve official data and run preregistered volatility forecast
+        run: |
+          set -euo pipefail
+          python research/cftc_sp500_crowding_volatility.py
+          report="$(find reports/sessions -type f -name "*session-cftc-sp500-crowding-$GITHUB_RUN_ID.md" | sort | tail -n 1)"
+          manifest="reports/generated/cftc-sp500-crowding/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/manifest.json"
+          test -n "$report"
+          test -s "$report"
+          test -s "$manifest"
+          echo "=== SESSION REPORT ==="
+          cat "$report"
+          echo "=== GENERATED MANIFEST ==="
+          cat "$manifest"
+
+      - name: Persist reproducible research evidence to main
+        if: success()
+        run: |
+          set -euo pipefail
+          report="$(find reports/sessions -type f -name "*session-cftc-sp500-crowding-$GITHUB_RUN_ID.md" | sort | tail -n 1)"
+          manifest="reports/generated/cftc-sp500-crowding/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/manifest.json"
+          test -n "$report"
+          test -s "$report"
+          test -s "$manifest"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$report" "$manifest" research/HYPOTHESIS-REGISTRY.md
+          if git diff --cached --quiet; then
+            echo "No generated evidence changes to persist."
+            exit 0
+          fi
+          git commit -m "Persist CFTC S&P 500 crowding evidence $GITHUB_RUN_ID"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
