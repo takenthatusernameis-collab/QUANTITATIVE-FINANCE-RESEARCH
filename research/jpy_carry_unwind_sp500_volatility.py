@@ -202,7 +202,7 @@ def build_events(
             "fx_source_date": fx_date,
             "fx_source_age_days": (signal_date - fx_date).days,
             "target_rv_pct": target_rv,
-            "target_log_rv": math.log1p(target_rv),
+            "target_bp": math.log1p(target_rv),
         }
         if events and event["target_start_date"] <= events[-1]["target_end_date"]:
             skipped["overlapping_target_window"] += 1
@@ -238,7 +238,7 @@ def walk_forward_predictions(events: list[dict]) -> list[dict]:
             "signal_date": current["signal_date"],
             "target_start_date": current["target_start_date"],
             "target_end_date": current["target_end_date"],
-            "target_log_rv": current["target_log_rv"],
+            "target_bp": current["target_bp"],
             "target_rv_pct": current["target_rv_pct"],
             "yen_appreciation_5_pct": current["yen_appreciation_5_pct"],
             "baseline_prediction_log_rv": baseline,
@@ -251,8 +251,8 @@ def walk_forward_predictions(events: list[dict]) -> list[dict]:
 def forecast_metrics(rows: list[dict], prediction_key: str) -> dict | None:
     if not rows:
         return None
-    errors = [row[prediction_key] - row["target_log_rv"] for row in rows]
-    actual = [row["target_log_rv"] for row in rows]
+    errors = [row[prediction_key] - row["target_bp"] for row in rows]
+    actual = [row["target_bp"] for row in rows]
     mean_actual = statistics.fmean(actual)
     sse = sum(error * error for error in errors)
     denominator = sum((value - mean_actual) ** 2 for value in actual)
@@ -269,7 +269,7 @@ def bootstrap_paired_loss(rows: list[dict]) -> dict | None:
         return None
     differences = []
     for row in rows:
-        target = row["target_log_rv"]
+        target = row["target_bp"]
         baseline = row["baseline_prediction_log_rv"]
         augmented = row["augmented_prediction_log_rv"]
         difference = (baseline - target) ** 2 - (augmented - target) ** 2
