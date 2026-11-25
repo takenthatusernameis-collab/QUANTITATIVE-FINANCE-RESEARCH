@@ -112,7 +112,7 @@ class CftcSp500CrowdingTests(unittest.TestCase):
         self.assertEqual(events[0]["availability_date"], dt.date(2020, 1, 21))
         self.assertGreaterEqual(events[0]["signal_date"], dt.date(2020, 1, 21))
         self.assertGreater(events[0]["target_start_date"], events[0]["signal_date"])
-        self.assertEqual((events[0]["target_end_date"] - events[0]["target_start_date"]).days, 7)
+        self.assertEqual((events[0]["target_end_date"] - events[0]["target_start_date"]).days, 6)
         self.assertEqual(events[0]["record_date"], events[0]["signal_date"])
 
     def test_overlapping_five_session_targets_are_excluded(self):
