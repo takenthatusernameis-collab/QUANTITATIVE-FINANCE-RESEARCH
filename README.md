@@ -38,14 +38,14 @@ flowchart TD
 
 ## Daily research production — minimum, not ceiling
 
-- Every UTC calendar day, aim to complete at least one genuinely new hypothesis backtest using relevant real market data and enter its evidence-backed disposition in the repository registry/ranking. A properly executed negative or inconclusive result counts; profitability is not required. A unit test, synthetic smoke test, parameter sweep alone or unexecuted plan does not count.
+- Minimum: complete at least one genuinely new hypothesis backtest using relevant real market data every UTC calendar day, and enter its evidence-backed disposition in the repository registry/ranking. A properly executed negative or inconclusive result counts; profitability is not required. A unit test, synthetic smoke test, parameter sweep alone or unexecuted plan does not count.
 - Pursue more than one when resources allow, using independent parallel workstreams. If today's minimum is already met, continue valuable research rather than inventing trivial work. If no valid backtest can be completed, record the missed KPI, exact blocker and alternatives attempted; never fabricate results or lower scientific standards to satisfy a quota.
 
 ## Novelty and anti-cosmetic-tuning
 
 - Every new hypothesis must offer a materially distinct predictive mechanism, information source, market inefficiency, economic/behavioural explanation, signal construction or strategy architecture. State its rationale, falsifiable prediction and what evidence would disprove it.
 - Search prior repository experiments and relevant literature before implementation. Assign a stable hypothesis ID and explain how it differs from prior work. Preserve failures and lessons to prevent rediscovery.
-- Changing only lookbacks, thresholds, multipliers, indicator periods, assets or other parameters is optimization of an existing hypothesis—not new research and not a daily- target substitute. Explore multiple materially different ideas and mathematical families; do not default to the first familiar or easiest approach.
+- Changing only lookbacks, thresholds, multipliers, indicator periods, assets or other parameters is optimization of an existing hypothesis—not new research and cannot count toward the daily minimum. Explore multiple materially different ideas and mathematical families; do not default to the first familiar or easiest approach.
 
 ## Data and feasibility before model implementation
 
