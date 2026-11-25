@@ -49,7 +49,7 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
                     )
                     block = lines[start + 1:end]
                     conditions = [
-                        line.strip()[4:]
+                        line.strip()
                         for line in block
                         if re.match(r"^    if:", line)
                     ]
