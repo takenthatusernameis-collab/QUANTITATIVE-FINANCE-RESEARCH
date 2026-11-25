@@ -18,10 +18,11 @@ Verify the first due prospective capture using either an independently operated 
 ## Parallel workstream isolation
 
 - Workstream ID: `spot-holdout-first-scheduled-validation`.
-- Status: primary active workstream.
+- Status: COMPLETE; closed on 2026-11-24 after the November 24 slot was recovered and verified; not active.
 - Write scope and exclusive resources are registered in the [canonical queue](ACTIVE-QUEUE.md).
 - Protected data identity: `binance-spot-1h:prospective-2026-11`.
-- This task keeps its existing one-cycle budget and 2026-11-25 17:30 UTC deadline. The factory's newly adopted parallel-workstream policy does not reset or retroactively re-rate it.
+- Original budget and hard deadline: one substantive cycle and 2026-11-25 17:30 UTC; this workstream closed early on 2026-11-24 without extension or reset. The factory's newly adopted parallel-workstream policy did not reset or retroactively re-rate it.
+- Operational distinction: the daily capture workflow remains configured as a best-effort recurring slot capture; this one-time validation workstream is closed, and later daily slots do not reactivate it.
 
 ## Required steps
 
