@@ -1,0 +1,121 @@
+{
+  "data_sources": {
+    "CBBTCUSD": {
+      "first_date": "2016-11-25",
+      "last_date": "2026-11-24",
+      "rows": 3651,
+      "sha256": "f880fe67dc22fcedb36457bae9565852c841cf186063162e0cac6917f7cbc1c2",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=CBBTCUSD&cosd=2016-11-25"
+    },
+    "DFII10": {
+      "first_date": "2016-11-25",
+      "last_date": "2026-11-23",
+      "rows": 2498,
+      "sha256": "ffc5ae985e0a718048a64be52b639172d86590c181a3d2855a6d67214c65d873",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFII10&cosd=2016-11-25"
+    }
+  },
+  "disposition": "REJECTED \u2014 the augmented model fails to improve either period and paired-loss inference indicates it is worse",
+  "event_construction": {
+    "candidate_origins": 605,
+    "event_spacing_btc_observations": 6,
+    "events": 601,
+    "signal_rule": "BTC close on t; latest DFII10 observation dated strictly before t",
+    "skipped": {
+      "incomplete_btc_pre_return_window": 3,
+      "incomplete_btc_target_window": 1,
+      "insufficient_real_yield_history": 0,
+      "no_strictly_prior_real_yield_observation": 0,
+      "overlapping_target_window": 0,
+      "stale_real_yield_observation": 0
+    },
+    "target_btc_observations": 5
+  },
+  "hypothesis_id": "QFR-2026-11-25-BTC-REAL-YIELD-SHOCK-01",
+  "limitations": [
+    "CBBTCUSD observations are Coinbase data as of 5 PM Pacific Time and are copyrighted; raw data are not committed.",
+    "DFII10 is a daily U.S. business-day real-yield series; the strict prior-date rule excludes same-date values and can leave weekend BTC signals using the latest prior business-day close.",
+    "DFII10 is quoted in percentage points and can be negative; the five-observation difference is expressed in basis points.",
+    "FRED current-vintage observations were used; historical release vintages were not reconstructed.",
+    "Forecasting only: no causal claim, hedge/safe-haven conclusion, transaction-cost model, instrument-level strategy P&L or live deployment."
+  ],
+  "methodology": {
+    "augmented_features": [
+      "btc_mom5_pct",
+      "btc_mom20_pct",
+      "btc_rv5_pct",
+      "btc_rv20_pct",
+      "real_yield_change_bp"
+    ],
+    "baseline_features": [
+      "btc_mom5_pct",
+      "btc_mom20_pct",
+      "btc_rv5_pct",
+      "btc_rv20_pct"
+    ],
+    "bootstrap_block_events": 4,
+    "bootstrap_reps": 2000,
+    "bootstrap_seed": 20261127,
+    "event_spacing_btc_observations": 6,
+    "real_yield_change": "100 * log(DFII10[d] / DFII10[d-5]) over five observed real-yield-index changes",
+    "rolling_training_events": 104,
+    "signal_rule": "BTC signal close on t; use only latest DFII10 observation dated strictly before t",
+    "target": "100 * log(CBBTCUSD[t+5] / CBBTCUSD[t]) over next five observed daily BTC closes",
+    "test": "2022-01-01 onward",
+    "training_maturity_rule": "training target_end_date must be strictly earlier than current signal_date",
+    "validation": "2019-01-01 through 2021-12-31"
+  },
+  "paired_squared_error_bootstrap": {
+    "block_size_events": 4,
+    "bootstrap_fraction_positive": 0.0015,
+    "ci_95_high_pct2": -0.26779361055211903,
+    "ci_95_low_pct2": -1.5828770744775202,
+    "mean_baseline_minus_augmented_squared_error_pct2": -0.8956344137407214,
+    "observations": 298,
+    "reps": 2000,
+    "status": "COMPUTED"
+  },
+  "retrieved_at_utc": "2026-11-25T13:25:38.802064+00:00",
+  "rmse_improvement_pct": {
+    "test": -1.2143561209194547,
+    "validation": -1.4173601483960856
+  },
+  "run_attempt": "1",
+  "run_id": "45623440963",
+  "source_commit_sha": "e64678723626a24ded76c1b81d52338cc21b1de6",
+  "status": "REJECTED",
+  "test_metrics": {
+    "augmented": {
+      "directional_accuracy": 0.47315436241610737,
+      "mae_pct": 4.477506429331206,
+      "n": 298,
+      "oos_r2_vs_period_mean": -0.11657459872835907,
+      "rmse_pct": 6.127805727097129
+    },
+    "baseline": {
+      "directional_accuracy": 0.4899328859060403,
+      "mae_pct": 4.453396301084112,
+      "n": 298,
+      "oos_r2_vs_period_mean": -0.08994230697178152,
+      "rmse_pct": 6.054285144862573
+    },
+    "n": 298
+  },
+  "validation_metrics": {
+    "augmented": {
+      "directional_accuracy": 0.5617977528089888,
+      "mae_pct": 6.665970735563682,
+      "n": 178,
+      "oos_r2_vs_period_mean": -0.09384879955128,
+      "rmse_pct": 9.028443794529247
+    },
+    "baseline": {
+      "directional_accuracy": 0.5280898876404494,
+      "mae_pct": 6.640765794383044,
+      "n": 178,
+      "oos_r2_vs_period_mean": -0.0634882374374417,
+      "rmse_pct": 8.902266615221134
+    },
+    "n": 178
+  }
+}
