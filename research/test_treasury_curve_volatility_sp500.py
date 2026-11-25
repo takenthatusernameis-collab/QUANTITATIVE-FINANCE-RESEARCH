@@ -77,7 +77,7 @@ class TreasuryCurveVolatilityTests(unittest.TestCase):
 
     def test_curve_feature_rejects_large_observation_gaps(self):
         dates = self.business_dates(dt.date(2020, 1, 1), 35)
-        curve = {date: -0.2 + i * 0.01 for i, date in enumerate(dates) if i != 15}
+        curve = {date: -0.2 + i * 0.01 for i, date in enumerate(dates) if i not in {15, 16}}
         value, source_date, error = model.curve_realized_variation(curve, dates[25])
         self.assertIsNone(value)
         self.assertIn(error, {"insufficient_curve_history", "curve_observation_gap"})
@@ -117,6 +117,7 @@ class TreasuryCurveVolatilityTests(unittest.TestCase):
                 "target_start_date": signal + dt.timedelta(days=1),
                 "target_end_date": signal + dt.timedelta(days=5),
                 "target_bp": 0.1 + index * 0.001,
+                "target_rv_pct": 1.0 + index * 0.01,
                 "pre_rv5_log": 0.1 + (index % 11) * 0.01,
                 "pre_rv20_log": 0.2 + (index % 13) * 0.01,
                 "log_vix": 2.5 + (index % 7) * 0.03,
@@ -148,6 +149,7 @@ class TreasuryCurveVolatilityTests(unittest.TestCase):
             "target_start_date": current_signal + dt.timedelta(days=1),
             "target_end_date": current_signal + dt.timedelta(days=5),
             "target_bp": 0.3,
+            "target_rv_pct": 1.3,
             "pre_rv5_log": 0.3,
             "pre_rv20_log": 0.4,
             "log_vix": 2.8,
