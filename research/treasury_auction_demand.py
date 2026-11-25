@@ -121,7 +121,7 @@ def parse_treasury_result_xml(body: bytes) -> dict:
     root = ET.fromstring(body)
     tag_names = set()
     candidate_values = []
-    tokens = ("primary", "prim", "direct", "indir", "competitive", "comp", "accepted", "award", "tender", "bid", "total", "cusip", "date", "yield")
+    tokens = ("primary", "prim", "direct", "indir", "competitive", "comp", "accepted", "award", "tender", "bid", "total", "cusip", "date", "yield", "security", "offering", "inflation", "floating", "reopening")
     for node in root.iter():
         name = local_name(node.tag)
         tag_names.add(name)
@@ -136,6 +136,160 @@ def parse_treasury_result_xml(body: bytes) -> dict:
         "root_tag": local_name(root.tag),
         "tag_names": sorted(tag_names),
         "candidate_values": candidate_values[:250],
+    }
+
+
+UPDATED_AUCTION_XML_FIELD_MAP = (
+    ("cusip", "CUSIP", "text", 0.0),
+    ("security_type", "SecurityType", "text", 0.0),
+    ("security_desc", "SecurityDescription", "text", 0.0),
+    ("comp_auction_close_date", "CompetitiveAuctionCloseDate", "date", 0.0),
+    ("inflation_protected", "InflationProtected", "text", 0.0),
+    ("floating_rate", "FloatingRate", "text", 0.0),
+    ("reopening", "Reopening", "text", 0.0),
+    ("bid_to_cover_ratio", "BidToCoverRatio", "number", 1e-9),
+    ("offering_amt", "OfferingAmount", "number", 1.0),
+    ("prim_deal_comp_par_awarded", "PrimaryDealersCompetitiveParAwarded", "number", 1.0),
+    ("dir_bid_comp_par_awarded", "DirectBiddersCompetitiveParAwarded", "number", 1.0),
+    ("indir_bid_comp_par_awarded", "IndirectBiddersCompetitiveParAwarded", "number", 1.0),
+    ("subtot_comp_inside_awrd", "SubtotalCompetitiveParAwardedInsideOfOfferingAmount", "number", 1.0),
+    ("subtot_comp_outside_awrd", "SubtotalCompetitiveParAwardedOutsideOfOfferingAmount", "number", 1.0),
+    ("grand_total_par_awarded", "GrandTotalParAwarded", "number", 1.0),
+    ("prim_deal_comp_par_recog", "PrimaryDealersCompetitiveParRecognized", "number", 1.0),
+    ("dir_bid_comp_par_recog", "DirectBiddersCompetitiveParRecognized", "number", 1.0),
+    ("indir_bid_comp_par_recog", "IndirectBiddersCompetitiveParRecognized", "number", 1.0),
+    ("subtot_comp_inside_recog", "SubtotalCompetitiveParRecognizedInsideOfOfferingAmount", "number", 1.0),
+    ("subtot_comp_outside_recog", "SubtotalCompetitiveParRecognizedOutsideOfOfferingAmount", "number", 1.0),
+    ("grand_total_par_recog", "GrandTotalParRecognized", "number", 1.0),
+)
+
+
+def reconcile_updated_auction_sample(sample: dict | None) -> dict:
+    """Reconcile one updated-table API row against its official auction-result XML.
+
+    Only awarded amounts map to the legacy accepted-amount fields. Recognized
+    amounts are separately cross-checked and deliberately excluded from the
+    competitive-award denominator.
+    """
+    if not sample:
+        return {"status": "NO_SAMPLE"}
+    result_xml = sample.get("result_xml") or {}
+    if result_xml.get("status") != "PARSED":
+        return {
+            "status": "UNAVAILABLE",
+            "reason": f"Result XML status is {result_xml.get('status', 'MISSING')}",
+        }
+
+    xml_values = {}
+    required_xml_names = {item[1] for item in UPDATED_AUCTION_XML_FIELD_MAP}
+    for item in result_xml.get("candidate_values", []):
+        name = str(item.get("name") or "")
+        value = str(item.get("value") or "").strip()
+        if name not in required_xml_names:
+            continue
+        if name in xml_values and xml_values[name] != value:
+            return {
+                "status": "MISMATCH",
+                "reason": f"Conflicting duplicate XML values for {name}",
+            }
+        xml_values[name] = value
+
+    result_fields = sample.get("result_fields") or {}
+    checks = []
+    missing = []
+    for api_field, xml_field, kind, tolerance in UPDATED_AUCTION_XML_FIELD_MAP:
+        api_value = sample.get(api_field) if api_field in sample else result_fields.get(api_field)
+        xml_value = xml_values.get(xml_field)
+        if api_value is None or xml_value is None:
+            missing.append({"api_field": api_field, "xml_field": xml_field})
+            continue
+        if kind == "number":
+            left = parse_float(api_value)
+            right = parse_float(xml_value)
+            if left is None or right is None:
+                missing.append({"api_field": api_field, "xml_field": xml_field})
+                continue
+            difference = left - right
+            matched = abs(difference) <= tolerance
+        elif kind == "date":
+            left = parse_date(api_value)
+            right = parse_date(xml_value)
+            difference = None
+            matched = left is not None and left == right
+        else:
+            left = str(api_value).strip().lower()
+            right = str(xml_value).strip().lower()
+            difference = None
+            matched = bool(left) and left == right
+        checks.append({
+            "api_field": api_field,
+            "xml_field": xml_field,
+            "matched": matched,
+            "difference": difference,
+        })
+        if not matched:
+            return {
+                "status": "MISMATCH",
+                "reason": f"API/XML mismatch for {api_field} versus {xml_field}",
+                "field_checks": checks,
+            }
+
+    if missing:
+        return {
+            "status": "INCOMPLETE",
+            "reason": "Required API/XML crosswalk fields are missing or non-numeric",
+            "missing_fields": missing,
+            "field_checks": checks,
+        }
+
+    primary = parse_float(result_fields.get("prim_deal_comp_par_awarded"))
+    direct = parse_float(result_fields.get("dir_bid_comp_par_awarded"))
+    indirect = parse_float(result_fields.get("indir_bid_comp_par_awarded"))
+    inside = parse_float(result_fields.get("subtot_comp_inside_awrd"))
+    outside = parse_float(result_fields.get("subtot_comp_outside_awrd"))
+    bid_to_cover = parse_float(result_fields.get("bid_to_cover_ratio"))
+    if any(value is None or value < 0 for value in (primary, direct, indirect, inside, outside)):
+        return {"status": "INCOMPLETE", "reason": "Competitive awarded amounts are missing or negative"}
+    competitive_awards = inside + outside
+    bidder_awards = primary + direct + indirect
+    award_difference = bidder_awards - competitive_awards
+    if competitive_awards <= 0 or abs(award_difference) > 1.0:
+        return {
+            "status": "MISMATCH",
+            "reason": "Primary/direct/indirect awards do not sum to the competitive award denominator",
+            "competitive_awards": competitive_awards,
+            "bidder_awards": bidder_awards,
+            "difference": award_difference,
+        }
+    if bid_to_cover is None or bid_to_cover <= 0:
+        return {"status": "INCOMPLETE", "reason": "Bid-to-cover ratio is missing or non-positive"}
+
+    recognized_primary = parse_float(result_fields.get("prim_deal_comp_par_recog"))
+    recognized_competitive = parse_float(result_fields.get("subtot_comp_inside_recog"))
+    return {
+        "status": "RECONCILED_SAMPLE_ONLY",
+        "field_checks": checks,
+        "award_identity": {
+            "primary_direct_indirect_sum": bidder_awards,
+            "competitive_awards_inside_plus_outside": competitive_awards,
+            "difference": award_difference,
+        },
+        "legacy_crosswalk": {
+            "record_date": sample.get("record_date"),
+            "auction_date": sample.get("comp_auction_close_date"),
+            "cusip": sample.get("cusip"),
+            "bid_to_cover_ratio": bid_to_cover,
+            "comp_accepted": competitive_awards,
+            "primary_dealer_accepted": primary,
+            "direct_bidder_accepted": direct,
+            "indirect_bidder_accepted": indirect,
+            "dealer_share": primary / competitive_awards,
+        },
+        "recognized_amounts_not_used_for_award_share": {
+            "primary_dealer_competitive_recognized": recognized_primary,
+            "competitive_inside_recognized": recognized_competitive,
+            "reason": "Recognized amounts are separately reported from awarded amounts; the accepted-share crosswalk uses the awarded fields only.",
+        },
     }
 
 
@@ -230,6 +384,7 @@ def fetch_updated_auction_probe(end_date: dt.date) -> dict:
                         }
                 else:
                     target_sample["result_xml"] = {"status": "NO_FILENAME"}
+                target_sample["reconciliation"] = reconcile_updated_auction_sample(target_sample)
                 target_matches.append(target_sample)
         return {
             "status": "SAMPLE_ONLY" if page_complete else ("PARTIAL" if rows else "NO_DATA"),
@@ -252,7 +407,8 @@ def fetch_updated_auction_probe(end_date: dt.date) -> dict:
                 "Diagnostic only: updated-table rows are not merged into the historical model sample.",
                 "The filtered page is complete only when API total-pages is one and total-count equals rows returned.",
                 "Field presence does not by itself validate bidder-result semantics or historical completeness.",
-                "The result XML is parsed for field discovery; its values are not accepted into the model until reconciled.",
+                "The selected 2026-11-10 sample is cross-checked against result XML; this does not establish historical population completeness.",
+                "Only competitive awarded amounts map to legacy accepted fields; recognized amounts are cross-checked but excluded from the accepted-share denominator.",
             ],
         }
     except Exception as exc:
@@ -897,6 +1053,7 @@ def write_outputs(result: dict, report: str) -> tuple[str, str]:
         f"updated auctions API probe={updated_probe.get('status', 'UNAVAILABLE')}, "
         f"2026-11-10 10-year matches={updated_probe.get('target_matches', 0)}, "
         f"result XML={((updated_probe.get('target_sample') or {}).get('result_xml') or {}).get('status', 'NOT_ATTEMPTED')}"
+        f" award crosswalk={((updated_probe.get('target_sample') or {}).get('reconciliation') or {}).get('status', 'NOT_ATTEMPTED')}"
     )
     data_scope = result.get("data_scope", "Data scope unresolved")
     update_registry(status, disposition, data_scope, '../' + str(report_path.relative_to(ROOT)), metrics_text)
@@ -1040,7 +1197,7 @@ def run_research() -> dict:
             "Auction result publication is conservatively lagged: the target starts at the first yield-series observation strictly after record_date.",
             "The yield series is a reference series, not an executable quote.",
             "No forward-filling or synthetic observations are used.",
-            "The updated post-2026-10-01 Treasury auctions API is probed separately; its rows are not merged into the legacy historical sample until schema, bidder-result semantics and coverage are validated.",
+            "The updated post-2026-10-01 Treasury auctions API has a sample-level API/XML award crosswalk; its rows are not merged into the legacy historical sample until full population coverage, overlap and bidder-result semantics are validated.",
             "Incremental predictive value requires independent robustness and a separate tradable-instrument data source before any economic interpretation.",
         ],
     }
@@ -1054,6 +1211,8 @@ def render_report(result: dict, error: str | None = None) -> str:
     yield_source = result.get("yield_source") or {}
     treasury_crosscheck = result.get("treasury_xml_crosscheck") or {}
     updated_probe = result.get("updated_auction_probe") or {}
+    updated_reconciliation = (updated_probe.get("target_sample") or {}).get("reconciliation") or {}
+    crosswalk = updated_reconciliation.get("legacy_crosswalk") or {}
     lines = [
         f"# Session report — Treasury auction bidder-composition forecast ({SESSION_STAMP})",
         "",
@@ -1091,8 +1250,11 @@ def render_report(result: dict, error: str | None = None) -> str:
         f"- API total-count: {updated_probe.get('total_count', 'unknown')}; page complete: {updated_probe.get('page_complete', False)}",
         f"- Candidate bidder/result fields: {', '.join(updated_probe.get('candidate_result_fields', []))}",
         f"- Target result XML: {((updated_probe.get('target_sample') or {}).get('result_xml') or {}).get('status', 'NOT_ATTEMPTED')}",
+        f"- API/XML award crosswalk: {updated_reconciliation.get('status', 'NOT_ATTEMPTED')}",
+        f"- Reconciled competitive award denominator: {crosswalk.get('comp_accepted', 'unknown')}",
+        f"- Reconciled primary-dealer award share: {safe_round(crosswalk.get('dealer_share'))}",
         f"- Target five-business-day yield window: {(updated_probe.get('target_window') or {}).get('status', 'UNKNOWN')}",
-        "- The updated-table probe is not merged into the historical backtest until field semantics and coverage are validated.",
+        "- This one-row crosswalk is sample-level evidence only; no updated-table rows are merged into the historical backtest until full population coverage and overlap are validated.",
         "",
         "## Out-of-sample forecast results",
         "",

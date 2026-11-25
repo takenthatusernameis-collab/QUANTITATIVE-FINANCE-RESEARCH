@@ -314,5 +314,98 @@ class TreasuryAuctionDemandTests(unittest.TestCase):
 
 
 
+    def _updated_auction_sample(self):
+        api_fields = {
+            "bid_to_cover_ratio": "2.46",
+            "offering_amt": "42000000000",
+            "prim_deal_comp_par_awarded": "4080513500",
+            "dir_bid_comp_par_awarded": "12109950200",
+            "indir_bid_comp_par_awarded": "25566955000",
+            "subtot_comp_inside_awrd": "41757418700",
+            "subtot_comp_outside_awrd": "0",
+            "grand_total_par_awarded": "50519618200",
+            "prim_deal_comp_par_recog": "57556000000",
+            "dir_bid_comp_par_recog": "16167600000",
+            "indir_bid_comp_par_recog": "29336438000",
+            "subtot_comp_inside_recog": "103060038000",
+            "subtot_comp_outside_recog": "0",
+            "grand_total_par_recog": "111822237500",
+        }
+        xml_values = [
+            ("CUSIP", "91282CRX1"),
+            ("SecurityType", "Note"),
+            ("SecurityDescription", "10-Year Note"),
+            ("CompetitiveAuctionCloseDate", "2026-11-10"),
+            ("InflationProtected", "No"),
+            ("FloatingRate", "No"),
+            ("Reopening", "No"),
+            ("BidToCoverRatio", "2.46"),
+            ("OfferingAmount", "42000000000"),
+            ("PrimaryDealersCompetitiveParAwarded", "4080513500"),
+            ("DirectBiddersCompetitiveParAwarded", "12109950200"),
+            ("IndirectBiddersCompetitiveParAwarded", "25566955000"),
+            ("SubtotalCompetitiveParAwardedInsideOfOfferingAmount", "41757418700"),
+            ("SubtotalCompetitiveParAwardedOutsideOfOfferingAmount", "0"),
+            ("GrandTotalParAwarded", "50519618200"),
+            ("PrimaryDealersCompetitiveParRecognized", "57556000000"),
+            ("DirectBiddersCompetitiveParRecognized", "16167600000"),
+            ("IndirectBiddersCompetitiveParRecognized", "29336438000"),
+            ("SubtotalCompetitiveParRecognizedInsideOfOfferingAmount", "103060038000"),
+            ("SubtotalCompetitiveParRecognizedOutsideOfOfferingAmount", "0"),
+            ("GrandTotalParRecognized", "111822237500"),
+        ]
+        return {
+            "record_date": "2026-11-16",
+            "cusip": "91282CRX1",
+            "security_type": "Note",
+            "security_desc": "10-Year Note",
+            "comp_auction_close_date": "2026-11-10",
+            "inflation_protected": "No",
+            "floating_rate": "No",
+            "reopening": "No",
+            "result_fields": api_fields,
+            "result_xml": {
+                "status": "PARSED",
+                "candidate_values": [{"name": name, "value": value} for name, value in xml_values],
+            },
+        }
+
+    def test_updated_auction_awarded_fields_reconcile_to_official_xml(self):
+        result = qfr.reconcile_updated_auction_sample(self._updated_auction_sample())
+        self.assertEqual(result["status"], "RECONCILED_SAMPLE_ONLY")
+        crosswalk = result["legacy_crosswalk"]
+        self.assertEqual(crosswalk["comp_accepted"], 41757418700.0)
+        self.assertEqual(crosswalk["primary_dealer_accepted"], 4080513500.0)
+        self.assertAlmostEqual(crosswalk["dealer_share"], 4080513500 / 41757418700, places=12)
+        self.assertEqual(result["award_identity"]["difference"], 0.0)
+        self.assertEqual(
+            result["recognized_amounts_not_used_for_award_share"]["primary_dealer_competitive_recognized"],
+            57556000000.0,
+        )
+
+    def test_updated_auction_api_xml_amount_mismatch_fails_closed(self):
+        sample = self._updated_auction_sample()
+        sample["result_fields"]["prim_deal_comp_par_awarded"] = "4080513502"
+        result = qfr.reconcile_updated_auction_sample(sample)
+        self.assertEqual(result["status"], "MISMATCH")
+        self.assertIn("prim_deal_comp_par_awarded", result["reason"])
+
+    def test_updated_auction_award_identity_mismatch_fails_closed(self):
+        sample = self._updated_auction_sample()
+        sample["result_fields"]["subtot_comp_inside_awrd"] = "41757418800"
+        for item in sample["result_xml"]["candidate_values"]:
+            if item["name"] == "SubtotalCompetitiveParAwardedInsideOfOfferingAmount":
+                item["value"] = "41757418800"
+        result = qfr.reconcile_updated_auction_sample(sample)
+        self.assertEqual(result["status"], "MISMATCH")
+        self.assertIn("do not sum", result["reason"])
+
+    def test_updated_auction_crosswalk_requires_complete_result_xml(self):
+        sample = self._updated_auction_sample()
+        sample["result_xml"]["candidate_values"] = []
+        result = qfr.reconcile_updated_auction_sample(sample)
+        self.assertEqual(result["status"], "INCOMPLETE")
+
+
 if __name__ == "__main__":
     unittest.main()
