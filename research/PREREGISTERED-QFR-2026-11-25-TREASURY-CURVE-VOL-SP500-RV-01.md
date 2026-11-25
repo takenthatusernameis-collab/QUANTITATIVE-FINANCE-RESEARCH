@@ -2,7 +2,7 @@
 
 - **Hypothesis ID:** QFR-2026-11-25-TREASURY-CURVE-VOL-SP500-RV-01
 - **Registered:** 2026-11-25T17:15:00Z, before empirical result inspection.
-- **Status:** PREREGISTERED — empirical result not yet inspected.
+- **Status:** INCONCLUSIVE — closed on 2026-11-25T17:16:24Z under the frozen decision rule; one successful real-data run completed after two deterministic-test repairs. No tuning or further cycles under this hypothesis ID.
 - **Difficulty:** MEDIUM.
 - **Difficulty rationale:** three public daily series, strict prior-date alignment for the Treasury spread, rolling feature construction, an existing walk-forward OLS harness and block-bootstrap inference. No credentials, paid data, new venue or custom infrastructure.
 - **Implementation timebox:** start 2026-11-25T17:15:00Z; deadline 2026-11-29T17:15:00Z.
@@ -82,3 +82,15 @@ A promising forecast is not independent validation, a causal finding, an executa
 - FRED observations can be revised; this experiment uses the retrieved current vintage and does not reconstruct historical release vintages.
 - The feature is a simple 20-observation realized variation, not the more elaborate term-structure-volatility specifications in the cited paper.
 - Forecasting only: no causal claim, transaction-cost model, tradable strategy, live-deployment conclusion or raw-data redistribution.
+
+
+## Empirical disposition
+
+- **Final status:** INCONCLUSIVE. The augmented model's RMSE improved slightly in both chronological periods, but the paired test squared-loss bootstrap interval crosses zero; the frozen statistical promotion criterion therefore fails.
+- Accepted data: SP500 2,512 rows (2016-11-28 to 2026-11-24); VIXCLS 2,546 rows (2016-11-25 to 2026-11-24); T10Y3M 2,499 rows (2016-11-25 to 2026-11-24). All three met the preregistered synchronized-coverage gate. No event was dropped for missing/stale curve observations or incomplete windows.
+- Non-overlapping origins: 415/415; validation forecasts: 107; test forecasts: 204.
+- Validation RMSE: baseline 0.33999570; augmented 0.33877689; improvement +0.3585%.
+- Test RMSE: baseline 0.26604998; augmented 0.26463584; improvement +0.5315%.
+- Test paired squared-log-loss difference (baseline minus augmented): +0.00075047; 2,000-replication circular-block bootstrap 95% CI [-0.00332493, +0.00433012]; 67.3% of bootstrap draws positive. The interval includes zero.
+- **Decision:** no promotion, no claim of statistically established incremental forecast value, no trading-strategy inference. Close this hypothesis ID; any materially different follow-up requires a new preregistration.
+- **Evidence:** [GitHub Actions run 45662954265](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45662954265); [session report](../reports/sessions/2026-11-25/2026-11-25T171622Z_session-treasury-curve-volatility-45662954265.md); [generated manifest](../reports/generated/treasury-curve-volatility/45662954265-attempt-1/manifest.json).
