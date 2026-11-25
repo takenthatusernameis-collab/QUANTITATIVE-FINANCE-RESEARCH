@@ -49,6 +49,17 @@ The hypothesis tests whether the simple 30-day/3-month CBOE implied-volatility s
 - No raw market-data files were committed.
 - FRED current-vintage data were used; historical revisions were not reconstructed.
 
+## Changed and verified
+
+- Preregistration: research/PREREGISTERED-QFR-2026-11-25-VIX-TERM-STRUCTURE-SP500-RV-01.md.
+- Model: research/vix_term_structure_sp500_volatility.py.
+- Deterministic tests: research/test_vix_term_structure_sp500_volatility.py — 10 passed in 0.032 seconds.
+- Workflow: .github/workflows/vix-term-structure-sp500-volatility.yml.
+- Registry: research/HYPOTHESIS-REGISTRY.md; all five hypothesis entries are now inside the registry table.
+- Code/preregistration/workflow commits: 149414f, 60aa160, 4e8b829, 0f6b48a; test freshness-gate update: 1a8e476.
+- Primary Actions run: 45610413982 — successful. Source hashes and metrics are in the generated manifest.
+- Evidence persistence commit: 33eaa602; report correction: 0ae250c; manifest seed clarification: fdfe747; registry repair: 3f83694.
+
 ## Verified versus unverified
 
 **VERIFIED:** source HTTP retrieval and CSV parsing; source row counts and date coverage; exact-date alignment; one-session signal/target gap; non-overlapping target windows; strict target maturity; deterministic walk-forward metrics and bootstrap under this code/data vintage.
