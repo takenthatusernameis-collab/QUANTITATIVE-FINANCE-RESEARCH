@@ -1,0 +1,1130 @@
+{
+  "auction_source": {
+    "attempts": [
+      "Auction route failed (narrow nominal fixed-rate 10-year filter; selected fields): Non-retryable HTTP 404 for https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query?filter=auction_date%3Agte%3A2008-01-01%2Cauction_date%3Alte%3A2026-11-24%2Csecurity_type%3Aeq%3ANote%2Coriginal_security_term%3Aeq%3A10-Year%2Ctips%3Aeq%3Afalse%2Cfloating_rate%3Aeq%3Afalse&sort=auction_date&page%5Bsize%5D=10000&page%5Bnumber%5D=1&fields=record_date%2Cauction_date%2Ccusip%2Csecurity_type%2Csecurity_term%2Coriginal_security_term%2Ctips%2Cfloating_rate%2Creopening%2Ccomp_accepted%2Ctotal_accepted%2Cbid_to_cover_ratio%2Cprimary_dealer_accepted%2Cdirect_bidder_accepted%2Cindirect_bidder_accepted",
+      "Auction route failed (narrow nominal fixed-rate 10-year filter; full-row fallback): Non-retryable HTTP 404 for https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query?filter=auction_date%3Agte%3A2008-01-01%2Cauction_date%3Alte%3A2026-11-24%2Csecurity_type%3Aeq%3ANote%2Coriginal_security_term%3Aeq%3A10-Year%2Ctips%3Aeq%3Afalse%2Cfloating_rate%3Aeq%3Afalse&sort=auction_date&page%5Bsize%5D=10000&page%5Bnumber%5D=1",
+      "Auction route failed (broad Note filter; selected fields): Non-retryable HTTP 404 for https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query?filter=auction_date%3Agte%3A2008-01-01%2Cauction_date%3Alte%3A2026-11-24%2Csecurity_type%3Aeq%3ANote&sort=auction_date&page%5Bsize%5D=10000&page%5Bnumber%5D=1&fields=record_date%2Cauction_date%2Ccusip%2Csecurity_type%2Csecurity_term%2Coriginal_security_term%2Ctips%2Cfloating_rate%2Creopening%2Ccomp_accepted%2Ctotal_accepted%2Cbid_to_cover_ratio%2Cprimary_dealer_accepted%2Cdirect_bidder_accepted%2Cindirect_bidder_accepted",
+      "Treasury Fiscal Data legacy auctions_query succeeded: broad Note filter; full-row fallback"
+    ],
+    "quality": {
+      "denominator_mismatch_over_5pct": 0,
+      "duplicate_cusip": 0,
+      "missing_fields": 2,
+      "not_note": 0,
+      "not_original_10y": 1094,
+      "record_date_fallback_to_auction_date": 0,
+      "rows_returned": 1430,
+      "selected": 226,
+      "unknown_or_floating": 0,
+      "unknown_or_tips": 108
+    },
+    "rows_returned": 1430,
+    "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query"
+  },
+  "daily_kpi": "MET",
+  "data_scope": "10-year nominal Treasury notes, 2008-05-07 to 2026-10-07; FRED DGS10 (Board of Governors H.15 via FRED); Treasury XML all-years cross-check attempted daily yield observations 2008-01-02 to 2026-11-23",
+  "disposition": "INCONCLUSIVE \u2014 mixed predictive evidence; do not promote or claim an economic edge",
+  "event_construction": {
+    "events_with_targets": 226,
+    "model_training_rule": "Only prior events whose five-business-day target end date is strictly before the current auction record_date are eligible.",
+    "rolling_demand_lookback_auctions": 26,
+    "rolling_model_window_events": 52,
+    "skipped": {
+      "insufficient_pre_history": 0,
+      "no_future_yield_window": 0
+    },
+    "target_horizon_business_days": 5
+  },
+  "hypothesis_id": "QFR-2026-11-25-UST-AUCTION-ABSORPTION-01",
+  "limitations": [
+    "This is a yield-forecasting backtest, not a tradable futures/ETF P&L.",
+    "No CAGR, Sharpe, Sortino, turnover or drawdown is claimed.",
+    "The run uses H.15 DGS10 from the Board of Governors via FRED when that source succeeds; it is not assumed identical to the direct Treasury daily par-yield curve.",
+    "The direct Treasury daily par-yield XML all-years feed is independently cross-checked when accessible; its status is recorded separately and a failed request is not treated as a zero-observation source.",
+    "Auction result publication is conservatively lagged: the target starts at the first yield-series observation strictly after record_date.",
+    "The yield series is a reference series, not an executable quote.",
+    "No forward-filling or synthetic observations are used.",
+    "The updated post-2026-10-01 Treasury auctions API is probed separately; its rows are not merged into the legacy historical sample until schema, bidder-result semantics and coverage are validated.",
+    "Incremental predictive value requires independent robustness and a separate tradable-instrument data source before any economic interpretation."
+  ],
+  "retrieved_at_utc": "2026-11-25T04:32:46.617599+00:00",
+  "run_attempt": "1",
+  "run_id": "45547486315",
+  "sample_end_cutoff": "2026-11-24",
+  "sample_start": "2008-01-01",
+  "source_commit_sha": "6a4e4776e8b48a25e83900e9db227f7837423274",
+  "source_sha256": {
+    "auction_page_1": "6cd980fa5db190f46e0f467805e8e0a3e1e5160c668de70e5440d8383c2dba20",
+    "fred_dgs10_primary": "39224fa29fdfaf670ba1fb452ff7d8f0e3527cf99d173bc6ba51c990ef10b4f3",
+    "updated_auction_probe": "ea814d58ed45161efbf1a0d647a44627be2644a0d1b0a29d831f0b410ddd9022",
+    "updated_auction_result_xml": "99ca2a9f577860a1a139501cda76ec8ceb2e56e74c9be06e92b5bc98c2d0d76c"
+  },
+  "status": "INCONCLUSIVE",
+  "summary_metrics": {
+    "all_oos_n": 96,
+    "test_augmented_directional_accuracy": 0.5333,
+    "test_augmented_mae_bp": 9.0236,
+    "test_augmented_rmse_bp": 11.329,
+    "test_baseline_directional_accuracy": 0.4667,
+    "test_baseline_mae_bp": 9.1571,
+    "test_baseline_rmse_bp": 11.4001,
+    "test_n": 46,
+    "test_rmse_improvement_pct": 0.624,
+    "validation_n": 50,
+    "weak_demand_bootstrap_ci_high_bp": null,
+    "weak_demand_bootstrap_ci_low_bp": null,
+    "weak_demand_mean_difference_bp": -7.969
+  },
+  "test_metrics": {
+    "augmented": {
+      "directional_accuracy": 0.5333333333333333,
+      "mae_bp": 9.02363287303241,
+      "mean_actual_bp": 0.7826086956521717,
+      "n": 46,
+      "oos_r2_vs_mean": -0.04497057882256583,
+      "rmse_bp": 11.328975966169182
+    },
+    "baseline": {
+      "directional_accuracy": 0.4666666666666667,
+      "mae_bp": 9.157112242423214,
+      "mean_actual_bp": 0.7826086956521717,
+      "n": 46,
+      "oos_r2_vs_mean": -0.05813504595770702,
+      "rmse_bp": 11.400113449258905
+    },
+    "weak_demand_event_study": {
+      "bootstrap": null,
+      "difference_bp": -7.968992248061988,
+      "other_mean_bp": 1.302325581395345,
+      "other_n": 43,
+      "weak_mean_bp": -6.666666666666643,
+      "weak_n": 3
+    }
+  },
+  "treasury_xml_crosscheck": {
+    "error": "RuntimeError: Request failed after 2 bounded attempts: https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=all&page=4: The read operation timed out",
+    "rows": 0,
+    "status": "UNAVAILABLE"
+  },
+  "updated_auction_probe": {
+    "candidate_result_fields": [
+      "bid_to_cover_ratio",
+      "dir_bid_comp_par_awarded",
+      "dir_bid_comp_par_recog",
+      "dir_bid_noncomp_par_awarded",
+      "dir_bid_noncomp_par_recog",
+      "direct_ppt_bids_accepted",
+      "direct_ppt_inside_amt",
+      "fima_comp_bids_accepted",
+      "fima_noncomp_bids_accepted",
+      "fima_noncomp_par_awarded",
+      "fima_noncomp_par_recog",
+      "grand_total_par_awarded",
+      "grand_total_par_recog",
+      "indir_bid_comp_par_awarded",
+      "indir_bid_comp_par_recog",
+      "indir_bid_noncomp_par_awarded",
+      "indirct_ppt_bids_accepted",
+      "noncomp_bids_accepted",
+      "offering_amt",
+      "pdf_filenm_announcemt",
+      "pdf_filenm_comp_results",
+      "pdf_filenm_noncomp_results",
+      "pdf_filenm_spec_announcemt",
+      "prim_deal_bids_accepted",
+      "prim_deal_comp_par_awarded",
+      "prim_deal_comp_par_recog",
+      "prim_deal_noncomp_par_awarded",
+      "retail_bids_accepted",
+      "retail_noncomp_par_recog",
+      "soma_bids_accepted",
+      "soma_noncomp_par_awarded",
+      "soma_noncomp_par_recog",
+      "subtot_comp_inside_awrd",
+      "subtot_comp_outside_awrd",
+      "subtot_noncomp_inside_awrd",
+      "subtot_noncomp_outside_awrd",
+      "t_fima_noncomp_par_recog",
+      "t_prim_dealer_noncomp_recog",
+      "t_retail_noncomp_par_recog",
+      "t_soma_noncomp_par_recog",
+      "xml_filenm_announcemt",
+      "xml_filenm_comp_results",
+      "xml_filenm_noncomp_results"
+    ],
+    "first_auction_date": "2026-09-28",
+    "first_record_date": "2026-10-01",
+    "last_auction_date": "2026-11-19",
+    "last_record_date": "2026-11-24",
+    "limitations": [
+      "Diagnostic only: updated-table rows are not merged into the historical model sample.",
+      "The filtered page is complete only when API total-pages is one and total-count equals rows returned.",
+      "Field presence does not by itself validate bidder-result semantics or historical completeness.",
+      "The result XML is parsed for field discovery; its values are not accepted into the model until reconciled."
+    ],
+    "page_complete": true,
+    "page_size": 1000,
+    "rows_returned": 64,
+    "schema_fields": [
+      "accrued_int",
+      "accrued_int_per_amount",
+      "adj_accrued_int",
+      "adj_currently_outstanding",
+      "adj_price",
+      "allotted_high_pctage_decimals",
+      "allotted_pct_hi_discnt_margin",
+      "allotted_pctage_high_rate",
+      "allotted_pctage_high_yield",
+      "announcemt_date",
+      "announcemtd_corpus_cusip",
+      "announcemtd_cusip",
+      "announcemtd_index_ratio",
+      "announcemtd_orig_dated_date",
+      "announcemtd_orig_issue_date",
+      "announcemtd_ref_cpi",
+      "announcemtd_reopening",
+      "announcemtd_security_desc",
+      "announcemtd_security_type",
+      "avg_discnt_margin",
+      "avg_investment_rate",
+      "avg_price",
+      "avg_rate",
+      "avg_yield",
+      "bid_to_cover_ratio",
+      "callable",
+      "called_date",
+      "cash_management_bill",
+      "comp_apprx_amt_remaining",
+      "comp_auction_close_date",
+      "comp_auction_close_time",
+      "comp_bid_decimals",
+      "comp_bid_expression",
+      "comp_discnt_margin_bid_increm",
+      "comp_rate_bid_increments",
+      "comp_yield_bid_increments",
+      "corpus_cusip",
+      "cpi_base_reference_period",
+      "currently_outstanding",
+      "cusip",
+      "dated_date",
+      "dated_date_diff_issue_date",
+      "dir_bid_comp_par_awarded",
+      "dir_bid_comp_par_recog",
+      "dir_bid_noncomp_par_awarded",
+      "dir_bid_noncomp_par_recog",
+      "direct_ppt_bids_accepted",
+      "direct_ppt_inside_amt",
+      "eligible_call_date",
+      "fima_comp_bids_accepted",
+      "fima_included",
+      "fima_noncomp_bids_accepted",
+      "fima_noncomp_inside_amt",
+      "fima_noncomp_par_awarded",
+      "fima_noncomp_par_recog",
+      "first_int_payment_length",
+      "floating_rate",
+      "frn_index_determination_date",
+      "frn_index_determination_rate",
+      "grand_total_par_awarded",
+      "grand_total_par_recog",
+      "high_discnt_margin",
+      "high_price",
+      "high_rate",
+      "high_yield",
+      "index_ratio_on_issue_date",
+      "indir_bid_comp_par_awarded",
+      "indir_bid_comp_par_recog",
+      "indir_bid_noncomp_par_awarded",
+      "indir_bid_noncomp_recog",
+      "indirct_ppt_bids_accepted",
+      "indirct_ppt_inside_amt",
+      "inflation_protected",
+      "int_payment_frequency",
+      "int_rate",
+      "investment_rate",
+      "issue_date",
+      "long_short_first_int_payment",
+      "long_short_first_int_pmt_amt",
+      "low_discnt_margin",
+      "low_discnt_margin_threshold",
+      "low_investment_rate",
+      "low_price",
+      "low_rate",
+      "low_rate_threshold",
+      "low_yield",
+      "low_yield_threshold",
+      "maturing_date",
+      "maturing_securities_type",
+      "maturity_date",
+      "max_comp_award",
+      "max_noncomp_award",
+      "max_recog_single_rate_bid",
+      "max_recog_single_yield_bid",
+      "max_single_bid",
+      "med__discnt_margin",
+      "med__discnt_margin_threshold",
+      "med_rate",
+      "med_rate_threshold",
+      "med_yield",
+      "med_yield_threshold",
+      "min_bid_amt",
+      "min_strip_amt",
+      "min_to_issue_amt",
+      "multiples_to_bid_amt",
+      "multiples_to_issue_amt",
+      "nlp_exclusion_amt",
+      "nlp_reporting_threshold",
+      "noncomp_auction_close_date",
+      "noncomp_auction_close_time",
+      "noncomp_bids_accepted",
+      "offering_amt",
+      "original_dated_date",
+      "original_issue_date",
+      "original_security_term",
+      "pdf_filenm_announcemt",
+      "pdf_filenm_comp_results",
+      "pdf_filenm_noncomp_results",
+      "pdf_filenm_spec_announcemt",
+      "price_per_amt",
+      "pricing_method",
+      "prim_deal_bids_accepted",
+      "prim_deal_comp_par_awarded",
+      "prim_deal_comp_par_recog",
+      "prim_deal_inside",
+      "prim_deal_noncomp_par_awarded",
+      "prim_deal_noncomp_recog",
+      "private_holdings",
+      "record_date",
+      "ref_cpi_on_issue_date",
+      "ref_cpi_on_orig_dated_date",
+      "reopening",
+      "retail_bids_accepted",
+      "retail_inside_amt",
+      "retail_noncomp_par_recog",
+      "security_desc",
+      "security_term",
+      "security_term_day",
+      "security_term_month",
+      "security_term_week",
+      "security_term_year",
+      "security_type",
+      "series",
+      "soma_bids_accepted",
+      "soma_holdings",
+      "soma_inside_amt",
+      "soma_noncomp_par_awarded",
+      "soma_noncomp_par_recog",
+      "spread",
+      "std_int_payment",
+      "std_int_payment_per_amt",
+      "strippable",
+      "subtot_comp_inside_awrd",
+      "subtot_comp_inside_recog",
+      "subtot_comp_outside_awrd",
+      "subtot_comp_outside_recog",
+      "subtot_noncomp_inside_awrd",
+      "subtot_noncomp_inside_recog",
+      "subtot_noncomp_outside_awrd",
+      "subtot_noncomp_outside_recog",
+      "t_dir_bid_noncomp_recog",
+      "t_fima_noncomp_par_recog",
+      "t_indir_bid_noncomp_recog",
+      "t_prim_dealer_noncomp_recog",
+      "t_retail_noncomp_par_recog",
+      "t_soma_noncomp_par_recog",
+      "technique",
+      "tiin_convers_factor_per_amt",
+      "tiin_conversion_factor",
+      "total_mkt_amt_outstanding",
+      "total_par_inside_awarded",
+      "total_par_inside_recog",
+      "total_par_outside_awarded",
+      "total_par_outside_recog",
+      "tsubtot_noncomp_inside_recog",
+      "tsubtot_noncomp_outside_recog",
+      "unadj_accrued_int",
+      "unadj_price",
+      "xml_filenm_announcemt",
+      "xml_filenm_comp_results",
+      "xml_filenm_noncomp_results"
+    ],
+    "sha256": "ea814d58ed45161efbf1a0d647a44627be2644a0d1b0a29d831f0b410ddd9022",
+    "status": "SAMPLE_ONLY",
+    "target_matches": 1,
+    "target_sample": {
+      "comp_auction_close_date": "2026-11-10",
+      "cusip": "91282CRX1",
+      "floating_rate": "No",
+      "inflation_protected": "No",
+      "issue_date": "2026-11-16",
+      "maturity_date": "2036-11-15",
+      "original_security_term": "10-Year",
+      "pdf_filenm_comp_results": "R_20261110_1.pdf",
+      "record_date": "2026-11-16",
+      "reopening": "No",
+      "result_fields": {
+        "bid_to_cover_ratio": "2.46",
+        "dir_bid_comp_par_awarded": "12109950200",
+        "dir_bid_comp_par_recog": "16167600000",
+        "dir_bid_noncomp_par_awarded": "0",
+        "dir_bid_noncomp_par_recog": "0",
+        "direct_ppt_bids_accepted": "Yes",
+        "direct_ppt_inside_amt": "Yes",
+        "fima_comp_bids_accepted": "Yes",
+        "fima_noncomp_bids_accepted": "Yes",
+        "fima_noncomp_par_awarded": "0",
+        "fima_noncomp_par_recog": "0",
+        "grand_total_par_awarded": "50519618200",
+        "grand_total_par_recog": "111822237500",
+        "indir_bid_comp_par_awarded": "25566955000",
+        "indir_bid_comp_par_recog": "29336438000",
+        "indir_bid_noncomp_par_awarded": "172823000",
+        "indirct_ppt_bids_accepted": "Yes",
+        "noncomp_bids_accepted": "null",
+        "offering_amt": "42000000000",
+        "pdf_filenm_announcemt": "A_20261104_2.pdf",
+        "pdf_filenm_comp_results": "R_20261110_1.pdf",
+        "pdf_filenm_noncomp_results": "NCR_20261110_1.pdf",
+        "pdf_filenm_spec_announcemt": "null",
+        "prim_deal_bids_accepted": "Yes",
+        "prim_deal_comp_par_awarded": "4080513500",
+        "prim_deal_comp_par_recog": "57556000000",
+        "prim_deal_noncomp_par_awarded": "0",
+        "retail_bids_accepted": "Yes",
+        "retail_noncomp_par_recog": "69818000",
+        "soma_bids_accepted": "Yes",
+        "soma_noncomp_par_awarded": "8519558500",
+        "soma_noncomp_par_recog": "8519558500",
+        "subtot_comp_inside_awrd": "41757418700",
+        "subtot_comp_outside_awrd": "0",
+        "subtot_noncomp_inside_awrd": "242641000",
+        "subtot_noncomp_outside_awrd": "8519558500",
+        "t_fima_noncomp_par_recog": "0",
+        "t_prim_dealer_noncomp_recog": "0",
+        "t_retail_noncomp_par_recog": "69818000",
+        "t_soma_noncomp_par_recog": "8519558500",
+        "xml_filenm_announcemt": "A_20261104_2.xml",
+        "xml_filenm_comp_results": "R_20261110_1.xml",
+        "xml_filenm_noncomp_results": "NCR_20261110_1.xml"
+      },
+      "result_xml": {
+        "candidate_values": [
+          {
+            "name": "CUSIP",
+            "value": "91282CRX1"
+          },
+          {
+            "name": "CorpusCUSIP",
+            "value": "912821VP7"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "912833PD6"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2027-05-15"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "912833QB9"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2027-11-15"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "912833WQ9"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2028-05-15"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "912833WR7"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2028-11-15"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "912833XS4"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2029-05-15"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "912833XT2"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2029-11-15"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "912833XU9"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2030-05-15"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "9128337N4"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2030-11-15"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "9128337P9"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2031-05-15"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "9128337Q7"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2031-11-15"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "9128337R5"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2032-05-15"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "9128337S3"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2032-11-15"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "9128337T1"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2033-05-15"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "9128337U8"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2033-11-15"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "9128337V6"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2034-05-15"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "9128337W4"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2034-11-15"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "912833X88"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2035-05-15"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "912833X96"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2035-11-15"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "912833Y20"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2036-05-15"
+          },
+          {
+            "name": "TINTCUSIP",
+            "value": "912833Y38"
+          },
+          {
+            "name": "TINTCUSIPDueDate",
+            "value": "2036-11-15"
+          },
+          {
+            "name": "AnnouncementDate",
+            "value": "2026-11-04"
+          },
+          {
+            "name": "NoncompetitiveAuctionCloseDate",
+            "value": "2026-11-10"
+          },
+          {
+            "name": "NoncompetitiveAuctionCloseTime",
+            "value": "12:00 PM ET"
+          },
+          {
+            "name": "CompetitiveAuctionCloseDate",
+            "value": "2026-11-10"
+          },
+          {
+            "name": "CompetitiveAuctionCloseTime",
+            "value": "01:00 PM ET"
+          },
+          {
+            "name": "DatedDate",
+            "value": "2026-11-15"
+          },
+          {
+            "name": "OriginalDatedDate",
+            "value": "2026-11-15"
+          },
+          {
+            "name": "IssueDate",
+            "value": "2026-11-16"
+          },
+          {
+            "name": "OriginalIssueDate",
+            "value": "2026-11-16"
+          },
+          {
+            "name": "MaturityDate",
+            "value": "2036-11-15"
+          },
+          {
+            "name": "CompetitiveBidExpression",
+            "value": "Yield"
+          },
+          {
+            "name": "CompetitiveBidDecimals",
+            "value": "3"
+          },
+          {
+            "name": "CompetitiveYieldBidIncrements",
+            "value": "0.001"
+          },
+          {
+            "name": "MaximumNoncompetitiveAward",
+            "value": "10000000"
+          },
+          {
+            "name": "MaximumCompetitiveAward",
+            "value": "14700000000"
+          },
+          {
+            "name": "MaximumRecognizedBidAtASingleYield",
+            "value": "14700000000"
+          },
+          {
+            "name": "MinimumToBidAmount",
+            "value": "100"
+          },
+          {
+            "name": "MultipleToBidAmount",
+            "value": "100"
+          },
+          {
+            "name": "PrimaryDealerBidsAccepted",
+            "value": "Y"
+          },
+          {
+            "name": "PrimaryDealersInsideOfOfferingAmount",
+            "value": "Y"
+          },
+          {
+            "name": "DirectParticipantBidsAccepted",
+            "value": "Y"
+          },
+          {
+            "name": "DirectParticipantsInsideOfOfferingAmount",
+            "value": "Y"
+          },
+          {
+            "name": "IndirectParticipantBidsAccepted",
+            "value": "Y"
+          },
+          {
+            "name": "IndirectParticipantsInsideOfOfferingAmount",
+            "value": "Y"
+          },
+          {
+            "name": "SOMABidsAccepted",
+            "value": "Y"
+          },
+          {
+            "name": "FIMANoncompetitiveBidsAccepted",
+            "value": "Y"
+          },
+          {
+            "name": "FIMANoncompetitiveInsideOfOfferingAmount",
+            "value": "Y"
+          },
+          {
+            "name": "FIMACompetitiveBidsAccepted",
+            "value": "Y"
+          },
+          {
+            "name": "FIMACompetitiveInsideOfOfferingAmount",
+            "value": "Y"
+          },
+          {
+            "name": "TreasuryRetailBidsAccepted",
+            "value": "Y"
+          },
+          {
+            "name": "MaturingDate",
+            "value": "2026-11-15"
+          },
+          {
+            "name": "TotalMarketableAmountOutstanding",
+            "value": "122385152000"
+          },
+          {
+            "name": "DatedDateDifferentFromIssueDate",
+            "value": "Y"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2027-05-15"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2027-11-15"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2028-05-15"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2028-11-15"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2029-05-15"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2029-11-15"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2030-05-15"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2030-11-15"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2031-05-15"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2031-11-15"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2032-05-15"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2032-11-15"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2033-05-15"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2033-11-15"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2034-05-15"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2034-11-15"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2035-05-15"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2035-11-15"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2036-05-15"
+          },
+          {
+            "name": "InterestPaymentDate",
+            "value": "2036-11-15"
+          },
+          {
+            "name": "HighYield",
+            "value": "5.020"
+          },
+          {
+            "name": "AllottedAtHighYieldPercentage",
+            "value": "95.17"
+          },
+          {
+            "name": "MedianYield",
+            "value": "4.961"
+          },
+          {
+            "name": "MedianYieldThreshold",
+            "value": "50"
+          },
+          {
+            "name": "LowYield",
+            "value": "4.500"
+          },
+          {
+            "name": "LowYieldThreshold",
+            "value": "5"
+          },
+          {
+            "name": "PrimaryDealersNoncompetitiveParRecognized",
+            "value": "0"
+          },
+          {
+            "name": "PrimaryDealersCompetitiveParRecognized",
+            "value": "57556000000"
+          },
+          {
+            "name": "DirectBiddersNoncompetitiveParRecognized",
+            "value": "0"
+          },
+          {
+            "name": "DirectBiddersCompetitiveParRecognized",
+            "value": "16167600000"
+          },
+          {
+            "name": "IndirectBiddersNoncompetitiveParRecognized",
+            "value": "172823000"
+          },
+          {
+            "name": "IndirectBiddersCompetitiveParRecognized",
+            "value": "29336438000"
+          },
+          {
+            "name": "SOMANoncompetitiveParRecognized",
+            "value": "8519558500"
+          },
+          {
+            "name": "FIMANoncompetitiveParRecognized",
+            "value": "0"
+          },
+          {
+            "name": "RetailNoncompetitiveParRecognized",
+            "value": "69818000"
+          },
+          {
+            "name": "SubtotalNoncompetitiveParRecognizedInsideOfOfferingAmount",
+            "value": "242641000"
+          },
+          {
+            "name": "SubtotalCompetitiveParRecognizedInsideOfOfferingAmount",
+            "value": "103060038000"
+          },
+          {
+            "name": "SubtotalNoncompetitiveParRecognizedOutsideOfOfferingAmount",
+            "value": "8519558500"
+          },
+          {
+            "name": "SubtotalCompetitiveParRecognizedOutsideOfOfferingAmount",
+            "value": "0"
+          },
+          {
+            "name": "TotalParRecognizedInsideOfOfferingAmount",
+            "value": "103302679000"
+          },
+          {
+            "name": "TotalParRecognizedOutsideOfOfferingAmount",
+            "value": "8519558500"
+          },
+          {
+            "name": "GrandTotalParRecognized",
+            "value": "111822237500"
+          },
+          {
+            "name": "PrimaryDealersNoncompetitiveParAwarded",
+            "value": "0"
+          },
+          {
+            "name": "PrimaryDealersCompetitiveParAwarded",
+            "value": "4080513500"
+          },
+          {
+            "name": "DirectBiddersNoncompetitiveParAwarded",
+            "value": "0"
+          },
+          {
+            "name": "DirectBiddersCompetitiveParAwarded",
+            "value": "12109950200"
+          },
+          {
+            "name": "IndirectBiddersNoncompetitiveParAwarded",
+            "value": "172823000"
+          },
+          {
+            "name": "IndirectBiddersCompetitiveParAwarded",
+            "value": "25566955000"
+          },
+          {
+            "name": "SOMANoncompetitiveParAwarded",
+            "value": "8519558500"
+          },
+          {
+            "name": "FIMANoncompetitiveParAwarded",
+            "value": "0"
+          },
+          {
+            "name": "RetailNoncompetitiveParAwarded",
+            "value": "69818000"
+          },
+          {
+            "name": "SubtotalNoncompetitiveParAwardedInsideOfOfferingAmount",
+            "value": "242641000"
+          },
+          {
+            "name": "SubtotalCompetitiveParAwardedInsideOfOfferingAmount",
+            "value": "41757418700"
+          },
+          {
+            "name": "SubtotalNoncompetitiveParAwardedOutsideOfOfferingAmount",
+            "value": "8519558500"
+          },
+          {
+            "name": "SubtotalCompetitiveParAwardedOutsideOfOfferingAmount",
+            "value": "0"
+          },
+          {
+            "name": "TotalParAwardedInsideOfOfferingAmount",
+            "value": "42000059700"
+          },
+          {
+            "name": "TotalParAwardedOutsideOfOfferingAmount",
+            "value": "8519558500"
+          },
+          {
+            "name": "GrandTotalParAwarded",
+            "value": "50519618200"
+          },
+          {
+            "name": "BidToCoverRatio",
+            "value": "2.46"
+          }
+        ],
+        "file_name": "R_20261110_1.xml",
+        "root_tag": "Data",
+        "sha256": "99ca2a9f577860a1a139501cda76ec8ceb2e56e74c9be06e92b5bc98c2d0d76c",
+        "status": "PARSED",
+        "tag_names": [
+          "AccruedInterest",
+          "AccruedInterestPerAmount",
+          "AdditionalTINTCUSIP",
+          "AdditionalTINTCUSIPs",
+          "AllottedAtHighPercentageDecimals",
+          "AllottedAtHighYieldPercentage",
+          "AnnouncementDate",
+          "AuctionResultsBreakdown",
+          "BidToCoverRatio",
+          "CUSIP",
+          "Callable",
+          "CompetitiveAuctionCloseDate",
+          "CompetitiveAuctionCloseTime",
+          "CompetitiveBidDecimals",
+          "CompetitiveBidExpression",
+          "CompetitiveYieldBidIncrements",
+          "CorpusCUSIP",
+          "CurrentlyOutstanding",
+          "Data",
+          "DatedDate",
+          "DatedDateDifferentFromIssueDate",
+          "Dates",
+          "DirectBiddersCompetitiveParAwarded",
+          "DirectBiddersCompetitiveParRecognized",
+          "DirectBiddersNoncompetitiveParAwarded",
+          "DirectBiddersNoncompetitiveParRecognized",
+          "DirectParticipantBidsAccepted",
+          "DirectParticipantsInsideOfOfferingAmount",
+          "FIMACompetitiveBidsAccepted",
+          "FIMACompetitiveInsideOfOfferingAmount",
+          "FIMANoncompetitiveBidsAccepted",
+          "FIMANoncompetitiveInsideOfOfferingAmount",
+          "FIMANoncompetitiveParAwarded",
+          "FIMANoncompetitiveParRecognized",
+          "FirstInterestPaymentLength",
+          "FloatingRate",
+          "FrequencyOfInterestPayments",
+          "GrandTotalParAwarded",
+          "GrandTotalParRecognized",
+          "HighPrice",
+          "HighYield",
+          "IndirectBiddersCompetitiveParAwarded",
+          "IndirectBiddersCompetitiveParRecognized",
+          "IndirectBiddersNoncompetitiveParAwarded",
+          "IndirectBiddersNoncompetitiveParRecognized",
+          "IndirectParticipantBidsAccepted",
+          "IndirectParticipantsInsideOfOfferingAmount",
+          "InflationProtected",
+          "Interest",
+          "InterestPaymentDate",
+          "InterestPaymentDates",
+          "InterestRate",
+          "IssueDate",
+          "Limits",
+          "LowYield",
+          "LowYieldThreshold",
+          "MaturingDate",
+          "MaturingSecurities",
+          "MaturingSecuritiesType",
+          "MaturityDate",
+          "MaximumCompetitiveAward",
+          "MaximumNoncompetitiveAward",
+          "MaximumRecognizedBidAtASingleYield",
+          "MedianYield",
+          "MedianYieldThreshold",
+          "MinimumAmountRequiredForSTRIPS",
+          "MinimumToBidAmount",
+          "MinimumToIssueAmount",
+          "MultipleToBidAmount",
+          "MultipleToIssueAmount",
+          "NLPExclusionAmount",
+          "NLPReportingThreshold",
+          "NoncompetitiveAuctionCloseDate",
+          "NoncompetitiveAuctionCloseTime",
+          "OfferingAmount",
+          "OfferingDescription",
+          "OriginalDatedDate",
+          "OriginalIssueDate",
+          "Participation",
+          "Price",
+          "PricePerAmount",
+          "PricingMethod",
+          "PrimaryDealerBidsAccepted",
+          "PrimaryDealersCompetitiveParAwarded",
+          "PrimaryDealersCompetitiveParRecognized",
+          "PrimaryDealersInsideOfOfferingAmount",
+          "PrimaryDealersNoncompetitiveParAwarded",
+          "PrimaryDealersNoncompetitiveParRecognized",
+          "PrivateHoldings",
+          "Reopening",
+          "RetailNoncompetitiveParAwarded",
+          "RetailNoncompetitiveParRecognized",
+          "SOMABidsAccepted",
+          "SOMAHoldings",
+          "SOMAInsideOfOfferingAmount",
+          "SOMANoncompetitiveParAwarded",
+          "SOMANoncompetitiveParRecognized",
+          "SecurityDescription",
+          "SecurityTermYear",
+          "SecurityType",
+          "StandardInterestPayment",
+          "StandardInterestPaymentPerAmount",
+          "Strippable",
+          "SubtotalCompetitiveParAwardedInsideOfOfferingAmount",
+          "SubtotalCompetitiveParAwardedOutsideOfOfferingAmount",
+          "SubtotalCompetitiveParRecognizedInsideOfOfferingAmount",
+          "SubtotalCompetitiveParRecognizedOutsideOfOfferingAmount",
+          "SubtotalNoncompetitiveParAwardedInsideOfOfferingAmount",
+          "SubtotalNoncompetitiveParAwardedOutsideOfOfferingAmount",
+          "SubtotalNoncompetitiveParRecognizedInsideOfOfferingAmount",
+          "SubtotalNoncompetitiveParRecognizedOutsideOfOfferingAmount",
+          "TINTCUSIP",
+          "TINTCUSIPDueDate",
+          "Technique",
+          "TotalMarketableAmountOutstanding",
+          "TotalParAwardedInsideOfOfferingAmount",
+          "TotalParAwardedOutsideOfOfferingAmount",
+          "TotalParRecognizedInsideOfOfferingAmount",
+          "TotalParRecognizedOutsideOfOfferingAmount",
+          "TreasuryAuctionResults",
+          "TreasuryAuctionResultsAdditionalDocuments",
+          "TreasuryAuctionResultsPressReleaseFileName",
+          "TreasuryAuctionResultsPressReleaseURL",
+          "TreasuryAuctionResultsXMLSchemaURL",
+          "TreasuryRetailBidsAccepted",
+          "TreasuryRetailInsideOfOfferingAmount",
+          "Yields"
+        ],
+        "url": "https://fiscaldata.treasury.gov/static-data/published-reports/auctions-query/results/R_20261110_1.xml"
+      },
+      "security_desc": "10-Year Note",
+      "security_term": "10-Year",
+      "security_type": "Note",
+      "xml_filenm_comp_results": "R_20261110_1.xml"
+    },
+    "target_window": {
+      "latest_yield_date": "2026-11-23",
+      "record_date": "2026-11-16",
+      "required_observations_after_start": 5,
+      "status": "INCOMPLETE",
+      "target_end": null,
+      "target_start": "2026-11-17"
+    },
+    "total_count": 64,
+    "total_pages": 1,
+    "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/treasury_securities_auctions_v2?filter=record_date%3Agte%3A2026-10-01%2Crecord_date%3Alte%3A2026-11-24&sort=record_date&page%5Bsize%5D=1000&page%5Bnumber%5D=1"
+  },
+  "validation_metrics": {
+    "augmented": {
+      "directional_accuracy": 0.46938775510204084,
+      "mae_bp": 8.758854389019824,
+      "mean_actual_bp": -1.5400000000000018,
+      "n": 50,
+      "oos_r2_vs_mean": -0.16715227640435404,
+      "rmse_bp": 11.368241030283086
+    },
+    "baseline": {
+      "directional_accuracy": 0.4489795918367347,
+      "mae_bp": 8.462744469825855,
+      "mean_actual_bp": -1.5400000000000018,
+      "n": 50,
+      "oos_r2_vs_mean": -0.11633930132063486,
+      "rmse_bp": 11.118024316053269
+    }
+  },
+  "yield_source": {
+    "attempts": [
+      "FRED DGS10 primary succeeded with 4726 observations",
+      "Treasury XML all-years cross-check unavailable: RuntimeError: Request failed after 2 bounded attempts: https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=all&page=4: The read operation timed out"
+    ],
+    "first_date": "2008-01-02",
+    "last_date": "2026-11-23",
+    "max_calendar_gap_days": 4,
+    "observations": 4726,
+    "provider": "FRED DGS10 (Board of Governors H.15 via FRED); Treasury XML all-years cross-check attempted"
+  }
+}
