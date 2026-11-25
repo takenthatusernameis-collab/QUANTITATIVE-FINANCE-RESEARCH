@@ -56,6 +56,16 @@ flowchart TD
 
 ## Adaptive execution and real repository commits
 
+## Deadline-aware direct-agent recovery
+
+- Deterministic automation is the preferred execution path, but it is never the sole line of defense. Every time-sensitive task must have an observable due time, acceptance criteria, durable output identity/idempotency key, and a clear permission boundary.
+- At each wake-up, reconcile actual repository state, run history and durable artifacts before deciding whether work is missing. Scheduler status alone is not proof of completion. If the deadline has passed and the required output is absent or invalid, the first authorized agent that wakes after the designated wait becomes the recovery executor and performs the exact overdue work in that session.
+- The fallback means direct execution of the work where possible, not merely dispatching the same unreliable workflow again. If direct execution is technically unavailable, use a materially different authorized runner or API route. Retry the original route only when a specific changed condition makes the retry rational.
+- Before recovery, verify that no valid output or concurrent execution already owns the same task identity. Reuse verified outputs; never create duplicate snapshots, reports, backtests or commits. Preserve the original due time, record the actual late-recovery time, validate the artifact and its provenance, and report lateness honestly.
+- Apply the same hierarchy to general repository work: deterministic process; automated recovery; first-waking authorized agent directly executes; materially different authorized execution route; block only on a genuinely unavailable permission, credential or owner decision. Independent work must continue while one operation is blocked.
+- Direct recovery never bypasses scientific, security, authorization, least-privilege, data-integrity or holdout gates. Do not claim completion until the acceptance criteria are independently checked.
+
+
 - A network or command failure proves only that the tested invocation/environment failed. Diagnose it, change the invocation and try materially different routes; do not repeat identical failures without new evidence.
 - If the agent runtime has network restrictions, assess an authorized GitHub Actions runner or another connected environment. Actions can often retrieve data or run computation unavailable locally. Use a bounded probe and verify actual egress. If no workflow exists on main, do not assume old Actions routes remain; determine what is available and, when authorized and necessary, establish the smallest least-privilege runner.
 - Understand indirect repository writes: authenticated workflows, workflow dispatch, exact-owner PR-comment commands, GitHub Git Data API and contents API can create artifacts or commits when the immediate environment cannot. Inspect current workflows, refs, permissions and gates first. Never bypass authorization or execute untrusted PR-head code.
