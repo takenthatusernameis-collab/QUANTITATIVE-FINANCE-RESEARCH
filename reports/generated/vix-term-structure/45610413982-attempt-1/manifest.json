@@ -1,0 +1,152 @@
+{
+  "coverage": {
+    "SP500": {
+      "first_date": "2016-11-25",
+      "last_date": "2026-11-23",
+      "rows": 2512
+    },
+    "VIXCLS": {
+      "first_date": "2016-11-25",
+      "last_date": "2026-11-23",
+      "rows": 2545
+    },
+    "VXVCLS": {
+      "first_date": "2016-11-25",
+      "last_date": "2026-11-23",
+      "rows": 2512
+    }
+  },
+  "daily_kpi": "MET before this additional study \u2014 three distinct Treasury real-data backtests and the CFTC real-data backtest were already completed on 2026-11-25",
+  "data_sources": {
+    "SP500": {
+      "first_date": "2016-11-25",
+      "last_date": "2026-11-23",
+      "rows": 2512,
+      "sha256": "32918cda499854ddc13660b9a0fda8bf3f00f057256a350a3a4d9c39a92f9861",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=SP500&cosd=2016-11-25"
+    },
+    "VIXCLS": {
+      "first_date": "2016-11-25",
+      "last_date": "2026-11-23",
+      "rows": 2545,
+      "sha256": "2dc9818f7b7b5cca182a78d49587aaa5a84254729437398acd871f2df0ed442e",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS&cosd=2016-11-25"
+    },
+    "VXVCLS": {
+      "first_date": "2016-11-25",
+      "last_date": "2026-11-23",
+      "rows": 2512,
+      "sha256": "9a24a7198d97014e6bfd8f3275be2e47ed5cba159d84ef3cd6a2f8fda224e8f7",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VXVCLS&cosd=2016-11-25"
+    }
+  },
+  "disposition": "INCONCLUSIVE \u2014 evidence is mixed, statistically uncertain or insufficient under the frozen decision rule",
+  "event_construction": {
+    "candidate_origins": 415,
+    "event_spacing_sessions": 6,
+    "events": 415,
+    "signal_rule": "VIX/VXV and pre-event RV observed at prior S&P 500 close; target begins next S&P 500 session",
+    "skipped": {
+      "incomplete_future_return_window": 0,
+      "incomplete_pre_return_window": 0,
+      "missing_vix_on_signal_date": 0,
+      "missing_vxv_on_signal_date": 0,
+      "overlapping_target_window": 0
+    },
+    "target_sessions": 5
+  },
+  "hypothesis_id": "QFR-2026-11-25-VIX-TERM-STRUCTURE-SP500-RV-01",
+  "inversion_event_study": {
+    "block_size_events": 4,
+    "ci_95_high_rv_pct": 3.8575693996789724,
+    "ci_95_low_rv_pct": 0.674104597721906,
+    "contango_n": 192,
+    "high_inversion_n": 12,
+    "high_minus_contango_mean_rv_pct": 2.2229281269438985,
+    "mean_contango_rv_pct": 1.9902289666876216,
+    "mean_high_inversion_rv_pct": 4.21315709363152,
+    "reps": 1998
+  },
+  "limitations": [
+    "SP500 is a cash price index, not an executable futures series or total-return index.",
+    "VIXCLS and VXVCLS are CBOE option-implied indices, not directly investable assets; the simple log(VIX/VXV) slope is not the full multi-maturity principal-component term structure used in some literature.",
+    "The signal uses the prior S&P 500 session's CBOE volatility-index closes; the next five S&P 500 sessions form the target, preserving the close-time gap.",
+    "FRED states that historical observations may be revised; this run uses the current retrieved vintage and does not reconstruct historical release vintages.",
+    "Forecast evaluation only: no executable strategy, transaction-cost model, causal claim or live-deployment conclusion.",
+    "No raw source data are committed; only hashes, retrieval metadata and aggregate research metrics are retained."
+  ],
+  "methodology": {
+    "augmented_features": [
+      "pre_rv5_log",
+      "pre_rv20_log",
+      "log_vix",
+      "term_slope"
+    ],
+    "baseline_features": [
+      "pre_rv5_log",
+      "pre_rv20_log",
+      "log_vix"
+    ],
+    "bootstrap_block_events": 4,
+    "bootstrap_reps": 2000,
+    "bootstrap_seed": 20261125,
+    "event_spacing_sessions": 6,
+    "inversion_event_rule": "VIXCLS >= VXVCLS",
+    "rolling_training_events": 104,
+    "target": "log1p(next-five-session S&P 500 realized volatility in percent)",
+    "target_sessions": 5,
+    "term_slope": "log(VIXCLS / VXVCLS); positive values indicate inversion",
+    "test": "2022-01-01 onward",
+    "training_maturity_rule": "training target_end_date must be strictly earlier than current signal_date",
+    "validation": "2019-01-01 through 2021-12-31"
+  },
+  "paired_squared_loss_bootstrap": {
+    "block_size_events": 4,
+    "bootstrap_fraction_positive": 0.734,
+    "ci_95_high": 0.005237632415723959,
+    "ci_95_low": -0.002656211355817704,
+    "mean_baseline_minus_augmented_squared_log_loss": 0.001307604787570931,
+    "observations": 204,
+    "reps": 2000,
+    "status": "COMPUTED"
+  },
+  "retrieved_at_utc": "2026-11-25T12:05:23.210294+00:00",
+  "run_attempt": "1",
+  "run_id": "45610413982",
+  "source_commit_sha": "1a8e476938f71535451453bcd9c3d2326b33123a",
+  "status": "INCONCLUSIVE",
+  "summary_metrics": {
+    "test_improvement_pct": 0.8452026505345794,
+    "validation_improvement_pct": 7.763468370835567
+  },
+  "test_metrics": {
+    "augmented": {
+      "mae_log1p_rv": 0.21379019990274026,
+      "n": 204,
+      "oos_r2_vs_mean": 0.3820116707683099,
+      "rmse_log1p_rv": 0.27636062800969613
+    },
+    "baseline": {
+      "mae_log1p_rv": 0.2169529805519205,
+      "n": 204,
+      "oos_r2_vs_mean": 0.37143121359458564,
+      "rmse_log1p_rv": 0.2787163459531654
+    },
+    "n": 204
+  },
+  "validation_metrics": {
+    "augmented": {
+      "mae_log1p_rv": 0.23240047191726887,
+      "n": 107,
+      "oos_r2_vs_mean": 0.5784458583627186,
+      "rmse_log1p_rv": 0.3032865660750782
+    },
+    "baseline": {
+      "mae_log1p_rv": 0.26037722452053125,
+      "n": 107,
+      "oos_r2_vs_mean": 0.5044956940933963,
+      "rmse_log1p_rv": 0.3288139316582688
+    },
+    "n": 107
+  }
+}
