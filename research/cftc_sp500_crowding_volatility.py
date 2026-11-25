@@ -161,10 +161,15 @@ def is_backlog_report(report_date: dt.date) -> bool:
 def build_crowding_features(rows: list[dict], lookback: int = CROWDING_LOOKBACK) -> list[dict]:
     """Rank each absolute net/OI observation against prior reports only."""
     ordered = sorted(rows, key=lambda row: row["report_date"])
-    eligible = [row for row in ordered if not is_backlog_report(row["report_date"])]
     result = []
     prior_values: list[float] = []
-    for row in eligible:
+    for row in ordered:
+        if is_backlog_report(row["report_date"]):
+            enriched = dict(row)
+            enriched["crowding_percentile"] = None
+            enriched["high_crowding"] = False
+            result.append(enriched)
+            continue
         if len(prior_values) >= lookback:
             history = prior_values[-lookback:]
             current = row["abs_net_pct_oi"]
@@ -174,6 +179,11 @@ def build_crowding_features(rows: list[dict], lookback: int = CROWDING_LOOKBACK)
             enriched = dict(row)
             enriched["crowding_percentile"] = percentile
             enriched["high_crowding"] = percentile >= HIGH_CROWDING_THRESHOLD
+            result.append(enriched)
+        else:
+            enriched = dict(row)
+            enriched["crowding_percentile"] = None
+            enriched["high_crowding"] = False
             result.append(enriched)
         prior_values.append(row["abs_net_pct_oi"])
     return result
