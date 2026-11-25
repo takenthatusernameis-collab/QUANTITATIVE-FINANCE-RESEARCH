@@ -418,13 +418,14 @@ def update_registry(result: dict, report_path: str) -> None:
         return
     summary = result.get("summary_metrics") or {}
     test = result.get("test_metrics") or {}
+    event_study = test.get("high_crowding_event_study") or {}
     disposition = str(result.get("disposition", "INCONCLUSIVE")).replace("|", "/")
     scope = str(result.get("data_scope", "not established")).replace("|", "/")
     evidence = f"[{report_path}](../{report_path})"
     row = (
         f"| {HYPOTHESIS_ID} | {result.get('status', 'INCONCLUSIVE')} | "
         "Extreme absolute CFTC leveraged-fund net positioning as a share of E-mini S&P 500 open interest predicts next-five-session S&P 500 realized volatility beyond recent volatility. | "
-        f"{scope} | {disposition}; test_n={summary.get('test_n')}; test_log_RMSE_improvement={summary.get('test_improvement_pct')}%; high-crowding_RV_difference={test.get('high_crowding_event_study', {}).get('high_minus_other_mean_rv_pct')}% | {evidence} |"
+        f"{scope} | {disposition}; test_n={summary.get('test_n')}; test_log_RMSE_improvement={summary.get('test_improvement_pct')}%; high-crowding_RV_difference={event_study.get('high_minus_other_mean_rv_pct')}% | {evidence} |"
     )
     marker = "\n## Disposition rules"
     if marker not in content:
