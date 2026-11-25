@@ -334,7 +334,7 @@ def fetch_updated_auction_probe(end_date: dt.date) -> dict:
         result_tokens = (
             "accepted", "bidder", "bid_to_cover", "dealer", "direct", "indirect",
             "competitive", "tender", "offering", "par_awarded", "par_recog",
-            "inside_awrd", "outside_awrd", "comp_par", "xml_filenm", "pdf_filenm",
+            "inside_awrd", "outside_awrd", "comp_par", "subtot_comp", "xml_filenm", "pdf_filenm",
         )
         candidate_result_fields = sorted(
             field for field in schema_fields if any(token in field.lower() for token in result_tokens)
