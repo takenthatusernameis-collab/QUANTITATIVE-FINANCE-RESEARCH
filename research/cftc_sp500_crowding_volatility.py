@@ -126,8 +126,6 @@ def parse_cftc(body: bytes) -> list[dict]:
     dates = [row["report_date"] for row in rows]
     if len(dates) != len(set(dates)):
         raise ValueError("Duplicate CFTC report dates for the selected contract")
-    if dates[0] > CFTC_START + dt.timedelta(days=90):
-        raise ValueError(f"CFTC history starts unexpectedly late: {dates[0]}")
     return rows
 
 
@@ -268,7 +266,7 @@ def build_events(cot_rows: list[dict], prices: dict[dt.date, float]) -> tuple[li
         })
         events.append(event)
     return events, {
-        "cot_rows_with_crowding": len(cot_rows),
+        "cot_rows_with_crowding": sum(row.get("crowding_percentile") is not None for row in cot_rows),
         "events": len(events),
         "skipped": skipped,
         "publication_lag_days": PUBLICATION_LAG_DAYS,
@@ -554,6 +552,8 @@ def run_research() -> dict:
     cftc_body = fetch_bytes(cftc_url)
     price_body = fetch_bytes(fred_url)
     cot_rows = parse_cftc(cftc_body)
+    if cot_rows[0]["report_date"] > CFTC_START + dt.timedelta(days=90):
+        raise ValueError(f"CFTC history starts unexpectedly late: {cot_rows[0]['report_date']}")
     prices = parse_fred_sp500(price_body)
     crowding_rows = build_crowding_features(cot_rows)
     events, event_meta = build_events(crowding_rows, prices)
