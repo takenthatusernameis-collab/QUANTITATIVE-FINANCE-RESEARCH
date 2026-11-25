@@ -1,0 +1,143 @@
+{
+  "cftc_source": {
+    "contract_code": "13874A",
+    "dataset": "gpe5-46if",
+    "fields": [
+      "report_date_as_yyyy_mm_dd",
+      "contract_market_name",
+      "cftc_contract_market_code",
+      "open_interest_all",
+      "lev_money_positions_long",
+      "lev_money_positions_short"
+    ],
+    "first_date": "2006-06-13",
+    "last_date": "2026-11-17",
+    "rows": 1067,
+    "sha256": "baef9006922f7eb523d4771070037c26dba0591db86cc58417676f86f23185fa",
+    "url": "https://publicreporting.cftc.gov/resource/gpe5-46if.json"
+  },
+  "daily_kpi": "MET \u2014 prior independent real-data backtests already met today's minimum; this is an additional distinct hypothesis",
+  "data_scope": "CFTC TFF futures-only E-mini S&P 500 code 13874A, 2006-06-13 to 2026-11-17 (known backlog excluded from event and crowding history); FRED SP500 2016-11-25 to 2026-11-23",
+  "disposition": "INCONCLUSIVE \u2014 the preregistered evidence is mixed, statistically uncertain or insufficient",
+  "event_construction": {
+    "cot_rows_with_crowding": 894,
+    "events": 418,
+    "known_backlog_exclusion": [
+      "2025-09-30",
+      "2026-01-20"
+    ],
+    "publication_lag_days": 14,
+    "skipped": {
+      "incomplete_return_window": 0,
+      "insufficient_pre_history": 6,
+      "known_publication_backlog": 17,
+      "no_signal_close": 2,
+      "overlapping_target_window": 81,
+      "signal_close_too_far_after_lag": 387
+    }
+  },
+  "hypothesis_id": "QFR-2026-11-25-CFTC-SP500-CROWDING-VOL-01",
+  "limitations": [
+    "CFTC trader classifications reflect predominant business purpose, not the purpose of each position.",
+    "Historical exact CFTC release timestamps are unavailable beyond the latest 13 months; 14-day lag is a conservative timing convention.",
+    "Known 2025 publication backlog reports are excluded from both signal and trailing-position history.",
+    "FRED SP500 is a cash price index, not an executable futures or total-return series.",
+    "Forecasting only; no tradable P&L, causal effect or live deployment claim."
+  ],
+  "methodology": {
+    "augmented_features": [
+      "log1p(pre_rv5_pct)",
+      "log1p(pre_rv20_pct)",
+      "trailing_156_report_abs_net_pct_oi_percentile"
+    ],
+    "backlog_exclusion": [
+      "2025-09-30",
+      "2026-01-20"
+    ],
+    "baseline_features": [
+      "log1p(pre_rv5_pct)",
+      "log1p(pre_rv20_pct)"
+    ],
+    "bootstrap_block_events": 4,
+    "bootstrap_reps": 2000,
+    "bootstrap_seed": 20261125,
+    "crowding_lookback_reports": 156,
+    "high_crowding_threshold": 0.9,
+    "overlap_rule": "no overlapping next-five-session target windows",
+    "publication_lag_days": 14,
+    "rolling_training_events": 104,
+    "target": "log1p(next-five-session realized volatility in percent)",
+    "target_sessions": 5,
+    "test": "2022-01-01 onward",
+    "training_rule": "training target end date must be strictly earlier than current signal date",
+    "validation": "2019-01-01 through 2021-12-31"
+  },
+  "price_source": {
+    "first_date": "2016-11-25",
+    "last_date": "2026-11-23",
+    "observations": 2512,
+    "series": "SP500",
+    "sha256": "32918cda499854ddc13660b9a0fda8bf3f00f057256a350a3a4d9c39a92f9861",
+    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv"
+  },
+  "retrieved_at_utc": "2026-11-25T10:33:08.500577+00:00",
+  "run_attempt": "1",
+  "run_id": "45596043728",
+  "source_commit_sha": "64bd92e5e217afc59f3be4ae60bd18638e5d5d38",
+  "status": "INCONCLUSIVE",
+  "summary_metrics": {
+    "test_improvement_pct": -2.640618906299077,
+    "test_n": 197,
+    "validation_improvement_pct": -0.0022701243352665763,
+    "validation_n": 116
+  },
+  "test_metrics": {
+    "augmented": {
+      "mae_log1p_rv": 0.21510518880039953,
+      "n": 197,
+      "oos_r2_vs_mean": 0.25937529085598054,
+      "rmse_log1p_rv": 0.29348954392173177
+    },
+    "baseline": {
+      "mae_log1p_rv": 0.21270397687842274,
+      "n": 197,
+      "oos_r2_vs_mean": 0.29699296191894853,
+      "rmse_log1p_rv": 0.28593898502274157
+    },
+    "high_crowding_event_study": {
+      "block_size_events": 4,
+      "ci_95_high_rv_pct": 0.6831249114267275,
+      "ci_95_low_rv_pct": -0.20164412764048745,
+      "high_minus_other_mean_rv_pct": 0.2577579279603124,
+      "high_n": 49,
+      "mean_high_rv_pct": 2.353328689605551,
+      "mean_other_rv_pct": 2.095570761645239,
+      "other_n": 148,
+      "reps": 2000
+    },
+    "paired_squared_loss_bootstrap": {
+      "block_size_events": 4,
+      "bootstrap_fraction_positive": 0.028,
+      "ci_95_high": 9.49248912347736e-05,
+      "ci_95_low": -0.010763397399615135,
+      "mean_baseline_minus_augmented_squared_log_loss": -0.004375009235550479,
+      "observations": 197,
+      "reps": 2000,
+      "status": "COMPUTED"
+    }
+  },
+  "validation_metrics": {
+    "augmented": {
+      "mae_log1p_rv": 0.27272119544117446,
+      "n": 116,
+      "oos_r2_vs_mean": 0.41008782547922396,
+      "rmse_log1p_rv": 0.36680079495086304
+    },
+    "baseline": {
+      "mae_log1p_rv": 0.26604132077468096,
+      "n": 116,
+      "oos_r2_vs_mean": 0.41011460804688493,
+      "rmse_log1p_rv": 0.3667924683057801
+    }
+  }
+}
