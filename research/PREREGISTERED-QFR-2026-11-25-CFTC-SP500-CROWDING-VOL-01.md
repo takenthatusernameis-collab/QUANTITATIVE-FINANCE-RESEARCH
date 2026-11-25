@@ -3,7 +3,7 @@
 - **Hypothesis ID:** QFR-2026-11-25-CFTC-SP500-CROWDING-VOL-01
 - **Registered:** 2026-11-25, before implementation or empirical result inspection
 - **Timebox start:** 2026-11-25T10:29:04Z (UTC; preregistration commit timestamp).
-- **Status:** IDEA pending bounded source and timing validation
+- **Status:** INCONCLUSIVE — closed 2026-11-25 under the frozen decision rule; no tuning or further cycles under this experiment ID.
 - **Market:** CME E-mini S&P 500 futures positioning (CFTC code 13874A); S&P 500 cash index close series (FRED SP500)
 - **Difficulty:** MEDIUM
 - **Difficulty rationale:** both sources are public and keyless; the work requires careful report-publication timing, holiday/backlog exclusions, daily-to-weekly event construction, walk-forward OLS and block-bootstrap inference, but no new venue credentials or paid data.
@@ -59,6 +59,19 @@ A promising result requires **all** of the following:
 4. High-crowding test events have greater mean next-five-session realized volatility than other test events, and the 95% circular-block bootstrap lower bound for that difference is above zero.
 
 If both validation and test RMSE fail to improve and the high-crowding mean difference is non-positive, reject the hypothesis. All other outcomes are INCONCLUSIVE. No threshold, horizon, feature, training-window or split changes are permitted after empirical results are inspected.
+
+
+## Empirical outcome and closure — 2026-11-25
+
+- **Primary run:** [45596043728](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45596043728); [session report](../reports/sessions/2026-11-25/2026-11-25T103307Z_session-cftc-sp500-crowding-45596043728.md).
+- **Deterministic replay:** [45596081332](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45596081332); identical CFTC/FRED response hashes and identical metrics. This confirms reproducibility, not independent validation.
+- **Validation/test forecasts:** 116 / 197.
+- **Augmented RMSE improvement over baseline:** validation -0.0023%; test -2.6406%. The augmented model underperformed in the test period.
+- **Paired test squared-log-loss bootstrap:** 95% interval [-0.010763, 0.000095]; it crosses zero.
+- **High-crowding event study:** mean next-five-session realized-volatility difference +0.2578 percentage points; 95% block-bootstrap interval [-0.2016, 0.6831]; it crosses zero.
+- **Disposition:** INCONCLUSIVE. The augmented model did not improve the baseline, while the positive high-crowding event difference is statistically uncertain. The preregistered rejection condition was not met because the event-study mean difference was positive; the promotion criteria were not met either.
+- **Closure:** stop this experiment now. Do not change the threshold, horizon, features, training window or split and do not spend remaining budget on parameter tuning. A future study must have a materially distinct mechanism and a new hypothesis ID/timebox.
+
 
 ## Limitations
 
