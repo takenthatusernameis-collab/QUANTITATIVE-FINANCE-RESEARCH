@@ -297,5 +297,25 @@ class Ust10yBasisCrowdingTests(unittest.TestCase):
         self.assertEqual(status, "BACKTESTED")
 
 
+    def test_source_coverage_rejects_stale_cftc_reports(self):
+        today = dt.date(2026, 11, 25)
+        latest_cftc = today - dt.timedelta(days=30)
+        cot_rows = [
+            {"report_date": latest_cftc - dt.timedelta(days=7 * (1059 - index))}
+            for index in range(1060)
+        ]
+        start = dt.date(2016, 11, 25)
+        end = dt.date(2026, 11, 24)
+        span = (end - start).days
+        prices = {}
+        vix = {}
+        for index in range(1500):
+            day = start + dt.timedelta(days=round(span * index / 1499))
+            prices[day] = 100.0 + index
+            vix[day] = 15.0 + index / 100.0
+        with self.assertRaisesRegex(ValueError, "CFTC latest report is stale"):
+            model.validate_source_coverage(cot_rows, prices, vix, today)
+
+
 if __name__ == "__main__":
     unittest.main()
