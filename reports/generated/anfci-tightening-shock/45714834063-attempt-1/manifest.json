@@ -1,0 +1,131 @@
+{
+  "daily_kpi": "MET before this additional study \u2014 multiple distinct real-data backtests were completed earlier on 2026-11-25",
+  "data_scope": "FRED ANFCI weekly, SP500 and VIXCLS daily; ANFCI coverage 2016-11-25 to 2026-11-20; price coverage 2016-11-28 to 2026-11-24; 430 accepted non-overlapping weekly events; validation 2019\u20132021; test 2022 onward",
+  "data_sources": {
+    "ANFCI": {
+      "first_date": "2016-11-25",
+      "last_date": "2026-11-20",
+      "rows": 522,
+      "sha256": "dec032e8eb139bfd541c8a4e228ab8f0594e9fdce4011e778416b6c2f608ec47",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=ANFCI&cosd=2016-11-25"
+    },
+    "SP500": {
+      "first_date": "2016-11-28",
+      "last_date": "2026-11-24",
+      "rows": 2512,
+      "sha256": "6892b6e8b13c7283cb2fe62a453bbe1953a1db4084ae5d795a8ee27ea5a69d11",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=SP500&cosd=2016-11-25"
+    },
+    "VIXCLS": {
+      "first_date": "2016-11-25",
+      "last_date": "2026-11-24",
+      "rows": 2546,
+      "sha256": "fc8adf09eed97d58b761eca77de7cee278d79c257dd89b08747b31482bc8fad7",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS&cosd=2016-11-25"
+    }
+  },
+  "disposition": "REJECTED \u2014 the augmented model fails to improve either period and paired-loss inference indicates it is worse",
+  "event_construction": {
+    "accepted_events": 430,
+    "candidate_weekly_observations": 522,
+    "event_spacing": "weekly observations; target windows must not overlap; equality at the next signal close is allowed",
+    "feature_change_weeks": 4,
+    "release_lag_days": 7,
+    "signal_rule": "first S&P 500 close on or after week-ending Friday + 7 calendar days; exact same-date VIX required",
+    "skipped": {
+      "incomplete_return_window": 0,
+      "insufficient_four_week_history": 4,
+      "insufficient_price_history_or_future": 1,
+      "irregular_weekly_feature_window": 0,
+      "missing_vix_on_signal_date": 0,
+      "no_signal_close": 1,
+      "overlapping_target_window": 86,
+      "signal_close_too_far_after_release_lag": 0
+    },
+    "target_sessions": 5
+  },
+  "hypothesis_id": "QFR-2026-11-25-ANFCI-TIGHTENING-SP500-RV-01",
+  "limitations": [
+    "ANFCI historical observations are revised; current FRED vintage is used and historical release vintages are not reconstructed.",
+    "The seven-calendar-day lag is conservative relative to the published Wednesday 8:30 a.m. ET release (Thursday on specified holiday weeks), but does not eliminate revisions to prior ANFCI observations.",
+    "ANFCI is a composite and not an exogenous funding shock; components can overlap with information in VIX and equity markets.",
+    "SP500 is a cash price index, not an executable futures series or total-return index.",
+    "Forecasting only: no causal claim, transaction-cost model, tradable strategy or live deployment conclusion.",
+    "No raw source data are committed; only hashes, retrieval metadata and aggregate metrics are retained."
+  ],
+  "methodology": {
+    "augmented_features": [
+      "pre_rv5_log",
+      "pre_rv20_log",
+      "log_vix",
+      "anfci_4w_change"
+    ],
+    "baseline_features": [
+      "pre_rv5_log",
+      "pre_rv20_log",
+      "log_vix"
+    ],
+    "bootstrap_block_events": 4,
+    "bootstrap_reps": 2000,
+    "bootstrap_seed": 20261126,
+    "feature": "ANFCI_week_t - ANFCI_week_t_minus_4; positive means tightening over four weekly observations",
+    "release_rule": "weekly observation dated Friday; conservatively available Friday + 7 calendar days; first S&P 500 close on or after that date",
+    "rolling_training_events": 104,
+    "target": "log1p(next-five-session S&P 500 realized volatility in percent)",
+    "target_sessions": 5,
+    "test": "2022-01-01 onward",
+    "training_rule": "training target_end_date must be strictly earlier than current signal_date",
+    "validation": "2019-01-01 through 2021-12-31"
+  },
+  "paired_squared_loss_bootstrap": {
+    "block_size_events": 4,
+    "bootstrap_fraction_positive": 0.0235,
+    "ci_95_high": -1.550528341614419e-05,
+    "ci_95_low": -0.003971623243224489,
+    "mean_baseline_minus_augmented_squared_log_loss": -0.001887930900323847,
+    "observations": 210,
+    "reps": 2000,
+    "status": "COMPUTED"
+  },
+  "retrieved_at_utc": "2026-11-25T22:37:41.532627+00:00",
+  "run_attempt": "1",
+  "run_id": "45714834063",
+  "source_commit_sha": "a69ecbe8bd0d99e2d6a39831233a1ca591e405e4",
+  "status": "REJECTED",
+  "summary_metrics": {
+    "test_improvement_pct": -1.5189938558886171,
+    "test_n": 210,
+    "validation_improvement_pct": -5.137614288179862,
+    "validation_n": 115
+  },
+  "test_metrics": {
+    "augmented": {
+      "mae_log1p_rv": 0.19664592892256552,
+      "n": 210,
+      "oos_r2_vs_period_mean": 0.3938888986811293,
+      "rmse_log1p_rv": 0.2521182886705729
+    },
+    "baseline": {
+      "mae_log1p_rv": 0.1931282481085838,
+      "n": 210,
+      "oos_r2_vs_period_mean": 0.41189126655292163,
+      "rmse_log1p_rv": 0.2483459292637077
+    },
+    "n": 210
+  },
+  "validation_metrics": {
+    "augmented": {
+      "mae_log1p_rv": 0.2817904791068711,
+      "n": 115,
+      "oos_r2_vs_period_mean": 0.46202447703730964,
+      "rmse_log1p_rv": 0.34562528152424243
+    },
+    "baseline": {
+      "mae_log1p_rv": 0.2703298982886664,
+      "n": 115,
+      "oos_r2_vs_period_mean": 0.5133168836878457,
+      "rmse_log1p_rv": 0.3287360892333844
+    },
+    "n": 115
+  }
+}
