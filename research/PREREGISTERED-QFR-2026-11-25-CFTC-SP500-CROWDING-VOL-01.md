@@ -64,7 +64,7 @@ If both validation and test RMSE fail to improve and the high-crowding mean diff
 ## Empirical outcome and closure — 2026-11-25
 
 - **Primary run:** [45596043728](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45596043728); [session report](../reports/sessions/2026-11-25/2026-11-25T103307Z_session-cftc-sp500-crowding-45596043728.md).
-- **Deterministic replay:** [45596081332](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45596081332); identical CFTC/FRED response hashes and identical metrics. This confirms reproducibility, not independent validation.
+- **Deterministic replays:** [45596081332](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45596081332) and [45596432316](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45596432316); both reproduced identical CFTC/FRED response hashes and identical metrics. These confirm reproducibility, not independent validation. The third run was triggered by the preregistration-status commit before the workflow trigger filter was narrowed to code/test changes.
 - **Validation/test forecasts:** 116 / 197.
 - **Augmented RMSE improvement over baseline:** validation -0.0023%; test -2.6406%. The augmented model underperformed in the test period.
 - **Paired test squared-log-loss bootstrap:** 95% interval [-0.010763, 0.000095]; it crosses zero.
