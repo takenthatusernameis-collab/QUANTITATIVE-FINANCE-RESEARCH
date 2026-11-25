@@ -2,6 +2,8 @@
 
 - **Hypothesis ID:** QFR-2026-11-25-VIX-TERM-STRUCTURE-SP500-RV-01
 - **Registered:** 2026-11-25, before empirical result inspection.
+- **Status:** INCONCLUSIVE — closed on 2026-11-25 under the frozen decision rule; no tuning or further cycles under this hypothesis ID.
+- **Closed:** 2026-11-25T12:05:30Z after the primary real-data run; one substantive cycle used, remaining budget unused and not grounds for extension.
 - **Timebox start:** 2026-11-25T11:49:27Z.
 - **Difficulty:** MEDIUM.
 - **Difficulty rationale:** three keyless public daily series, exact-date alignment, one-session timing gap, rolling OLS, non-overlapping five-session targets and block-bootstrap inference; no credentials, paid data or new venue access.
@@ -56,6 +58,14 @@ A promising forecast result requires all of:
 4. Inverted-term-structure events have higher mean test-period target volatility than contango events, and the 95% bootstrap lower bound for that difference is above zero.
 
 Reject only if both validation and test RMSE fail to improve and the inversion-event mean difference is non-positive. All other outcomes are INCONCLUSIVE. A BACKTESTED result is not independent validation, a causal claim, a strategy P&L or permission to deploy live. Do not tune the slope formula, target horizon, event spacing, model window, event rule or date split after seeing results.
+
+## Empirical disposition
+
+- Validation: n=107; augmented RMSE improvement +7.7635%.
+- Test: n=204; augmented RMSE improvement +0.8452%.
+- Paired test squared-loss bootstrap 95% interval: [-0.002656, 0.005238], crossing zero.
+- Inverted-term-structure test events: 12 versus 192 contango events; mean next-five-session realized-volatility difference +2.223 percentage points, 95% interval [+0.674, +3.858].
+- **Final status: INCONCLUSIVE.** The point estimates and inversion contrast are positive, but paired-loss uncertainty prevents promotion. The small inverted-event count reinforces caution. No tuning is authorized under this ID.
 
 ## Literature rationale and novelty boundary
 
