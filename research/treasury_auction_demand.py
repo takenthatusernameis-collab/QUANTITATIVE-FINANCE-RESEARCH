@@ -188,10 +188,16 @@ def reconcile_updated_auction_sample(sample: dict | None) -> dict:
         return {"status": "INCOMPLETE", "reason": "Record date or competitive auction close date is missing"}
     if record_date < auction_date:
         return {"status": "MISMATCH", "reason": "Record date precedes competitive auction close date"}
-    if parse_bool(sample.get("inflation_protected")) is not False:
-        return {"status": "INCOMPLETE", "reason": "Inflation-protection status is not verified false"}
-    if parse_bool(sample.get("floating_rate")) is not False:
-        return {"status": "INCOMPLETE", "reason": "Floating-rate status is not verified false"}
+    inflation_protected = parse_bool(sample.get("inflation_protected"))
+    floating_rate = parse_bool(sample.get("floating_rate"))
+    if inflation_protected is None:
+        return {"status": "INCOMPLETE", "reason": "Inflation-protection status is missing or unrecognized"}
+    if inflation_protected:
+        return {"status": "MISMATCH", "reason": "TIPS row cannot be reconciled as a nominal fixed-rate Note"}
+    if floating_rate is None:
+        return {"status": "INCOMPLETE", "reason": "Floating-rate status is missing or unrecognized"}
+    if floating_rate:
+        return {"status": "MISMATCH", "reason": "Floating-rate row cannot be reconciled as a nominal fixed-rate Note"}
     result_xml = sample.get("result_xml") or {}
     if result_xml.get("status") != "PARSED":
         return {
@@ -488,6 +494,19 @@ def fetch_updated_auction_probe(
             if total_pages is None or total_pages < 1 or page_number >= min(total_pages, page_limit):
                 break
             time.sleep(0.1)
+
+        if not all_rows and page_errors:
+            return {
+                "status": "UNAVAILABLE",
+                "url": first_page_url,
+                "error": "; ".join(page_errors),
+                "rows_returned": 0,
+                "target_matches": 0,
+                "candidate_samples": [],
+                "candidate_population": {"status": "UNAVAILABLE", "historical_completeness": "NOT_ESTABLISHED"},
+                "legacy_overlap": {"status": "NOT_CHECKED"},
+                "page_complete": False,
+            }
 
         page_complete = (
             bool(all_rows)
