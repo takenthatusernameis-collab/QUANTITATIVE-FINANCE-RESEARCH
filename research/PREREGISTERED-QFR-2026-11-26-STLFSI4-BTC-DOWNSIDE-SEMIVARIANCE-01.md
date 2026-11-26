@@ -2,7 +2,7 @@
 
 - **Hypothesis ID:** QFR-2026-11-26-STLFSI4-BTC-DOWNSIDE-SEMIVARIANCE-01
 - **Registered:** 2026-11-25T23:54:29Z, before this experiment's empirical result inspection.
-- **Status:** ACTIVE — same-instrument Binance Vision archive replacement implemented; hosted verification pending. Prior REST attempt 45727248228 failed before empirical evaluation.
+- **Status:** REJECTED — REJECTED — both chronological periods worsen and paired-loss inference favors the baseline. One bounded real-data backtest completed.
 - **Difficulty:** MEDIUM.
 - **Implementation timebox:** through 2026-11-29T23:54:29Z.
 - **Research conclusion deadline:** 2026-12-02T23:54:29Z.
@@ -102,6 +102,11 @@ Forecasting only. No live orders, capital deployment, trading P&L, causal claim 
 
 ## Empirical disposition
 
-- **Prior attempt 1:** INCONCLUSIVE — REST source acceptance failed before a valid backtest; no empirical result exists.
-- **Replacement:** official Binance Vision Spot archive route implemented for the same BTCUSDT 1d UTC instrument; checksums and continuous coverage are enforced.
-- **Current attempt:** pending hosted CI and source acceptance. No result or daily KPI credit is claimed until the new run completes.
+- **Final status:** REJECTED — REJECTED — both chronological periods worsen and paired-loss inference favors the baseline.
+- **Completed backtest:** yes.
+- **Data scope:** Binance BTCUSDT spot 1d UTC (checksummed Vision archives) 2017-08-17 to 2026-11-24 (3387 complete candles); FRED STLFSI4 weekly 2017-08-18 to 2026-11-20 (484 observations); validation 2019-2021; test 2022 onward.
+- **Summary:** {"test_improvement_pct": -1.235100613305825, "test_n": 254, "validation_improvement_pct": -1.018967514230998, "validation_n": 120}.
+- **Report:** [reports/sessions/2026-11-26/2026-11-26T015123Z_session-stlfsi4-btc-downside-semivariance-45738528717.md](../reports/sessions/2026-11-26/2026-11-26T015123Z_session-stlfsi4-btc-downside-semivariance-45738528717.md).
+- **Manifest:** [reports/generated/stlfsi4-btc-downside-semivariance/45738528717-attempt-1/manifest.json](../reports/generated/stlfsi4-btc-downside-semivariance/45738528717-attempt-1/manifest.json).
+- **Interpretation:** forecast screen only. Current-vintage STLFSI4 revisions remain a material limitation; even a promising result is not independently validated or tradable.
+
