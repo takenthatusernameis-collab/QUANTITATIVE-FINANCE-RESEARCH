@@ -59,6 +59,29 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
                         msg=f"{path.name}: each job must have exactly one exact admission gate",
                     )
 
+    def test_every_workflow_checks_out_the_immutable_trigger_commit(self):
+        for path in sorted(WORKFLOW_DIR.glob("*.yml")):
+            with self.subTest(workflow=path.name):
+                text = path.read_text(encoding="utf-8")
+                self.assertIn("ref: ${{ github.sha }}", text)
+                self.assertNotIn("ref: main", text)
+
+    def test_research_workflows_never_cancel_in_progress_runs(self):
+        workflows = sorted(
+            path
+            for path in WORKFLOW_DIR.glob("*.yml")
+            if path.name not in NON_RESEARCH_WORKFLOWS
+        )
+        for path in workflows:
+            with self.subTest(workflow=path.name):
+                text = path.read_text(encoding="utf-8")
+                self.assertRegex(text, r"(?m)^  cancel-in-progress: false$")
+
+    def test_readme_documents_same_session_replacement_invariant(self):
+        text = README.read_text(encoding="utf-8")
+        self.assertIn("Same-session replacement invariant", text)
+        self.assertIn("same session", text.lower())
+
     def test_non_research_admission_test_workflow_is_excluded_from_research_gate(self):
         path = WORKFLOW_DIR / "workflow-admission-tests.yml"
         text = path.read_text(encoding="utf-8")

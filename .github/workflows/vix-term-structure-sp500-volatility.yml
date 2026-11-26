@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: qfr-vix-term-structure-main
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   term-structure-backtest:
@@ -27,7 +27,7 @@ jobs:
       - name: Checkout trusted default branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          ref: ${{ github.sha }}
           persist-credentials: true
           fetch-depth: 0
 
