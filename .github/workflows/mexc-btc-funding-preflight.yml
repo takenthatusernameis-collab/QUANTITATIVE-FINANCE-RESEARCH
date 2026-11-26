@@ -1,0 +1,44 @@
+name: MEXC funding hypothesis deterministic preflight
+
+on:
+  push:
+    branches: [qfr/mexc-btc-funding-downside-20261126]
+    paths:
+      - "research/mexc_btc_funding_downside.py"
+      - "research/test_mexc_btc_funding_downside.py"
+      - "research/test_workflow_admission.py"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qfr-mexc-funding-preflight
+  cancel-in-progress: false
+
+jobs:
+  deterministic-preflight:
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[QFR-ADMIT]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact branch commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: @${{ github.sha }
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Compile and run model-specific deterministic tests
+        run: |
+          set -euo pipefail
+          python -m py_compile research/mexc_btc_funding_downside.py research/test_mexc_btc_funding_downside.py
+          python -m unittest discover -s research -p "test_mexc_btc_funding_downside.py" -v
+
+      - name: Run repository workflow-admission regression suite
+        run: python -m unittest discover -s research -p "test_workflow_admission.py" -v
