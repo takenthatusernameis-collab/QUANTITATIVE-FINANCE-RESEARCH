@@ -2,7 +2,7 @@
 
 - **Hypothesis ID:** QFR-2026-11-26-EPU-BTC-DOWNSIDE-SEMIVARIANCE-01
 - **Registered:** 2026-11-26T14:43:43Z, before implementation and empirical-result inspection.
-- **Status:** PREREGISTERED
+- **Status:** INCONCLUSIVE
 - **Difficulty:** LOW.
 - **Difficulty rationale:** one public daily FRED series, one existing BTCUSDT Spot archive pipeline, one lagged feature, one instrument, one established walk-forward model and no new infrastructure. The source schema, price retrieval, semivariance functions and OLS/bootstrap helpers already exist in the repository.
 - **Timebox start:** 2026-11-26T14:43:43Z.
@@ -92,3 +92,16 @@ This is materially distinct from the repository's prior Bitcoin predictors based
 - Decision-rule and idempotent registry/preregistration update tests pass.
 - The complete workflow compiles, runs the model-specific suite and repository workflow-admission regression suite before retrieving empirical sources.
 - The triggering commit SHA, FRED response hash, Binance archive checksums, report and manifest are retained.
+
+## Empirical disposition
+
+- **Final status:** INCONCLUSIVE
+- **Disposition:** INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen rule
+- **Completed real-data backtest:** yes
+- **Data scope:** FRED USEPUINDXD daily 7-day 2017-08-12 to 2026-11-24 (3392 observations); Binance BTCUSDT Spot 1d UTC 2017-08-17 to 2026-11-24 (3387 candles); 561 accepted six-day-spaced events; validation 2019-2021; test 2022 onward
+- **Summary metrics:** {"test_n": 298, "test_rmse_improvement_pct": -0.27989828966314195, "validation_n": 159, "validation_rmse_improvement_pct": -0.3176579789261518}
+- **Paired test-loss bootstrap:** {"block_size_events": 4, "bootstrap_fraction_positive": 0.2665, "ci_95_high_bp2": 0.010174809306052317, "ci_95_low_bp2": -0.01986975876185481, "observations": 298, "observed_mean_baseline_minus_augmented_squared_loss_bp2": -0.004195021091758566, "reps": 2000, "status": "COMPUTED"}
+- **Report:** [reports/sessions/2026-11-26/2026-11-26T150556Z_session-epu-btc-downside-45845595390.md](../reports/sessions/2026-11-26/2026-11-26T150556Z_session-epu-btc-downside-45845595390.md)
+- **Manifest:** [reports/generated/epu-btc-downside-semivariance/45845595390-attempt-1/manifest.json](../reports/generated/epu-btc-downside-semivariance/45845595390-attempt-1/manifest.json)
+- Forecast screen only; no causal, trading or deployment claim.
+
