@@ -1,0 +1,12 @@
+{
+  "completed_backtest": false,
+  "daily_kpi": "MET before this additional study by distinct real-data hypothesis backtests on 2026-11-26; this run did not count toward the KPI",
+  "disposition": "INCONCLUSIVE/INFEASIBLE \u2014 bounded source, timing or execution gate failed: ValueError: Unexpected market name for Bitcoin contract code 133741: 'BITCOIN'",
+  "error": "ValueError: Unexpected market name for Bitcoin contract code 133741: 'BITCOIN'",
+  "hypothesis_id": "QFR-2026-11-26-CFTC-BTC-CARRY-CROWDING-DOWNSIDE-01",
+  "retrieved_at_utc": "2026-11-26T12:37:28.190297+00:00",
+  "run_attempt": "1",
+  "run_id": "45821339118",
+  "source_commit_sha": "8f2bd3b352ae4f3ae720cc79daec4709f77326c3",
+  "status": "INCONCLUSIVE"
+}

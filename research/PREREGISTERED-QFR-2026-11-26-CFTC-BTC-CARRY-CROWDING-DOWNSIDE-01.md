@@ -94,5 +94,15 @@ No first-in-literature claim is made.
 
 ## Empirical disposition
 
-- Status: PENDING — no empirical results inspected at preregistration.
-- Expiry: publish the strongest defensible conclusion by the hard final research-conclusion deadline; unresolved source or execution failure is INCONCLUSIVE/INFEASIBLE, never a performance NO-GO.
+- **Status:** INCONCLUSIVE
+- **Disposition:** INCONCLUSIVE/INFEASIBLE — bounded source, timing or execution gate failed: ValueError: Unexpected market name for Bitcoin contract code 133741: 'BITCOIN'
+- **Completed real-data backtest:** False
+- **Data scope:** not established
+- **Validation/test forecasts:** None/None
+- **RMSE improvement:** None% validation; None% test
+- **Validation metrics:** {}
+- **Test metrics:** {}
+- **Report:** [reports/sessions/2026-11-26/2026-11-26T123722Z_session-cftc-bitcoin-carry-crowding-45821339118.md](../reports/sessions/2026-11-26/2026-11-26T123722Z_session-cftc-bitcoin-carry-crowding-45821339118.md)
+- **Manifest:** [reports/generated/cftc-bitcoin-carry-crowding/45821339118-attempt-1/manifest.json](../reports/generated/cftc-bitcoin-carry-crowding/45821339118-attempt-1/manifest.json)
+
+- **Execution blocker:** ValueError: Unexpected market name for Bitcoin contract code 133741: 'BITCOIN'
