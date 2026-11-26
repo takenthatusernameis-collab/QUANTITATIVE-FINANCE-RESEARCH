@@ -33,7 +33,7 @@
 ## Files to persist atomically
 
 - Recovered run report: `reports/sessions/2026-11-26/2026-11-26T062647Z_session-fed-balance-sheet-btc-45767439835.md`
-- Recovered full manifest: `reports/generated/fed-balance-sheet-btc-downside-semivariance/45767439835-attempt-1/manifest.json``
+- Recovered full manifest: `reports/generated/fed-balance-sheet-btc-downside-semivariance/45767439835-attempt-1/manifest.json`
 - Updated `research/HYPOTHESIS-REGISTRY.md` and the preregistration's empirical disposition.
 - This wake-up report: `reports/sessions/2026-11-26/2026-11-26T073536Z_session-wakeup-automation-2.md`
 
