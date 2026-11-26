@@ -2,7 +2,7 @@
 
 - **Hypothesis ID:** QFR-2026-11-26-FED-BALANCE-SHEET-BTC-DOWNSIDE-01
 - **Registered:** 2026-11-26T06:08:39Z, before this experiment's empirical result inspection.
-- **Status:** FEASIBILITY_CHECKED
+- **Status:** INCONCLUSIVE
 - **Difficulty:** MEDIUM.
 - **Implementation timebox:** through 2026-11-29T23:59:59Z.
 - **Maximum substantive cycles:** one frozen real-data screen. Any alternate feature, lag, horizon, asset, model or split requires a new hypothesis ID and preregistration.
@@ -91,7 +91,12 @@ The bounded contribution is a strict-lag, single-asset, weekly balance-sheet-sto
 
 ## Empirical disposition
 
-- **Status:** FEASIBILITY_CHECKED
-- **Disposition:** The preregistered real-data screen is pending.
-- **Completed real-data backtest:** no.
-- **Interpretation:** no empirical result is claimed before the admitted workflow completes.
+- **Status:** INCONCLUSIVE
+- **Disposition:** INCONCLUSIVE — frozen validation/test and paired-loss rules do not establish improvement or decisive inferiority
+- **Completed real-data backtest:** yes
+- **Data scope:** FRED WALCL weekly Wednesday 2017-08-16 to 2026-11-18 (484 observations); Binance BTCUSDT spot 1d UTC 2017-08-17 to 2026-11-24 (3387 candles); validation 2019-2021; test 2022 onward
+- **Summary metrics:** {"test_n":255,"test_rmse_improvement_pct":-1.0613233709446463,"validation_n":120,"validation_rmse_improvement_pct":-4.125986307081812}
+- **Paired test-loss bootstrap:** {"block_size_events":4,"bootstrap_fraction_positive":0.05,"ci95_high":0.002943798774582669,"ci95_low":-0.03833083561399792,"mean_baseline_minus_augmented_squared_loss":-0.01603322083288992,"observations":255,"reps":2000}
+- **Report:** [reports/sessions/2026-11-26/2026-11-26T062647Z_session-fed-balance-sheet-btc-45767439835.md](../reports/sessions/2026-11-26/2026-11-26T062647Z_session-fed-balance-sheet-btc-45767439835.md)
+- **Manifest:** [reports/generated/fed-balance-sheet-btc-downside-semivariance/45767439835-attempt-1/manifest.json](../reports/generated/fed-balance-sheet-btc-downside-semivariance/45767439835-attempt-1/manifest.json)
+- Forecast screen only; no causal, trading or deployment claim.
