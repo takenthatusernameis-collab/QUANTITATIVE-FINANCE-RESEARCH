@@ -10,7 +10,7 @@ ADMISSION_IF = (
     "if: github.event_name != 'push' || "
     "startsWith(github.event.head_commit.message, '[QFR-ADMIT] research:')"
 )
-NON_RESEARCH_WORKFLOWS = {"workflow-admission-tests.yml", "stablecoin-supply-source-preflight.yml"}
+NON_RESEARCH_WORKFLOWS = {"workflow-admission-tests.yml", "stablecoin-supply-source-preflight.yml", "wikipedia-attention-source-preflight.yml"}
 
 
 class ResearchWorkflowAdmissionTests(unittest.TestCase):
@@ -114,6 +114,20 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertIn("stablecoin_supply_source_preflight.py", text)
         self.assertNotIn("stablecoin_supply_btc_downside.py", text)
         self.assertIn("do not run a backtest", text.lower())
+
+    def test_wikipedia_attention_source_preflight_is_read_only_and_not_a_backtest(self):
+        path = WORKFLOW_DIR / "wikipedia-attention-source-preflight.yml"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertIn("contents: read", text)
+        self.assertNotIn("contents: write", text)
+        self.assertIn("wikipedia_attention_source_preflight.py", text)
+        self.assertNotIn("wikipedia_attention_btc_downside.py", text)
+        self.assertIn("do not run a backtest", text.lower())
+
+    def test_non_research_source_preflight_workflows_are_excluded_from_research_gate(self):
+        self.assertIn("stablecoin-supply-source-preflight.yml", NON_RESEARCH_WORKFLOWS)
+        self.assertIn("wikipedia-attention-source-preflight.yml", NON_RESEARCH_WORKFLOWS)
 
     def test_non_research_admission_test_workflow_is_excluded_from_research_gate(self):
         path = WORKFLOW_DIR / "workflow-admission-tests.yml"

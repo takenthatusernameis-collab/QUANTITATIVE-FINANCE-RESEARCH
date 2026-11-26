@@ -13,7 +13,8 @@ import urllib.request
 from pathlib import Path
 
 HYPOTHESIS_ID = "QFR-2026-11-26-WIKIPEDIA-ATTENTION-BTC-DOWNSIDE-01"
-PROJECT = "en.wikipedia.org"
+PROJECT = "en.wikipedia"
+PROJECT_PATH = "en.wikipedia.org"
 ARTICLE = "Bitcoin"
 ACCESS = "all-access"
 AGENT = "user"
@@ -48,7 +49,7 @@ def iter_date_chunks(start: dt.date, end: dt.date, chunk_days: int = CHUNK_DAYS)
 def build_pageviews_url(start: dt.date, end: dt.date) -> str:
     parts = [
         PAGEVIEWS_BASE,
-        urllib.parse.quote(PROJECT, safe="."),
+        urllib.parse.quote(PROJECT_PATH, safe="."),
         ACCESS,
         AGENT,
         urllib.parse.quote(ARTICLE, safe=""),
@@ -234,6 +235,7 @@ def run_preflight() -> dict:
         "wikipedia_pageviews": {
             "endpoint": PAGEVIEWS_BASE,
             "project": PROJECT,
+            "project_endpoint": PROJECT_PATH,
             "article": ARTICLE,
             "access": ACCESS,
             "agent": AGENT,

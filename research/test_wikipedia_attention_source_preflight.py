@@ -41,7 +41,7 @@ class WikipediaAttentionSourcePreflightTests(unittest.TestCase):
         self.assertEqual(parsed[dt.date(2024, 1, 2)], 5678)
 
     def test_parser_rejects_wrong_dimensions_duplicate_dates_and_bad_counts(self):
-        wrong = item(dt.date(2024, 1, 1), project="fr.wikipedia.org")
+        wrong = item(dt.date(2024, 1, 1), project="fr.wikipedia")
         with self.assertRaisesRegex(ValueError, "unexpected project"):
             model.parse_pageviews(json.dumps({"items": [wrong]}).encode(), dt.date(2024, 1, 1), dt.date(2024, 1, 1))
         duplicate = {"items": [item(dt.date(2024, 1, 1)), item(dt.date(2024, 1, 1))]}

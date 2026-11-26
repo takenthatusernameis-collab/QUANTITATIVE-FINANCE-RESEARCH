@@ -6,6 +6,7 @@ on:
     paths:
       - "research/wikipedia_attention_source_preflight.py"
       - "research/test_wikipedia_attention_source_preflight.py"
+      - "research/test_workflow_admission.py"
       - "research/PREREGISTERED-QFR-2026-11-26-WIKIPEDIA-ATTENTION-BTC-DOWNSIDE-01.md"
       - ".github/workflows/wikipedia-attention-source-preflight.yml"
   workflow_dispatch:
@@ -47,6 +48,11 @@ jobs:
           set -euo pipefail
           python -m py_compile research/wikipedia_attention_source_preflight.py research/test_wikipedia_attention_source_preflight.py
           PYTHONPATH=research python -m unittest discover -s research -p "test_wikipedia_attention_source_preflight.py" -v
+
+      - name: Run repository workflow-admission regression tests
+        run: |
+          set -euo pipefail
+          PYTHONPATH=research python -m unittest discover -s research -p "test_workflow_admission.py" -v
 
       - name: Retrieve public source metadata only; do not run a backtest
         env:
