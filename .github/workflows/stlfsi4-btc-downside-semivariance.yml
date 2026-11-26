@@ -14,7 +14,7 @@ permissions:
 
 concurrency:
   group: qfr-stlfsi4-btc-downside-semivariance-main
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   downside-semivariance-backtest:
