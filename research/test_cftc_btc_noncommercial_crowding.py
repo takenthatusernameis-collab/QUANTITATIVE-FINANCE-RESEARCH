@@ -112,12 +112,9 @@ class CftcBtcNoncommercialTests(unittest.TestCase):
 
     def test_coverage_fails_closed_on_irregular_or_stale_cftc_rows(self):
         today = dt.date(2026, 11, 26)
-        cot = [{"report_date": today - dt.timedelta(days=7*(450-i)), "x": i} for i in range(450)]
-        cot[-1]["report_date"] = dt.date(2026, 11, 17)
-        cot[0]["report_date"] = dt.date(2018, 4, 3)
-        # Construct an exact weekly sequence ending on the frozen last Tuesday.
-        start = dt.date(2026, 11, 17) - dt.timedelta(days=7*449)
-        cot = [{"report_date": start + dt.timedelta(days=7*i)} for i in range(450)]
+        # The frozen sample spans 466 Tuesday reports from 2017-12-19 through 2026-11-17.
+        start = dt.date(2017, 12, 19)
+        cot = [{"report_date": start + dt.timedelta(days=7*i)} for i in range(466)]
         prices, day = {}, dt.date(2017, 8, 17)
         while day <= dt.date(2026, 11, 24):
             prices[day] = 100.0
