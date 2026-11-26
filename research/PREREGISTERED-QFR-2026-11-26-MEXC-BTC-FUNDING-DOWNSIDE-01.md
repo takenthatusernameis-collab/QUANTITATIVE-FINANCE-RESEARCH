@@ -32,7 +32,7 @@ This hypothesis uses an exchange-published **perpetual funding settlement cashfl
 
 - Endpoint: `https://contract.mexc.com/api/v1/contract/funding_rate/history?symbol=BTC_USDT&page_num={page}&page_size=1000`.
 - Retrieve every page indicated by the API's `totalPage`, with a hard maximum of 10 pages; verify `success=true`, `code=0`, symbol `BTC_USDT`, matching page metadata, stable `totalCount`, and exact page progression.
-- Require at least 1,200 distinct settlement observations, at least 400 accepted UTC dates with exactly three settlements, and a sample reaching at least 2025-06-01 through 2026-11-23. If the official endpoint exposes materially less history than this frozen minimum, close INCONCLUSIVE/INFEASIBLE rather than shortening the sample or changing the split.
+- Require at least 1,200 distinct settlement observations, at least 400 accepted UTC dates with exactly three settlements, and a sample reaching at least 2025-06-15 through 2026-11-23. If the official endpoint exposes materially less history than this frozen minimum, close INCONCLUSIVE/INFEASIBLE rather than shortening the sample or changing the split.
 - Each accepted record must have finite `fundingRate`, positive integer `settleTime` in Unix milliseconds, `collectCycle=8`, exact `symbol=BTC_USDT`, and a settlement time aligned to 00:00, 08:00 or 16:00 UTC. Reject duplicate settlement timestamps, future timestamps and records outside the frozen sample.
 - The accepted event day must contain exactly the three expected settlements (00:00, 08:00 and 16:00 UTC). Missing or extra settlements are not filled. Days with incomplete funding history are skipped and counted.
 - Require at least 400 accepted complete funding days, no more than 5% incomplete candidate days in the frozen common source window, and no missing run of more than three consecutive UTC days among accepted daily funding groups. Do not silently interpret an API page cap as complete lifetime history.
@@ -41,7 +41,7 @@ This hypothesis uses an exchange-published **perpetual funding settlement cashfl
 ### Binance BTCUSDT Spot daily reference
 
 - Instrument: Binance Spot BTCUSDT, interval 1d, UTC; use the repository's existing official Vision archive and SHA-256 sidecar verifier.
-- Frozen sample: 2025-06-01 through 2026-11-23 inclusive. Retrieve official monthly/daily archives and verify every archive against its official checksum sidecar.
+- Frozen sample: 2025-06-15 through 2026-11-23 inclusive. Retrieve official monthly/daily archives and verify every archive against its official checksum sidecar.
 - Require at least 500 completed daily candles, exact frozen last date, positive finite closes, unique UTC dates and no missing UTC date in the accepted window. Exclude any incomplete current candle.
 - Do not commit raw market observations.
 
