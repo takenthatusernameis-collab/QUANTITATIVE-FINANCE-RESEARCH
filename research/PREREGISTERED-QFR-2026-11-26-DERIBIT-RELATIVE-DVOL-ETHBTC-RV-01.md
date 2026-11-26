@@ -36,7 +36,7 @@ No first-in-literature claim is made.
 ### Deribit BTC and ETH DVOL
 
 - Endpoint: https://www.deribit.com/api/v2/public/get_volatility_index_data.
-- Official method: public/get_volatility_index_data using the documented JSON-RPC request.
+- Official method: HTTP GET public/get_volatility_index_data with the documented query parameters; the response uses a JSON-RPC 2.0 envelope.
 - Required parameters: currency BTC or ETH; start_timestamp and end_timestamp in Unix milliseconds; resolution 1D.
 - Required response: daily OHLC candle arrays with UTC-midnight timestamps and a continuation cursor used as the next request's end_timestamp.
 - Retrieve both currencies from 2023-03-26 through the last fully completed UTC daily candle. Follow continuation cursors with strict backward-progress checks, bounded retries and a maximum of ten pages. Deduplicate identical boundary candles; reject conflicting duplicates, out-of-range timestamps, non-daily timestamps, invalid OHLC values or non-progressing cursors.
