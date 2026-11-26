@@ -97,13 +97,13 @@ Official timing and backlog references:
 - Forecasting only. No live orders, capital deployment, trading P&L, causal claim or deployment authorization.
 - Do not assign CAGR, Sharpe, Sortino, Calmar or drawdown to this forecast-only result.
 
+## Pre-admission clarification — 2026-11-26
+
+Before the first admitted real-data run and before any empirical result was inspected, the mechanism wording was clarified to match the frozen model: the signed non-commercial net-position share is tested for incremental predictive information without imposing a positive coefficient sign. The CFTC classification does not justify a universal long-side-only directional restriction. No data, feature, horizon, model, split, timebox or decision threshold changed.
+
+
 ## Empirical disposition
 
 - **Status:** FEASIBILITY_CHECKED — preregistered; admitted real-data screen pending.
 - **Completed real-data backtest:** no.
 - No empirical result has been inspected. The first admitted workflow must run deterministic tests before source retrieval, apply every frozen acceptance gate and persist either a valid empirical result or an explicit INCONCLUSIVE/INFEASIBLE blocker.
-
-
-## Pre-admission clarification — 2026-11-26
-
-Before the first admitted real-data run and before any empirical result was inspected, the mechanism wording was clarified to match the frozen model: the signed non-commercial net-position share is tested for incremental predictive information without imposing a positive coefficient sign. The CFTC classification does not justify a universal long-side-only directional restriction. No data, feature, horizon, model, split, timebox or decision threshold changed.
