@@ -1,0 +1,62 @@
+
+name: DeFiLlama stablecoin supply source feasibility preflight
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "research/stablecoin_supply_source_preflight.py"
+      - "research/test_stablecoin_supply_source_preflight.py"
+      - "research/PREREGISTERED-QFR-2026-11-26-DEFILLAMA-STABLECOIN-SUPPLY-BTC-DOWNSIDE-01.md"
+      - ".github/workflows/stablecoin-supply-source-preflight.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qfr-stablecoin-supply-source-preflight-main
+  cancel-in-progress: false
+
+jobs:
+  source-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout trusted triggering commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Assert immutable source checkout
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$GITHUB_SHA"
+          echo "Verified source commit: $actual"
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Run deterministic source-schema and coverage tests
+        run: |
+          set -euo pipefail
+          python -m py_compile research/stablecoin_supply_source_preflight.py research/test_stablecoin_supply_source_preflight.py
+          PYTHONPATH=research python -m unittest discover -s research -p "test_stablecoin_supply_source_preflight.py" -v
+
+      - name: Retrieve public source metadata only; do not run a backtest
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          python research/stablecoin_supply_source_preflight.py
+          output="reports/generated/stablecoin-supply-source-preflight/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/preflight.json"
+          test -s "$output"
+          echo "=== SOURCE PREFLIGHT RESULT ==="
+          cat "$output"
