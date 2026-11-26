@@ -77,6 +77,24 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
                 text = path.read_text(encoding="utf-8")
                 self.assertRegex(text, r"(?m)^  cancel-in-progress: false$")
 
+
+    def test_readme_requires_difficulty_adjusted_model_timeboxes(self):
+        text = README.read_text(encoding="utf-8")
+        required = [
+            "Mandatory difficulty-adjusted model timeboxes",
+            "before work begins",
+            "| LOW | 2 substantive cycles | 2 calendar days |",
+            "| MEDIUM | 4 substantive cycles | 5 calendar days |",
+            "| HIGH | 8 substantive cycles | 10 calendar days |",
+            "hard implementation deadline",
+            "hard final research-conclusion deadline",
+            "INCONCLUSIVE/INFEASIBLE",
+            "Do not silently reset the clock",
+        ]
+        for phrase in required:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+
     def test_readme_documents_same_session_replacement_invariant(self):
         text = README.read_text(encoding="utf-8")
         self.assertIn("Same-session replacement invariant", text)

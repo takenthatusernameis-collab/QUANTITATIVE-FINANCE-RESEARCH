@@ -56,6 +56,24 @@ flowchart TD
 - Prefer public, free and retail-accessible sources. For relevant public funding-history work, test the MEXC API first because prior investigations found it comparatively reliable. Recheck current endpoint behaviour, pagination, cadence, symbols, gaps and retention. The prior BTC/ETH pilot observed roughly 540 days and an eight-hour cadence; this does not establish complete 2020–2026 history or universal coverage. Never extrapolate beyond verified evidence.
 - Label evidence for its exact scope: VERIFIED, SAMPLE_ONLY, PROVISIONAL, UNKNOWN or INCONCLUSIVE as appropriate. Never silently fill missing data, infer undocumented retention or describe partial samples as complete.
 
+
+## Mandatory difficulty-adjusted model timeboxes
+
+**No new quantitative hypothesis may enter substantive implementation or empirical-result inspection without a frozen, difficulty-adjusted timebox in its preregistration.** This is a hard admission requirement, not a planning suggestion. Record the hypothesis ID, LOW/MEDIUM/HIGH difficulty and rationale, exact UTC start timestamp, maximum substantive-cycle count, hard implementation deadline, hard final research-conclusion deadline, acceptance gates, and expiry outcome before work begins.
+
+Default maximum budgets (use the smallest tier that realistically fits; do not inflate difficulty to obtain more time):
+
+| Difficulty | Maximum budget | Maximum elapsed time |
+|---|---:|---:|
+| LOW | 2 substantive cycles | 2 calendar days |
+| MEDIUM | 4 substantive cycles | 5 calendar days |
+| HIGH | 8 substantive cycles | 10 calendar days |
+
+The earlier of the cycle cap or calendar limit governs. A substantive cycle must produce a durable implementation, source-feasibility result, valid empirical run, material diagnosis or decision artifact; individual tool calls, cosmetic edits and identical retries are not cycles. The clock includes source acquisition, implementation, debugging, CI/runner queues, empirical execution, analysis and reporting. Every admitted experiment must have a distinct implementation deadline and final conclusion deadline; a single vague "due date" is insufficient.
+
+At expiry, publish the strongest defensible conclusion. If valid empirical evidence exists, apply the frozen criteria. If implementation, source acceptance or execution remains unresolved, close as **INCONCLUSIVE/INFEASIBLE**, never infer a performance **NO-GO** from elapsed time. Do not silently reset the clock, extend it automatically, weaken acceptance gates or keep an experiment open indefinitely. A materially changed hypothesis, source, feature, lag, target, market or model requires a new identity and preregistered timebox. No untimeboxed research workstream is admitted.
+
+
 ## Adaptive execution and real repository commits
 
 ## Deadline-aware direct-agent recovery
