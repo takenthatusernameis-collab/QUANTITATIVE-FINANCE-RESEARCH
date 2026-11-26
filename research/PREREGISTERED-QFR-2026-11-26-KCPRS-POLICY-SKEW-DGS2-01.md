@@ -2,7 +2,7 @@
 
 - **Hypothesis ID:** QFR-2026-11-26-KCPRS-POLICY-SKEW-DGS2-01
 - **Registered:** 2026-11-26, before retrieval of the empirical source series for this experiment.
-- **Status:** PREREGISTERED — one bounded real-data walk-forward forecast screen is authorized.
+- **Status:** INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen decision rule
 - **Difficulty:** MEDIUM.
 - **Difficulty rationale:** three public daily series, one lagged options-implied risk-asymmetry feature, one Treasury-yield target, and the repository's existing rolling OLS / circular-block bootstrap harness.
 - **Implementation timebox:** 2026-11-26T03:15:00Z through 2026-11-29T03:15:00Z.
@@ -84,4 +84,10 @@ The null is that KCPRS adds no incremental out-of-sample information, or that it
 
 ## Empirical disposition
 
-Pending the one frozen real-data walk-forward screen.
+- **Final status:** INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen decision rule.
+- **Completed real-data backtest:** yes.
+- **Data scope:** KCPRS/DGS2/DGS10 daily current FRED vintages; common source envelope 1989-04-03 to 2026-11-24; 425 accepted non-overlapping events; validation 2018-2022 n=56; test 2023 onward n=44.
+- **Summary:** validation/test n=56/44; RMSE improvement=-7.8081%/-4.5637%.
+- **Report:** [../reports/sessions/2026-11-26/2026-11-26T033358Z_session-kcprs-policy-skew-45749415970.md](../reports/sessions/2026-11-26/2026-11-26T033358Z_session-kcprs-policy-skew-45749415970.md).
+
+Forecasting screen only. No causal, trading, profitability or deployment claim.
