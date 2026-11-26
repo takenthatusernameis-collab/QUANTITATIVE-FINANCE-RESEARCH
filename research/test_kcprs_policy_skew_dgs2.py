@@ -128,6 +128,7 @@ class KcprsPolicySkewTests(unittest.TestCase):
                 "kcprs_observation_date": signal - dt.timedelta(days=1),
                 "target_start_date": signal + dt.timedelta(days=1),
                 "target_end_date": signal + dt.timedelta(days=21),
+                "source_regime": "EURODOLLAR_OPTIONS",
                 "target_bp": 0.1 * math.sin(index / 4.0) + 0.002 * index,
                 "dgs2_level_pct": 3.0 + 0.01 * math.sin(index / 8.0),
                 "dgs2_change_21d_bp": 2.0 * math.sin(index / 5.0),
