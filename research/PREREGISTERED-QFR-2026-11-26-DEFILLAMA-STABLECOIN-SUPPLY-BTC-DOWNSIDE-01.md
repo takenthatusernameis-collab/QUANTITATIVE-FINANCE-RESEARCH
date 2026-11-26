@@ -2,7 +2,7 @@
 
 - **Hypothesis ID:** QFR-2026-11-26-DEFILLAMA-STABLECOIN-SUPPLY-BTC-DOWNSIDE-01
 - **Registered:** 2026-11-26T15:46:57Z, before source preflight and implementation.
-- **Initial status:** PREREGISTERED — source feasibility pending.
+- **Status:** PREREGISTERED — source feasibility passed; implementation pending.
 - **Difficulty:** MEDIUM.
 - **Difficulty rationale:** one public DeFiLlama aggregate historical endpoint, one existing Binance Vision daily Spot archive pipeline, one lagged 14-day supply-growth feature, a five-session downside-semivariance target, a rolling linear forecast, deterministic schema/timing/maturity tests, one dedicated workflow and durable evidence persistence. Existing repository helpers cover checksum-verified Binance archives, downside-semivariance calculations, standardized OLS, forecast metrics and paired block bootstrap. The primary uncertainty is whether DeFiLlama's current historical aggregate series meets the frozen coverage and schema gates.
 - **Timebox start:** 2026-11-26T15:46:57Z.
@@ -90,7 +90,10 @@ The bounded contribution here is a preregistered, strictly lagged, rolling out-o
 
 ## Source-preflight disposition
 
-- **Status:** PREREGISTERED — source feasibility pending.
-- **Source preflight:** not yet run.
-- **Model implementation:** not started.
-- **Empirical backtest:** not run.
+- **Status:** PASS — read-only source feasibility gates passed on 2026-11-26.
+- **DeFiLlama coverage:** 2,152 daily rows, 2021-01-01 through 2026-11-22; maximum gap one day.
+- **DeFiLlama response SHA-256:** 4dcbf029ff5dec668c2a1e7302f5596e7b5faf89a02e127e8f1f1325b91793c0.
+- **Binance BTCUSDT Spot:** active TRADING market; Spot trading allowed.
+- **Binance exchangeInfo SHA-256:** 1b3dc90cbcff1f550271a531a160fc4e81053a2dea0a88148d65368e6bacebdc.
+- **Source preflight run:** [45853947478](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45853947478).
+- **Model implementation:** now admitted under the frozen timebox; empirical result pending.
