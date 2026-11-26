@@ -121,6 +121,10 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         workflow = (WORKFLOW_DIR / "fed-balance-sheet-btc-downside-semivariance.yml").read_text(encoding="utf-8")
         self.assertIn('sys.path.insert(0,"research")', workflow)
 
+    def test_shared_admission_harness_change_does_not_retrigger_deribit_relative_dvol(self):
+        workflow = (WORKFLOW_DIR / "deribit-relative-dvol-ethbtc-rv.yml").read_text(encoding="utf-8")
+        self.assertNotIn(".github/workflows/workflow-admission-tests.yml", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()

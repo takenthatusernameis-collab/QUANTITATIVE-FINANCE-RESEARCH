@@ -13,6 +13,8 @@ on:
       - "research/test_wti_shock_sp500_rv.py"
       - "research/fed_balance_sheet_btc_downside_semivariance.py"
       - "research/test_fed_balance_sheet_btc_downside_semivariance.py"
+      - "research/deribit_relative_dvol_ethbtc_rv.py"
+      - "research/test_deribit_relative_dvol_ethbtc_rv.py"
   workflow_dispatch:
 
 permissions:
@@ -35,7 +37,7 @@ jobs:
           python-version: "3.11"
 
       - name: Compile research modules
-        run: python -m py_compile research/vxn_vix_cross_index_sp500_rv.py research/test_vxn_vix_cross_index_sp500_rv.py research/kcprs_policy_skew_dgs2.py research/test_kcprs_policy_skew_dgs2.py research/wti_shock_sp500_rv.py research/test_wti_shock_sp500_rv.py research/fed_balance_sheet_btc_downside_semivariance.py research/test_fed_balance_sheet_btc_downside_semivariance.py
+        run: python -m py_compile research/vxn_vix_cross_index_sp500_rv.py research/test_vxn_vix_cross_index_sp500_rv.py research/kcprs_policy_skew_dgs2.py research/test_kcprs_policy_skew_dgs2.py research/wti_shock_sp500_rv.py research/test_wti_shock_sp500_rv.py research/fed_balance_sheet_btc_downside_semivariance.py research/test_fed_balance_sheet_btc_downside_semivariance.py research/deribit_relative_dvol_ethbtc_rv.py research/test_deribit_relative_dvol_ethbtc_rv.py
 
       - name: Verify every research workflow has the atomic admission gate
         run: python -m unittest discover -s research -p "test_workflow_admission.py" -v
@@ -51,3 +53,6 @@ jobs:
 
       - name: Run Fed balance-sheet and BTC regression tests
         run: python -m unittest discover -s research -p "test_fed_balance_sheet_btc_downside_semivariance.py" -v
+
+      - name: Run Deribit relative DVOL regression tests
+        run: python -m unittest discover -s research -p "test_deribit_relative_dvol_ethbtc_rv.py" -v
