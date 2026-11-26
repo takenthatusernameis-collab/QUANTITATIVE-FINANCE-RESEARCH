@@ -8,15 +8,20 @@ WORKFLOW_DIR = ROOT / ".github" / "workflows"
 README = ROOT / "README.md"
 ADMISSION_IF = (
     "if: github.event_name != 'push' || "
-    "contains(github.event.head_commit.message, '[QFR-ADMIT]')"
+    "startsWith(github.event.head_commit.message, '[QFR-ADMIT] research:')"
 )
 NON_RESEARCH_WORKFLOWS = {"workflow-admission-tests.yml", "stablecoin-supply-source-preflight.yml"}
 
 
 class ResearchWorkflowAdmissionTests(unittest.TestCase):
+    def test_admission_gate_requires_exact_research_prefix(self):
+        self.assertIn("startsWith(", ADMISSION_IF)
+        self.assertIn("[QFR-ADMIT] research:", ADMISSION_IF)
+        self.assertNotIn("contains(", ADMISSION_IF)
+
     def test_readme_documents_atomic_admission_marker(self):
         text = README.read_text(encoding="utf-8")
-        self.assertIn("[QFR-ADMIT]", text)
+        self.assertIn("[QFR-ADMIT] research:", text)
         self.assertIn("Enforced research-run admission", text)
 
     def test_every_research_workflow_has_a_job_level_admission_gate(self):
@@ -143,7 +148,7 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         text = README.read_text(encoding="utf-8")
         required = [
             "Failed-admission recovery",
-            "never put `[QFR-ADMIT]` on a repair",
+            "never use the `[QFR-ADMIT] research:` prefix on a repair",
             "ordinary unmarked commits",
             "workflow_dispatch",
             "genuinely new, complete atomic hypothesis admission",
