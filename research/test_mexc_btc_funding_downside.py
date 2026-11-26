@@ -72,7 +72,7 @@ class MexcFundingDownsideTests(unittest.TestCase):
             model.parse_funding_page(json.dumps(page_payload(rows, page=2)).encode(), 1)
 
     def test_funding_history_retrieves_every_page_and_hashes_each_response(self):
-        base_day = dt.date(2026, 1, 1)
+        base_day = dt.date(2025, 1, 1)
         all_rows = []
         start = dt.datetime.combine(base_day, dt.time(0), tzinfo=dt.timezone.utc)
         for index in range(1001):
@@ -206,7 +206,7 @@ class MexcFundingDownsideTests(unittest.TestCase):
             prereg = root / "PREREG.md"
             registry.write_text(
                 "# Registry\n\n| Hypothesis ID | Status | Mechanism | Data | Disposition | Evidence |\n"
-                "|---|---|---|---|---|---|\n",
+                "|---|---|---|---|---|---|\n\n## Disposition rules\n",
                 encoding="utf-8",
             )
             prereg.write_text(
