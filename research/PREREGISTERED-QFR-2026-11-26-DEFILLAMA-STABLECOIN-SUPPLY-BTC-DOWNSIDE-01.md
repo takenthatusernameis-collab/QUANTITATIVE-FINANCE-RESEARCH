@@ -2,7 +2,7 @@
 
 - **Hypothesis ID:** QFR-2026-11-26-DEFILLAMA-STABLECOIN-SUPPLY-BTC-DOWNSIDE-01
 - **Registered:** 2026-11-26T15:46:57Z, before source preflight and implementation.
-- **Status:** PREREGISTERED — source feasibility passed; implementation pending.
+- **Status:** INCONCLUSIVE
 - **Difficulty:** MEDIUM.
 - **Difficulty rationale:** one public DeFiLlama aggregate historical endpoint, one existing Binance Vision daily Spot archive pipeline, one lagged 14-day supply-growth feature, a five-session downside-semivariance target, a rolling linear forecast, deterministic schema/timing/maturity tests, one dedicated workflow and durable evidence persistence. Existing repository helpers cover checksum-verified Binance archives, downside-semivariance calculations, standardized OLS, forecast metrics and paired block bootstrap. The primary uncertainty is whether DeFiLlama's current historical aggregate series meets the frozen coverage and schema gates.
 - **Timebox start:** 2026-11-26T15:46:57Z.
@@ -90,10 +90,21 @@ The bounded contribution here is a preregistered, strictly lagged, rolling out-o
 
 ## Source-preflight disposition
 
-- **Status:** PASS — read-only source feasibility gates passed on 2026-11-26.
-- **DeFiLlama coverage:** 2,152 daily rows, 2021-01-01 through 2026-11-22; maximum gap one day.
+- **Status:** PASS — source coverage was revalidated during the empirical run
+- **DeFiLlama coverage:** 2021-01-01 through 2026-11-22; 3285 source rows; maximum gap 1 days.
 - **DeFiLlama response SHA-256:** 4dcbf029ff5dec668c2a1e7302f5596e7b5faf89a02e127e8f1f1325b91793c0.
-- **Binance BTCUSDT Spot:** active TRADING market; Spot trading allowed.
-- **Binance exchangeInfo SHA-256:** 1b3dc90cbcff1f550271a531a160fc4e81053a2dea0a88148d65368e6bacebdc.
-- **Source preflight run:** [45853947478](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45853947478).
-- **Model implementation:** now admitted under the frozen timebox; empirical result pending.
+- **Binance BTCUSDT:** 2021-01-01 through 2026-11-24; 94 checksum-verified archives.
+- Read-only source feasibility preflight: [run 45853947478](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45853947478).
+
+## Empirical disposition
+
+- **Status:** INCONCLUSIVE
+- **Disposition:** INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen rule
+- **Completed real-data backtest:** True
+- **Data scope:** DeFiLlama USD-pegged stablecoin supply 2021-01-01 to 2026-11-22; Binance BTCUSDT Spot 1d UTC 2021-01-01 to 2026-11-24
+- **Summary metrics:** {"accepted_events": 355, "forecast_n": 251, "test_n": 175, "test_rmse_improvement_pct": -0.6314251216636976, "validation_n": 76, "validation_rmse_improvement_pct": 2.3150260518596006}
+- **Paired test-loss bootstrap:** {"block_size_events": 4, "bootstrap_fraction_positive": 0.369, "ci_95_high_bp2": 0.02871936529767865, "ci_95_low_bp2": -0.05043627055454288, "observations": 175, "observed_mean_baseline_minus_augmented_squared_loss_bp2": -0.00784734509847834, "reps": 2000, "status": "COMPUTED"}
+- **Source/implementation blocker:** None
+- **Report:** [reports/sessions/2026-11-26/2026-11-26T160524Z_session-stablecoin-supply-btc-downside-45855398478.md](../reports/sessions/2026-11-26/2026-11-26T160524Z_session-stablecoin-supply-btc-downside-45855398478.md)
+- **Manifest:** [reports/generated/stablecoin-supply-btc-downside/45855398478-attempt-1/manifest.json](../reports/generated/stablecoin-supply-btc-downside/45855398478-attempt-1/manifest.json)
+- Forecast-only; no causal, executable-trading or deployment claim.
