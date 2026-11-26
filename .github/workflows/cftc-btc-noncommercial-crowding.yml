@@ -1,0 +1,86 @@
+name: CFTC Bitcoin non-commercial positioning downside-risk screen
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "research/cftc_btc_noncommercial_crowding.py"
+      - "research/test_cftc_btc_noncommercial_crowding.py"
+      - "research/PREREGISTERED-QFR-2026-11-26-CFTC-BTC-NONCOMM-CROWDING-DOWNSIDE-01.md"
+      - ".github/workflows/cftc-btc-noncommercial-crowding.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cftc-btc-noncommercial-crowding-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  cftc-btc-noncommercial-crowding:
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[QFR-ADMIT]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout immutable triggering commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Assert immutable source checkout
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -f research/PREREGISTERED-QFR-2026-11-26-CFTC-BTC-NONCOMM-CROWDING-DOWNSIDE-01.md
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.11"
+
+      - name: Run deterministic source, timing, event and decision tests
+        run: |
+          python -m py_compile research/cftc_btc_noncommercial_crowding.py research/test_cftc_btc_noncommercial_crowding.py
+          python -m unittest discover -s research -p "test_cftc_btc_noncommercial_crowding.py" -v
+          python -m unittest discover -s research -p "test_workflow_admission.py" -v
+
+      - name: Retrieve official sources and run the frozen walk-forward screen
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: python research/cftc_btc_noncommercial_crowding.py
+
+      - name: Persist report, manifest and disposition with bounded concurrent-update recovery
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          report="$(find reports/sessions -type f -name "*session-cftc-btc-noncommercial-crowding-$GITHUB_RUN_ID.md" | sort | tail -n 1)"
+          manifest="reports/generated/cftc-btc-noncommercial-crowding/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/manifest.json"
+          test -n "$report"
+          test -f "$report"
+          test -f "$manifest"
+          mkdir -p /tmp/qfr-cftc-artifacts
+          cp "$report" /tmp/qfr-cftc-artifacts/report.md
+          cp "$manifest" /tmp/qfr-cftc-artifacts/manifest.json
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p "$(dirname "$report")" "$(dirname "$manifest")"
+            cp /tmp/qfr-cftc-artifacts/report.md "$report"
+            cp /tmp/qfr-cftc-artifacts/manifest.json "$manifest"
+            PYTHONPATH=research python -c 'import json,sys; import cftc_btc_noncommercial_crowding as m; m.update_documents(json.load(open(sys.argv[1], encoding="utf-8")), sys.argv[2], sys.argv[1])' "$manifest" "$report"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add "$report" "$manifest" research/HYPOTHESIS-REGISTRY.md research/PREREGISTERED-QFR-2026-11-26-CFTC-BTC-NONCOMM-CROWDING-DOWNSIDE-01.md
+            git commit -m "docs: persist CFTC Bitcoin positioning evidence [QFR-EVIDENCE]"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((attempt * 2))
+          done
+          echo "Evidence persistence failed after three bounded attempts." >&2
+          exit 1
