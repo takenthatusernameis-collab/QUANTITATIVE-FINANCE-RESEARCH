@@ -100,14 +100,12 @@ No first-in-literature claim is made.
 ## Empirical disposition
 
 - **Status:** INCONCLUSIVE
-- **Disposition:** INCONCLUSIVE/INFEASIBLE — bounded source, timing or execution gate failed: ValueError: Unexpected non-Tuesday TFF report date outside the documented shutdown catch-up window: 2018-12-24
-- **Completed real-data backtest:** False
-- **Data scope:** not established
-- **Validation/test forecasts:** None/None
-- **RMSE improvement:** None% validation; None% test
-- **Validation metrics:** {}
-- **Test metrics:** {}
-- **Report:** [reports/sessions/2026-11-26/2026-11-26T123816Z_session-cftc-bitcoin-carry-crowding-45821494731.md](../reports/sessions/2026-11-26/2026-11-26T123816Z_session-cftc-bitcoin-carry-crowding-45821494731.md)
-- **Manifest:** [reports/generated/cftc-bitcoin-carry-crowding/45821494731-attempt-1/manifest.json](../reports/generated/cftc-bitcoin-carry-crowding/45821494731-attempt-1/manifest.json)
-
-- **Execution blocker:** ValueError: Unexpected non-Tuesday TFF report date outside the documented shutdown catch-up window: 2018-12-24
+- **Disposition:** INCONCLUSIVE — the frozen validation/test and paired-event criteria do not establish incremental predictive value or decisive inferiority
+- **Completed real-data backtest:** True
+- **Data scope:** CFTC TFF futures-only Bitcoin CME contract 133741, 2018-04-10 to 2026-11-17 (450 rows; known 2025-09-30 to 2026-01-20 catch-up period excluded from events/history); FRED/Coinbase CBBTCUSD 2016-11-25 to 2026-11-25 (3652 daily observations); 375 accepted weekly events
+- **Validation/test forecasts:** 85/238
+- **RMSE improvement:** -2.40720015175647% validation; -1.117015049280313% test
+- **Validation metrics:** {"augmented": {"mae_log1p_semivariance": 0.8195929513131125, "n": 85, "rmse_log1p_semivariance": 0.9901395999151835}, "baseline": {"mae_log1p_semivariance": 0.7938397617021054, "n": 85, "rmse_log1p_semivariance": 0.9668652188985765}, "n": 85}
+- **Test metrics:** {"augmented": {"mae_log1p_semivariance": 0.6790958176548416, "n": 238, "rmse_log1p_semivariance": 0.8521143314575398}, "baseline": {"mae_log1p_semivariance": 0.6752098145673141, "n": 238, "rmse_log1p_semivariance": 0.8427012318770031}, "crowding_event_study": {"block_size_events": 4, "ci95_high": 0.34845402918518076, "ci95_low": -2.430690592742438, "high_minus_other_mean_semivariance_pct2": -1.0484963377582837, "high_n": 46, "mean_high_semivariance_pct2": 2.263007598693932, "mean_other_semivariance_pct2": 3.311503936452216, "other_n": 192, "reps": 2000}, "n": 238, "paired_loss_bootstrap": {"block_size_events": 4, "bootstrap_fraction_positive": 0.197, "ci95_high": 0.019637359679962507, "ci95_low": -0.053352059202934406, "mean_baseline_minus_augmented_squared_loss": -0.015953467668311457, "observations": 238, "reps": 2000}}
+- **Report:** [reports/sessions/2026-11-26/2026-11-26T124128Z_session-cftc-bitcoin-carry-crowding-45821991487.md](../reports/sessions/2026-11-26/2026-11-26T124128Z_session-cftc-bitcoin-carry-crowding-45821991487.md)
+- **Manifest:** [reports/generated/cftc-bitcoin-carry-crowding/45821991487-attempt-1/manifest.json](../reports/generated/cftc-bitcoin-carry-crowding/45821991487-attempt-1/manifest.json)

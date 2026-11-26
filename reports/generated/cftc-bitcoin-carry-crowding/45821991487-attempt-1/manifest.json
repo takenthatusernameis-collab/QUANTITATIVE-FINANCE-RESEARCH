@@ -1,0 +1,163 @@
+{
+  "cftc_source": {
+    "contract_code": "133741",
+    "dataset": "gpe5-46if",
+    "fields": [
+      "report_date_as_yyyy_mm_dd",
+      "contract_market_name",
+      "cftc_contract_market_code",
+      "open_interest_all",
+      "lev_money_positions_short"
+    ],
+    "first_date": "2018-04-10",
+    "last_date": "2026-11-17",
+    "rows": 450,
+    "sha256": "0cb78b07cf2a380504432489a29f96ccc07f48043023c8897b5d67dff854dd20",
+    "url": "https://publicreporting.cftc.gov/resource/gpe5-46if.json?%24select=report_date_as_yyyy_mm_dd%2Ccontract_market_name%2Ccftc_contract_market_code%2Copen_interest_all%2Clev_money_positions_short&%24where=cftc_contract_market_code%3D%27133741%27+AND+report_date_as_yyyy_mm_dd+%3E%3D+%272018-04-10%27+AND+report_date_as_yyyy_mm_dd+%3C%3D+%272026-11-17%27&%24order=report_date_as_yyyy_mm_dd+ASC&%24limit=50000"
+  },
+  "completed_backtest": true,
+  "coverage": {
+    "CBBTCUSD": {
+      "first_date": "2016-11-25",
+      "last_date": "2026-11-25",
+      "maximum_calendar_gap_days": 2,
+      "rows": 3652
+    },
+    "CFTC_TFF_BTC": {
+      "first_date": "2018-04-10",
+      "last_date": "2026-11-17",
+      "rows": 450
+    }
+  },
+  "daily_kpi": "MET before this additional study by distinct real-data hypothesis backtests on 2026-11-26; this run is additional research, not a quota claim",
+  "data_scope": "CFTC TFF futures-only Bitcoin CME contract 133741, 2018-04-10 to 2026-11-17 (450 rows; known 2025-09-30 to 2026-01-20 catch-up period excluded from events/history); FRED/Coinbase CBBTCUSD 2016-11-25 to 2026-11-25 (3652 daily observations); 375 accepted weekly events",
+  "disposition": "INCONCLUSIVE \u2014 the frozen validation/test and paired-event criteria do not establish incremental predictive value or decisive inferiority",
+  "event_construction": {
+    "candidate_cftc_rows": 450,
+    "crowding_lookback_prior_reports": 52,
+    "events": 375,
+    "high_crowding_percentile": 0.9,
+    "publication_lag_days": 14,
+    "skipped": {
+      "availability_date_not_reached": 1,
+      "incomplete_btc_return_window": 4,
+      "insufficient_btc_pre_history": 1,
+      "insufficient_prior_position_history": 52,
+      "known_publication_backlog": 17,
+      "no_signal_close": 0,
+      "overlapping_target_window": 0,
+      "signal_close_too_far_after_lag": 0
+    },
+    "target_sessions": 5,
+    "weekly_report_design": "Tuesday report dates; first Coinbase BTCUSD close on or after report_date + 14 calendar days"
+  },
+  "hypothesis_id": "QFR-2026-11-26-CFTC-BTC-CARRY-CROWDING-DOWNSIDE-01",
+  "limitations": [
+    "CFTC leveraged-fund classifications do not reveal the intent of individual positions; gross shorts may include cash-and-carry basis trades, directional positions and other strategies.",
+    "CFTC code 133741 represents CME Bitcoin futures only, not offshore perpetual swaps or the global derivatives market.",
+    "A fixed 14-day lag is conservative for the historical weekly schedule; known 2025 shutdown catch-up reports are excluded. Holiday-shifted report dates are retained, but any interval below six days fails closed as a cadence change. The sample is frozen at the 2026-11-26 as-of date.",
+    "Current CFTC history may reflect revised positions and trader classifications; exact historical release timestamps are unavailable for the full history.",
+    "Coinbase CBBTCUSD is a single-venue daily 5 p.m. Pacific price series; raw observations are not committed or redistributed.",
+    "Current FRED vintage is used; historical ALFRED point-in-time vintages are not reconstructed.",
+    "Forecast-only: no causal claim, trading P&L, transaction-cost model, profitability, live strategy or deployment conclusion."
+  ],
+  "methodology": {
+    "augmented_features": [
+      "pre_downside5_log",
+      "pre_downside20_log",
+      "pre_rv20_log",
+      "gross_short_pct_oi_percentile"
+    ],
+    "baseline_features": [
+      "pre_downside5_log",
+      "pre_downside20_log",
+      "pre_rv20_log"
+    ],
+    "bootstrap_block_events": 4,
+    "bootstrap_reps": 2000,
+    "bootstrap_seed": 20261126,
+    "cftc_report_end_date": "2026-11-17",
+    "crowding_feature": "gross leveraged-fund short positions divided by total open interest",
+    "crowding_percentile_lookback": "prior 52 non-backlog reports only; current report excluded",
+    "data_asof_date": "2026-11-26",
+    "high_crowding_threshold": 0.9,
+    "known_publication_backlog_exclusion": [
+      "2025-09-30",
+      "2026-01-20"
+    ],
+    "overlap_rule": "no overlapping five-observation target windows",
+    "publication_lag_days": 14,
+    "rolling_training_events": 52,
+    "target": "log1p(next-five-observation BTC downside semivariance in percentage-points squared)",
+    "target_sessions": 5,
+    "test": "2022-01-01 through 2026-11-26",
+    "training_rule": "training signal_date and target_end_date must both be strictly earlier than current signal_date",
+    "validation": "2019-01-01 through 2021-12-31"
+  },
+  "price_source": {
+    "first_date": "2016-11-25",
+    "last_date": "2026-11-25",
+    "rows": 3652,
+    "series": "CBBTCUSD",
+    "sha256": "d31b13b29bae8cd1bda89cf5d728772262db139ff1b83130ec6bfd4b95b3eb73",
+    "source": "Coinbase daily BTCUSD close distributed by FRED, 5 p.m. Pacific Time",
+    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=CBBTCUSD&cosd=2016-11-25&coed=2026-11-26"
+  },
+  "retrieved_at_utc": "2026-11-26T12:41:29.765886+00:00",
+  "run_attempt": "1",
+  "run_id": "45821991487",
+  "source_commit_sha": "464a6cf4f7361c3af25325ea3ea98366b5eafbf0",
+  "status": "INCONCLUSIVE",
+  "summary_metrics": {
+    "test_improvement_pct": -1.117015049280313,
+    "test_n": 238,
+    "validation_improvement_pct": -2.40720015175647,
+    "validation_n": 85
+  },
+  "test_metrics": {
+    "augmented": {
+      "mae_log1p_semivariance": 0.6790958176548416,
+      "n": 238,
+      "rmse_log1p_semivariance": 0.8521143314575398
+    },
+    "baseline": {
+      "mae_log1p_semivariance": 0.6752098145673141,
+      "n": 238,
+      "rmse_log1p_semivariance": 0.8427012318770031
+    },
+    "crowding_event_study": {
+      "block_size_events": 4,
+      "ci95_high": 0.34845402918518076,
+      "ci95_low": -2.430690592742438,
+      "high_minus_other_mean_semivariance_pct2": -1.0484963377582837,
+      "high_n": 46,
+      "mean_high_semivariance_pct2": 2.263007598693932,
+      "mean_other_semivariance_pct2": 3.311503936452216,
+      "other_n": 192,
+      "reps": 2000
+    },
+    "n": 238,
+    "paired_loss_bootstrap": {
+      "block_size_events": 4,
+      "bootstrap_fraction_positive": 0.197,
+      "ci95_high": 0.019637359679962507,
+      "ci95_low": -0.053352059202934406,
+      "mean_baseline_minus_augmented_squared_loss": -0.015953467668311457,
+      "observations": 238,
+      "reps": 2000
+    }
+  },
+  "validation_metrics": {
+    "augmented": {
+      "mae_log1p_semivariance": 0.8195929513131125,
+      "n": 85,
+      "rmse_log1p_semivariance": 0.9901395999151835
+    },
+    "baseline": {
+      "mae_log1p_semivariance": 0.7938397617021054,
+      "n": 85,
+      "rmse_log1p_semivariance": 0.9668652188985765
+    },
+    "n": 85
+  }
+}
