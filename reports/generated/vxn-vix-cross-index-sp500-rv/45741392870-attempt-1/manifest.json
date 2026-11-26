@@ -1,0 +1,133 @@
+{
+  "completed_backtest": true,
+  "daily_kpi": "This distinct real-data backtest completed on UTC date 2026-11-26; the 2026-11-26 minimum was already met by the earlier STLFSI4 and SOFR-EFFR real-data backtests.",
+  "data_scope": "FRED VXNCLS/VIXCLS daily from 2016-11-25 to 2026-11-24 (common end 2026-11-24); SP500 2016-11-28 to 2026-11-24; 415 accepted non-overlapping six-session-spaced events; validation 2019-2021; test 2022 onward",
+  "data_sources": {
+    "SP500": {
+      "first_date": "2016-11-28",
+      "last_date": "2026-11-24",
+      "rows": 2512,
+      "sha256": "6892b6e8b13c7283cb2fe62a453bbe1953a1db4084ae5d795a8ee27ea5a69d11",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=SP500&cosd=2016-11-25"
+    },
+    "VIXCLS": {
+      "first_date": "2016-11-25",
+      "last_date": "2026-11-24",
+      "rows": 2546,
+      "sha256": "fc8adf09eed97d58b761eca77de7cee278d79c257dd89b08747b31482bc8fad7",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS&cosd=2016-11-25"
+    },
+    "VXNCLS": {
+      "first_date": "2016-11-25",
+      "last_date": "2026-11-24",
+      "rows": 2515,
+      "sha256": "748ebbeaf0049f86fe1fe16442f7d3af049cc4bf924f37276a8eaac75ab5f35e",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VXNCLS&cosd=2016-11-25"
+    }
+  },
+  "disposition": "INCONCLUSIVE \u2014 evidence is mixed, statistically uncertain or insufficient under the frozen decision rule",
+  "event_construction": {
+    "accepted_events": 415,
+    "candidate_origins": 415,
+    "event_spacing_sp500_observations": 6,
+    "signal_rule": "S&P 500 close on t; latest common VXN/VIX observation dated strictly before t",
+    "skipped": {
+      "incomplete_price_window": 0,
+      "insufficient_five_observation_vol_history": 0,
+      "irregular_vol_observation_window": 0,
+      "missing_vix_on_signal_date": 0,
+      "no_strictly_prior_common_vol_observation": 0,
+      "overlapping_target_window": 0,
+      "stale_common_vol_observation": 0
+    },
+    "spread_feature": "log(VXN/VIX)[d] - log(VXN/VIX)[d-5], where d is the latest common date strictly before t",
+    "target_sessions": 5,
+    "vol_observation_lag": "strictly prior common date; no same-date VXN/VIX values are used"
+  },
+  "hypothesis_id": "QFR-2026-11-26-VXN-VIX-CROSS-INDEX-SP500-RV-01",
+  "limitations": [
+    "VXN and VIX are current FRED vintages; historical point-in-time CBOE dissemination and later revisions are not reconstructed.",
+    "VXN measures Nasdaq-100 implied volatility while VIX measures S&P 500 implied volatility; their ratio can reflect sector concentration, index composition and relative option demand rather than a pure spillover shock.",
+    "The strict prior-date rule avoids same-date publication look-ahead but does not reconstruct intraday historical publication timestamps.",
+    "The baseline controls for broad VIX level and recent S&P 500 realized volatility, but not every cross-index or sector-specific risk factor.",
+    "SP500 is a cash price index, not an executable futures series or total-return index.",
+    "Forecasting only: no causal claim, transaction-cost model, tradable strategy or live-deployment conclusion.",
+    "No raw source data are committed; only URLs, retrieval metadata, hashes and aggregate metrics are retained."
+  ],
+  "methodology": {
+    "augmented_features": [
+      "pre_rv5_log",
+      "pre_rv20_log",
+      "log_vix",
+      "vxn_vix_5obs_change"
+    ],
+    "availability": "VXN and VIX are used only from their latest common date strictly before the signal date",
+    "baseline_features": [
+      "pre_rv5_log",
+      "pre_rv20_log",
+      "log_vix"
+    ],
+    "bootstrap_block_events": 4,
+    "bootstrap_reps": 2000,
+    "bootstrap_seed": 20261128,
+    "event_spacing_sp500_observations": 6,
+    "feature": "log(VXN/VIX)[d] - log(VXN/VIX)[d-5]; d is the latest common VXN/VIX observation strictly before the signal date",
+    "rolling_training_events": 104,
+    "target": "log1p(next-five-session S&P 500 realized volatility in percent)",
+    "target_sessions": 5,
+    "test": "2022-01-01 onward",
+    "training_rule": "training target_end_date must be strictly earlier than current signal_date",
+    "validation": "2019-01-01 through 2021-12-31"
+  },
+  "paired_squared_loss_bootstrap": {
+    "block_size_events": 4,
+    "bootstrap_fraction_positive": 0.0515,
+    "ci_95_high": 0.0003926431673640662,
+    "ci_95_low": -0.0031549271294685124,
+    "mean_baseline_minus_augmented_squared_log_loss": -0.0014263285626978466,
+    "observations": 204,
+    "reps": 2000,
+    "status": "COMPUTED"
+  },
+  "retrieved_at_utc": "2026-11-26T02:17:20.985088+00:00",
+  "run_attempt": "1",
+  "run_id": "45741392870",
+  "source_commit_sha": "a7445a32c69843021a24377567d3b209dae5f591",
+  "status": "INCONCLUSIVE",
+  "summary_metrics": {
+    "test_improvement_pct": -1.0025166920204938,
+    "test_n": 204,
+    "validation_improvement_pct": -1.0495979764131704,
+    "validation_n": 107
+  },
+  "test_metrics": {
+    "augmented": {
+      "mae_log1p_rv": 0.2078588377466108,
+      "n": 204,
+      "oos_r2_vs_period_mean": 0.34864574076425203,
+      "rmse_log1p_rv": 0.2687171786840812
+    },
+    "baseline": {
+      "mae_log1p_rv": 0.20599575173755086,
+      "n": 204,
+      "oos_r2_vs_period_mean": 0.3615118126720944,
+      "rmse_log1p_rv": 0.26604998319344914
+    },
+    "n": 204
+  },
+  "validation_metrics": {
+    "augmented": {
+      "mae_log1p_rv": 0.28110223042695015,
+      "n": 107,
+      "oos_r2_vs_period_mean": 0.4601901017254061,
+      "rmse_log1p_rv": 0.3435642915526315
+    },
+    "baseline": {
+      "mae_log1p_rv": 0.2762471170725571,
+      "n": 107,
+      "oos_r2_vs_period_mean": 0.47134582820358506,
+      "rmse_log1p_rv": 0.3399957035285046
+    },
+    "n": 107
+  }
+}
