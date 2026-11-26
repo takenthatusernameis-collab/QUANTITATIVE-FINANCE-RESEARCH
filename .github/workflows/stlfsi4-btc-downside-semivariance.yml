@@ -1,0 +1,80 @@
+name: STLFSI4 stress and BTC downside-semivariance forecast
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "research/stlfsi4_btc_downside_semivariance.py"
+      - "research/test_stlfsi4_btc_downside_semivariance.py"
+      - ".github/workflows/stlfsi4-btc-downside-semivariance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qfr-stlfsi4-btc-downside-semivariance-main
+  cancel-in-progress: true
+
+jobs:
+  downside-semivariance-backtest:
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[QFR-ADMIT]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout trusted default branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Run deterministic research and admission tests
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s research -p "test_stlfsi4_btc_downside_semivariance.py" -v
+          python -m unittest discover -s research -p "test_workflow_admission.py" -v
+
+      - name: Retrieve official data and run preregistered walk-forward forecast
+        run: |
+          set -euo pipefail
+          python research/stlfsi4_btc_downside_semivariance.py
+          report="$(find reports/sessions -type f -name "*session-stlfsi4-btc-downside-semivariance-$GITHUB_RUN_ID.md" | sort | tail -n 1)"
+          manifest="reports/generated/stlfsi4-btc-downside-semivariance/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/manifest.json"
+          test -n "$report"
+          test -s "$report"
+          test -s "$manifest"
+          echo "=== SESSION REPORT ==="
+          cat "$report"
+          echo "=== GENERATED MANIFEST ==="
+          cat "$manifest"
+
+      - name: Persist reproducible evidence to main
+        if: success()
+        run: |
+          set -euo pipefail
+          report="$(find reports/sessions -type f -name "*session-stlfsi4-btc-downside-semivariance-$GITHUB_RUN_ID.md" | sort | tail -n 1)"
+          manifest="reports/generated/stlfsi4-btc-downside-semivariance/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/manifest.json"
+          prereg="research/PREREGISTERED-QFR-2026-11-26-STLFSI4-BTC-DOWNSIDE-SEMIVARIANCE-01.md"
+          test -n "$report"
+          test -s "$report"
+          test -s "$manifest"
+          test -s "$prereg"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$report" "$manifest" "$prereg" research/HYPOTHESIS-REGISTRY.md
+          if git diff --cached --quiet; then
+            echo "No generated evidence changes to persist."
+            exit 0
+          fi
+          git commit -m "Persist STLFSI4 BTC downside-semivariance evidence $GITHUB_RUN_ID"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
