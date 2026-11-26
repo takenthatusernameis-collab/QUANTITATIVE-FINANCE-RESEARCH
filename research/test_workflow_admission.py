@@ -125,6 +125,20 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         workflow = (WORKFLOW_DIR / "deribit-relative-dvol-ethbtc-rv.yml").read_text(encoding="utf-8")
         self.assertNotIn(".github/workflows/workflow-admission-tests.yml", workflow)
 
+    def test_readme_requires_unmarked_repairs_and_dispatch_for_same_hypothesis_retries(self):
+        text = README.read_text(encoding="utf-8")
+        required = [
+            "Failed-admission recovery",
+            "never put [QFR-ADMIT] on a repair",
+            "ordinary unmarked commits",
+            "workflow_dispatch",
+            "genuinely new, complete atomic hypothesis admission",
+            "record the dispatched run's exact source_commit_sha",
+        ]
+        for phrase in required:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+
 
 if __name__ == "__main__":
     unittest.main()
