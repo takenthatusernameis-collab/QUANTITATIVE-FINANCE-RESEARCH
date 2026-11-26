@@ -2,7 +2,7 @@
 
 - **Hypothesis ID:** QFR-2026-11-26-STLFSI4-BTC-DOWNSIDE-SEMIVARIANCE-01
 - **Registered:** 2026-11-25T23:54:29Z, before this experiment's empirical result inspection.
-- **Status:** INCONCLUSIVE — INCONCLUSIVE — bounded source/execution failure: RuntimeError: Binance public-data endpoints failed: https://data-api.binance.vision: ValueError: BTCUSDT candle is not aligned to a full UTC day | https://api.binance.com: RuntimeError: Non-retryable HTTP 451 for https://api.binance.com/api/v3/exchangeInfo?symbol=BTCUSDT. No valid backtest completed; source acceptance failed.
+- **Status:** ACTIVE — same-instrument Binance Vision archive replacement implemented; hosted verification pending. Prior REST attempt 45727248228 failed before empirical evaluation.
 - **Difficulty:** MEDIUM.
 - **Implementation timebox:** through 2026-11-29T23:54:29Z.
 - **Research conclusion deadline:** 2026-12-02T23:54:29Z.
@@ -52,7 +52,15 @@ The bounded contribution is an incremental, strict-lag, single-Bitcoin forecast 
 - Require at least 3,000 completed daily candles, history beginning no later than 2017-08-31, latest completed candle no more than two calendar days old, strictly continuous UTC dates, positive closes and no future dates.
 - Record exact endpoint, pagination, row counts, date coverage and SHA-256 page hashes. Do not commit raw market data.
 
-### Data-revision limitation
+### Execution source replacement addendum — 2026-11-26
+
+The first hosted attempt (run 45727248228) did not reach empirical evaluation: the Binance market-data REST host returned daily rows that failed the strict UTC-day parser, while the primary API host returned HTTP 451. This is an execution/source-route failure, not evidence against the hypothesis. The REST kline retrieval route has therefore been replaced in the same session with Binance's official Spot monthly/daily 1d archive distribution for the **same BTCUSDT spot instrument and UTC daily interval**. The active-symbol check remains on the public market-data exchangeInfo endpoint.
+
+The replacement requires a .CHECKSUM sidecar for every ZIP, SHA-256 equality, exactly one CSV per archive, positive finite closes, complete UTC-day open/close bounds, duplicate-free dates, and a continuous daily series. It supports the documented Spot timestamp-unit transition from milliseconds to microseconds beginning 2025-01-01. Completed calendar months use monthly archives only after the documented first-Monday publication date; current or not-yet-published months use daily archives. The current day and immediately preceding day are not requested, leaving a bounded publication buffer. This changes only the transport/archive route; it does not change the instrument, feature, release lag, target, horizon, model, date splits, training window, bootstrap or decision rule.
+
+Official archive format and checksum documentation: https://github.com/binance/binance-public-data. The first valid backtest remains pending until the replacement route passes hosted source acceptance and the frozen walk-forward run.
+
+## Data-revision limitation
 
 FRED explicitly notes STLFSI4 observations are subject to revision. The screen uses the current FRED vintage, not historical ALFRED vintages. The conservative publication lag prevents using a weekly observation before its scheduled release, but does not eliminate look-ahead from subsequent revisions. Even a positive result remains BACKTESTED only, not INDEPENDENTLY_VALIDATED, until point-in-time vintages or independent reconstruction are available.
 
@@ -94,11 +102,6 @@ Forecasting only. No live orders, capital deployment, trading P&L, causal claim 
 
 ## Empirical disposition
 
-- **Final status:** INCONCLUSIVE — INCONCLUSIVE — bounded source/execution failure: RuntimeError: Binance public-data endpoints failed: https://data-api.binance.vision: ValueError: BTCUSDT candle is not aligned to a full UTC day | https://api.binance.com: RuntimeError: Non-retryable HTTP 451 for https://api.binance.com/api/v3/exchangeInfo?symbol=BTCUSDT.
-- **Completed backtest:** no.
-- **Data scope:** source acceptance incomplete.
-- **Summary:** {}.
-- **Report:** [reports/sessions/2026-11-26/2026-11-26T004250Z_session-stlfsi4-btc-downside-semivariance-45727248228.md](../reports/sessions/2026-11-26/2026-11-26T004250Z_session-stlfsi4-btc-downside-semivariance-45727248228.md).
-- **Manifest:** [reports/generated/stlfsi4-btc-downside-semivariance/45727248228-attempt-1/manifest.json](../reports/generated/stlfsi4-btc-downside-semivariance/45727248228-attempt-1/manifest.json).
-- **Interpretation:** forecast screen only. Current-vintage STLFSI4 revisions remain a material limitation; even a promising result is not independently validated or tradable.
-
+- **Prior attempt 1:** INCONCLUSIVE — REST source acceptance failed before a valid backtest; no empirical result exists.
+- **Replacement:** official Binance Vision Spot archive route implemented for the same BTCUSDT 1d UTC instrument; checksums and continuous coverage are enforced.
+- **Current attempt:** pending hosted CI and source acceptance. No result or daily KPI credit is claimed until the new run completes.

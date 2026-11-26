@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Forecast screen: lagged STLFSI4 tightening -> BTC five-session downside semivariance."""
 from __future__ import annotations
-import csv, datetime as dt, hashlib, json, math, os, statistics, urllib.parse
+import concurrent.futures, csv, datetime as dt, hashlib, io, json, math, os, statistics, urllib.parse, zipfile
 from pathlib import Path
 import treasury_auction_demand as base
 
@@ -10,10 +10,12 @@ START_DATE = dt.date(2017, 8, 17)
 RELEASE_LAG_DAYS, MODEL_WINDOW, TARGET_SESSIONS = 7, 104, 5
 VALIDATION_START, TEST_START = dt.date(2019, 1, 1), dt.date(2022, 1, 1)
 BOOTSTRAP_REPS, MIN_STRESS_ROWS, MIN_PRICE_ROWS = 2000, 400, 3000
-MAX_STRESS_AGE_DAYS, MAX_PRICE_AGE_DAYS, MS_PER_DAY = 10, 2, 86_400_000
+MAX_STRESS_AGE_DAYS, MAX_PRICE_AGE_DAYS = 10, 2
 FRED_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv"
 FRED_CALENDAR = "https://fred.stlouisfed.org/releases/calendar?rid=187"
-BINANCE_HOSTS = ("https://data-api.binance.vision", "https://api.binance.com")
+BINANCE_EXCHANGE_INFO = "https://data-api.binance.vision/api/v3/exchangeInfo"
+BINANCE_VISION = "https://data.binance.vision"
+ARCHIVE_WORKERS = 6
 ROOT = Path(__file__).resolve().parents[1]
 RUN_ID, ATTEMPT = os.environ.get("GITHUB_RUN_ID", "local"), os.environ.get("GITHUB_RUN_ATTEMPT", "1")
 SOURCE_SHA, NOW = os.environ.get("GITHUB_SHA", "local"), dt.datetime.now(dt.timezone.utc)
@@ -49,92 +51,236 @@ def parse_fred(body: bytes) -> dict[dt.date, float]:
     return dict(sorted(values.items()))
 
 
-def parse_klines(body: bytes, now_ms: int) -> dict[dt.date, float]:
-    rows = json.loads(body.decode("utf-8"))
-    if not isinstance(rows, list):
-        raise ValueError("Binance kline response is not an array")
-    values = {}
-    for row in rows:
-        if not isinstance(row, list) or len(row) < 7:
-            raise ValueError("Unexpected Binance kline row schema")
-        open_ms, close_ms = int(row[0]), int(row[6])
-        if open_ms % MS_PER_DAY or close_ms != open_ms + MS_PER_DAY - 1:
-            raise ValueError("BTCUSDT candle is not aligned to a full UTC day")
-        if close_ms > now_ms:
+def parse_archive_klines(body: bytes) -> tuple[dict[dt.date, float], str]:
+    """Parse Binance Spot 1d CSV rows, accepting documented ms/us timestamp eras."""
+    values: dict[dt.date, float] = {}
+    units: set[str] = set()
+    reader = csv.reader(io.StringIO(body.decode("utf-8-sig")))
+    for row_number, row in enumerate(reader, start=1):
+        if not row:
             continue
+        first = row[0].strip().lower()
+        if row_number == 1 and first in {"open_time", "open time"}:
+            continue
+        if len(row) < 7:
+            raise ValueError(f"Unexpected Binance Vision kline row {row_number}: {len(row)} columns")
+        try:
+            open_time, close_time = int(row[0]), int(row[6])
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Invalid Binance Vision timestamp at row {row_number}") from exc
+        if open_time >= 100_000_000_000_000:
+            unit, day_units, scale = "microseconds", 86_400_000_000, 1_000_000
+        elif open_time >= 100_000_000_000:
+            unit, day_units, scale = "milliseconds", 86_400_000, 1_000
+        else:
+            raise ValueError(f"Unsupported Binance Vision timestamp magnitude at row {row_number}")
+        if open_time % day_units or close_time != open_time + day_units - 1:
+            raise ValueError(
+                f"BTCUSDT archive row {row_number} is not a complete UTC day "
+                f"(open={open_time}, close={close_time}, unit={unit})"
+            )
         close = base.parse_float(row[4])
         if close is None or close <= 0:
-            raise ValueError("Invalid BTCUSDT daily close")
-        day = dt.datetime.fromtimestamp(open_ms / 1000, dt.timezone.utc).date()
+            raise ValueError(f"Invalid BTCUSDT close at archive row {row_number}")
+        day = dt.datetime.fromtimestamp(open_time / scale, dt.timezone.utc).date()
         if day in values:
-            raise ValueError(f"Duplicate BTCUSDT candle: {day}")
+            raise ValueError(f"Duplicate BTCUSDT archive candle: {day}")
         values[day] = close
-    return dict(sorted(values.items()))
+        units.add(unit)
+    if not values:
+        raise ValueError("Binance Vision kline archive contains no candles")
+    if len(units) != 1:
+        raise ValueError(f"Mixed timestamp units within one Binance archive: {sorted(units)}")
+    return dict(sorted(values.items())), next(iter(units))
+
+
+def first_monday(year: int, month: int) -> dt.date:
+    first = dt.date(year, month, 1)
+    return first + dt.timedelta(days=(7 - first.weekday()) % 7)
+
+
+def next_month_start(day: dt.date) -> dt.date:
+    if day.month == 12:
+        return dt.date(day.year + 1, 1, 1)
+    return dt.date(day.year, day.month + 1, 1)
+
+
+def build_archive_specs(
+    start_date: dt.date,
+    end_date: dt.date,
+    as_of_date: dt.date | None = None,
+) -> list[dict]:
+    """Use monthly archives only after their first-Monday publication date; otherwise daily files."""
+    if end_date < start_date:
+        raise ValueError("Archive end date precedes start date")
+    as_of_date = as_of_date or NOW.date()
+    specs = []
+    cursor = dt.date(start_date.year, start_date.month, 1)
+    while cursor <= end_date:
+        next_month = next_month_start(cursor)
+        month_end = next_month - dt.timedelta(days=1)
+        covered_end = min(end_date, month_end)
+        monthly_published = as_of_date >= first_monday(next_month.year, next_month.month)
+        if covered_end == month_end and monthly_published:
+            tag = cursor.strftime("%Y-%m")
+            filename = f"BTCUSDT-1d-{tag}.zip"
+            specs.append({
+                "kind": "monthly", "tag": tag, "filename": filename,
+                "url": f"{BINANCE_VISION}/data/spot/monthly/klines/BTCUSDT/1d/{filename}",
+            })
+        else:
+            day = max(start_date, cursor)
+            while day <= covered_end:
+                tag = day.isoformat()
+                filename = f"BTCUSDT-1d-{tag}.zip"
+                specs.append({
+                    "kind": "daily", "tag": tag, "filename": filename,
+                    "expected_date": tag,
+                    "url": f"{BINANCE_VISION}/data/spot/daily/klines/BTCUSDT/1d/{filename}",
+                })
+                day += dt.timedelta(days=1)
+        cursor = next_month
+    return specs
+
+
+def parse_checksum(body: bytes, filename: str) -> str:
+    parts = body.decode("ascii").strip().split()
+    if not parts or len(parts[0]) != 64 or any(c not in "0123456789abcdefABCDEF" for c in parts[0]):
+        raise ValueError(f"Invalid SHA-256 checksum sidecar for {filename}")
+    if len(parts) > 1 and parts[-1].lstrip("*") not in {filename, f"./{filename}"}:
+        raise ValueError(f"Checksum sidecar names a different archive: {parts[-1]}")
+    return parts[0].lower()
+
+
+def download_binance_archive(spec: dict) -> tuple[dict[dt.date, float], dict]:
+    payload = base.fetch_bytes(spec["url"], timeout=30)
+    checksum_body = base.fetch_bytes(spec["url"] + ".CHECKSUM", timeout=15)
+    expected_sha = parse_checksum(checksum_body, spec["filename"])
+    actual_sha = hashlib.sha256(payload).hexdigest()
+    if actual_sha != expected_sha:
+        raise ValueError(
+            f"Binance Vision checksum mismatch for {spec['filename']}: "
+            f"expected={expected_sha}, actual={actual_sha}"
+        )
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        csv_names = [name for name in archive.namelist() if name.lower().endswith(".csv")]
+        if len(csv_names) != 1:
+            raise ValueError(
+                f"Expected one CSV in {spec['filename']}; found {len(csv_names)}"
+            )
+        csv_body = archive.read(csv_names[0])
+    prices, timestamp_unit = parse_archive_klines(csv_body)
+    if spec["kind"] == "daily":
+        expected_day = dt.date.fromisoformat(spec["expected_date"])
+        if set(prices) != {expected_day}:
+            raise ValueError(
+                f"Daily archive {spec['filename']} did not contain exactly {expected_day}: "
+                f"{[d.isoformat() for d in prices]}"
+            )
+    return prices, {
+        "kind": spec["kind"], "period": spec["tag"], "url": spec["url"],
+        "checksum_url": spec["url"] + ".CHECKSUM",
+        "archive_sha256": actual_sha,
+        "checksum_sha256": hashlib.sha256(checksum_body).hexdigest(),
+        "checksum_verified": True, "rows": len(prices),
+        "timestamp_unit": timestamp_unit,
+        "first_date": min(prices).isoformat(), "last_date": max(prices).isoformat(),
+    }
 
 
 def fetch_sources() -> tuple[dict, dict, dict]:
     fred_url = f"{FRED_URL}?id=STLFSI4&cosd={START_DATE.isoformat()}"
     fred_body = base.fetch_bytes(fred_url)
     stress = parse_fred(fred_body)
-    now_ms = int(NOW.timestamp() * 1000)
-    start_ms = int(dt.datetime.combine(START_DATE, dt.time(), dt.timezone.utc).timestamp() * 1000)
-    errors = []
-    for host in BINANCE_HOSTS:
-        try:
-            info_url = f"{host}/api/v3/exchangeInfo?{urllib.parse.urlencode({'symbol': 'BTCUSDT'})}"
-            info_body = base.fetch_bytes(info_url)
-            symbols = json.loads(info_body.decode("utf-8")).get("symbols", [])
-            if len(symbols) != 1:
-                raise ValueError("exchangeInfo did not return exactly BTCUSDT")
-            info = symbols[0]
-            if (info.get("symbol"), info.get("status"), info.get("baseAsset"), info.get("quoteAsset")) != ("BTCUSDT", "TRADING", "BTC", "USDT"):
-                raise ValueError(f"BTCUSDT is not an active spot USDT market: {info}")
-            cursor, prices, hashes, pages = start_ms, {}, [], 0
-            while cursor <= now_ms:
-                params = {"symbol": "BTCUSDT", "interval": "1d", "timeZone": "0", "startTime": cursor, "endTime": now_ms, "limit": 1000}
-                url = f"{host}/api/v3/klines?{urllib.parse.urlencode(params)}"
-                body = base.fetch_bytes(url)
-                rows = json.loads(body.decode("utf-8"))
-                if not isinstance(rows, list):
-                    raise ValueError("Binance kline response is not an array")
-                if not rows:
-                    break
-                hashes.append(hashlib.sha256(body).hexdigest())
-                page = parse_klines(body, now_ms)
-                if set(prices).intersection(page):
-                    raise ValueError("Binance pagination returned duplicate candles")
-                prices.update(page)
-                next_cursor = int(rows[-1][0]) + MS_PER_DAY
-                if next_cursor <= cursor:
-                    raise ValueError("Binance pagination failed to advance")
-                cursor = next_cursor
-                pages += 1
-                if pages > 10:
-                    raise ValueError("Binance history exceeded the 10-page safety bound")
-                if len(rows) < 1000:
-                    break
-            if not prices:
-                raise ValueError("No completed BTCUSDT daily candles returned")
-            prices = dict(sorted(prices.items()))
-            return stress, prices, {
-                "STLFSI4": {
-                    "url": fred_url, "sha256": hashlib.sha256(fred_body).hexdigest(),
-                    "rows": len(stress), "first_date": min(stress).isoformat(),
-                    "last_date": max(stress).isoformat(), "release_calendar": FRED_CALENDAR,
-                    "vintage": "current FRED vintage; historical ALFRED vintages not reconstructed",
-                },
-                "BTCUSDT": {
-                    "symbol": "BTCUSDT", "market_status": info["status"], "endpoint": f"{host}/api/v3/klines",
-                    "exchange_info_url": info_url, "exchange_info_sha256": hashlib.sha256(info_body).hexdigest(),
-                    "interval": "1d", "timezone": "UTC", "rows": len(prices),
-                    "first_date": min(prices).isoformat(), "last_date": max(prices).isoformat(),
-                    "page_count": pages, "page_sha256": hashes, "pagination_limit": 1000,
-                    "incomplete_current_candle_excluded": True,
-                },
-            }
-        except Exception as exc:
-            errors.append(f"{host}: {type(exc).__name__}: {exc}")
-    raise RuntimeError("Binance public-data endpoints failed: " + " | ".join(errors))
+
+    info_url = f"{BINANCE_EXCHANGE_INFO}?{urllib.parse.urlencode({'symbol': 'BTCUSDT'})}"
+    info_body = base.fetch_bytes(info_url)
+    symbols = json.loads(info_body.decode("utf-8")).get("symbols", [])
+    if len(symbols) != 1:
+        raise ValueError("exchangeInfo did not return exactly BTCUSDT")
+    info = symbols[0]
+    if (info.get("symbol"), info.get("status"), info.get("baseAsset"), info.get("quoteAsset")) != (
+        "BTCUSDT", "TRADING", "BTC", "USDT"
+    ):
+        raise ValueError(f"BTCUSDT is not an active spot USDT market: {info}")
+
+    # Replace the REST kline route that failed strict UTC-day validation (and whose
+    # primary API host returned HTTP 451) with Binance's official checksummed Spot
+    # archives for the same BTCUSDT 1d UTC instrument. Current-day bars are excluded.
+    end_date = NOW.date() - dt.timedelta(days=2)
+    specs = build_archive_specs(START_DATE, end_date)
+    results: dict[int, tuple[dict, dict]] = {}
+    failures = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=ARCHIVE_WORKERS) as executor:
+        future_map = {
+            executor.submit(download_binance_archive, spec): (index, spec)
+            for index, spec in enumerate(specs)
+        }
+        for future in concurrent.futures.as_completed(future_map):
+            index, spec = future_map[future]
+            try:
+                results[index] = future.result()
+            except Exception as exc:
+                failures.append({
+                    "kind": spec["kind"], "period": spec["tag"],
+                    "url": spec["url"], "error": f"{type(exc).__name__}: {exc}",
+                })
+    if failures:
+        failures.sort(key=lambda item: (item["kind"], item["period"]))
+        raise RuntimeError(
+            f"Binance Vision archive ingestion failed for {len(failures)}/{len(specs)} "
+            f"archives: {json.dumps(failures, sort_keys=True)}"
+        )
+
+    prices: dict[dt.date, float] = {}
+    archive_manifest = []
+    timestamp_units = set()
+    for index in range(len(specs)):
+        page, manifest_row = results[index]
+        archive_manifest.append(manifest_row)
+        timestamp_units.add(manifest_row["timestamp_unit"])
+        for day, close in page.items():
+            if day < START_DATE or day > end_date:
+                continue
+            if day in prices:
+                raise ValueError(f"Duplicate BTCUSDT date across archives: {day}")
+            prices[day] = close
+    prices = dict(sorted(prices.items()))
+    expected_dates = []
+    day = START_DATE
+    while day <= end_date:
+        expected_dates.append(day)
+        day += dt.timedelta(days=1)
+    missing = [day for day in expected_dates if day not in prices]
+    if missing:
+        raise ValueError(
+            f"Binance Vision archive history has {len(missing)} missing UTC dates; "
+            f"first_missing={missing[0]}, last_missing={missing[-1]}"
+        )
+    archive_manifest_sha = hashlib.sha256(
+        json.dumps(archive_manifest, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    return stress, prices, {
+        "STLFSI4": {
+            "url": fred_url, "sha256": hashlib.sha256(fred_body).hexdigest(),
+            "rows": len(stress), "first_date": min(stress).isoformat(),
+            "last_date": max(stress).isoformat(), "release_calendar": FRED_CALENDAR,
+            "vintage": "current FRED vintage; historical ALFRED vintages not reconstructed",
+        },
+        "BTCUSDT": {
+            "symbol": "BTCUSDT", "market_status": info["status"],
+            "endpoint": "Binance Vision official Spot monthly/daily 1d kline archives",
+            "interval": "1d", "timezone": "UTC", "rows": len(prices),
+            "first_date": min(prices).isoformat(), "last_date": max(prices).isoformat(),
+            "archive_count": len(archive_manifest),
+            "monthly_archive_count": sum(x["kind"] == "monthly" for x in archive_manifest),
+            "daily_archive_count": sum(x["kind"] == "daily" for x in archive_manifest),
+            "timestamp_units_observed": sorted(timestamp_units),
+            "archive_manifest_sha256": archive_manifest_sha,
+            "archives": archive_manifest,
+            "incomplete_current_candle_excluded": True,
+        },
+    }
 
 
 def validate_coverage(stress: dict, prices: dict, today: dt.date) -> dict:
@@ -284,7 +430,7 @@ def run_research() -> dict:
         "run_attempt": ATTEMPT, "source_commit_sha": SOURCE_SHA,
         "daily_kpi": f"This distinct real-data backtest completed on UTC date {NOW.date()}; the 2026-11-25 minimum was already met by earlier experiments.",
         "coverage": coverage, "data_sources": sources, "event_construction": event_meta,
-        "data_scope": f"Binance BTCUSDT spot 1d UTC {coverage['BTCUSDT']['first_date']} to {coverage['BTCUSDT']['last_date']} ({coverage['BTCUSDT']['rows']} complete candles); FRED STLFSI4 weekly {coverage['STLFSI4']['first_date']} to {coverage['STLFSI4']['last_date']} ({coverage['STLFSI4']['rows']} observations); validation 2019-2021; test 2022 onward",
+        "data_scope": f"Binance BTCUSDT spot 1d UTC (checksummed Vision archives) {coverage['BTCUSDT']['first_date']} to {coverage['BTCUSDT']['last_date']} ({coverage['BTCUSDT']['rows']} complete candles); FRED STLFSI4 weekly {coverage['STLFSI4']['first_date']} to {coverage['STLFSI4']['last_date']} ({coverage['STLFSI4']['rows']} observations); validation 2019-2021; test 2022 onward",
         "methodology": {
             "baseline_features": BASE_FEATURES, "augmented_features": AUG_FEATURES,
             "stress_feature": "STLFSI4[week t] - STLFSI4[week t-4]; positive means increasing stress",
@@ -302,7 +448,7 @@ def run_research() -> dict:
             "STLFSI4 is revised. This screen uses the current FRED vintage, not historical ALFRED vintages; publication lag does not remove revision look-ahead.",
             "FRED labels STLFSI4 weekly ending Friday and subject to revision. Its calendar lists 9:00 a.m. US Central releases on Wednesdays with holiday shifts; Friday plus seven calendar days is a conservative signal date.",
             "STLFSI4 is a composite of 18 weekly financial variables, not an exogenous shock or causal measure.",
-            "BTCUSDT is one venue's spot series. This is a forecast screen, not a trading strategy, executable P&L, or tradable-premium claim.",
+            "BTCUSDT is one venue's spot series. Binance Vision archive files are checksummed but may be revised by the publisher; the snapshot is identified by per-file SHA-256 hashes. This is a forecast screen, not a trading strategy, executable P&L, or tradable-premium claim.",
             "No raw FRED or Binance observations are committed; only source hashes, retrieval metadata and aggregate metrics are retained.",
         ],
     }
@@ -363,7 +509,7 @@ def render_report(result: dict, error: str | None = None) -> str:
         lines += [
             "## Preregistered method", "",
             "- Predictor: four-week change in STLFSI4; positive means increasing financial stress.",
-            "- Signal: close of the Binance UTC daily candle dated seven calendar days after the Friday observation.",
+            "- Signal: close of the Binance BTCUSDT UTC daily candle dated seven calendar days after the Friday observation; historical bars are read from checksum-verified official Vision archives.",
             "- Baseline: prior-five and prior-twenty-session BTC downside semivariance plus prior-twenty-session realized variance.",
             "- Target: mean squared negative BTC log returns over the next five UTC daily sessions.",
             "- Rolling training window: 104 prior weekly events; every training target must be fully matured before the signal.",
@@ -371,7 +517,7 @@ def render_report(result: dict, error: str | None = None) -> str:
             "## Data provenance", "",
             "| Source | First | Last | Rows | Hashes |", "|---|---|---:|---:|---|",
             f"| STLFSI4 | {result['coverage']['STLFSI4']['first_date']} | {result['coverage']['STLFSI4']['last_date']} | {result['coverage']['STLFSI4']['rows']} | {result['data_sources']['STLFSI4']['sha256']} |",
-            f"| BTCUSDT | {result['coverage']['BTCUSDT']['first_date']} | {result['coverage']['BTCUSDT']['last_date']} | {result['coverage']['BTCUSDT']['rows']} | {', '.join(result['data_sources']['BTCUSDT']['page_sha256'])} |", "",
+            f"| BTCUSDT | {result['coverage']['BTCUSDT']['first_date']} | {result['coverage']['BTCUSDT']['last_date']} | {result['coverage']['BTCUSDT']['rows']} | {result['data_sources']['BTCUSDT']['archive_count']} archives; manifest SHA-256 {result['data_sources']['BTCUSDT']['archive_manifest_sha256']} |", "",
             "## Frozen results", "",
             "| Metric | Validation | Test |", "|---|---:|---:|",
             f"| Forecasts | {v['n']} | {t['n']} |",
@@ -402,7 +548,7 @@ def main() -> int:
             "disposition": f"INCONCLUSIVE — bounded source/execution failure: {error}",
             "completed_backtest": False, "retrieved_at_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
             "run_id": RUN_ID, "run_attempt": ATTEMPT, "source_commit_sha": SOURCE_SHA,
-            "daily_kpi": f"2026-11-25 minimum was already MET by earlier experiments; this run on {NOW.date()} did not complete a valid backtest.",
+            "daily_kpi": f"No valid backtest completed on UTC date {NOW.date()}; this attempt does not count toward that date's daily minimum.",
             "data_scope": "source acceptance incomplete", "error": error,
         }
     report = render_report(result, error)

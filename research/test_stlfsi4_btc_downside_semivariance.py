@@ -1,8 +1,12 @@
 from __future__ import annotations
 import datetime as dt
+import hashlib
+import io
 import json
 import math
 import unittest
+import zipfile
+from unittest.mock import patch
 import stlfsi4_btc_downside_semivariance as model
 
 
@@ -18,22 +22,104 @@ class STLFSI4BitcoinTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Duplicate"):
             model.parse_fred(body)
 
-    def kline(self, day, close, complete=True):
-        open_ms = int(dt.datetime.combine(day, dt.time(), dt.timezone.utc).timestamp() * 1000)
-        close_ms = open_ms + model.MS_PER_DAY - 1
-        return [open_ms, str(close), str(close), str(close), str(close), "1", close_ms, "1", 1, "1", "1", "0"]
+    def archive_row(self, day, close, unit="ms"):
+        scale = 1_000_000 if unit == "us" else 1_000
+        day_units = 86_400_000_000 if unit == "us" else 86_400_000
+        open_time = int(dt.datetime.combine(day, dt.time(), dt.timezone.utc).timestamp() * scale)
+        close_time = open_time + day_units - 1
+        return f"{open_time},{close},{close},{close},{close},1,{close_time},1,1,1,1,0"
 
-    def test_binance_parser_excludes_incomplete_current_candle(self):
+    def test_archive_parser_accepts_millisecond_and_microsecond_eras(self):
+        old_day = dt.date(2024, 12, 31)
+        new_day = dt.date(2025, 1, 1)
+        old, old_unit = model.parse_archive_klines(
+            (self.archive_row(old_day, "93000", "ms") + "\n").encode()
+        )
+        new, new_unit = model.parse_archive_klines(
+            (self.archive_row(new_day, "94000", "us") + "\n").encode()
+        )
+        self.assertEqual(old_unit, "milliseconds")
+        self.assertEqual(new_unit, "microseconds")
+        self.assertEqual(old[old_day], 93000.0)
+        self.assertEqual(new[new_day], 94000.0)
+
+    def test_archive_parser_accepts_optional_header_and_rejects_bad_daily_bounds(self):
         day = dt.date(2026, 11, 24)
-        body = json.dumps([self.kline(day, 90000), self.kline(day + dt.timedelta(days=1), 91000, False)]).encode()
-        now_ms = int(dt.datetime(2026, 11, 25, 12, tzinfo=dt.timezone.utc).timestamp() * 1000)
-        self.assertEqual(list(model.parse_klines(body, now_ms)), [day])
+        csv_body = (
+            "open_time,open,high,low,close,volume,close_time,quote_asset_volume,"
+            "number_of_trades,taker_buy_base_asset_volume,taker_buy_quote_asset_volume,ignore\n"
+            + self.archive_row(day, "91000", "us") + "\n"
+        ).encode()
+        parsed, unit = model.parse_archive_klines(csv_body)
+        self.assertEqual(unit, "microseconds")
+        self.assertEqual(parsed, {day: 91000.0})
+        bad = self.archive_row(day, "91000", "us").split(",")
+        bad[6] = str(int(bad[6]) - 1)
+        with self.assertRaisesRegex(ValueError, "complete UTC day"):
+            model.parse_archive_klines((",".join(bad) + "\n").encode())
 
-    def test_binance_parser_rejects_non_utc_aligned_candle(self):
-        row = self.kline(dt.date(2026, 11, 24), 90000)
-        row[0] += 1
-        with self.assertRaisesRegex(ValueError, "UTC day"):
-            model.parse_klines(json.dumps([row]).encode(), 2_000_000_000_000)
+    def test_checksum_sidecar_must_match_filename_and_sha256_shape(self):
+        digest = "a" * 64
+        self.assertEqual(
+            model.parse_checksum(
+                f"{digest}  BTCUSDT-1d-2026-11-24.zip\n".encode(),
+                "BTCUSDT-1d-2026-11-24.zip",
+            ),
+            digest,
+        )
+        with self.assertRaisesRegex(ValueError, "different archive"):
+            model.parse_checksum(
+                f"{digest}  OTHER.zip\n".encode(), "BTCUSDT-1d-2026-11-24.zip"
+            )
+        with self.assertRaisesRegex(ValueError, "Invalid SHA-256"):
+            model.parse_checksum(b"not-a-checksum", "file.zip")
+
+    def test_archive_spec_uses_monthly_history_and_daily_current_month(self):
+        specs = model.build_archive_specs(dt.date(2017, 8, 17), dt.date(2026, 11, 24))
+        self.assertEqual(specs[0]["kind"], "monthly")
+        self.assertEqual(specs[0]["tag"], "2017-08")
+        self.assertEqual(specs[-1]["kind"], "daily")
+        self.assertEqual(specs[-1]["tag"], "2026-11-24")
+        self.assertEqual(sum(item["kind"] == "daily" for item in specs), 24)
+        self.assertIn("/data/spot/monthly/klines/BTCUSDT/1d/", specs[0]["url"])
+        self.assertIn("/data/spot/daily/klines/BTCUSDT/1d/", specs[-1]["url"])
+
+    def test_archive_planner_uses_daily_files_until_first_monday_release(self):
+        specs = model.build_archive_specs(
+            dt.date(2017, 8, 17), dt.date(2026, 11, 30), dt.date(2026, 12, 2)
+        )
+        november = [x for x in specs if x["tag"].startswith("2026-11")]
+        self.assertEqual(len(november), 30)
+        self.assertTrue(all(x["kind"] == "daily" for x in november))
+        specs_after_release = model.build_archive_specs(
+            dt.date(2017, 8, 17), dt.date(2026, 11, 30), dt.date(2026, 12, 7)
+        )
+        november_after_release = [x for x in specs_after_release if x["tag"] == "2026-11"]
+        self.assertEqual(len(november_after_release), 1)
+        self.assertEqual(november_after_release[0]["kind"], "monthly")
+
+    def test_archive_download_requires_checksum_and_single_csv(self):
+        day = dt.date(2026, 11, 24)
+        filename = "BTCUSDT-1d-2026-11-24.zip"
+        csv_body = (self.archive_row(day, "90000", "us") + "\n").encode()
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr(filename.replace(".zip", ".csv"), csv_body)
+        payload = buffer.getvalue()
+        checksum = f"{hashlib.sha256(payload).hexdigest()}  {filename}\n".encode()
+        spec = {
+            "kind": "daily", "tag": day.isoformat(), "expected_date": day.isoformat(),
+            "filename": filename, "url": "https://data.binance.vision/example/" + filename,
+        }
+        with patch.object(model.base, "fetch_bytes", side_effect=[payload, checksum]) as fetch:
+            prices, manifest = model.download_binance_archive(spec)
+        self.assertEqual(prices, {day: 90000.0})
+        self.assertTrue(manifest["checksum_verified"])
+        self.assertEqual(fetch.call_count, 2)
+        bad_checksum = b"0" * 64 + b"  " + filename.encode()
+        with patch.object(model.base, "fetch_bytes", side_effect=[payload, bad_checksum]):
+            with self.assertRaisesRegex(ValueError, "checksum mismatch"):
+                model.download_binance_archive(spec)
 
     def test_downside_semivariance_is_one_sided_and_percent_squared(self):
         self.assertAlmostEqual(model.semi_var_pct2([-0.01, 0.02, -0.03, 0.0, 0.01]), 2.0)
