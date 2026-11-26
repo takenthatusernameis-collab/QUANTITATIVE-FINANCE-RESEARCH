@@ -82,6 +82,7 @@ class EpuBtcDownsideTests(unittest.TestCase):
         predictions = model.walk_forward(events)
         self.assertEqual(len(predictions), 2)
         self.assertEqual(predictions[0]["train_n"], 104)
+        self.assertEqual(predictions[0]["record_date"], predictions[0]["signal_date"])
 
     def test_decision_requires_both_periods_and_paired_interval(self):
         paired = {"ci_95_low_bp2": 0.01, "ci_95_high_bp2": 0.05}
@@ -100,7 +101,7 @@ class EpuBtcDownsideTests(unittest.TestCase):
                 "| EXISTING-ID | REJECTED | Preserve | Existing scope | Existing result | old.md |\n",
                 encoding="utf-8",
             )
-            prereg.write_text("# Preregistration\n\n- **Initial status:** PREREGISTERED\n", encoding="utf-8")
+            prereg.write_text("# Preregistration\n\n- **Status:** PREREGISTERED\n", encoding="utf-8")
             result = {
                 "status": "INCONCLUSIVE", "disposition": "INCONCLUSIVE — mixed evidence",
                 "completed_backtest": True, "data_scope": "synthetic scope",
@@ -114,7 +115,7 @@ class EpuBtcDownsideTests(unittest.TestCase):
             self.assertIn("| EXISTING-ID | REJECTED |", content)
             self.assertEqual(content.count(f"| {model.HYPOTHESIS_ID} |"), 1)
             prereg_text = prereg.read_text(encoding="utf-8")
-            self.assertIn("- **Initial status:** INCONCLUSIVE\n", prereg_text)
+            self.assertIn("- **Status:** INCONCLUSIVE\n", prereg_text)
             self.assertEqual(prereg_text.count("## Empirical disposition"), 1)
 
 
