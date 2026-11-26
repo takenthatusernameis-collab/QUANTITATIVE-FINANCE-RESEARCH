@@ -38,8 +38,8 @@ def build_cftc_url() -> str:
         "$select": ",".join(["report_date_as_yyyy_mm_dd", "market_and_exchange_names", "cftc_contract_market_code",
                              "open_interest_all", "noncomm_positions_long_all", "noncomm_positions_short_all"]),
         "$where": (f"cftc_contract_market_code='{CFTC_CODE}' "
-                   f"AND report_date_as_yyyy_mm_dd >= '{CFTC_START.isoformat()}T00:00:00.000' "
-                   f"AND report_date_as_yyyy_mm_dd <= '{CFTC_END.isoformat()}T00:00:00.000'"),
+                   f"AND report_date_as_yyyy_mm_dd >= '{CFTC_START.isoformat()}' "
+                   f"AND report_date_as_yyyy_mm_dd <= '{CFTC_END.isoformat()}'"),
         "$order": "report_date_as_yyyy_mm_dd ASC", "$limit": "50000",
     }
     return CFTC_API + "?" + urllib.parse.urlencode(params)
