@@ -112,7 +112,7 @@ class CftcBtcNoncommercialTests(unittest.TestCase):
 
     def test_coverage_fails_closed_on_irregular_or_stale_cftc_rows(self):
         today = dt.date(2026, 11, 26)
-        # The frozen sample spans 466 Tuesday reports from 2017-12-19 through 2026-11-17.
+        # The frozen sample spans 465 Tuesday reports from 2017-12-19 through 2026-11-10.
         start = dt.date(2017, 12, 19)
         cot = [{"report_date": start + dt.timedelta(days=7*i)} for i in range(465)]
         prices, day = {}, dt.date(2017, 8, 17)
