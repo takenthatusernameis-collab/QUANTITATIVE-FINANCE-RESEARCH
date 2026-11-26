@@ -15,7 +15,7 @@
 
 Does a strictly lagged CFTC Legacy Futures Only non-commercial net-long share of CME Bitcoin futures open interest add chronological out-of-sample information about next-five-session BTC downside semivariance beyond BTC's own recent downside semivariance and realized variance?
 
-The proposed mechanism is directional positioning/crowding: a large net-long position among CFTC-classified non-commercial traders may leave the market more exposed to long-side de-risking and liquidation cascades, increasing subsequent BTC downside risk. This is a predictive claim, not a causal claim. The predictor is signed: a higher net-long share is expected to be associated with higher subsequent downside semivariance.
+The proposed mechanism is position imbalance/crowding: a large one-sided net position may indicate concentrated directional exposure that is vulnerable to forced repositioning. Because the CFTC non-commercial category aggregates different business purposes and the crowded side can vary across regimes, the predictor remains signed but no coefficient sign is imposed ex ante; the regression estimates its mapping using training data only. This is a predictive claim, not a causal claim.
 
 The CFTC category must not be described as pure speculation, a direct measure of leverage, or a direct measure of liquidation risk. Trader classifications reflect predominant business purpose reported to the CFTC, and the Commission does not publish trader identities or individual position motives.
 
@@ -102,3 +102,8 @@ Official timing and backlog references:
 - **Status:** FEASIBILITY_CHECKED — preregistered; admitted real-data screen pending.
 - **Completed real-data backtest:** no.
 - No empirical result has been inspected. The first admitted workflow must run deterministic tests before source retrieval, apply every frozen acceptance gate and persist either a valid empirical result or an explicit INCONCLUSIVE/INFEASIBLE blocker.
+
+
+## Pre-admission clarification — 2026-11-26
+
+Before the first admitted real-data run and before any empirical result was inspected, the mechanism wording was clarified to match the frozen model: the signed non-commercial net-position share is tested for incremental predictive information without imposing a positive coefficient sign. The CFTC classification does not justify a universal long-side-only directional restriction. No data, feature, horizon, model, split, timebox or decision threshold changed.
