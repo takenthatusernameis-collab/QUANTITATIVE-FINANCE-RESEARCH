@@ -117,6 +117,13 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         readme = README.read_text(encoding="utf-8")
         self.assertIn("Shared admission-harness changes must not appear in unrelated research workflow path filters", readme)
 
+
+    def test_cftc_btc_workflow_persists_from_research_and_avoids_shared_harness_trigger(self):
+        workflow = (WORKFLOW_DIR / "cftc-btc-noncommercial-crowding.yml").read_text(encoding="utf-8")
+        self.assertIn("PYTHONPATH=research", workflow)
+        self.assertNotIn(".github/workflows/workflow-admission-tests.yml", workflow)
+        self.assertIn("research/PREREGISTERED-QFR-2026-11-26-CFTC-BTC-NONCOMM-CROWDING-DOWNSIDE-01.md", workflow)
+
     def test_fed_evidence_persistence_imports_module_from_research_directory(self):
         workflow = (WORKFLOW_DIR / "fed-balance-sheet-btc-downside-semivariance.yml").read_text(encoding="utf-8")
         self.assertIn('sys.path.insert(0,"research")', workflow)
