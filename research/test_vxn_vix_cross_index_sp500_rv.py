@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import datetime as dt
 import math
+import tempfile
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
 import vxn_vix_cross_index_sp500_rv as model
 
@@ -174,6 +177,34 @@ class VxnVixCrossIndexTests(unittest.TestCase):
     def test_walk_forward_excludes_target_ending_on_current_signal(self):
         events = self.make_events(model.MODEL_WINDOW + 1)
         self.assertEqual(model.walk_forward_predictions(events), [])
+
+    def test_preregistration_updater_is_idempotent_and_uses_relative_report_link(self):
+        with tempfile.TemporaryDirectory() as directory:
+            prereg_path = Path(directory) / "prereg.md"
+            prereg_path.write_text(
+                "# Preregistration\n\n- **Status:** PREREGISTERED — pending.\n",
+                encoding="utf-8",
+            )
+            result = {
+                "status": "REJECTED",
+                "disposition": "REJECTED — paired test evidence favours baseline.",
+                "completed_backtest": True,
+                "data_scope": "synthetic test scope",
+                "summary_metrics": {
+                    "validation_n": 80,
+                    "test_n": 200,
+                    "validation_improvement_pct": -1.2,
+                    "test_improvement_pct": -2.3,
+                },
+            }
+            with patch.object(model, "PREREG_PATH", prereg_path):
+                model.update_preregistration(result, "reports/sessions/2026-11-26/report.md")
+                model.update_preregistration(result, "reports/sessions/2026-11-26/report.md")
+            content = prereg_path.read_text(encoding="utf-8")
+            self.assertEqual(content.count("## Empirical disposition"), 1)
+            self.assertIn("- **Status:** REJECTED", content)
+            self.assertIn("../reports/sessions/2026-11-26/report.md", content)
+            self.assertIn("validation/test n=80/200", content)
 
     def test_decision_does_not_promote_without_minimum_sample(self):
         validation = {
