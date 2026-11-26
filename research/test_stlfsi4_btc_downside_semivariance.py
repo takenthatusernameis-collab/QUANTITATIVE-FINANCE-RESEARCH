@@ -21,8 +21,6 @@ class STLFSI4BitcoinTests(unittest.TestCase):
     def kline(self, day, close, complete=True):
         open_ms = int(dt.datetime.combine(day, dt.time(), dt.timezone.utc).timestamp() * 1000)
         close_ms = open_ms + model.MS_PER_DAY - 1
-        if not complete:
-            close_ms += model.MS_PER_DAY
         return [open_ms, str(close), str(close), str(close), str(close), "1", close_ms, "1", 1, "1", "1", "0"]
 
     def test_binance_parser_excludes_incomplete_current_candle(self):
@@ -102,7 +100,7 @@ class STLFSI4BitcoinTests(unittest.TestCase):
         self.assertEqual(model.decide({"n": 50, "rmse_improvement_pct": -2.0}, {"n": 100, "rmse_improvement_pct": -1.0}, {"ci_95_low_bp2": -0.2, "ci_95_high_bp2": -0.01})[0], "REJECTED")
 
     def test_coverage_rejects_daily_price_gap(self):
-        stress, prices = self.make_market(days=3388, weeks=480)
+        stress, prices = self.make_market(days=3388, weeks=484)
         del prices[sorted(prices)[100]]
         with self.assertRaisesRegex(ValueError, "missing UTC day"):
             model.validate_coverage(stress, prices, dt.date(2026, 11, 25))
