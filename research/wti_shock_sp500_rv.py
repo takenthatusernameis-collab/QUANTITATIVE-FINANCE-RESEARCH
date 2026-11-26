@@ -155,7 +155,7 @@ def update_handoff(result,report_relative):
     old=next((x for x in pre.splitlines() if x.startswith('- **Status:**')),None)
     if old: pre=pre.replace(old,status,1)
     if '## Empirical disposition' in pre: pre=pre.split('## Empirical disposition',1)[0].rstrip()
-    pre+='\n\n## Empirical disposition\n\n'+f"- **Status:** {result['status']} — {result['disposition']}\n- **Completed real-data backtest:** {'yes' if result.get('completed_backtest') else 'no'}\n- **Validation/test forecasts:** {result.get('validation',{}).get('n')} / {result.get('test',{}).get('n')}\n- **RMSE improvement:** {result.get('validation_improvement_pct')}% / {result.get('test_improvement_pct')}%\n- **Paired test-loss 95% CI:** {json.dumps(result.get('paired_test_loss'),sort_keys=True)}\n- **Report:** [session report]({link})\n- Forecast screen only; no trading or deployment claim.\n"
+    pre+='\n\n## Empirical disposition\n\n'+f"- **Status:** {result['status']}\n- **Disposition:** {result['disposition']}\n- **Completed real-data backtest:** {'yes' if result.get('completed_backtest') else 'no'}\n- **Validation/test forecasts:** {result.get('validation',{}).get('n')} / {result.get('test',{}).get('n')}\n- **RMSE improvement:** {result.get('validation_improvement_pct')}% / {result.get('test_improvement_pct')}%\n- **Paired test-loss 95% CI:** {json.dumps(result.get('paired_test_loss'),sort_keys=True)}\n- **Report:** [session report]({link})\n- Forecast screen only; no trading or deployment claim.\n"
     PREREG.write_text(pre,encoding='utf-8')
 
 def persist(result,error=None):

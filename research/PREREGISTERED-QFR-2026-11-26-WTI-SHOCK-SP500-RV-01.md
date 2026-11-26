@@ -65,7 +65,8 @@ No result-dependent retuning, alternate horizon, feature expansion, threshold se
 
 ## Empirical disposition
 
-- **Status:** INCONCLUSIVE — INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen rule
+- **Status:** INCONCLUSIVE
+- **Disposition:** INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen rule
 - **Completed real-data backtest:** yes; GitHub Actions run 45758609390
 - **Accepted events:** 415; no event windows were skipped
 - **Validation/test forecasts:** 107 / 204

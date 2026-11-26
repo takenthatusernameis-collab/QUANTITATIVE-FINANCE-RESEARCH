@@ -96,7 +96,11 @@ class WtiShockTests(unittest.TestCase):
             result={'status':'INCONCLUSIVE','disposition':'INCONCLUSIVE — concurrent test','completed_backtest':True,'coverage':{},'validation':{'n':107},'test':{'n':204},'validation_improvement_pct':1.6,'test_improvement_pct':-1.1,'paired_test_loss':{'ci95_low':-.003,'ci95_high':-.0001}}
             with patch.object(m,'REG',reg),patch.object(m,'PREREG',pre): m.update_handoff(result,'reports/test.md')
             content=reg.read_text(); self.assertIn('| OTHER | BACKTESTED |',content); self.assertIn(m.HYPOTHESIS_ID,content)
-            self.assertIn('- **Status:** INCONCLUSIVE',pre.read_text()); self.assertNotIn('- **Status:** INCONCLUSIVE — INCONCLUSIVE',pre.read_text()); self.assertIn('ci95_low',pre.read_text())
+            prereg=pre.read_text()
+            self.assertIn('- **Status:** INCONCLUSIVE',prereg)
+            self.assertIn('- **Disposition:** INCONCLUSIVE — concurrent test',prereg)
+            self.assertNotIn('- **Status:** INCONCLUSIVE — INCONCLUSIVE',prereg)
+            self.assertIn('ci95_low',prereg)
 
     def test_persistence_is_idempotent_and_updates_handoff(self):
         with tempfile.TemporaryDirectory() as tmp:
