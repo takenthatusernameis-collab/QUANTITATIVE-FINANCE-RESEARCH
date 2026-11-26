@@ -332,6 +332,7 @@ def decide(validation: dict, test: dict, paired: dict | None) -> tuple[str, str]
 def upsert_registry(status: str, disposition: str, scope: str, report_relative: str) -> None:
     content = REGISTRY_PATH.read_text(encoding="utf-8")
     report_link = "../" + report_relative
+    status_label = format_status_label(result)
     row = (
         f"| {HYPOTHESIS_ID} | {status} | A strictly lagged five-observation increase in the Nasdaq-100 versus S&P 500 implied-volatility ratio adds information about next-five-session S&P 500 realized volatility beyond recent realized volatility and VIX. | {scope} | {disposition} | [session report]({report_link}) |"
     )
@@ -426,6 +427,14 @@ def render_report(result: dict, error: str | None = None) -> str:
     return "\n".join(lines) + "\n"
 
 
+def format_status_label(result: dict) -> str:
+    status = str(result.get("status") or "INCONCLUSIVE").strip()
+    disposition = str(result.get("disposition") or "INCONCLUSIVE").strip()
+    if disposition == status or disposition.startswith(status + " —"):
+        return disposition
+    return f"{status} — {disposition}"
+
+
 def update_preregistration(result: dict, report_relative: str) -> None:
     content = PREREG_PATH.read_text(encoding="utf-8")
     report_link = "../" + report_relative
@@ -433,7 +442,7 @@ def update_preregistration(result: dict, report_relative: str) -> None:
     if status_line is not None:
         content = content.replace(
             status_line,
-            f"- **Status:** {result.get('status', 'INCONCLUSIVE')} — {result.get('disposition', 'INCONCLUSIVE')}",
+            f"- **Status:** {status_label}",
             1,
         )
     if "## Empirical disposition" in content:
@@ -442,7 +451,7 @@ def update_preregistration(result: dict, report_relative: str) -> None:
     disposition = [
         "## Empirical disposition",
         "",
-        f"- **Final status:** {result.get('status', 'INCONCLUSIVE')} — {result.get('disposition', 'INCONCLUSIVE')}.",
+        f"- **Final status:** {status_label.rstrip().rstrip(".")}.",
         f"- **Completed real-data backtest:** {'yes' if result.get('completed_backtest') else 'no'}.",
         f"- **Data scope:** {result.get('data_scope', 'source acceptance incomplete')}.",
     ]

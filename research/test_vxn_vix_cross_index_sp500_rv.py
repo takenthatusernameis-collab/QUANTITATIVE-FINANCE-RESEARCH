@@ -202,7 +202,16 @@ class VxnVixCrossIndexTests(unittest.TestCase):
                 model.update_preregistration(result, "reports/sessions/2026-11-26/report.md")
             content = prereg_path.read_text(encoding="utf-8")
             self.assertEqual(content.count("## Empirical disposition"), 1)
-            self.assertIn("- **Status:** REJECTED", content)
+            self.assertIn(
+                "- **Status:** REJECTED — paired test evidence favours baseline.",
+                content,
+            )
+            self.assertIn(
+                "- **Final status:** REJECTED — paired test evidence favours baseline.",
+                content,
+            )
+            self.assertNotIn("REJECTED — REJECTED", content)
+            self.assertNotIn("baseline..", content)
             self.assertIn("../reports/sessions/2026-11-26/report.md", content)
             self.assertIn("validation/test n=80/200", content)
 

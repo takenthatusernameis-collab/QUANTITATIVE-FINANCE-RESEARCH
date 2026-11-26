@@ -2,7 +2,7 @@
 
 - **Hypothesis ID:** QFR-2026-11-26-VXN-VIX-CROSS-INDEX-SP500-RV-01
 - **Registered:** 2026-11-26T02:03:29Z, before this hypothesis's empirical result inspection.
-- **Status:** INCONCLUSIVE — INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen decision rule
+- **Status:** INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen decision rule
 - **Difficulty:** MEDIUM.
 - **Difficulty rationale:** three public FRED daily series, one common-date log-ratio feature, and the repository's existing rolling OLS/paired-bootstrap harness.
 - **Implementation timebox:** 2026-11-26T02:03:29Z through 2026-11-29T02:03:29Z.
@@ -100,7 +100,7 @@ Even a promising forecast is not independent validation, a causal finding, an ex
 
 ## Empirical disposition
 
-- **Final status:** INCONCLUSIVE — INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen decision rule.
+- **Final status:** INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen decision rule.
 - **Completed real-data backtest:** yes.
 - **Data scope:** FRED VXNCLS/VIXCLS daily from 2016-11-25 to 2026-11-24 (common end 2026-11-24); SP500 2016-11-28 to 2026-11-24; 415 accepted non-overlapping six-session-spaced events; validation 2019-2021; test 2022 onward.
 - **Summary:** validation/test n=107/204; RMSE improvement=-1.0496%/-1.0025%.

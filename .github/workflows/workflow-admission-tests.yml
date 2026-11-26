@@ -30,3 +30,6 @@ jobs:
 
       - name: Verify every research workflow has the atomic admission gate
         run: python -m unittest discover -s research -p "test_workflow_admission.py" -v
+
+      - name: Run VXN/VIX handoff regression tests
+        run: python -m unittest discover -s research -p "test_vxn_vix_cross_index_sp500_rv.py" -v
