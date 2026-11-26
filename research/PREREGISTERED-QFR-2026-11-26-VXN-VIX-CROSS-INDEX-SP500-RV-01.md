@@ -10,6 +10,10 @@
 - **Maximum substantive cycles:** one preregistered screen. Any alternate spread, lookback, model family, target or robustness study requires a new hypothesis ID and preregistration.
 - **Expiry:** if accepted source freshness, deterministic tests or the frozen screen is incomplete by the conclusion deadline, close INCONCLUSIVE/INFEASIBLE. Do not retune, extend or relax gates under this ID.
 
+## Implementation validation note — 2026-11-26
+
+The first hosted attempt, run 45740292998, passed the 13 deterministic hypothesis tests and the three repository admission tests, then failed during evidence persistence because the result-to-preregistration updater was missing from the admitted script. The source retrieval and forecast function had returned to the output-writing stage, but the report/manifest were not committed. The missing updater was implemented in the same session and a regression test now checks idempotent status/report-link updates. No empirical disposition is accepted from that unpersisted attempt; rerun the frozen specification after this repair. This implementation-only correction does not change the feature, data, timing, target, model, splits, bootstrap or decision rule.
+
 ## Distinct mechanism and falsifiable claim
 
 **Mechanism:** VXN is the CBOE implied-volatility index on Nasdaq-100 options, while VIX is the corresponding index on S&P 500 options. A rise in VXN relative to VIX can reveal a repricing of technology/growth-heavy equity risk that is not fully captured by the broad-market VIX level. If that relative risk repricing is a leading signal of broader equity-market transmission, it may add information about subsequent S&P 500 realized volatility.
