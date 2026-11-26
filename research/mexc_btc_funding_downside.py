@@ -515,6 +515,9 @@ def run_research() -> dict:
 
 
 def render_report(result: dict, report_path: str, manifest_path: str) -> str:
+    def fmt_metric(value):
+        return f"{value:.8f}" if isinstance(value, (int, float)) and math.isfinite(value) else "N/A"
+
     lines = [
         "# Research session — MEXC BTC perpetual funding and next-session Spot downside risk",
         "",
@@ -553,9 +556,9 @@ def render_report(result: dict, report_path: str, manifest_path: str) -> str:
             "| Metric | Validation | Test |",
             "|---|---:|---:|",
             f"| Forecasts | {result['validation_metrics']['n']} | {result['test_metrics']['n']} |",
-            f"| Baseline RMSE | {result['validation_metrics']['baseline']['rmse_bp']:.8f} | {result['test_metrics']['baseline']['rmse_bp']:.8f} |",
-            f"| Augmented RMSE | {result['validation_metrics']['augmented']['rmse_bp']:.8f} | {result['test_metrics']['augmented']['rmse_bp']:.8f} |",
-            f"| RMSE improvement | {result['validation_metrics']['rmse_improvement_pct']:.6f}% | {result['test_metrics']['rmse_improvement_pct']:.6f}% |",
+            f"| Baseline RMSE | {fmt_metric((result['validation_metrics']['baseline'] or {}).get('rmse_bp'))} | {fmt_metric((result['test_metrics']['baseline'] or {}).get('rmse_bp'))} |",
+            f"| Augmented RMSE | {fmt_metric((result['validation_metrics']['augmented'] or {}).get('rmse_bp'))} | {fmt_metric((result['test_metrics']['augmented'] or {}).get('rmse_bp'))} |",
+            f"| RMSE improvement | {fmt_metric(result['validation_metrics']['rmse_improvement_pct'])}% | {fmt_metric(result['test_metrics']['rmse_improvement_pct'])}% |"
             "",
             "## Paired test-loss uncertainty",
             "",
