@@ -42,7 +42,7 @@ Novelty was deliberately scoped. Lee and Ryu (2026), *State-Dependent Relationsh
 
 ## Empirical result
 
-<badge color="warning">INCONCLUSIVE — no promotion</badge>
+**Disposition: INCONCLUSIVE — no promotion.**
 
 | Metric | Validation 2019–2021 | Test 2022 onward |
 |---|---:|---:|
@@ -67,10 +67,10 @@ Novelty was deliberately scoped. Lee and Ryu (2026), *State-Dependent Relationsh
 
 ## Durable artifacts and commits
 
-- Preregistration: [research/PREREGISTERED-QFR-2026-11-26-BAA10Y-BTC-DOWNSIDE-01.md](../../research/PREREGISTERED-QFR-2026-11-26-BAA10Y-BTC-DOWNSIDE-01.md)
-- Implementation: [research/baa10y_btc_downside_semivariance.py](../../research/baa10y_btc_downside_semivariance.py)
-- Tests: [research/test_baa10y_btc_downside_semivariance.py](../../research/test_baa10y_btc_downside_semivariance.py)
-- Workflow: [.github/workflows/baa10y-btc-downside-semivariance.yml](../../.github/workflows/baa10y-btc-downside-semivariance.yml)
+- Preregistration: [research/PREREGISTERED-QFR-2026-11-26-BAA10Y-BTC-DOWNSIDE-01.md](../../../research/PREREGISTERED-QFR-2026-11-26-BAA10Y-BTC-DOWNSIDE-01.md)
+- Implementation: [research/baa10y_btc_downside_semivariance.py](../../../research/baa10y_btc_downside_semivariance.py)
+- Tests: [research/test_baa10y_btc_downside_semivariance.py](../../../research/test_baa10y_btc_downside_semivariance.py)
+- Workflow: [.github/workflows/baa10y-btc-downside-semivariance.yml](../../../.github/workflows/baa10y-btc-downside-semivariance.yml)
 - Experiment report: [2026-11-26T101330Z_session-baa10y-btc-downside-45799291521.md](2026-11-26T101330Z_session-baa10y-btc-downside-45799291521.md)
 - Manifest: [reports/generated/baa10y-btc-downside-semivariance/45799291521-attempt-1/manifest.json](../../generated/baa10y-btc-downside-semivariance/45799291521-attempt-1/manifest.json)
 - Registry and preregistration now record the terminal INCONCLUSIVE disposition.
