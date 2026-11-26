@@ -13,6 +13,7 @@ import random
 import statistics
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -140,26 +141,18 @@ def parse_dvol_page(body: bytes, currency: str, start_ms: int, end_ms: int) -> t
 
 
 def fetch_dvol_page(currency: str, start_ms: int, end_ms: int, page_number: int) -> bytes:
-    payload = {
-        "jsonrpc": "2.0",
-        "id": page_number,
-        "method": "public/get_volatility_index_data",
-        "params": {
-            "currency": currency,
-            "start_timestamp": start_ms,
-            "end_timestamp": end_ms,
-            "resolution": "1D",
-        },
-    }
+    query = urllib.parse.urlencode({
+        "currency": currency,
+        "start_timestamp": start_ms,
+        "end_timestamp": end_ms,
+        "resolution": "1D",
+    })
     request = urllib.request.Request(
-        DERIBIT_URL,
-        data=json.dumps(payload).encode("utf-8"),
+        f"{DERIBIT_URL}?{query}",
         headers={
-            "User-Agent": "QFR-Research/1.0 (public academic research; github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH)",
-            "Content-Type": "application/json",
+            "User-Agent": f"QFR-Research/1.0 (public academic research; page {page_number}; github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH)",
             "Accept": "application/json",
         },
-        method="POST",
     )
     last_error = None
     for attempt in range(3):
@@ -178,7 +171,6 @@ def fetch_dvol_page(currency: str, start_ms: int, end_ms: int, page_number: int)
         if attempt < 2:
             time.sleep(2 ** attempt)
     raise RuntimeError(f"Deribit {currency} request failed after three bounded attempts: {last_error}")
-
 
 def fetch_dvol_history(currency: str, start_date: dt.date, end_date: dt.date) -> tuple[dict[dt.date, float], dict]:
     start_ms = utc_midnight_ms(start_date)
