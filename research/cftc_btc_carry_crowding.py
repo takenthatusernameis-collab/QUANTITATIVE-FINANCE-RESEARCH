@@ -11,6 +11,7 @@ import stlfsi4_btc_downside_semivariance as btc
 HYPOTHESIS_ID = "QFR-2026-11-26-CFTC-BTC-CARRY-CROWDING-DOWNSIDE-01"
 CFTC_CODE, CFTC_DATASET = "133741", "gpe5-46if"
 CFTC_START, PRICE_START = dt.date(2018, 4, 10), dt.date(2016, 11, 25)
+ASOF_DATE, CFTC_END = dt.date(2026, 11, 26), dt.date(2026, 11, 17)
 PUBLICATION_LAG_DAYS = 14
 BACKLOG_START, BACKLOG_END = dt.date(2025, 9, 30), dt.date(2026, 1, 20)
 CROWDING_LOOKBACK = MODEL_WINDOW = 52
@@ -78,8 +79,6 @@ def parse_cftc(body: bytes) -> list[dict]:
         market = str(raw.get("contract_market_name") or "").strip()
         if report_date is None:
             raise ValueError("CFTC Bitcoin row has an invalid report date")
-        if report_date.weekday() != 1 and not is_backlog_report(report_date):
-            raise ValueError(f"Unexpected non-Tuesday TFF report date outside the documented shutdown catch-up window: {report_date}")
         if "BITCOIN" not in market.upper():
             raise ValueError(f"Unexpected market name for Bitcoin contract code {CFTC_CODE}: {market!r}")
         if oi is None or oi <= 0:
@@ -94,8 +93,9 @@ def parse_cftc(body: bytes) -> list[dict]:
     dates = [row["report_date"] for row in rows]
     if len(dates) != len(set(dates)):
         raise ValueError("Duplicate CFTC Bitcoin report dates")
-    if any((b - a).days > 21 for a, b in zip(dates, dates[1:])):
-        raise ValueError("Unexpected CFTC report-date gap greater than 21 days")
+    report_gaps = [(b - a).days for a, b in zip(dates, dates[1:])]
+    if report_gaps and min(report_gaps) < 6:
+        raise ValueError("CFTC report-date interval below six days indicates a changed semiweekly cadence or duplicate weekly snapshots")
     return rows
 
 
@@ -376,8 +376,8 @@ def render_report(result: dict, error: str | None = None) -> str:
         f"- GitHub run: {RUN_ID}, attempt {RUN_ATTEMPT}", f"- Triggering commit: {SOURCE_SHA}",
         f"- Data scope: {result.get('data_scope', 'not established')}", "",
         "## Preregistered method", "",
-        f"- CFTC market: Bitcoin, CME, contract code {CFTC_CODE}, TFF futures-only dataset {CFTC_DATASET}.",
-        f"- Availability: first Coinbase BTCUSD close on or after the CFTC report date plus {PUBLICATION_LAG_DAYS} calendar days.",
+        f"- CFTC market: Bitcoin, CME, contract code {CFTC_CODE}, TFF futures-only dataset {CFTC_DATASET}; report-date cutoff {CFTC_END}.",
+        f"- Availability: first Coinbase BTCUSD close on or after the CFTC report date plus {PUBLICATION_LAG_DAYS} calendar days; sample as-of date {ASOF_DATE}.",
         f"- Feature: gross leveraged-fund short positions / total open interest, ranked against the prior {CROWDING_LOOKBACK} non-backlog reports only; high crowding is a prior-only percentile at or above {HIGH_CROWDING_THRESHOLD:.0%}.",
         "- Baseline: prior-five and prior-twenty-session BTC downside semivariance plus prior-twenty-session total realized variance.",
         "- Target: log1p of next-five-observation BTC downside semivariance.",
@@ -430,17 +430,17 @@ def write_outputs(result: dict, report: str) -> tuple[str, str]:
 
 
 def run_research() -> dict:
-    today = dt.datetime.now(dt.timezone.utc).date()
+    today = ASOF_DATE
     params = {
         "$select": ",".join(["report_date_as_yyyy_mm_dd", "contract_market_name", "cftc_contract_market_code",
                              "open_interest_all", "lev_money_positions_short"]),
         "$where": (f"cftc_contract_market_code='{CFTC_CODE}' "
                    f"AND report_date_as_yyyy_mm_dd >= '{CFTC_START.isoformat()}' "
-                   f"AND report_date_as_yyyy_mm_dd <= '{today.isoformat()}'"),
+                   f"AND report_date_as_yyyy_mm_dd <= '{CFTC_END.isoformat()}'"),
         "$order": "report_date_as_yyyy_mm_dd ASC", "$limit": "50000",
     }
     cftc_url = CFTC_BASE_URL + "?" + urllib.parse.urlencode(params)
-    price_url = FRED_URL + "?" + urllib.parse.urlencode({"id": SERIES, "cosd": PRICE_START.isoformat(), "coed": today.isoformat()})
+    price_url = FRED_URL + "?" + urllib.parse.urlencode({"id": SERIES, "cosd": PRICE_START.isoformat(), "coed": ASOF_DATE.isoformat()})
     cftc_body, price_body = fetch_bytes(cftc_url), fetch_bytes(price_url)
     cot_rows = parse_cftc(cftc_body)
     prices = price_model.parse_fred_series(price_body, SERIES)
@@ -485,7 +485,8 @@ def run_research() -> dict:
                         "target_sessions": TARGET_SESSIONS, "baseline_features": BASE_FEATURES, "augmented_features": AUG_FEATURES,
                         "target": "log1p(next-five-observation BTC downside semivariance in percentage-points squared)",
                         "validation": f"{VALIDATION_START} through {TEST_START - dt.timedelta(days=1)}",
-                        "test": f"{TEST_START} onward",
+                        "test": f"{TEST_START} through {ASOF_DATE}",
+                        "data_asof_date": ASOF_DATE.isoformat(), "cftc_report_end_date": CFTC_END.isoformat(),
                         "training_rule": "training signal_date and target_end_date must both be strictly earlier than current signal_date",
                         "overlap_rule": "no overlapping five-observation target windows",
                         "bootstrap_reps": BOOTSTRAP_REPS, "bootstrap_block_events": BOOTSTRAP_BLOCK, "bootstrap_seed": RNG_SEED},
@@ -495,7 +496,7 @@ def run_research() -> dict:
         "limitations": [
             "CFTC leveraged-fund classifications do not reveal the intent of individual positions; gross shorts may include cash-and-carry basis trades, directional positions and other strategies.",
             "CFTC code 133741 represents CME Bitcoin futures only, not offshore perpetual swaps or the global derivatives market.",
-            "A fixed 14-day lag is conservative for the historical weekly Tuesday/Friday schedule; known 2025 shutdown catch-up reports are excluded. A twice-weekly schedule change requires a new timing specification.",
+            "A fixed 14-day lag is conservative for the historical weekly schedule; known 2025 shutdown catch-up reports are excluded. Holiday-shifted report dates are retained, but any interval below six days fails closed as a cadence change. The sample is frozen at the 2026-11-26 as-of date.",
             "Current CFTC history may reflect revised positions and trader classifications; exact historical release timestamps are unavailable for the full history.",
             "Coinbase CBBTCUSD is a single-venue daily 5 p.m. Pacific price series; raw observations are not committed or redistributed.",
             "Current FRED vintage is used; historical ALFRED point-in-time vintages are not reconstructed.",

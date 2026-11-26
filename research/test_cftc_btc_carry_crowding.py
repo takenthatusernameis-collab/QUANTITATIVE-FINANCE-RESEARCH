@@ -19,9 +19,14 @@ class CftcBitcoinCarryCrowdingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Duplicate"):
             model.parse_cftc(json.dumps([row, row]).encode())
 
-    def test_parser_rejects_non_tuesday(self):
-        with self.assertRaisesRegex(ValueError, "non-Tuesday"):
-            model.parse_cftc(json.dumps([self._row(day=dt.date(2020, 1, 8))]).encode())
+    def test_parser_accepts_holiday_shifted_report_date(self):
+        rows = model.parse_cftc(json.dumps([self._row(day=dt.date(2018, 12, 24))]).encode())
+        self.assertEqual(rows[0]["report_date"], dt.date(2018, 12, 24))
+
+    def test_parser_rejects_subweekly_report_cadence(self):
+        rows = [self._row(day=dt.date(2026, 11, 16)), self._row(day=dt.date(2026, 11, 18))]
+        with self.assertRaisesRegex(ValueError, "below six days"):
+            model.parse_cftc(json.dumps(rows).encode())
 
     def test_parser_allows_documented_non_tuesday_shutdown_catch_up_report(self):
         rows = model.parse_cftc(json.dumps([self._row(day=dt.date(2025, 11, 10))]).encode())

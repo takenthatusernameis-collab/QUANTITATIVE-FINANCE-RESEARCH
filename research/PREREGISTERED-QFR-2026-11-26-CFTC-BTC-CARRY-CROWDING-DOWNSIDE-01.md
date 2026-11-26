@@ -36,8 +36,8 @@ No first-in-literature claim is made.
 - Contract market code: 133741, BITCOIN - CHICAGO MERCANTILE EXCHANGE.
 - Required fields: report_date_as_yyyy_mm_dd, contract_market_name, cftc_contract_market_code, open_interest_all, lev_money_positions_short.
 - Source API: https://publicreporting.cftc.gov/resource/gpe5-46if.json.
-- The report-date history for this contract begins around 2018-04-10. Require at least 350 exact-code rows and first report no later than 90 days after 2018-04-10; otherwise fail closed.
-- Require Tuesday report dates outside the documented shutdown catch-up window; allow non-Tuesday dates only inside the excluded 2025-09-30 to 2026-01-20 window. The API contract label must contain BITCOIN; exact code 133741 identifies the CME contract. Require unique dates, positive open interest, nonnegative gross short positions not exceeding total open interest, no future dates and a latest report date no more than 21 calendar days stale.
+- The report-date history for this contract begins around 2018-04-10. Require at least 350 exact-code rows and first report no later than 90 days after 2018-04-10; otherwise fail closed. Freeze the CFTC report-date sample at 2026-11-17 and the Coinbase price sample at 2026-11-26.
+- Allow holiday-shifted report dates, but require no adjacent report-date interval below six days; this accepts documented holiday timing while failing closed if the CFTC switches to a twice-weekly cadence. The API contract label must contain BITCOIN; exact code 133741 identifies the CME contract. Require unique dates, positive open interest, nonnegative gross short positions not exceeding total open interest, no future dates and a latest report date no more than 21 calendar days stale.
 - Retrieve only the exact contract code and selected fields. Persist the response SHA-256, URL, row count and date coverage; do not commit raw CFTC position observations.
 
 ### Publication timing and shutdown catch-up
@@ -45,7 +45,7 @@ No first-in-literature claim is made.
 - CFTC reports are generally based on positions as of Tuesday and published Friday at 3:30 p.m. Eastern: https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm and https://www.cftc.gov/MarketReports/CommitmentsofTraders/ReleaseSchedule/index.htm.
 - Signal date: the first Coinbase BTCUSD daily close on or after report date + 14 calendar days. This fixed lag is deliberately conservative for the historical weekly Tuesday/Friday schedule; the signal is not placed on the report date.
 - Exclude report dates 2025-09-30 through 2026-01-20 inclusive from both feature history and events. The CFTC documented a federal-appropriations lapse, delayed releases and a chronological catch-up schedule for this period: https://www.cftc.gov/PressRoom/PressReleases/9138-25 and https://www.cftc.gov/PressRoom/PressReleases/9147-25.
-- The CFTC announced a plan to move to twice-weekly publication by the end of 2026: https://www.cftc.gov/PressRoom/PressReleases/9316-26. This frozen experiment remains a historical Tuesday-report study. A changed report cadence must fail closed under the Tuesday validation and requires a new timing specification; do not silently adapt this hypothesis.
+- The CFTC announced a plan to move to twice-weekly publication by the end of 2026: https://www.cftc.gov/PressRoom/PressReleases/9316-26. This experiment freezes the data at the latest weekly report available on registration. Holiday-shifted report dates are allowed, but a report-date interval below six days fails closed and requires a new timing specification; do not silently adapt this hypothesis.
 
 ### Coinbase BTCUSD spot reference
 
@@ -91,6 +91,11 @@ No first-in-literature claim is made.
 - CBBTCUSD is one venue's daily reference price, not a consolidated executable price or a futures P&L series.
 - No causal inference, transaction-cost model, trading profitability, live orders, capital deployment or strategy promotion is authorized.
 - Do not assign CAGR, Sharpe, Sortino, Calmar or drawdown to this forecast-only result.
+
+## Implementation history
+
+- Run 45821339118: deterministic tests passed, but the CFTC API returned the canonical contract_market_name label BITCOIN; the initial parser incorrectly required the exchange name in that field. The parser was corrected to validate the exact contract code plus the BITCOIN label.
+- Run 45821494731: deterministic tests passed, but a historical holiday-shifted report date (2018-12-24) invalidated the overly strict Tuesday-only check. The frozen design now allows holiday-shifted dates, rejects report intervals shorter than six days, and freezes the source sample at the registration cutoff. No hypothesis feature, target, lag, model or decision threshold was changed.
 
 ## Empirical disposition
 
