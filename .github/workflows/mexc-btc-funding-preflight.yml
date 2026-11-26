@@ -45,3 +45,8 @@ jobs:
 
       - name: Run repository workflow-admission regression suite
         run: python -m unittest discover -s research -p "test_workflow_admission.py" -v
+
+      - name: Verify live MEXC and Binance source coverage without model fitting
+        env:
+          QFR_SOURCE_PREFLIGHT: "1"
+        run: python research/mexc_btc_funding_downside.py
