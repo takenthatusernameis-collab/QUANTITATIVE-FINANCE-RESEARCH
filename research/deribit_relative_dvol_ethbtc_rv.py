@@ -247,10 +247,10 @@ def normalize_dvol_scale(values: dict[dt.date, float]) -> tuple[dict[dt.date, fl
     median = statistics.median(values.values())
     if 0.01 <= median <= 2.5:
         scale, factor = "decimal_fraction", 100.0
-    elif 2.5 < median <= 250.0:
+    elif 10.0 <= median <= 250.0:
         scale, factor = "percentage_points", 1.0
     else:
-        raise ValueError(f"Unrecognized Deribit DVOL numeric scale: median={median}")
+        raise ValueError(f"Ambiguous or unrecognized Deribit DVOL numeric scale: median={median}")
     normalized = {day: value * factor for day, value in values.items()}
     if any(not 1.0 <= value <= 250.0 for value in normalized.values()):
         raise ValueError("Normalized Deribit DVOL contains an implausible value outside 1-250 volatility points")
