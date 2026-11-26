@@ -93,4 +93,14 @@ No first-in-literature claim is made.
 
 ## Empirical disposition
 
-Pending the admitted real-data run. No empirical result is claimed in this initial preregistration.
+- **Status:** INCONCLUSIVE
+- **Disposition:** INCONCLUSIVE — the frozen chronological and paired-loss criteria do not establish incremental predictive value or decisive inferiority
+- **Completed real-data backtest:** True
+- **Run:** 45834522305, attempt 1; source commit 363211845204dd130b5402b9d3aea794c0a0387d
+- **Data coverage:** {"BTC_DVOL": {"first_date": "2023-03-26", "last_date": "2026-11-25", "maximum_calendar_gap_days": 1, "rows": 1341}, "CBBTCUSD": {"first_date": "2023-03-26", "last_date": "2026-11-25", "maximum_calendar_gap_days": 1, "rows": 1341}, "CBETHUSD": {"first_date": "2023-03-26", "last_date": "2026-11-25", "maximum_calendar_gap_days": 1, "rows": 1341}, "COMMON": {"dvol_first_date": "2023-03-26", "dvol_last_date": "2026-11-25", "dvol_rows": 1341, "price_first_date": "2023-03-26", "price_last_date": "2026-11-25", "price_rows": 1341}, "ETH_DVOL": {"first_date": "2023-03-26", "last_date": "2026-11-25", "maximum_calendar_gap_days": 1, "rows": 1341}}
+- **Validation metrics:** {"augmented": {"mae_log_relative_rv": 0.26755141126745774, "n": 36, "oos_r2_vs_period_mean": -0.1816164755603884, "rmse_log_relative_rv": 0.32422469981225305}, "baseline": {"mae_log_relative_rv": 0.26504821445118926, "n": 36, "oos_r2_vs_period_mean": -0.20262302381766295, "rmse_log_relative_rv": 0.32709400538028977}, "n": 36}
+- **Test metrics:** {"augmented": {"mae_log_relative_rv": 0.28227674311208756, "n": 98, "oos_r2_vs_period_mean": -0.2264157190791778, "rmse_log_relative_rv": 0.34670051596092216}, "baseline": {"mae_log_relative_rv": 0.27899681333710113, "n": 98, "oos_r2_vs_period_mean": -0.19178056324770876, "rmse_log_relative_rv": 0.3417698776633235}, "n": 98}
+- **RMSE improvement:** validation=0.8772112973152084; test=-1.4426778425616
+- **Paired test-loss bootstrap:** {"block_size_events": 4, "bootstrap_fraction_positive": 0.25, "ci95_high": 0.005559075506429804, "ci95_low": -0.013994571829600524, "mean_baseline_minus_augmented_squared_loss": -0.00339459848956659, "observations": 98, "reps": 2000}
+- **Report:** [reports/sessions/2026-11-26/2026-11-26T135953Z_session-deribit-relative-dvol-ethbtc-rv-45834522305.md](../reports/sessions/2026-11-26/2026-11-26T135953Z_session-deribit-relative-dvol-ethbtc-rv-45834522305.md)
+- **Manifest:** [reports/generated/deribit-relative-dvol-ethbtc-rv/45834522305-attempt-1/manifest.json](../reports/generated/deribit-relative-dvol-ethbtc-rv/45834522305-attempt-1/manifest.json)
