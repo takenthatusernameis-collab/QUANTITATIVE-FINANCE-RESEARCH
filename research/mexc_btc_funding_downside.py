@@ -90,6 +90,8 @@ def parse_funding_page(body: bytes, expected_page: int) -> tuple[dict, list[dict
         rate = base.parse_float(row.get("fundingRate"))
         if cycle != 8 or rate is None or settle_ms <= 0:
             raise ValueError(f"MEXC page {expected_page} row {index} violates the frozen 8-hour funding schema")
+        if settle_ms < 1_500_000_000_000:
+            raise ValueError(f"MEXC settleTime is not a Unix-millisecond timestamp: {settle_ms}")
         stamp = dt.datetime.fromtimestamp(settle_ms / 1000.0, dt.timezone.utc)
         if stamp.minute or stamp.second or stamp.microsecond or stamp.hour not in (0, 8, 16):
             raise ValueError(f"MEXC settlement is not aligned to 00:00/08:00/16:00 UTC: {stamp.isoformat()}")
