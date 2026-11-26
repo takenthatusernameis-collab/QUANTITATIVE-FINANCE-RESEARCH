@@ -206,6 +206,18 @@ class VxnVixCrossIndexTests(unittest.TestCase):
             self.assertIn("../reports/sessions/2026-11-26/report.md", content)
             self.assertIn("validation/test n=80/200", content)
 
+    def test_workflow_checks_out_and_verifies_the_exact_trigger_commit(self):
+        workflow_path = (
+            Path(__file__).resolve().parents[1]
+            / ".github"
+            / "workflows"
+            / "vxn-vix-cross-index-sp500-rv.yml"
+        )
+        text = workflow_path.read_text(encoding="utf-8")
+        self.assertIn("ref: ${{ github.sha }}", text)
+        self.assertIn('test "$actual" = "$GITHUB_SHA"', text)
+        self.assertIn("cancel-in-progress: false", text)
+
     def test_decision_does_not_promote_without_minimum_sample(self):
         validation = {
             "n": 29,
