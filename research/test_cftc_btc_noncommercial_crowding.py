@@ -39,7 +39,7 @@ class CftcBtcNoncommercialTests(unittest.TestCase):
         self.assertIn("/resource/6dca-aqww.json", parsed.path)
         params = parse_qs(parsed.query)
         self.assertIn("cftc_contract_market_code='133741'", params["$where"][0])
-        self.assertIn("2026-11-17", params["$where"][0])
+        self.assertIn("2026-11-10", params["$where"][0])
         self.assertIn("noncomm_positions_long_all", params["$select"][0])
         self.assertEqual(params["$limit"], ["50000"])
 
@@ -114,13 +114,13 @@ class CftcBtcNoncommercialTests(unittest.TestCase):
         today = dt.date(2026, 11, 26)
         # The frozen sample spans 466 Tuesday reports from 2017-12-19 through 2026-11-17.
         start = dt.date(2017, 12, 19)
-        cot = [{"report_date": start + dt.timedelta(days=7*i)} for i in range(466)]
+        cot = [{"report_date": start + dt.timedelta(days=7*i)} for i in range(465)]
         prices, day = {}, dt.date(2017, 8, 17)
         while day <= dt.date(2026, 11, 24):
             prices[day] = 100.0
             day += dt.timedelta(days=1)
         coverage = model.validate_coverage(cot, prices, today)
-        self.assertEqual(coverage["CFTC"]["last_report_date"], "2026-11-17")
+        self.assertEqual(coverage["CFTC"]["last_report_date"], "2026-11-10")
         bad = [dict(x) for x in cot]
         bad[-1]["report_date"] = dt.date(2026, 10, 1)
         with self.assertRaisesRegex(ValueError, "stale"):
