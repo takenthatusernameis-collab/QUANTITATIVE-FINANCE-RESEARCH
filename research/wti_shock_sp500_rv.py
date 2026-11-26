@@ -151,7 +151,7 @@ def update_handoff(result,report_relative):
         h=next(i for i,x in enumerate(lines) if x.startswith('| Hypothesis ID |')); lines.insert(h+2,row)
     else: lines[idx]=row
     REG.write_text('\n'.join(lines)+'\n',encoding='utf-8')
-    pre=PREREG.read_text(encoding='utf-8'); status=f"- **Status:** {result['status']} — {result['disposition']}"
+    pre=PREREG.read_text(encoding='utf-8'); status=f"- **Status:** {result['status']}"
     old=next((x for x in pre.splitlines() if x.startswith('- **Status:**')),None)
     if old: pre=pre.replace(old,status,1)
     if '## Empirical disposition' in pre: pre=pre.split('## Empirical disposition',1)[0].rstrip()

@@ -1,7 +1,7 @@
 # Preregistered hypothesis: lagged WTI repricing and S&P 500 realized volatility
 
 - **Hypothesis ID:** QFR-2026-11-26-WTI-SHOCK-SP500-RV-01
-- **Status:** INCONCLUSIVE — INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen rule
+- **Status:** INCONCLUSIVE
 - **Registered:** 2026-11-26 UTC
 - **Research class:** daily real-data forecast screen, not a trading strategy or causal study.
 
