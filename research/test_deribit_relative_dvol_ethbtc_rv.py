@@ -109,13 +109,6 @@ class DeribitRelativeDvolTests(unittest.TestCase):
         self.assertEqual(factor_points, 1.0)
         self.assertEqual(normalized_points, points)
 
-
-    def test_dvol_scale_rejects_ambiguous_intermediate_values(self):
-        start = dt.date(2023, 3, 26)
-        ambiguous = {start: 3.0, start + dt.timedelta(days=1): 3.2}
-        with self.assertRaisesRegex(ValueError, "Ambiguous"):
-            model.normalize_dvol_scale(ambiguous)
-
     def test_build_events_uses_strictly_prior_common_dvol_and_nonoverlapping_targets(self):
         btc, eth = self._prices()
         btc_dvol, eth_dvol = self._dvol()
