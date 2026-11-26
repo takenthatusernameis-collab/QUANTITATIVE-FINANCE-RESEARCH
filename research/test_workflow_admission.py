@@ -125,6 +125,10 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         workflow = (WORKFLOW_DIR / "deribit-relative-dvol-ethbtc-rv.yml").read_text(encoding="utf-8")
         self.assertNotIn(".github/workflows/workflow-admission-tests.yml", workflow)
 
+    def test_shared_admission_harness_change_does_not_retrigger_mexc_funding(self):
+        workflow = (WORKFLOW_DIR / "mexc-btc-funding-downside.yml").read_text(encoding="utf-8")
+        self.assertNotIn(".github/workflows/workflow-admission-tests.yml", workflow)
+
     def test_readme_requires_unmarked_repairs_and_dispatch_for_same_hypothesis_retries(self):
         text = README.read_text(encoding="utf-8")
         required = [
