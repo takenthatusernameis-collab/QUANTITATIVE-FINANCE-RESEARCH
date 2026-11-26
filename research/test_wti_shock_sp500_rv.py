@@ -88,6 +88,16 @@ class WtiShockTests(unittest.TestCase):
         with patch.object(m.base,'fetch_bytes',side_effect=fetch): result=m.run(ds[-1]+dt.timedelta(days=1))
         self.assertTrue(result['completed_backtest']); self.assertGreaterEqual(result['validation']['n'],30); self.assertGreaterEqual(result['test']['n'],30)
         self.assertEqual(result['data_sources']['DCOILWTICO']['rows'],2400)
+    def test_handoff_upsert_preserves_concurrent_registry_rows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); reg=root/'registry.md'; pre=root/'prereg.md'
+            reg.write_text('# Registry\n\n| Hypothesis ID | Status |\n|---|---|\n| OTHER | BACKTESTED | concurrent update |\n',encoding='utf-8')
+            pre.write_text('# Prereg\n\n- **Status:** FEASIBILITY_CHECKED\n',encoding='utf-8')
+            result={'status':'INCONCLUSIVE','disposition':'INCONCLUSIVE — concurrent test','completed_backtest':True,'coverage':{},'validation':{'n':107},'test':{'n':204},'validation_improvement_pct':1.6,'test_improvement_pct':-1.1,'paired_test_loss':{'ci95_low':-.003,'ci95_high':-.0001}}
+            with patch.object(m,'REG',reg),patch.object(m,'PREREG',pre): m.update_handoff(result,'reports/test.md')
+            content=reg.read_text(); self.assertIn('| OTHER | BACKTESTED |',content); self.assertIn(m.HYPOTHESIS_ID,content)
+            self.assertIn('INCONCLUSIVE',pre.read_text()); self.assertIn('ci95_low',pre.read_text())
+
     def test_persistence_is_idempotent_and_updates_handoff(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp); reg=root/'registry.md'; pre=root/'prereg.md'

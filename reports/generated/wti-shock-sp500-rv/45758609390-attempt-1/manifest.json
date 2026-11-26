@@ -1,0 +1,132 @@
+{
+  "hypothesis_id": "QFR-2026-11-26-WTI-SHOCK-SP500-RV-01",
+  "status": "INCONCLUSIVE",
+  "disposition": "INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen rule",
+  "completed_backtest": true,
+  "retrieved_at_utc": "2026-11-26T05:00:11.174017+00:00",
+  "run_id": "45758609390",
+  "attempt": "1",
+  "source_commit_sha": "9a3991904975799e37051448b9d4e42e9a502436",
+  "daily_kpi": "Daily real-data backtest minimum already met by distinct experiments; this is an additional distinct test.",
+  "coverage": {
+    "DCOILWTICO": {
+      "rows": 2500,
+      "first": "2016-11-25",
+      "last": "2026-11-24",
+      "max_gap_days": 5
+    },
+    "VIXCLS": {
+      "rows": 2546,
+      "first": "2016-11-25",
+      "last": "2026-11-24",
+      "max_gap_days": null
+    },
+    "SP500": {
+      "rows": 2512,
+      "first": "2016-11-28",
+      "last": "2026-11-24",
+      "max_gap_days": 4
+    }
+  },
+  "data_sources": {
+    "DCOILWTICO": {
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DCOILWTICO&cosd=2016-11-25",
+      "rows": 2500,
+      "sha256": "e576f0fc602fb0e735e10f25fd23fa64cf6aca5bfab71b871882c147f7b6a786"
+    },
+    "VIXCLS": {
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS&cosd=2016-11-25",
+      "rows": 2546,
+      "sha256": "fc8adf09eed97d58b761eca77de7cee278d79c257dd89b08747b31482bc8fad7"
+    },
+    "SP500": {
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=SP500&cosd=2016-11-25",
+      "rows": 2512,
+      "sha256": "6892b6e8b13c7283cb2fe62a453bbe1953a1db4084ae5d795a8ee27ea5a69d11"
+    }
+  },
+  "event_construction": {
+    "candidate_origins": 415,
+    "accepted_events": 415,
+    "skipped": {
+      "incomplete_price": 0,
+      "missing_vix": 0,
+      "no_prior_oil": 0,
+      "stale_oil": 0,
+      "short_oil": 0,
+      "irregular_oil": 0,
+      "overlap": 0
+    },
+    "event_step_sessions": 6,
+    "target_sessions": 5,
+    "strictly_prior_wti": true
+  },
+  "validation": {
+    "n": 107,
+    "base": {
+      "n": 107,
+      "mae": 0.2762471170725571,
+      "rmse": 0.3399957035285046,
+      "oos_r2": 0.47134582820358506
+    },
+    "aug": {
+      "n": 107,
+      "mae": 0.2720996208519476,
+      "rmse": 0.3345226784714427,
+      "oos_r2": 0.48822868869791314
+    }
+  },
+  "test": {
+    "n": 204,
+    "base": {
+      "n": 204,
+      "mae": 0.20599575173755086,
+      "rmse": 0.26604998319344914,
+      "oos_r2": 0.3615118126720944
+    },
+    "aug": {
+      "n": 204,
+      "mae": 0.21043251217732886,
+      "rmse": 0.2690359347411521,
+      "oos_r2": 0.3470995332671194
+    }
+  },
+  "validation_improvement_pct": 1.6097335937667467,
+  "test_improvement_pct": -1.122327282964663,
+  "paired_test_loss": {
+    "n": 204,
+    "reps": 2000,
+    "block_events": 4,
+    "mean_delta": -0.001597740624810866,
+    "ci95_low": -0.003207433572865311,
+    "ci95_high": -0.00009414639514482744
+  },
+  "methodology": {
+    "baseline": [
+      "pre_rv5",
+      "pre_rv20",
+      "log_vix"
+    ],
+    "augmented": [
+      "pre_rv5",
+      "pre_rv20",
+      "log_vix",
+      "wti_asinh5"
+    ],
+    "wti_feature": "asinh(WTI[d]/50)-asinh(WTI[d-5]/50), USD/barrel; d is latest valid WTI observation strictly before signal date",
+    "target": "log1p(next-five-session S&P 500 realized volatility in percent)",
+    "training_window_events": 104,
+    "validation": "2019-2021",
+    "test": "2022 onward",
+    "bootstrap_reps": 2000,
+    "bootstrap_block_events": 4
+  },
+  "limitations": [
+    "WTI Cushing is a location-specific physical benchmark, not a global crude basket or futures return.",
+    "Strict prior-date alignment avoids same-date publication ambiguity but does not reconstruct intraday historical release timestamps.",
+    "Current FRED/EIA vintages are used; historical point-in-time revisions are not reconstructed.",
+    "SP500 is a cash price index, not an executable futures or total-return series.",
+    "Forecast only; no causal, trading, profitability or deployment claim.",
+    "No raw source rows are persisted."
+  ]
+}

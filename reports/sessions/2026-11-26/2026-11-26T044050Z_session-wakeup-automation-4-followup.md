@@ -60,3 +60,18 @@ FRED/EIA WTI includes a negative Cushing spot observation of -$36.98/barrel on 2
 ## Next action
 
 Push the complete unit as one atomic [QFR-ADMIT] commit. Inspect both admission and research workflow runs. If live source checks fail, preserve an INCONCLUSIVE failure manifest and repair only the identified source/semantic defect; do not relax the preregistered gates or duplicate the run.
+
+
+## Empirical run and persistence repair
+
+The admitted live-data run completed its deterministic tests, source retrieval, event construction and walk-forward calculations. [WTI workflow run 45758609390](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45758609390) completed the research step but the overall job failed in the final persistence step because another concurrent workflow updated the same hypothesis-registry file. The run's report and manifest were recovered from its authenticated Actions logs and are being committed without repeating the experiment.
+
+- **Disposition remains INCONCLUSIVE.** The augmented model improved validation RMSE by 1.6097% (107 forecasts) but worsened test RMSE by 1.1223% (204 forecasts).
+- Test baseline RMSE: 0.266050; augmented RMSE: 0.269036.
+- Paired test squared-loss difference (baseline minus augmented): -0.00159774; 95% circular-block bootstrap CI [-0.00320743, -0.00009415], 2,000 resamples, four-event blocks. The interval is entirely negative, so the augmented model is worse on the test period.
+- The preregistered rejection rule also requires both validation and test RMSE to fail to improve. Validation improved, so the formal disposition remains INCONCLUSIVE rather than REJECTED. There is no robust incremental edge and no strategy promotion.
+- Source coverage: 2,500 WTI, 2,546 VIX and 2,512 SP500 observations, each ending 2026-11-24; 415/415 event origins accepted, zero skipped. Raw observations were not committed; SHA-256 hashes are retained in the manifest.
+- The persistence failure was caused by concurrent edits to the same registry table, not by the research run. The workflow is being changed to save report/manifest to runner temp, reset to the latest main, idempotently reapply the handoff, and retry bounded pushes. A regression test preserves concurrent registry rows.
+- The original run is not being repeated under this hypothesis ID. The persistence fix commit intentionally omits the admission marker; admission tests run, while the WTI research job is skipped.
+
+Evidence: [run report](../reports/sessions/2026-11-26/2026-11-26T050009Z_session-wti-shock-45758609390.md), [run manifest](../reports/generated/wti-shock-sp500-rv/45758609390-attempt-1/manifest.json), [admission-guard CI run](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45758609373).

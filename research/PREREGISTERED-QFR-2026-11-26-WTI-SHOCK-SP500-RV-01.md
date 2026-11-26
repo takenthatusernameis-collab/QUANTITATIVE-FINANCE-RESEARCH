@@ -1,7 +1,7 @@
 # Preregistered hypothesis: lagged WTI repricing and S&P 500 realized volatility
 
 - **Hypothesis ID:** QFR-2026-11-26-WTI-SHOCK-SP500-RV-01
-- **Status:** FEASIBILITY_CHECKED
+- **Status:** INCONCLUSIVE — INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen rule
 - **Registered:** 2026-11-26 UTC
 - **Research class:** daily real-data forecast screen, not a trading strategy or causal study.
 
@@ -65,5 +65,12 @@ No result-dependent retuning, alternate horizon, feature expansion, threshold se
 
 ## Empirical disposition
 
-- **Status:** FEASIBILITY_CHECKED; no empirical result yet.
-- **Execution:** awaiting the atomic admission commit and its immutable GitHub Actions run.
+- **Status:** INCONCLUSIVE — INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen rule
+- **Completed real-data backtest:** yes; GitHub Actions run 45758609390
+- **Accepted events:** 415; no event windows were skipped
+- **Validation/test forecasts:** 107 / 204
+- **RMSE baseline/augmented:** validation 0.339996 / 0.334523; test 0.266050 / 0.269036
+- **RMSE improvement:** validation 1.6097%; test -1.1223%
+- **Paired test-loss 95% CI:** [-0.00320743, -0.00009415], baseline minus augmented squared loss
+- **Report:** [session report](../reports/sessions/2026-11-26/2026-11-26T050009Z_session-wti-shock-45758609390.md)
+- Forecast screen only; no trading or deployment claim.
