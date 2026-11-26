@@ -426,6 +426,48 @@ def render_report(result: dict, error: str | None = None) -> str:
     return "\n".join(lines) + "\n"
 
 
+def update_preregistration(result: dict, report_relative: str) -> None:
+    content = PREREG_PATH.read_text(encoding="utf-8")
+    report_link = "../" + report_relative
+    status_line = next((line for line in content.splitlines() if line.startswith("- **Status:**")), None)
+    if status_line is not None:
+        content = content.replace(
+            status_line,
+            f"- **Status:** {result.get('status', 'INCONCLUSIVE')} — {result.get('disposition', 'INCONCLUSIVE')}",
+            1,
+        )
+    if "## Empirical disposition" in content:
+        content = content.split("## Empirical disposition", 1)[0].rstrip()
+    summary = result.get("summary_metrics") or {}
+    disposition = [
+        "## Empirical disposition",
+        "",
+        f"- **Final status:** {result.get('status', 'INCONCLUSIVE')} — {result.get('disposition', 'INCONCLUSIVE')}.",
+        f"- **Completed real-data backtest:** {'yes' if result.get('completed_backtest') else 'no'}.",
+        f"- **Data scope:** {result.get('data_scope', 'source acceptance incomplete')}.",
+    ]
+    if summary:
+        validation_improvement = summary.get("validation_improvement_pct")
+        test_improvement = summary.get("test_improvement_pct")
+        if validation_improvement is None or test_improvement is None:
+            disposition.append(
+                f"- **Summary:** validation/test n={summary.get('validation_n')}/{summary.get('test_n')}; "
+                "insufficient forecasts for both RMSE comparisons."
+            )
+        else:
+            disposition.append(
+                f"- **Summary:** validation/test n={summary.get('validation_n')}/{summary.get('test_n')}; "
+                f"RMSE improvement={validation_improvement:.4f}%/{test_improvement:.4f}%."
+            )
+    disposition.extend([
+        f"- **Report:** [{report_link}]({report_link}).",
+        "",
+        "Forecasting screen only. No causal, trading, profitability or deployment claim.",
+        "",
+    ])
+    PREREG_PATH.write_text(content.rstrip() + "\n\n" + "\n".join(disposition), encoding="utf-8")
+
+
 def write_outputs(result: dict, report: str) -> tuple[str, str]:
     SESSION_DIR.mkdir(parents=True, exist_ok=True)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
