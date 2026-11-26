@@ -88,6 +88,6 @@ The null is that KCPRS adds no incremental out-of-sample information, or that it
 - **Completed real-data backtest:** yes.
 - **Data scope:** KCPRS/DGS2/DGS10 daily current FRED vintages; common source envelope 1989-04-03 to 2026-11-24; 425 accepted non-overlapping events; validation 2018-2022 n=56; test 2023 onward n=44.
 - **Summary:** validation/test n=56/44; RMSE improvement=-7.8081%/-4.5637%.
-- **Report:** [../reports/sessions/2026-11-26/2026-11-26T045949Z_session-kcprs-policy-skew-45758609399.md](../reports/sessions/2026-11-26/2026-11-26T045949Z_session-kcprs-policy-skew-45758609399.md).
+- **Report:** [../reports/sessions/2026-11-26/2026-11-26T062617Z_session-kcprs-policy-skew-45767439656.md](../reports/sessions/2026-11-26/2026-11-26T062617Z_session-kcprs-policy-skew-45767439656.md).
 
 Forecasting screen only. No causal, trading, profitability or deployment claim.

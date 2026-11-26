@@ -1,0 +1,156 @@
+{
+  "completed_backtest": true,
+  "coverage": {
+    "DGS10": {
+      "first_date": "1989-04-03",
+      "last_date": "2026-11-24",
+      "rows": 9419
+    },
+    "DGS2": {
+      "first_date": "1989-04-03",
+      "last_date": "2026-11-24",
+      "rows": 9419
+    },
+    "KCPRS": {
+      "first_date": "1989-04-03",
+      "last_date": "2026-11-24",
+      "rows": 9503
+    },
+    "common_all_series_dates": 9419,
+    "common_yield_dates": 9419
+  },
+  "daily_kpi": "An additional distinct real-data backtest completed on UTC date 2026-11-26; the daily minimum had already been met by earlier distinct experiments.",
+  "data_scope": "KCPRS/DGS2/DGS10 daily current FRED vintages; common source envelope 1989-04-03 to 2026-11-24; 425 accepted non-overlapping events; validation 2018-2022 n=56; test 2023 onward n=44",
+  "data_sources": {
+    "DGS10": {
+      "first_date": "1989-04-03",
+      "last_date": "2026-11-24",
+      "rows": 9419,
+      "sha256": "1b602b8936f98f8a98a5a608837cd5ed7a283a68eed1e8771e5341c9edaa3ec5",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10&cosd=1989-04-03"
+    },
+    "DGS2": {
+      "first_date": "1989-04-03",
+      "last_date": "2026-11-24",
+      "rows": 9419,
+      "sha256": "b6061a18f677f32103c40c4f52d7097a22640cf0ab8456136e819569f93fb106",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS2&cosd=1989-04-03"
+    },
+    "KCPRS": {
+      "first_date": "1989-04-03",
+      "last_date": "2026-11-24",
+      "rows": 9503,
+      "sha256": "c9b4d2b5b8d810cd8f2185bcd408cc08785dc40daa35aac1e747d077b910b6b4",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=KCPRS&cosd=1989-04-03"
+    }
+  },
+  "disposition": "INCONCLUSIVE \u2014 evidence is mixed, statistically uncertain or insufficient under the frozen decision rule",
+  "event_construction": {
+    "accepted_events": 425,
+    "candidate_origins": 425,
+    "event_spacing_sessions": 22,
+    "kcprs_regime_counts": {
+      "EURODOLLAR_OPTIONS": 381,
+      "SOFR_OPTIONS": 44
+    },
+    "non_overlap_rule": "22-session event spacing for a 21-session target; each prior target matures before the next signal",
+    "predictor": "latest strictly prior KCPRS level in percentage points",
+    "signal_rule": "DGS2/DGS10 close on t; latest KCPRS observation dated strictly before t",
+    "skipped": {
+      "incomplete_yield_history": 0,
+      "no_strictly_prior_kcprs_observation": 0,
+      "overlapping_target_window": 0,
+      "stale_prior_kcprs_observation": 0
+    },
+    "target": "DGS2[t+21 observed Treasury sessions] minus DGS2[t], in basis points",
+    "target_horizon_sessions": 21
+  },
+  "hypothesis_id": "QFR-2026-11-26-KCPRS-POLICY-SKEW-DGS2-01",
+  "limitations": [
+    "Current FRED vintages; no historical point-in-time revision reconstruction.",
+    "KC PRS uses Eurodollar options before 2023 and SOFR options from 2023 onward.",
+    "DGS2 is a market-yield proxy, not the realized federal funds rate or executable futures P&L.",
+    "Forecasting screen only; no causal or trading claim."
+  ],
+  "methodology": {
+    "augmented_features": [
+      "dgs2_level_pct",
+      "dgs2_change_21d_bp",
+      "dgs2_change_63d_bp",
+      "curve_10y2y_bp",
+      "kcprs_level_pp"
+    ],
+    "baseline_features": [
+      "dgs2_level_pct",
+      "dgs2_change_21d_bp",
+      "dgs2_change_63d_bp",
+      "curve_10y2y_bp"
+    ],
+    "bootstrap_block_events": 3,
+    "bootstrap_reps": 2000,
+    "bootstrap_seed": 20261129,
+    "event_spacing_sessions": 22,
+    "predictor": "latest KCPRS level strictly before the signal date",
+    "rolling_training_events": 52,
+    "target": "21-session DGS2 yield change in basis points",
+    "target_sessions": 21,
+    "test": "2023-01-01 onward",
+    "training_rule": "training target_end_date must be strictly earlier than current signal_date",
+    "validation": "2018-01-01 through 2022-12-31"
+  },
+  "paired_squared_loss_bootstrap": {
+    "block_size_events": 3,
+    "bootstrap_fraction_positive": 0.141,
+    "ci_95_high_bp2": 54.19614456362456,
+    "ci_95_low_bp2": -424.96375542171785,
+    "mean_baseline_minus_augmented_squared_loss_bp2": -131.07424143854985,
+    "observations": 44,
+    "reps": 2000,
+    "status": "COMPUTED"
+  },
+  "retrieved_at_utc": "2026-11-26T06:26:27.213115+00:00",
+  "run_attempt": "1",
+  "run_id": "45767439656",
+  "source_commit_sha": "82eab87d53a7b16196a7964af40dc63bd9225c9b",
+  "status": "INCONCLUSIVE",
+  "summary_metrics": {
+    "test_improvement_pct": -4.563720035498529,
+    "test_n": 44,
+    "validation_improvement_pct": -7.8081444787249765,
+    "validation_n": 56
+  },
+  "test_metrics": {
+    "augmented": {
+      "directional_accuracy": 0.4318181818181818,
+      "mae_bp": 27.507916034242154,
+      "n": 44,
+      "oos_r2_vs_period_mean": -0.5546508122746778,
+      "rmse_bp": 39.180132330125296
+    },
+    "baseline": {
+      "directional_accuracy": 0.5227272727272727,
+      "mae_bp": 26.176092900935263,
+      "n": 44,
+      "oos_r2_vs_period_mean": -0.42190573820967336,
+      "rmse_bp": 37.47010178752627
+    },
+    "n": 44
+  },
+  "validation_metrics": {
+    "augmented": {
+      "directional_accuracy": 0.7142857142857143,
+      "mae_bp": 17.939554583454317,
+      "n": 56,
+      "oos_r2_vs_period_mean": -0.02118800480173766,
+      "rmse_bp": 25.159713708903524
+    },
+    "baseline": {
+      "directional_accuracy": 0.7142857142857143,
+      "mae_bp": 15.78493908407179,
+      "n": 56,
+      "oos_r2_vs_period_mean": 0.12137701129703138,
+      "rmse_bp": 23.337488860935345
+    },
+    "n": 56
+  }
+}
