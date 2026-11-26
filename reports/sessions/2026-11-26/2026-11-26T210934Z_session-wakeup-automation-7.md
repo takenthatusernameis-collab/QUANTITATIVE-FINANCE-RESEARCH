@@ -30,3 +30,8 @@
 - The research/data step completed and emitted the report and full manifest, but the workflow's persistence step failed because its shell git-add command contained an unmatched trailing quote.
 - The exact report and manifest were recovered from the immutable run log and are being committed without rerunning or changing the empirical result.
 - The workflow shell quoting is corrected and a regression assertion is added. The workflow repair commit is unmarked, so it cannot re-admit this hypothesis.
+
+## Additional orchestration cleanup
+
+- Narrowed the Wikimedia source-preflight workflow path filters to its own parser, parser tests and workflow definition. It no longer reruns a read-only 38-request source probe when the hypothesis registry/preregistration evidence or the shared admission-test harness changes.
+- The shared admission-test workflow remains responsible for validating workflow and admission-harness changes. The final source-preflight run on the preceding repair commit completed successfully; this path-filter change is covered by the admission regression suite.

@@ -83,6 +83,14 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
                 self.assertRegex(text, r"(?m)^  cancel-in-progress: false$")
 
 
+    def test_wikipedia_source_preflight_has_narrow_source_only_path_filters(self):
+        text = (WORKFLOW_DIR / "wikipedia-attention-source-preflight.yml").read_text(encoding="utf-8")
+        self.assertIn('"research/wikipedia_attention_source_preflight.py"', text)
+        self.assertIn('"research/test_wikipedia_attention_source_preflight.py"', text)
+        self.assertIn('".github/workflows/wikipedia-attention-source-preflight.yml"', text)
+        self.assertNotIn('"research/test_workflow_admission.py"', text)
+        self.assertNotIn('"research/PREREGISTERED-QFR-2026-11-26-WIKIPEDIA-ATTENTION-BTC-DOWNSIDE-01.md"', text)
+
     def test_wikipedia_attention_backtest_workflow_validates_before_source_retrieval(self):
         path = WORKFLOW_DIR / "wikipedia-attention-btc-downside.yml"
         text = path.read_text(encoding="utf-8")

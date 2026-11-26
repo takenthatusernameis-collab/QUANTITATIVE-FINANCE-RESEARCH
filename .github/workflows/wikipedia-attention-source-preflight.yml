@@ -6,8 +6,6 @@ on:
     paths:
       - "research/wikipedia_attention_source_preflight.py"
       - "research/test_wikipedia_attention_source_preflight.py"
-      - "research/test_workflow_admission.py"
-      - "research/PREREGISTERED-QFR-2026-11-26-WIKIPEDIA-ATTENTION-BTC-DOWNSIDE-01.md"
       - ".github/workflows/wikipedia-attention-source-preflight.yml"
   workflow_dispatch:
 
