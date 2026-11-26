@@ -1,5 +1,7 @@
 name: MEXC funding hypothesis deterministic preflight
 
+# Temporary staging-only validation; excluded from the final main-branch change set.
+
 on:
   push:
     branches: [qfr/mexc-btc-funding-downside-20261126]
