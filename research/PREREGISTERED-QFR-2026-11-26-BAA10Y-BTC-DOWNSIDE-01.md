@@ -2,7 +2,7 @@
 
 - **Hypothesis ID:** QFR-2026-11-26-BAA10Y-BTC-DOWNSIDE-01
 - **Registered:** 2026-11-26T10:05:47Z, before implementation and empirical-result inspection.
-- **Status:** FEASIBILITY_CHECKED
+- **Status:** INCONCLUSIVE
 - **Expected difficulty:** MEDIUM.
 - **Difficulty rationale:** public daily spread and BTC Spot sources are discoverable; existing repository code provides a checksummed BTC archive path and reusable walk-forward/bootstrap primitives. Moderate work remains for strict publication-time alignment, a new feature/event constructor, regression tests, workflow integration and evidence persistence.
 - **Timebox start:** 2026-11-26T10:05:47Z.
@@ -96,4 +96,13 @@ This is not a claim that credit spreads and cryptocurrency returns have never be
 
 ## Empirical disposition
 
-Pending the first admitted real-data run. A failed source or implementation attempt is INCONCLUSIVE/INFEASIBLE, not a performance NO-GO.
+- **Status:** INCONCLUSIVE
+- **Disposition:** INCONCLUSIVE — frozen validation/test and paired-loss rules do not establish improvement or decisive inferiority
+- **Completed real-data backtest:** yes
+- **Data scope:** FRED BAA10Y daily 1986-01-02 to 2026-11-24 (10224 observations); Binance BTCUSDT Spot 1d UTC 2017-08-17 to 2026-11-24 (3387 candles); Wednesday events; validation 2019-2021; test 2022 onward
+- **Summary metrics:** {"test_n": 255, "test_rmse_improvement_pct": -0.3517694908711905, "validation_n": 122, "validation_rmse_improvement_pct": -5.517645815167685}
+- **Paired test-loss bootstrap:** {"block_size_events": 4, "bootstrap_fraction_positive": 0.27, "ci95_high": 0.011411234998610596, "ci95_low": -0.02255654528582824, "mean_baseline_minus_augmented_squared_loss": -0.005295364535434318, "observations": 255, "reps": 2000}
+- **Report:** [reports/sessions/2026-11-26/2026-11-26T101330Z_session-baa10y-btc-downside-45799291521.md](../reports/sessions/2026-11-26/2026-11-26T101330Z_session-baa10y-btc-downside-45799291521.md)
+- **Manifest:** [reports/generated/baa10y-btc-downside-semivariance/45799291521-attempt-1/manifest.json](../reports/generated/baa10y-btc-downside-semivariance/45799291521-attempt-1/manifest.json)
+- Forecast screen only; no causal, trading or deployment claim.
+
