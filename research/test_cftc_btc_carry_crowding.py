@@ -60,11 +60,19 @@ class CftcBitcoinCarryCrowdingTests(unittest.TestCase):
         self.assertTrue(features[-1]["high_crowding"])
 
     def test_backlog_rows_are_not_added_to_percentile_history(self):
-        start = dt.date(2025, 9, 30)
-        rows = [{"report_date": start + dt.timedelta(days=7*i), "gross_short_pct_oi": 0.5}
-                for i in range(model.CROWDING_LOOKBACK)]
-        features = model.build_crowding_features(rows)
-        self.assertTrue(all(x["excluded_publication_backlog"] for x in features))
+        prior_start = dt.date(2024, 10, 1)
+        prior = [{"report_date": prior_start + dt.timedelta(days=7*i), "gross_short_pct_oi": 0.5}
+                 for i in range(model.CROWDING_LOOKBACK)]
+        backlog_start = dt.date(2025, 9, 30)
+        backlog = [{"report_date": backlog_start + dt.timedelta(days=7*i), "gross_short_pct_oi": 0.9}
+                   for i in range(17)]
+        post = {"report_date": dt.date(2026, 1, 27), "gross_short_pct_oi": 0.6}
+        features = model.build_crowding_features(prior + backlog + [post])
+        backlog_features = [x for x in features if x["excluded_publication_backlog"]]
+        self.assertEqual(len(backlog_features), 17)
+        post_feature = features[-1]
+        self.assertEqual(post_feature["percentile_history_n"], model.CROWDING_LOOKBACK)
+        self.assertEqual(post_feature["percentile_history_start"], prior_start.isoformat())
 
     def _prices(self, start=dt.date(2019, 10, 1), end=dt.date(2020, 5, 31)):
         out, day, i = {}, start, 0
