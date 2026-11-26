@@ -93,5 +93,13 @@ This hypothesis uses an exchange-published **perpetual funding settlement cashfl
 
 ## Empirical disposition
 
-- **Status:** PREREGISTERED
-- **No empirical result has been inspected under this hypothesis ID.**
+- **Status:** INCONCLUSIVE
+- **Disposition:** INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen rule
+- **Completed real-data backtest:** True
+- **Data scope:** MEXC BTC_USDT 8h funding 2025-06-04T16:00:00+00:00 to 2026-11-26T08:00:00+00:00; Binance BTCUSDT Spot 1d UTC 2025-06-15 to 2026-11-23
+- **Summary metrics:** {"accepted_events": 521, "forecast_n": 416, "test_n": 267, "test_rmse_improvement_pct": -0.1904254971760991, "validation_n": 149, "validation_rmse_improvement_pct": -1.1323485567908604}
+- **Paired test-loss bootstrap:** {"block_size_events": 7, "bootstrap_fraction_positive": 0.3755, "ci_95_high_bp2": 0.022809543215505275, "ci_95_low_bp2": -0.025083031942382764, "observations": 267, "observed_mean_baseline_minus_augmented_squared_loss_bp2": -0.0032134879929495764, "reps": 2000, "status": "COMPUTED"}
+- **Source/implementation blocker:** None
+- **Report:** [reports/sessions/2026-11-26/2026-11-26T153526Z_session-mexc-btc-funding-45850573983.md](../reports/sessions/2026-11-26/2026-11-26T153526Z_session-mexc-btc-funding-45850573983.md)
+- **Manifest:** [reports/generated/mexc-btc-funding-downside/45850573983-attempt-1/manifest.json](../reports/generated/mexc-btc-funding-downside/45850573983-attempt-1/manifest.json)
+- Forecast-only; no causal, executable-trading or deployment claim.
