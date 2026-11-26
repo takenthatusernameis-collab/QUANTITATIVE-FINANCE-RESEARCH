@@ -1,0 +1,13 @@
+{
+  "completed_backtest": false,
+  "daily_kpi": "2026-11-25 minimum was already MET by earlier experiments; this run on 2026-11-26 did not complete a valid backtest.",
+  "data_scope": "source acceptance incomplete",
+  "disposition": "INCONCLUSIVE \u2014 bounded source/execution failure: RuntimeError: Binance public-data endpoints failed: https://data-api.binance.vision: ValueError: BTCUSDT candle is not aligned to a full UTC day | https://api.binance.com: RuntimeError: Non-retryable HTTP 451 for https://api.binance.com/api/v3/exchangeInfo?symbol=BTCUSDT",
+  "error": "RuntimeError: Binance public-data endpoints failed: https://data-api.binance.vision: ValueError: BTCUSDT candle is not aligned to a full UTC day | https://api.binance.com: RuntimeError: Non-retryable HTTP 451 for https://api.binance.com/api/v3/exchangeInfo?symbol=BTCUSDT",
+  "hypothesis_id": "QFR-2026-11-26-STLFSI4-BTC-DOWNSIDE-SEMIVARIANCE-01",
+  "retrieved_at_utc": "2026-11-26T00:42:53.167341+00:00",
+  "run_attempt": "1",
+  "run_id": "45727248228",
+  "source_commit_sha": "ef686c4b2e651c24ef853d4bcf64e9063736c2ea",
+  "status": "INCONCLUSIVE"
+}

@@ -2,7 +2,7 @@
 
 - **Hypothesis ID:** QFR-2026-11-26-STLFSI4-BTC-DOWNSIDE-SEMIVARIANCE-01
 - **Registered:** 2026-11-25T23:54:29Z, before this experiment's empirical result inspection.
-- **Status:** PREREGISTERED; one bounded real-data walk-forward screen.
+- **Status:** INCONCLUSIVE — INCONCLUSIVE — bounded source/execution failure: RuntimeError: Binance public-data endpoints failed: https://data-api.binance.vision: ValueError: BTCUSDT candle is not aligned to a full UTC day | https://api.binance.com: RuntimeError: Non-retryable HTTP 451 for https://api.binance.com/api/v3/exchangeInfo?symbol=BTCUSDT. No valid backtest completed; source acceptance failed.
 - **Difficulty:** MEDIUM.
 - **Implementation timebox:** through 2026-11-29T23:54:29Z.
 - **Research conclusion deadline:** 2026-12-02T23:54:29Z.
@@ -91,3 +91,14 @@ Do not change the predictor, lag, target, horizon, date splits, training window,
 ## Safety and interpretation
 
 Forecasting only. No live orders, capital deployment, trading P&L, causal claim or deployment authorization. Do not redistribute raw FRED or Binance observations. Preserve source hashes, reports and aggregate metrics.
+
+## Empirical disposition
+
+- **Final status:** INCONCLUSIVE — INCONCLUSIVE — bounded source/execution failure: RuntimeError: Binance public-data endpoints failed: https://data-api.binance.vision: ValueError: BTCUSDT candle is not aligned to a full UTC day | https://api.binance.com: RuntimeError: Non-retryable HTTP 451 for https://api.binance.com/api/v3/exchangeInfo?symbol=BTCUSDT.
+- **Completed backtest:** no.
+- **Data scope:** source acceptance incomplete.
+- **Summary:** {}.
+- **Report:** [reports/sessions/2026-11-26/2026-11-26T004250Z_session-stlfsi4-btc-downside-semivariance-45727248228.md](../reports/sessions/2026-11-26/2026-11-26T004250Z_session-stlfsi4-btc-downside-semivariance-45727248228.md).
+- **Manifest:** [reports/generated/stlfsi4-btc-downside-semivariance/45727248228-attempt-1/manifest.json](../reports/generated/stlfsi4-btc-downside-semivariance/45727248228-attempt-1/manifest.json).
+- **Interpretation:** forecast screen only. Current-vintage STLFSI4 revisions remain a material limitation; even a promising result is not independently validated or tradable.
+
