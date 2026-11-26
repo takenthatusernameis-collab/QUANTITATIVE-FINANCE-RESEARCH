@@ -87,3 +87,8 @@ The atomic admission commit unintentionally queued three workflows on the same t
 - The new Fed research run and admission guard remain separately queued for commit 82eab87d53a7b16196a7964af40dc63bd9225c9b; their outcomes are not yet known.
 
 This is a workflow-trigger isolation defect, not a reason to repeat either empirical experiment. Preserve the queued-run record and do not describe the KC PRS job as cancelled unless GitHub reports that state.
+
+
+## Persistence-path correction
+
+A final static workflow review found that the post-run persistence step imported the research module from the repository root without adding the research directory to Python's module search path. The research run itself would have succeeded, but the evidence-persistence step could fail with ModuleNotFoundError after the expensive backtest. Corrected the command to add research to sys.path before importing the idempotent document updater, and added an admission regression test for that exact requirement. The already-queued run on the immutable 82eab87 commit retains its original workflow definition; if it reaches persistence and fails there, recover its report/manifest from the job logs and persist them without re-running the empirical screen.

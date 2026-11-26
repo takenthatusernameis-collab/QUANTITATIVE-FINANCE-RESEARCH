@@ -92,7 +92,7 @@ jobs:
             mkdir -p "$(dirname "$report")" "$(dirname "$manifest")"
             cp "$tmp/report.md" "$report"
             cp "$tmp/manifest.json" "$manifest"
-            python -c 'import json,sys; import fed_balance_sheet_btc_downside_semivariance as m; m.update_documents(json.load(open(sys.argv[1], encoding="utf-8")), sys.argv[2], sys.argv[3])' "$manifest" "$report" "$manifest"
+            python -c 'import json,sys; sys.path.insert(0,"research"); import fed_balance_sheet_btc_downside_semivariance as m; m.update_documents(json.load(open(sys.argv[1], encoding="utf-8")), sys.argv[2], sys.argv[3])' "$manifest" "$report" "$manifest"
             git add "$report" "$manifest" research/HYPOTHESIS-REGISTRY.md research/PREREGISTERED-QFR-2026-11-26-FED-BALANCE-SHEET-BTC-DOWNSIDE-01.md
             if git diff --cached --quiet; then
               echo "Evidence already present on main."

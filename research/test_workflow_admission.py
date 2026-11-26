@@ -99,6 +99,10 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         readme = README.read_text(encoding="utf-8")
         self.assertIn("Shared admission-harness changes must not appear in unrelated research workflow path filters", readme)
 
+    def test_fed_evidence_persistence_imports_module_from_research_directory(self):
+        workflow = (WORKFLOW_DIR / "fed-balance-sheet-btc-downside-semivariance.yml").read_text(encoding="utf-8")
+        self.assertIn('sys.path.insert(0,"research")', workflow)
+
 
 if __name__ == "__main__":
     unittest.main()
