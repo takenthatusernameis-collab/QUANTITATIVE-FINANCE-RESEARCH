@@ -213,6 +213,7 @@ def walk_forward(events):
         except (ValueError, ZeroDivisionError, OverflowError):
             continue
         predictions.append({
+            "record_date": current["signal_date"],
             "epu_date": current["epu_date"], "signal_date": current["signal_date"],
             "target_end_date": current["target_end_date"], "target_bp": current["target_bp"],
             "target_semivariance_pct2": current["target_semivariance_pct2"],
@@ -250,6 +251,7 @@ def run_research():
     val_rows = [r for r in predictions if VALIDATION_START <= r["signal_date"] < TEST_START]
     test_rows = [r for r in predictions if r["signal_date"] >= TEST_START]
     validation, test = metrics(val_rows), metrics(test_rows)
+    base.LOSS_BOOTSTRAP_SEED = BOOTSTRAP_SEED
     paired = base.bootstrap_paired_squared_loss_difference(test_rows, reps=BOOTSTRAP_REPS)
     status, disposition = decide(validation, test, paired)
     scope = (
@@ -313,8 +315,8 @@ def update_documents(result, report_path, manifest_path):
     REGISTRY_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
     prereg_lines = PREREG_PATH.read_text(encoding="utf-8").splitlines()
     for i, line in enumerate(prereg_lines):
-        if line.startswith("- **Initial status:**"):
-            prereg_lines[i] = f"- **Initial status:** {status}"
+        if line.startswith("- **Status:**"):
+            prereg_lines[i] = f"- **Status:** {status}"
             break
     prereg = "\n".join(prereg_lines).split("\n## Empirical disposition")[0].rstrip()
     prereg += (
