@@ -332,7 +332,6 @@ def decide(validation: dict, test: dict, paired: dict | None) -> tuple[str, str]
 def upsert_registry(status: str, disposition: str, scope: str, report_relative: str) -> None:
     content = REGISTRY_PATH.read_text(encoding="utf-8")
     report_link = "../" + report_relative
-    status_label = format_status_label(result)
     row = (
         f"| {HYPOTHESIS_ID} | {status} | A strictly lagged five-observation increase in the Nasdaq-100 versus S&P 500 implied-volatility ratio adds information about next-five-session S&P 500 realized volatility beyond recent realized volatility and VIX. | {scope} | {disposition} | [session report]({report_link}) |"
     )
@@ -438,6 +437,7 @@ def format_status_label(result: dict) -> str:
 def update_preregistration(result: dict, report_relative: str) -> None:
     content = PREREG_PATH.read_text(encoding="utf-8")
     report_link = "../" + report_relative
+    status_label = format_status_label(result)
     status_line = next((line for line in content.splitlines() if line.startswith("- **Status:**")), None)
     if status_line is not None:
         content = content.replace(

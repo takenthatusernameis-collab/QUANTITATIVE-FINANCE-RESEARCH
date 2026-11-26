@@ -227,6 +227,29 @@ class VxnVixCrossIndexTests(unittest.TestCase):
         self.assertIn('test "$actual" = "$GITHUB_SHA"', text)
         self.assertIn("cancel-in-progress: false", text)
 
+    def test_registry_upsert_updates_existing_hypothesis_row(self):
+        with tempfile.TemporaryDirectory() as directory:
+            registry_path = Path(directory) / "registry.md"
+            registry_path.write_text(
+                "# Registry\n\n"
+                "| Hypothesis ID | Status | Mechanism / falsifiable claim | Data scope | Disposition | Evidence |\n"
+                "|---|---|---|---|---|---|\n"
+                f"| {model.HYPOTHESIS_ID} | PREREGISTERED | old | old | pending | old |\n",
+                encoding="utf-8",
+            )
+            with patch.object(model, "REGISTRY_PATH", registry_path):
+                model.upsert_registry(
+                    "INCONCLUSIVE",
+                    "INCONCLUSIVE — evidence remains mixed",
+                    "test scope",
+                    "reports/sessions/2026-11-26/report.md",
+                )
+            content = registry_path.read_text(encoding="utf-8")
+            self.assertEqual(content.count(model.HYPOTHESIS_ID), 1)
+            self.assertIn("| INCONCLUSIVE |", content)
+            self.assertIn("test scope", content)
+            self.assertIn("../reports/sessions/2026-11-26/report.md", content)
+
     def test_decision_does_not_promote_without_minimum_sample(self):
         validation = {
             "n": 29,

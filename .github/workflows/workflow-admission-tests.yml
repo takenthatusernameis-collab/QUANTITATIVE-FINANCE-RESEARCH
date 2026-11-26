@@ -29,7 +29,7 @@ jobs:
           python-version: "3.11"
 
       - name: Compile VXN/VIX research module
-        run: python -m py_compile research/vxn_vix_cross_index_sp500_rv.py
+        run: python -m py_compile research/vxn_vix_cross_index_sp500_rv.py research/test_vxn_vix_cross_index_sp500_rv.py
 
       - name: Verify every research workflow has the atomic admission gate
         run: python -m unittest discover -s research -p "test_workflow_admission.py" -v
