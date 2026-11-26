@@ -1,0 +1,108 @@
+name: Fed balance-sheet contraction and BTC downside-semivariance forecast
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "research/fed_balance_sheet_btc_downside_semivariance.py"
+      - "research/test_fed_balance_sheet_btc_downside_semivariance.py"
+      - ".github/workflows/fed-balance-sheet-btc-downside-semivariance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qfr-fed-balance-sheet-btc-downside-semivariance-main
+  cancel-in-progress: false
+
+jobs:
+  fed-balance-sheet-backtest:
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[QFR-ADMIT]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout trusted triggering commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Assert immutable source checkout
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$GITHUB_SHA"
+          echo "Verified source commit: $actual"
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Run deterministic source, timing, event and decision tests
+        run: |
+          set -euo pipefail
+          python -m py_compile research/fed_balance_sheet_btc_downside_semivariance.py research/test_fed_balance_sheet_btc_downside_semivariance.py
+          python -m unittest discover -s research -p "test_fed_balance_sheet_btc_downside_semivariance.py" -v
+          python -m unittest discover -s research -p "test_workflow_admission.py" -v
+
+      - name: Retrieve official sources and run the frozen walk-forward screen
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python research/fed_balance_sheet_btc_downside_semivariance.py
+          report="$(find reports/sessions -type f -name "*session-fed-balance-sheet-btc-$GITHUB_RUN_ID.md" | sort | tail -n 1)"
+          manifest="reports/generated/fed-balance-sheet-btc-downside-semivariance/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/manifest.json"
+          test -n "$report"
+          test -s "$report"
+          test -s "$manifest"
+          echo "=== RESEARCH REPORT ==="
+          cat "$report"
+          echo "=== GENERATED MANIFEST ==="
+          cat "$manifest"
+
+      - name: Persist evidence to main with bounded concurrent-update recovery
+        if: success()
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          report="$(find reports/sessions -type f -name "*session-fed-balance-sheet-btc-$GITHUB_RUN_ID.md" | sort | tail -n 1)"
+          manifest="reports/generated/fed-balance-sheet-btc-downside-semivariance/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/manifest.json"
+          test -n "$report"
+          test -s "$report"
+          test -s "$manifest"
+          tmp="$RUNNER_TEMP/qfr-fed-balance-sheet-$GITHUB_RUN_ID"
+          mkdir -p "$tmp"
+          cp "$report" "$tmp/report.md"
+          cp "$manifest" "$tmp/manifest.json"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p "$(dirname "$report")" "$(dirname "$manifest")"
+            cp "$tmp/report.md" "$report"
+            cp "$tmp/manifest.json" "$manifest"
+            python -c 'import json,sys; import fed_balance_sheet_btc_downside_semivariance as m; m.update_documents(json.load(open(sys.argv[1], encoding="utf-8")), sys.argv[2], sys.argv[3])' "$manifest" "$report" "$manifest"
+            git add "$report" "$manifest" research/HYPOTHESIS-REGISTRY.md research/PREREGISTERED-QFR-2026-11-26-FED-BALANCE-SHEET-BTC-DOWNSIDE-01.md
+            if git diff --cached --quiet; then
+              echo "Evidence already present on main."
+              exit 0
+            fi
+            git commit -m "Persist Fed balance-sheet BTC downside-semivariance evidence $GITHUB_RUN_ID"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Main advanced during evidence persistence; refreshing and retrying."
+          done
+          echo "Could not persist evidence after three main-branch refreshes."
+          exit 1

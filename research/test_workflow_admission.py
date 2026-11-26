@@ -88,6 +88,11 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertIn("research/test_workflow_admission.py", text)
         self.assertIn("workflow_dispatch:", text)
 
+    def test_admission_workflow_runs_fed_balance_sheet_regression_suite(self):
+        text = (WORKFLOW_DIR / "workflow-admission-tests.yml").read_text(encoding="utf-8")
+        self.assertIn("research/fed_balance_sheet_btc_downside_semivariance.py", text)
+        self.assertIn("research/test_fed_balance_sheet_btc_downside_semivariance.py", text)
+
 
 if __name__ == "__main__":
     unittest.main()
