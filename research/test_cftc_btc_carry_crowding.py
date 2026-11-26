@@ -4,7 +4,7 @@ import cftc_btc_carry_crowding as model
 
 
 class CftcBitcoinCarryCrowdingTests(unittest.TestCase):
-    def _row(self, day=dt.date(2020, 1, 7), short=600, oi=1000, code="133741", name="BITCOIN - CHICAGO MERCANTILE EXCHANGE"):
+    def _row(self, day=dt.date(2020, 1, 7), short=600, oi=1000, code="133741", name="BITCOIN"):
         return {"report_date_as_yyyy_mm_dd": day.isoformat() + "T00:00:00.000",
                 "contract_market_name": name, "cftc_contract_market_code": code,
                 "open_interest_all": str(oi), "lev_money_positions_short": str(short)}

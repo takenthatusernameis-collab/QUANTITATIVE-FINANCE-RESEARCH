@@ -37,7 +37,7 @@ No first-in-literature claim is made.
 - Required fields: report_date_as_yyyy_mm_dd, contract_market_name, cftc_contract_market_code, open_interest_all, lev_money_positions_short.
 - Source API: https://publicreporting.cftc.gov/resource/gpe5-46if.json.
 - The report-date history for this contract begins around 2018-04-10. Require at least 350 exact-code rows and first report no later than 90 days after 2018-04-10; otherwise fail closed.
-- Require Tuesday report dates outside the documented shutdown catch-up window; allow non-Tuesday dates only inside the excluded 2025-09-30 to 2026-01-20 window. Require unique dates, positive open interest, nonnegative gross short positions not exceeding total open interest, no unexpected market-name substitution, no future dates and a latest report date no more than 21 calendar days stale.
+- Require Tuesday report dates outside the documented shutdown catch-up window; allow non-Tuesday dates only inside the excluded 2025-09-30 to 2026-01-20 window. The API contract label must contain BITCOIN; exact code 133741 identifies the CME contract. Require unique dates, positive open interest, nonnegative gross short positions not exceeding total open interest, no future dates and a latest report date no more than 21 calendar days stale.
 - Retrieve only the exact contract code and selected fields. Persist the response SHA-256, URL, row count and date coverage; do not commit raw CFTC position observations.
 
 ### Publication timing and shutdown catch-up
