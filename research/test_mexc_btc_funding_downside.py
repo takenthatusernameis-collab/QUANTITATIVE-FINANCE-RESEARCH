@@ -184,6 +184,23 @@ class MexcFundingDownsideTests(unittest.TestCase):
         self.assertEqual(predictions[0]["train_n"], 104)
         self.assertEqual(predictions[0]["signal_date"], start + dt.timedelta(days=105))
 
+    def test_source_preflight_validates_sources_without_running_backtest(self):
+        day = dt.date(2026, 1, 1)
+        funding_source = {"retrieved_rows": 1200}
+        price_source = {"rows": 527}
+        events = [{} for _ in range(model.MODEL_WINDOW + 60)]
+        with (
+            patch.object(model, "fetch_funding_history", return_value=([], funding_source)),
+            patch.object(model, "aggregate_complete_funding_days", return_value=({day: 0.0001}, {"complete_utc_days": 527})),
+            patch.object(model, "fetch_binance_prices", return_value=({day: 100.0}, price_source)),
+            patch.object(model, "build_events", return_value=(events, {"accepted_events": len(events)})),
+        ):
+            result = model.run_source_preflight()
+        self.assertTrue(result["source_preflight_only"])
+        self.assertFalse(result["completed_backtest"])
+        self.assertEqual(result["accepted_event_count"], model.MODEL_WINDOW + 60)
+        self.assertIn("coverage", result["funding_source"])
+
     def test_decision_requires_both_periods_and_positive_paired_lower_bound(self):
         paired = {"ci_95_low_bp2": 0.01, "ci_95_high_bp2": 0.05}
         self.assertEqual(
