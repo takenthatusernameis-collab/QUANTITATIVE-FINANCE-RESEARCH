@@ -8,7 +8,7 @@ import stlfsi4_btc_downside_semivariance as btc
 
 HYPOTHESIS_ID = "QFR-2026-11-26-CFTC-BTC-NONCOMM-CROWDING-DOWNSIDE-01"
 CFTC_DATASET, CFTC_CODE = "6dca-aqww", "133741"
-CFTC_START, CFTC_END = dt.date(2017, 12, 1), dt.date(2026, 11, 17)
+CFTC_START, CFTC_END = dt.date(2017, 12, 1), dt.date(2026, 11, 10)
 BTC_START = dt.date(2017, 8, 17)
 PUBLICATION_LAG_DAYS = 14
 BACKLOG_START, BACKLOG_END = dt.date(2025, 9, 30), dt.date(2026, 1, 20)
@@ -375,7 +375,7 @@ def run_research() -> dict:
             "CFTC non-commercial is a business-purpose classification, not a pure speculative-intent, leveraged-fund, leverage or liquidation-risk measure; the Commission does not publish trader identities or individual motives.",
             "CFTC reports normally contain Tuesday positions and are released Friday at 3:30 p.m. ET; historical release timestamps are not available for the full sample. The 14-day buffer is conservative, not exact point-in-time reconstruction.",
             "The 2025-09-30 through 2026-01-20 publication backlog is excluded because ordinary lag assumptions were invalid.",
-            "The CFTC announced a plan on 2026-10-27 to move to semiweekly reporting by year-end. This run freezes Tuesday weekly observations through 2026-11-17; later reports require a new source/timing specification.",
+            "The CFTC announced a plan on 2026-10-27 to move to semiweekly reporting by year-end. This run freezes Tuesday weekly observations through 2026-11-10; later reports require a new source/timing specification.",
             "CFTC category composition can change when traders enter, leave or update business-purpose classifications; the ratio is not an exogenous shock.",
             "BTCUSDT is one venue's Spot history; checksums establish file integrity, not consolidated-market representativeness.",
             "Forecast-only: no strategy P&L, costs, causal claim, profitability, live trading or capital deployment is established.",
