@@ -451,7 +451,7 @@ def update_preregistration(result: dict, report_relative: str) -> None:
     disposition = [
         "## Empirical disposition",
         "",
-        f"- **Final status:** {status_label.rstrip().rstrip(".")}.",
+        f"- **Final status:** {status_label.rstrip().rstrip('.')}.",
         f"- **Completed real-data backtest:** {'yes' if result.get('completed_backtest') else 'no'}.",
         f"- **Data scope:** {result.get('data_scope', 'source acceptance incomplete')}.",
     ]
