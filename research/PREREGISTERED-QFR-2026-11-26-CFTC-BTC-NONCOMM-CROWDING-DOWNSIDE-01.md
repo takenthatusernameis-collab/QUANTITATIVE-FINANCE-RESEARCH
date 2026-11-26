@@ -37,11 +37,11 @@ No first-in-literature claim is made.
 - Exact contract market code: `133741`, BITCOIN - CHICAGO MERCANTILE EXCHANGE. Official historical report examples confirm this code: https://www.cftc.gov/sites/default/files/files/dea/cotarchives/2021/futures/deacmesf020221.htm.
 - Report type: futures only. Do not mix with futures-and-options combined or a different Bitcoin contract.
 - Required fields: `report_date_as_yyyy_mm_dd`, `market_and_exchange_names`, `cftc_contract_market_code`, `open_interest_all`, `noncomm_positions_long_all`, and `noncomm_positions_short_all`.
-- Report dates in the frozen sample must be Tuesdays. Query only from 2017-12-01 through 2026-11-17 inclusive; 2026-11-17 is the latest Tuesday report available at preregistration. Do not append later observations to this hypothesis.
+- Report dates in the frozen sample must be Tuesdays. Query only from 2017-12-01 through 2026-11-10 inclusive. At preregistration, the CFTC Historical Viewable page listed November 3 and November 10 as the available 2026 Legacy report dates. The CFTC homepage also showed November 17 Disaggregated reports, but that is a different COT report family and does not establish that the Legacy Futures Only dataset had a November 17 release. Do not append later observations to this hypothesis.
 - Require at least 300 valid report rows, first report no later than 2018-03-01, latest report no more than 21 calendar days old at retrieval, no duplicate report dates, report gaps no greater than 14 days, positive finite open interest, finite non-negative long/short positions, exact market identity and absolute net position no greater than open interest. Fail closed on schema drift, truncation or a violated gate.
 - CFTC says reports normally contain positions as of Tuesday and are released Friday at 3:30 p.m. Eastern Time; federal holidays may delay release. Historical release dates are available only for the most recent 13 months. Use a fixed **14-calendar-day** availability buffer after the report date. This is deliberately conservative; it does not reconstruct each historical release timestamp.
 - Exclude report dates from **2025-09-30 through 2026-01-20 inclusive** because the CFTC documented an interruption and delayed catch-up publication schedule during this period. Do not apply the ordinary 14-day lag to these reports.
-- On 2026-10-27 the CFTC announced a plan to move from weekly to semiweekly COT publication by the end of 2026. At preregistration, the official 2026 release calendar still showed the weekly Friday schedule and the current CFTC page showed reports dated 2026-11-17. This hypothesis is frozen to Tuesday weekly observations through 2026-11-17; it is not an ingestion specification for any later semiweekly series. A future cadence or schema change requires a new hypothesis ID and timebox.
+- On 2026-10-27 the CFTC announced a plan to move from weekly to semiweekly COT publication by the end of 2026. At preregistration, the official 2026 release calendar still showed the usual weekly Friday schedule (with a delayed November 16 release), the Legacy Historical Viewable page showed November 3 and 10, and the current Disaggregated page showed November 17. This hypothesis is frozen to Tuesday weekly observations through 2026-11-17; it is not an ingestion specification for any later semiweekly series. A future cadence or schema change requires a new hypothesis ID and timebox.
 - No credentials or paid data are required. Retain the source-response SHA-256, exact query URL, retrieval time, schema and coverage metadata; do not commit raw source rows.
 
 Official timing and backlog references:
@@ -100,6 +100,11 @@ Official timing and backlog references:
 ## Pre-admission clarification — 2026-11-26
 
 Before the first admitted real-data run and before any empirical result was inspected, the mechanism wording was clarified to match the frozen model: the signed non-commercial net-position share is tested for incremental predictive information without imposing a positive coefficient sign. The CFTC classification does not justify a universal long-side-only directional restriction. No data, feature, horizon, model, split, timebox or decision threshold changed.
+
+
+## Pre-admission source-cutoff correction — 2026-11-26
+
+Before the first admitted real-data run and before any empirical result was inspected, the source cutoff was narrowed from 2026-11-17 to 2026-11-10. The CFTC homepage's November 17 listing is explicitly for Disaggregated reports, whereas the Legacy Historical Viewable page listed November 3 and November 10. The experiment uses Legacy Futures Only, so November 10 is the latest source-specific report date verified at preregistration. No feature, target, model, split, timebox or decision rule changed.
 
 
 ## Empirical disposition
