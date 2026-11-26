@@ -1,14 +1,14 @@
 # Preregistration — MEXC BTC perpetual funding pressure and next-session BTC downside risk
 
 - **Hypothesis ID:** QFR-2026-11-26-MEXC-BTC-FUNDING-DOWNSIDE-01
-- **Registered:** 2026-11-26T15:15:00Z, before implementation and empirical-result inspection.
+- **Registered:** 2026-11-26T15:15:43Z, before implementation and empirical-result inspection.
 - **Initial status:** PREREGISTERED.
 - **Difficulty:** MEDIUM.
 - **Difficulty rationale:** one public paginated MEXC funding-history endpoint, one existing Binance Spot archive pipeline, daily aggregation of three 8-hour settlements, one lagged feature, a new one-session downside target, deterministic cadence/alignment tests, a dedicated workflow and evidence persistence. Existing repository helpers cover archive verification, daily semivariance, standardized OLS, metrics and paired block bootstrap. The source history may be limited to roughly 540 days and must be verified before any model result is interpreted.
-- **Timebox start:** 2026-11-26T15:15:00Z.
+- **Timebox start:** 2026-11-26T15:15:43Z.
 - **Maximum substantive cycles:** 4 total.
-- **Hard implementation deadline:** 2026-11-29T15:15:00Z.
-- **Hard final research-conclusion deadline:** 2026-12-01T15:15:00Z.
+- **Hard implementation deadline:** 2026-11-29T15:15:43Z.
+- **Hard final research-conclusion deadline:** 2026-12-01T15:15:43Z.
 - **Expiry rule:** the earlier of four substantive cycles or the five-calendar-day limit governs. If the MEXC source cannot meet the frozen history, cadence, freshness or sample gates, close INCONCLUSIVE/INFEASIBLE with the exact source limitation. If implementation, tests or the frozen empirical screen remain incomplete at the applicable deadline, close INCONCLUSIVE/INFEASIBLE. No automatic extension, silent clock reset, relaxed gate, same-ID retuning or duplicate source route.
 
 ## Research question and falsifiable claim
