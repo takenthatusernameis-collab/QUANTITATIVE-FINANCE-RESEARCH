@@ -84,6 +84,21 @@ class EpuBtcDownsideTests(unittest.TestCase):
         self.assertEqual(predictions[0]["train_n"], 104)
         self.assertEqual(predictions[0]["record_date"], predictions[0]["signal_date"])
 
+    def test_paired_bootstrap_receives_dated_walk_forward_records(self):
+        rows = []
+        start = dt.date(2022, 1, 1)
+        for index in range(40):
+            rows.append({
+                "record_date": (start + dt.timedelta(days=6 * index)).isoformat(),
+                "target_bp": 0.4 + 0.03 * math.sin(index / 3.0),
+                "baseline_prediction_bp": 0.45 + 0.02 * math.cos(index / 4.0),
+                "augmented_prediction_bp": 0.42 + 0.02 * math.sin(index / 5.0),
+            })
+        model.base.LOSS_BOOTSTRAP_SEED = model.BOOTSTRAP_SEED
+        result = model.base.bootstrap_paired_squared_loss_difference(rows, reps=100)
+        self.assertEqual(result["status"], "COMPUTED")
+        self.assertEqual(result["observations"], 40)
+
     def test_decision_requires_both_periods_and_paired_interval(self):
         paired = {"ci_95_low_bp2": 0.01, "ci_95_high_bp2": 0.05}
         self.assertEqual(model.decide({"n": 50, "rmse_improvement_pct": 2.0}, {"n": 100, "rmse_improvement_pct": 1.0}, paired)[0], "BACKTESTED")
