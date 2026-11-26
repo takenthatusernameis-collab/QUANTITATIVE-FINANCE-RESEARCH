@@ -47,7 +47,7 @@ Final GitHub Actions run: 45821991487 — success.
 
 ## Empirical result
 
-<badge>INCONCLUSIVE</badge>
+**INCONCLUSIVE**
 
 | Metric | Validation 2019–2021 | Test 2022–2026-11-26 |
 |---|---:|---:|
@@ -63,9 +63,9 @@ The frozen rejection criteria were not satisfied because both confidence interva
 ## Durable artifacts
 
 - [Experiment session report](2026-11-26T124128Z_session-cftc-bitcoin-carry-crowding-45821991487.md)
-- [Generated manifest](../generated/cftc-bitcoin-carry-crowding/45821991487-attempt-1/manifest.json)
-- [Preregistration and empirical disposition](../../research/PREREGISTERED-QFR-2026-11-26-CFTC-BTC-CARRY-CROWDING-DOWNSIDE-01.md)
-- [Hypothesis registry](../../research/HYPOTHESIS-REGISTRY.md)
+- [Generated manifest](../../generated/cftc-bitcoin-carry-crowding/45821991487-attempt-1/manifest.json)
+- [Preregistration and empirical disposition](../../../research/PREREGISTERED-QFR-2026-11-26-CFTC-BTC-CARRY-CROWDING-DOWNSIDE-01.md)
+- [Hypothesis registry](../../../research/HYPOTHESIS-REGISTRY.md)
 - [Successful GitHub Actions run](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45821991487)
 
 ## Decision and next action
