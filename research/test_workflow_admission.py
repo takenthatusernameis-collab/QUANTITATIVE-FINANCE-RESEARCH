@@ -98,6 +98,12 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         )
         self.assertIn("contents: write", text)
 
+    def test_wikipedia_attention_persistence_git_add_command_has_balanced_quotes(self):
+        text = (WORKFLOW_DIR / "wikipedia-attention-btc-downside.yml").read_text(encoding="utf-8")
+        expected = 'git add "$report" "$manifest" research/HYPOTHESIS-REGISTRY.md research/PREREGISTERED-QFR-2026-11-26-WIKIPEDIA-ATTENTION-BTC-DOWNSIDE-01.md'
+        self.assertIn(expected, text)
+        self.assertNotIn(expected + '"', text)
+
     def test_readme_requires_difficulty_adjusted_model_timeboxes(self):
         text = README.read_text(encoding="utf-8")
         required = [

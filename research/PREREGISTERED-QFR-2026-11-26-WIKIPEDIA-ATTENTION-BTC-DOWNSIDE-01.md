@@ -2,7 +2,7 @@
 
 - **Hypothesis ID:** `QFR-2026-11-26-WIKIPEDIA-ATTENTION-BTC-DOWNSIDE-01`
 - **Registered:** `2026-11-26T19:02:30Z`, before the source-feasibility workflow is committed or executed.
-- **Status:** `FEASIBILITY_CHECKED` — the read-only source preflight passed; no backtest has run.
+- **Status:** INCONCLUSIVE
 - **Difficulty:** `LOW`.
 - **Difficulty rationale:** one official, no-key daily pageview endpoint; one existing Binance BTCUSDT Spot archive pipeline; one frozen attention feature; one existing downside-semivariance forecast design; deterministic source, timing and maturity tests. The primary uncertainty is live endpoint availability, full historical coverage and stable response semantics from GitHub-hosted runners.
 - **Timebox start:** `2026-11-26T19:02:30Z`.
@@ -98,3 +98,15 @@ A read-only source preflight must pass before model implementation begins. The p
 - The two-day embargo is conservative operational timing, not proof of historical point-in-time availability or absence of later data corrections.
 - The forecast test is observational and cannot establish causality.
 - Paper research only. No live orders, capital deployment, paid data or private exchange credentials.
+
+## Empirical disposition
+
+- **Final status:** INCONCLUSIVE
+- **Disposition:** INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen rule
+- **Completed real-data backtest:** yes
+- **Data scope:** English-Wikipedia Bitcoin user pageviews 2017-08-17 to 2026-11-18 (3381 calendar dates); Binance BTCUSDT Spot 1d UTC 2017-08-17 to 2026-11-25 (3388 candles); 561 accepted six-day-spaced events; validation 2019-2021; test 2022-11-20
+- **Summary metrics:** {"test_augmented_rmse":0.878108981441773,"test_baseline_rmse":0.87015502774617,"test_n":298,"test_rmse_improvement_pct":-0.9140846679016309,"validation_augmented_rmse":1.0647841913352571,"validation_baseline_rmse":1.0488537669869709,"validation_n":159,"validation_rmse_improvement_pct":-1.518841315129126}
+- **Paired test-loss bootstrap:** {"block_size_events":4,"bootstrap_fraction_positive":0.1085,"ci_95_high":0.008245217625406073,"ci_95_low":-0.035549994406648563,"observations":298,"observed_mean_baseline_minus_augmented_squared_loss":-0.01390561097676914,"reps":2000,"seed":20261126,"status":"COMPUTED"}
+- **Report:** [reports/sessions/2026-11-26/2026-11-26T212528Z_session-wikipedia-attention-btc-downside-45898030626.md](../reports/sessions/2026-11-26/2026-11-26T212528Z_session-wikipedia-attention-btc-downside-45898030626.md)
+- **Manifest:** [reports/generated/wikipedia-attention-btc-downside/45898030626-attempt-1/manifest.json](../reports/generated/wikipedia-attention-btc-downside/45898030626-attempt-1/manifest.json)
+- Forecast screen only; no causal, trading or deployment claim.
