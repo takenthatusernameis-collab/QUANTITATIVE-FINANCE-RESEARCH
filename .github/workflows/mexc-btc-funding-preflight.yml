@@ -1,7 +1,7 @@
 name: MEXC funding hypothesis deterministic preflight
 
 # Temporary staging-only validation; excluded from the final main-branch change set.
-# This run verifies the complete synthetic event schema.
+# This run verifies the complete synthetic event schema and live source coverage.
 
 on:
   push:
