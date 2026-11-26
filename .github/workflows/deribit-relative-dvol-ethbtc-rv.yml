@@ -1,0 +1,114 @@
+name: Deribit relative DVOL and ETH-BTC realized-volatility forecast
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "research/deribit_relative_dvol_ethbtc_rv.py"
+      - "research/test_deribit_relative_dvol_ethbtc_rv.py"
+      - ".github/workflows/deribit-relative-dvol-ethbtc-rv.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qfr-deribit-relative-dvol-ethbtc-rv-main
+  cancel-in-progress: false
+
+jobs:
+  relative-dvol-backtest:
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[QFR-ADMIT]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout the exact admitted commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Assert immutable source checkout
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$GITHUB_SHA"
+          echo "Verified source commit: $actual"
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Compile and run deterministic source, timing, pagination and leakage tests
+        run: |
+          set -euo pipefail
+          python -m py_compile research/deribit_relative_dvol_ethbtc_rv.py research/test_deribit_relative_dvol_ethbtc_rv.py
+          python -m unittest discover -s research -p "test_deribit_relative_dvol_ethbtc_rv.py" -v
+          python -m unittest discover -s research -p "test_workflow_admission.py" -v
+
+      - name: Retrieve public data and run the frozen walk-forward screen
+        id: research
+        continue-on-error: true
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: python research/deribit_relative_dvol_ethbtc_rv.py
+
+      - name: Display persisted research diagnostics
+        if: always()
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          report="$(find reports/sessions -type f -name "*session-deribit-relative-dvol-ethbtc-rv-$GITHUB_RUN_ID.md" | sort | tail -n 1)"
+          manifest="reports/generated/deribit-relative-dvol-ethbtc-rv/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/manifest.json"
+          test -n "$report"
+          test -s "$report"
+          test -s "$manifest"
+          echo "=== SESSION REPORT ==="
+          cat "$report"
+          echo "=== MANIFEST ==="
+          cat "$manifest"
+
+      - name: Persist exact-run evidence to main
+        if: always()
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          report="$(find reports/sessions -type f -name "*session-deribit-relative-dvol-ethbtc-rv-$GITHUB_RUN_ID.md" | sort | tail -n 1)"
+          manifest="reports/generated/deribit-relative-dvol-ethbtc-rv/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/manifest.json"
+          prereg="research/PREREGISTERED-QFR-2026-11-26-DERIBIT-RELATIVE-DVOL-ETHBTC-RV-01.md"
+          test -n "$report"
+          test -s "$report"
+          test -s "$manifest"
+          test -s "$prereg"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$report" "$manifest" research/HYPOTHESIS-REGISTRY.md "$prereg"
+          if git diff --cached --quiet; then
+            echo "No generated evidence changes to persist."
+            exit 0
+          fi
+          git commit -m "Persist relative DVOL ETH-BTC forecast evidence $GITHUB_RUN_ID"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Main advanced during persistence; retrying after refresh."
+          done
+          echo "Could not persist research evidence after three attempts."
+          exit 1
+
+      - name: Propagate research execution failure after persisting diagnostics
+        if: steps.research.outcome == 'failure'
+        run: exit 1
