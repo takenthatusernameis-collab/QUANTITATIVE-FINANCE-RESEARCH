@@ -95,14 +95,14 @@ No first-in-literature claim is made.
 ## Empirical disposition
 
 - **Status:** INCONCLUSIVE
-- **Disposition:** INCONCLUSIVE/INFEASIBLE — bounded source, timing or execution gate failed: ValueError: Unexpected market name for Bitcoin contract code 133741: 'BITCOIN'
+- **Disposition:** INCONCLUSIVE/INFEASIBLE — bounded source, timing or execution gate failed: ValueError: Unexpected non-Tuesday TFF report date outside the documented shutdown catch-up window: 2018-12-24
 - **Completed real-data backtest:** False
 - **Data scope:** not established
 - **Validation/test forecasts:** None/None
 - **RMSE improvement:** None% validation; None% test
 - **Validation metrics:** {}
 - **Test metrics:** {}
-- **Report:** [reports/sessions/2026-11-26/2026-11-26T123722Z_session-cftc-bitcoin-carry-crowding-45821339118.md](../reports/sessions/2026-11-26/2026-11-26T123722Z_session-cftc-bitcoin-carry-crowding-45821339118.md)
-- **Manifest:** [reports/generated/cftc-bitcoin-carry-crowding/45821339118-attempt-1/manifest.json](../reports/generated/cftc-bitcoin-carry-crowding/45821339118-attempt-1/manifest.json)
+- **Report:** [reports/sessions/2026-11-26/2026-11-26T123816Z_session-cftc-bitcoin-carry-crowding-45821494731.md](../reports/sessions/2026-11-26/2026-11-26T123816Z_session-cftc-bitcoin-carry-crowding-45821494731.md)
+- **Manifest:** [reports/generated/cftc-bitcoin-carry-crowding/45821494731-attempt-1/manifest.json](../reports/generated/cftc-bitcoin-carry-crowding/45821494731-attempt-1/manifest.json)
 
-- **Execution blocker:** ValueError: Unexpected market name for Bitcoin contract code 133741: 'BITCOIN'
+- **Execution blocker:** ValueError: Unexpected non-Tuesday TFF report date outside the documented shutdown catch-up window: 2018-12-24

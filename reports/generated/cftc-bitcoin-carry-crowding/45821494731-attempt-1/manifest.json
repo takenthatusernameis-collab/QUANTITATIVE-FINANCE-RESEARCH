@@ -1,0 +1,12 @@
+{
+  "completed_backtest": false,
+  "daily_kpi": "MET before this additional study by distinct real-data hypothesis backtests on 2026-11-26; this run did not count toward the KPI",
+  "disposition": "INCONCLUSIVE/INFEASIBLE \u2014 bounded source, timing or execution gate failed: ValueError: Unexpected non-Tuesday TFF report date outside the documented shutdown catch-up window: 2018-12-24",
+  "error": "ValueError: Unexpected non-Tuesday TFF report date outside the documented shutdown catch-up window: 2018-12-24",
+  "hypothesis_id": "QFR-2026-11-26-CFTC-BTC-CARRY-CROWDING-DOWNSIDE-01",
+  "retrieved_at_utc": "2026-11-26T12:38:18.342965+00:00",
+  "run_attempt": "1",
+  "run_id": "45821494731",
+  "source_commit_sha": "ae1f6844afb97c7c4d06974062c36a73f7d59476",
+  "status": "INCONCLUSIVE"
+}
