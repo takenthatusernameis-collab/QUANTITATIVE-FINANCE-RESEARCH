@@ -2,7 +2,7 @@
 
 - **Hypothesis ID:** QFR-2026-11-26-SOFR-EFFR-REPO-PREMIUM-SP500-RV-01
 - **Registered:** 2026-11-26T01:57:13Z, before this hypothesis's empirical result inspection.
-- **Status:** PREREGISTERED — one bounded real-data walk-forward screen is authorized.
+- **Status:** REJECTED — REJECTED — the augmented model fails to improve either period and paired-loss inference indicates it is worse
 - **Difficulty:** MEDIUM.
 - **Difficulty rationale:** four public FRED daily series, one common-date spread calculation, and the repository's existing rolling OLS/paired-bootstrap harness.
 - **Implementation timebox:** 2026-11-26T01:57:13Z through 2026-11-29T01:57:13Z.
@@ -94,3 +94,13 @@ Even a promising forecast is not independent validation, a causal finding, an ex
 - SP500 is a cash price index, not an executable futures series or total-return index.
 - FRED data are not redistributed; no raw observations are committed.
 - Forecasting only: no transaction-cost model, tradable strategy, live-trading conclusion or deployment authorization.
+
+## Empirical disposition
+
+- **Final status:** REJECTED — REJECTED — the augmented model fails to improve either period and paired-loss inference indicates it is worse.
+- **Completed real-data backtest:** yes.
+- **Data scope:** FRED SOFR/EFFR daily from 2018-04-03 to 2026-11-24 (common end 2026-11-24); SP500/VIXCLS 2018-04-03 to 2026-11-24; 359 accepted non-overlapping six-session-spaced events; validation 2019-2021; test 2022 onward.
+- **Summary:** validation/test n=51/204; RMSE improvement=-0.1321%/-2.1813%.
+- **Report:** [../reports/sessions/2026-11-26/2026-11-26T020146Z_session-sofr-effr-repo-premium-45739654076.md](../reports/sessions/2026-11-26/2026-11-26T020146Z_session-sofr-effr-repo-premium-45739654076.md).
+
+Forecasting screen only. No causal, trading, profitability or deployment claim.

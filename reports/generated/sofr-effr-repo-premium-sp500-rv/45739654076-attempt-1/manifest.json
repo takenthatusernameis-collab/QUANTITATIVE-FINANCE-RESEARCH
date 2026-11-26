@@ -1,0 +1,140 @@
+{
+  "completed_backtest": true,
+  "daily_kpi": "This distinct real-data backtest completed on UTC date 2026-11-26; the 2026-11-26 minimum was already met by the earlier STLFSI4 screen.",
+  "data_scope": "FRED SOFR/EFFR daily from 2018-04-03 to 2026-11-24 (common end 2026-11-24); SP500/VIXCLS 2018-04-03 to 2026-11-24; 359 accepted non-overlapping six-session-spaced events; validation 2019-2021; test 2022 onward",
+  "data_sources": {
+    "EFFR": {
+      "first_date": "2018-04-03",
+      "last_date": "2026-11-24",
+      "rows": 2171,
+      "sha256": "21f9a4a13c6a57190460d955a87383f75f8025443405abbbbea71653ea40fdb9",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=EFFR&cosd=2018-04-03"
+    },
+    "SOFR": {
+      "first_date": "2018-04-03",
+      "last_date": "2026-11-24",
+      "rows": 2159,
+      "sha256": "555f9196c39ce58e0db105f4b15cb8248ab7b1e222d1a0b08248138f344800b7",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=SOFR&cosd=2018-04-03"
+    },
+    "SP500": {
+      "first_date": "2018-04-03",
+      "last_date": "2026-11-24",
+      "rows": 2175,
+      "sha256": "b9d6b7dd63cd2118e18f015de4a77e03fe2e3d449ed749f94a69037737f8c6d6",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=SP500&cosd=2018-04-03"
+    },
+    "VIXCLS": {
+      "first_date": "2018-04-03",
+      "last_date": "2026-11-24",
+      "rows": 2208,
+      "sha256": "fcb51ac72610621e2df10ddf77dc707525d0e1f6714e80dd0d72efa3736d4e97",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS&cosd=2018-04-03"
+    }
+  },
+  "disposition": "REJECTED \u2014 the augmented model fails to improve either period and paired-loss inference indicates it is worse",
+  "event_construction": {
+    "accepted_events": 359,
+    "candidate_origins": 359,
+    "event_spacing_sp500_observations": 6,
+    "funding_observation_lag": "strictly prior common date; source rates are published the following business morning",
+    "signal_rule": "S&P 500 close on t; latest common SOFR/EFFR observation dated strictly before t",
+    "skipped": {
+      "incomplete_price_window": 0,
+      "insufficient_five_observation_spread_history": 0,
+      "irregular_funding_observation_window": 0,
+      "missing_vix_on_signal_date": 0,
+      "no_strictly_prior_common_rate_observation": 0,
+      "overlapping_target_window": 0,
+      "stale_common_rate_observation": 0
+    },
+    "spread_feature": "100 * ((SOFR-EFFR)[d] - (SOFR-EFFR)[d-5]) in basis points",
+    "target_sessions": 5
+  },
+  "hypothesis_id": "QFR-2026-11-26-SOFR-EFFR-REPO-PREMIUM-SP500-RV-01",
+  "limitations": [
+    "SOFR and EFFR are current FRED vintages; historical point-in-time revisions and exact retrieval-time vintages are not reconstructed.",
+    "SOFR is a broad secured Treasury-repo rate and EFFR is an unsecured federal-funds transaction rate; their spread is a funding-market proxy, not a pure exogenous liquidity shock.",
+    "The strict prior-observation rule avoids same-date release look-ahead, but does not reconstruct intraday publication timestamps or later revisions.",
+    "The SOFR-EFFR spread is known to exhibit calendar and policy-intervention effects; this single-feature screen does not separately identify those drivers.",
+    "SP500 is a cash price index, not an executable futures series or total-return index.",
+    "Forecasting only: no causal claim, transaction-cost model, tradable strategy or live-deployment conclusion.",
+    "No raw source data are committed; only URLs, retrieval metadata, hashes and aggregate metrics are retained."
+  ],
+  "methodology": {
+    "augmented_features": [
+      "pre_rv5_log",
+      "pre_rv20_log",
+      "log_vix",
+      "repo_spread_5obs_change_bp"
+    ],
+    "availability": "SOFR and EFFR observations are used only after their observation date; same-date rates are excluded",
+    "baseline_features": [
+      "pre_rv5_log",
+      "pre_rv20_log",
+      "log_vix"
+    ],
+    "bootstrap_block_events": 4,
+    "bootstrap_reps": 2000,
+    "bootstrap_seed": 20261127,
+    "event_spacing_sp500_observations": 6,
+    "feature": "100 * ((SOFR-EFFR)[d] - (SOFR-EFFR)[d-5]) basis points; d is the latest common rate observation strictly before the signal date",
+    "rolling_training_events": 104,
+    "target": "log1p(next-five-session S&P 500 realized volatility in percent)",
+    "target_sessions": 5,
+    "test": "2022-01-01 onward",
+    "training_rule": "training target_end_date must be strictly earlier than current signal_date",
+    "validation": "2019-01-01 through 2021-12-31"
+  },
+  "paired_squared_loss_bootstrap": {
+    "block_size_events": 4,
+    "bootstrap_fraction_positive": 0.021,
+    "ci_95_high": -0.00011120124824089034,
+    "ci_95_low": -0.0071170259488151635,
+    "mean_baseline_minus_augmented_squared_log_loss": -0.003199601622904665,
+    "observations": 204,
+    "reps": 2000,
+    "status": "COMPUTED"
+  },
+  "retrieved_at_utc": "2026-11-26T02:01:49.707258+00:00",
+  "run_attempt": "1",
+  "run_id": "45739654076",
+  "source_commit_sha": "70779dbf0f442d4de4a0da1928f256f09cd55cbe",
+  "status": "REJECTED",
+  "summary_metrics": {
+    "test_improvement_pct": -2.181280203856217,
+    "test_n": 204,
+    "validation_improvement_pct": -0.13212678132703193,
+    "validation_n": 51
+  },
+  "test_metrics": {
+    "augmented": {
+      "mae_log1p_rv": 0.2065743092820686,
+      "n": 204,
+      "oos_r2_vs_period_mean": 0.3199124739219441,
+      "rmse_log1p_rv": 0.27522830383842234
+    },
+    "baseline": {
+      "mae_log1p_rv": 0.20259762048308744,
+      "n": 204,
+      "oos_r2_vs_period_mean": 0.3486384325235643,
+      "rmse_log1p_rv": 0.26935296102116707
+    },
+    "n": 204
+  },
+  "validation_metrics": {
+    "augmented": {
+      "mae_log1p_rv": 0.25911251346660863,
+      "n": 51,
+      "oos_r2_vs_period_mean": 0.03774686684658557,
+      "rmse_log1p_rv": 0.30667639967753524
+    },
+    "baseline": {
+      "mae_log1p_rv": 0.2586146896063677,
+      "n": 51,
+      "oos_r2_vs_period_mean": 0.040284624339912756,
+      "rmse_log1p_rv": 0.3062717326950108
+    },
+    "n": 51
+  }
+}
