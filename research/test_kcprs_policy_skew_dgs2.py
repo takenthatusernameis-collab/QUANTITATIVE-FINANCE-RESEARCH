@@ -210,7 +210,8 @@ class KcprsPolicySkewTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn("ref: $" + "{{ github.sha }}", workflow)
         self.assertIn("cancel-in-progress: false", workflow)
-        self.assertIn("contains(github.event.head_commit.message, '[QFR-ADMIT]')", workflow)
+        self.assertIn("startsWith(github.event.head_commit.message, '[QFR-ADMIT] research:')", workflow)
+        self.assertNotIn("contains(github.event.head_commit.message, '[QFR-ADMIT]')", workflow)
 
 
 if __name__ == "__main__":
