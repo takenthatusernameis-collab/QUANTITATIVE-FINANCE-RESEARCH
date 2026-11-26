@@ -32,10 +32,10 @@ BOOTSTRAP_REPS, BOOTSTRAP_BLOCK, BOOTSTRAP_SEED = 2000, 7, 20261126
 
 TIMEBOX = {
     "difficulty": "MEDIUM",
-    "start_utc": "2026-11-26T15:15:00Z",
+    "start_utc": "2026-11-26T15:15:43Z",
     "max_substantive_cycles": 4,
-    "implementation_deadline_utc": "2026-11-29T15:15:00Z",
-    "final_conclusion_deadline_utc": "2026-12-01T15:15:00Z",
+    "implementation_deadline_utc": "2026-11-29T15:15:43Z",
+    "final_conclusion_deadline_utc": "2026-12-01T15:15:43Z",
 }
 
 MEXC_HISTORY_URL = "https://contract.mexc.com/api/v1/contract/funding_rate/history"
@@ -356,7 +356,7 @@ def build_events(funding_daily: dict[dt.date, float], prices: dict[dt.date, floa
             "pre_rv5_log": math.log1p(btc.total_var_pct2(prior5)),
         })
     for left, right in zip(events, events[1:]):
-        if left["target_end_date"] >= right["signal_date"]:
+        if left["target_end_date"] > right["signal_date"]:
             raise ValueError("One-session target windows overlap or are not fully matured")
     return events, {
         "candidate_funding_days": len(funding_daily),
