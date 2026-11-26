@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Forecast screen: CFTC Bitcoin non-commercial net-long positioning -> BTC downside semivariance."""
 from __future__ import annotations
-import bisect, concurrent.futures, datetime as dt, hashlib, json, math, os, random, statistics, urllib.parse
+import concurrent.futures, datetime as dt, hashlib, json, math, os, random, statistics, urllib.parse
 from pathlib import Path
 import treasury_auction_demand as base
 import stlfsi4_btc_downside_semivariance as btc
@@ -208,7 +208,7 @@ def build_events(cot: list[dict], prices: dict[dt.date, float]) -> tuple[list[di
     return events, {"candidate_reports": len(cot), "accepted_events": len(events), "skipped": skipped,
                     "publication_lag_calendar_days": PUBLICATION_LAG_DAYS,
                     "backlog_exclusion": [BACKLOG_START.isoformat(), BACKLOG_END.isoformat()],
-                    "target_sessions": TARGET_SESSIONS, "weekly_event_spacing_days": 7}
+                    "target_sessions": TARGET_SESSIONS, "nominal_report_spacing_days": 7}
 
 
 def walk_forward(events: list[dict]) -> list[dict]:
@@ -318,7 +318,7 @@ def render_report(result: dict, error: str | None = None) -> str:
         lines += [
             "## Preregistered method", "",
             "- CFTC source: Legacy Futures Only dataset 6dca-aqww, exact Bitcoin CME contract code 133741.",
-            "- Predictor: (non-commercial long - non-commercial short) / total open interest; positive values indicate non-commercial net-long positioning. Spreading positions are excluded from the directional numerator.",
+            "- Predictor: (non-commercial long - non-commercial short) / total open interest; positive values indicate non-commercial net-long positioning. Spreading positions are excluded from the directional numerator; the signed feature has no ex-ante coefficient-sign constraint.",
             "- Signal: BTCUSDT UTC daily close exactly 14 calendar days after the CFTC report date. The ordinary Tuesday-to-Friday release timing and 2025-09-30 through 2026-01-20 backlog are handled by the frozen buffer and exclusion.",
             "- Baseline: prior-five and prior-twenty-session BTC downside semivariance plus prior-twenty-session total realized variance.",
             "- Target: log1p of next-five-session BTC downside semivariance. Targets do not overlap.",
@@ -364,7 +364,7 @@ def run_research() -> dict:
         "data_scope": f"CFTC Legacy Futures Only Bitcoin code {CFTC_CODE} {coverage['CFTC']['first_report_date']} to {coverage['CFTC']['last_report_date']} ({coverage['CFTC']['rows']} reports); Binance BTCUSDT Spot 1d UTC {coverage['BTCUSDT']['first_date']} to {coverage['BTCUSDT']['last_date']} ({coverage['BTCUSDT']['rows']} candles); validation 2019-2021; test 2022 onward",
         "methodology": {"baseline_features": BASE_FEATURES, "augmented_features": AUG_FEATURES,
                         "predictor": "(non-commercial long - non-commercial short) / open_interest_all",
-                        "availability": "CFTC report date + 14 calendar days; historical release timestamps are not reconstructed",
+                        "availability": "CFTC report date + 14 calendar days; historical release timestamps are not reconstructed", "coefficient_sign_constraint": "none; the signed feature mapping is estimated on training data only",
                         "target": "log1p next-five-UTC-session BTC downside semivariance",
                         "rolling_training_events": MODEL_WINDOW, "training_rule": "signal and target_end strictly before current signal",
                         "validation": "2019-01-01 through 2021-12-31", "test": "2022-01-01 onward",
