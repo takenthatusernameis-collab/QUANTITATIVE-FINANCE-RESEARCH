@@ -2,7 +2,7 @@
 
 - **Hypothesis ID:** QFR-2026-11-26-EPU-BTC-DOWNSIDE-SEMIVARIANCE-01
 - **Registered:** 2026-11-26T14:43:43Z, before implementation and empirical-result inspection.
-- **Initial status:** PREREGISTERED.
+- **Status:** PREREGISTERED
 - **Difficulty:** LOW.
 - **Difficulty rationale:** one public daily FRED series, one existing BTCUSDT Spot archive pipeline, one lagged feature, one instrument, one established walk-forward model and no new infrastructure. The source schema, price retrieval, semivariance functions and OLS/bootstrap helpers already exist in the repository.
 - **Timebox start:** 2026-11-26T14:43:43Z.

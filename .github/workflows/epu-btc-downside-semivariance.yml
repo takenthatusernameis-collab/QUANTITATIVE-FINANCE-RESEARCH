@@ -27,7 +27,7 @@ jobs:
       - name: Checkout trusted triggering commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: \${{ github.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: true
           fetch-depth: 0
 
@@ -52,9 +52,9 @@ jobs:
 
       - name: Retrieve official sources and run the frozen walk-forward screen
         env:
-          GITHUB_RUN_ID: \${{ github.run_id }}
-          GITHUB_RUN_ATTEMPT: \${{ github.run_attempt }}
-          GITHUB_SHA: \${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GITHUB_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           python research/epu_btc_downside_semivariance.py
@@ -71,8 +71,8 @@ jobs:
       - name: Persist evidence to main with bounded concurrent-update recovery
         if: success()
         env:
-          GITHUB_RUN_ID: \${{ github.run_id }}
-          GITHUB_RUN_ATTEMPT: \${{ github.run_attempt }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
           set -euo pipefail
           report="$(find reports/sessions -type f -name "*session-epu-btc-downside-$GITHUB_RUN_ID.md" | sort | tail -n 1)"
