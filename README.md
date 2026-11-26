@@ -1,5 +1,3 @@
-COMMIT TO REPOSITORY THE PENDING TASK
-
 # Quantitative Finance Research Factory — Wake-up Contract
 
 > This README is the single, self-contained bootstrap and operating contract for every scheduled agent wake-up. Do not make useful work depend on missing architecture documents.

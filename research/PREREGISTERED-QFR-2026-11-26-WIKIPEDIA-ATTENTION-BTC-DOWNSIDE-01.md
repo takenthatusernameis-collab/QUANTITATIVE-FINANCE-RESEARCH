@@ -2,7 +2,7 @@
 
 - **Hypothesis ID:** `QFR-2026-11-26-WIKIPEDIA-ATTENTION-BTC-DOWNSIDE-01`
 - **Registered:** `2026-11-26T19:02:30Z`, before the source-feasibility workflow is committed or executed.
-- **Status:** `IDEA` pending the read-only source preflight.
+- **Status:** `FEASIBILITY_CHECKED` — the read-only source preflight passed; no backtest has run.
 - **Difficulty:** `LOW`.
 - **Difficulty rationale:** one official, no-key daily pageview endpoint; one existing Binance BTCUSDT Spot archive pipeline; one frozen attention feature; one existing downside-semivariance forecast design; deterministic source, timing and maturity tests. The primary uncertainty is live endpoint availability, full historical coverage and stable response semantics from GitHub-hosted runners.
 - **Timebox start:** `2026-11-26T19:02:30Z`.
@@ -46,6 +46,16 @@ Urquhart, **“What causes the attention of Bitcoin?”** (2018), reports that r
 - No raw market observations are committed to Git.
 
 A read-only source preflight must pass before model implementation begins. The preflight does not run a backtest. If Wikimedia or Binance source acceptance fails, close `INFEASIBLE` without implementing or backtesting the model.
+
+### Completed source-preflight evidence
+
+- GitHub Actions run: [45881600522](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45881600522), success.
+- Wikimedia API: 38 sequential chunks; 3,381 daily rows from 2017-08-17 through 2026-11-18; zero omitted dates; maximum consecutive omission 0; observed views range 2,176–344,686.
+- Combined SHA-256 of the 38 pageview responses: `b1bc21a94749fa1775ed5a3482e8076734bcfff58a729a75da29c1f6d4023b60`.
+- Binance exchangeInfo: `BTCUSDT`, `TRADING`, Spot trading allowed; response SHA-256 `3f9e1acedee1a539f106bb591b97828d28d13a264a8f4a1959b22649bea11e41`.
+- Source preflight saved no raw observations and executed no backtest.
+- The API request path uses `en.wikipedia.org`, while the response's `project` field is `en.wikipedia`; the parser now validates these separately.
+
 
 ## Frozen feature, signal and target
 
