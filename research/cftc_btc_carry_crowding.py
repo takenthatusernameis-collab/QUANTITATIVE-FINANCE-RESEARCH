@@ -78,8 +78,8 @@ def parse_cftc(body: bytes) -> list[dict]:
         market = str(raw.get("contract_market_name") or "").strip()
         if report_date is None:
             raise ValueError("CFTC Bitcoin row has an invalid report date")
-        if report_date.weekday() != 1:
-            raise ValueError(f"Unexpected non-Tuesday TFF report date for frozen weekly design: {report_date}")
+        if report_date.weekday() != 1 and not is_backlog_report(report_date):
+            raise ValueError(f"Unexpected non-Tuesday TFF report date outside the documented shutdown catch-up window: {report_date}")
         if "BITCOIN" not in market.upper() or "CHICAGO MERCANTILE EXCHANGE" not in market.upper():
             raise ValueError(f"Unexpected market name for Bitcoin contract code {CFTC_CODE}: {market!r}")
         if oi is None or oi <= 0:
