@@ -23,6 +23,10 @@ class CftcBitcoinCarryCrowdingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "non-Tuesday"):
             model.parse_cftc(json.dumps([self._row(day=dt.date(2020, 1, 8))]).encode())
 
+    def test_parser_allows_documented_non_tuesday_shutdown_catch_up_report(self):
+        rows = model.parse_cftc(json.dumps([self._row(day=dt.date(2025, 11, 10))]).encode())
+        self.assertEqual(rows[0]["report_date"], dt.date(2025, 11, 10))
+
     def test_parser_rejects_zero_open_interest(self):
         with self.assertRaisesRegex(ValueError, "open interest"):
             model.parse_cftc(json.dumps([self._row(oi=0)]).encode())
