@@ -1,0 +1,77 @@
+name: CFTC Bitcoin futures short crowding and BTC downside-semivariance forecast
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "research/cftc_btc_carry_crowding.py"
+      - "research/test_cftc_btc_carry_crowding.py"
+      - ".github/workflows/cftc-btc-carry-crowding.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qfr-cftc-btc-carry-crowding-main
+  cancel-in-progress: false
+
+jobs:
+  cftc-bitcoin-crowding-backtest:
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[QFR-ADMIT]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout the exact admitted commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: \${{ github.sha }}
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Run deterministic source, timing, percentile and leakage tests
+        run: python -m unittest discover -s research -p "test_cftc_btc_carry_crowding.py" -v
+
+      - name: Retrieve official data and run the frozen walk-forward screen
+        run: |
+          set -euo pipefail
+          python research/cftc_btc_carry_crowding.py
+          report="$(find reports/sessions -type f -name "*session-cftc-bitcoin-carry-crowding-$GITHUB_RUN_ID.md" | sort | tail -n 1)"
+          manifest="reports/generated/cftc-bitcoin-carry-crowding/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/manifest.json"
+          test -n "$report"
+          test -s "$report"
+          test -s "$manifest"
+          echo "=== SESSION REPORT ==="
+          cat "$report"
+          echo "=== GENERATED MANIFEST ==="
+          cat "$manifest"
+
+      - name: Persist the exact run evidence to main
+        if: success()
+        run: |
+          set -euo pipefail
+          report="$(find reports/sessions -type f -name "*session-cftc-bitcoin-carry-crowding-$GITHUB_RUN_ID.md" | sort | tail -n 1)"
+          manifest="reports/generated/cftc-bitcoin-carry-crowding/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/manifest.json"
+          prereg="research/PREREGISTERED-QFR-2026-11-26-CFTC-BTC-CARRY-CROWDING-DOWNSIDE-01.md"
+          test -n "$report"
+          test -s "$report"
+          test -s "$manifest"
+          test -s "$prereg"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$report" "$manifest" research/HYPOTHESIS-REGISTRY.md "$prereg"
+          if git diff --cached --quiet; then
+            echo "No generated evidence changes to persist."
+            exit 0
+          fi
+          git commit -m "Persist CFTC Bitcoin carry-crowding evidence $GITHUB_RUN_ID"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
