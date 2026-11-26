@@ -314,6 +314,26 @@ def fetch_binance_prices() -> tuple[dict[dt.date, float], dict]:
     }
 
 
+def run_source_preflight() -> dict:
+    funding_rows, funding_source = fetch_funding_history()
+    funding_daily, funding_coverage = aggregate_complete_funding_days(funding_rows)
+    funding_source["coverage"] = funding_coverage
+    prices, price_source = fetch_binance_prices()
+    events, event_meta = build_events(funding_daily, prices)
+    if len(events) < MODEL_WINDOW + 60:
+        raise ValueError(f"Insufficient source-preflight events: {len(events)}")
+    return {
+        "hypothesis_id": HYPOTHESIS_ID,
+        "source_preflight_only": True,
+        "completed_backtest": False,
+        "funding_source": funding_source,
+        "binance_source": price_source,
+        "event_construction": event_meta,
+        "accepted_event_count": len(events),
+        "timebox": TIMEBOX,
+    }
+
+
 def build_events(funding_daily: dict[dt.date, float], prices: dict[dt.date, float]) -> tuple[list[dict], dict]:
     dates = sorted(prices)
     returns: dict[dt.date, float] = {}
@@ -682,6 +702,11 @@ def update_documents(result: dict, report_path: str, manifest_path: str) -> None
 
 
 def main() -> None:
+    if os.environ.get("QFR_SOURCE_PREFLIGHT") == "1":
+        result = run_source_preflight()
+        print("QFR_SOURCE_PREFLIGHT=PASSED")
+        print(json.dumps(result, indent=2, sort_keys=True, default=str))
+        return
     result = run_research()
     report_path, manifest_path = write_artifacts(result)
     print(f"QFR_STATUS={result['status']}")
