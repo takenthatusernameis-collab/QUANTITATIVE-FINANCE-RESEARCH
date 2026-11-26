@@ -80,7 +80,10 @@ class DeribitRelativeDvolTests(unittest.TestCase):
         second_ms = model.utc_midnight_ms(start + dt.timedelta(days=1))
         page1 = json.dumps({
             "jsonrpc": "2.0",
-            "result": {"data": [[second_ms, 0.5, 0.6, 0.4, 0.55]], "continuation": first_ms},
+            "result": {"data": [
+                [first_ms, 0.51, 0.61, 0.41, 0.56],
+                [second_ms, 0.5, 0.6, 0.4, 0.55],
+            ], "continuation": first_ms},
         }).encode()
         page2 = json.dumps({
             "jsonrpc": "2.0",
@@ -90,6 +93,7 @@ class DeribitRelativeDvolTests(unittest.TestCase):
             values, metadata = model.fetch_dvol_history("BTC", start, start + dt.timedelta(days=1))
         self.assertEqual(len(values), 2)
         self.assertEqual(metadata["rows"], 2)
+        json.dumps(metadata)
         self.assertEqual(fetch.call_count, 2)
 
     def test_dvol_scale_normalizes_decimal_fraction_and_percentage_points(self):
@@ -104,6 +108,13 @@ class DeribitRelativeDvolTests(unittest.TestCase):
         self.assertEqual(scale_points, "percentage_points")
         self.assertEqual(factor_points, 1.0)
         self.assertEqual(normalized_points, points)
+
+
+    def test_dvol_scale_rejects_ambiguous_intermediate_values(self):
+        start = dt.date(2023, 3, 26)
+        ambiguous = {start: 3.0, start + dt.timedelta(days=1): 3.2}
+        with self.assertRaisesRegex(ValueError, "Ambiguous"):
+            model.normalize_dvol_scale(ambiguous)
 
     def test_build_events_uses_strictly_prior_common_dvol_and_nonoverlapping_targets(self):
         btc, eth = self._prices()
@@ -223,6 +234,14 @@ class DeribitRelativeDvolTests(unittest.TestCase):
         paired = {"ci95_low": -0.1, "ci95_high": 0.2}
         status, _ = model.decide(validation, test, paired)
         self.assertEqual(status, "INCONCLUSIVE")
+
+
+    def test_decision_backtests_only_when_both_periods_improve_and_test_ci_is_positive(self):
+        validation = {"n": 50, "baseline": {"rmse_log_relative_rv": 1.0}, "augmented": {"rmse_log_relative_rv": 0.9}}
+        test = {"n": 50, "baseline": {"rmse_log_relative_rv": 1.0}, "augmented": {"rmse_log_relative_rv": 0.85}}
+        paired = {"ci95_low": 0.02, "ci95_high": 0.3}
+        status, _ = model.decide(validation, test, paired)
+        self.assertEqual(status, "BACKTESTED")
 
     def test_decision_rejects_only_with_consistent_negative_evidence(self):
         validation = {"n": 50, "baseline": {"rmse_log_relative_rv": 1.0}, "augmented": {"rmse_log_relative_rv": 1.1}}
