@@ -11,7 +11,7 @@
 ## Research output and daily KPI
 
 - The UTC-date minimum for 2026-11-26 was already met before this session. The previous same-day audit recorded ten distinct successful real-data hypothesis workflows, including the CFTC Bitcoin crowding, Deribit relative-DVOL, EPU, MEXC funding, DeFiLlama stablecoin-supply and Wikipedia-attention screens.
-- Latest Wikipedia-attention source preflight [459039? no; prior accepted preflight 45899011700](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45899011700) succeeded; latest admission guard before this session [45899011600](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45899011600) succeeded.
+- Prior Wikipedia-attention source preflight [45899011700](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45899011700) succeeded; latest admission guard before this session [45899011600](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45899011600) succeeded.
 - No additional backtest was launched. The daily minimum was already satisfied, and no newly admitted, source-feasible hypothesis with a materially distinct mechanism was established in this wake-up. Repeating or cosmetically varying an existing hypothesis would violate the research contract.
 - Existing forecast-only results remain INCONCLUSIVE or REJECTED as recorded. No strategy promotion or trading claim is made.
 
