@@ -74,3 +74,16 @@ A deterministic synthetic weekly-WALCL/daily-BTC alignment check produced 476 va
 - No real-data result is claimed before the admitted workflow completes.
 - No raw market data, credentials, paid data, live orders or capital deployment are used.
 - Next: inspect the atomic admission and research runs. If tests pass, verify live coverage, 104-event maturity, zero-imputation rules, chronological forecasts, paired inference and persistence commit. If source acceptance fails, retain an explicit INCONCLUSIVE failure manifest and change only the demonstrated source/semantic defect; do not relax the frozen hypothesis.
+
+
+## Post-admission trigger-isolation repair
+
+The atomic admission commit unintentionally queued three workflows on the same triggering commit: the new Fed balance-sheet experiment, the shared admission guard, and the already-completed KC PRS experiment. Inspection showed the KC PRS workflow explicitly included .github/workflows/workflow-admission-tests.yml in its push path filter. Because the admitted commit changed that shared test workflow, the unrelated KC PRS job was queued despite its hypothesis already having a final INCONCLUSIVE disposition.
+
+- Queued KC PRS run: 45767439656. At the time of this repair it remained QUEUED; the available GitHub integration exposed no workflow-run cancellation action, so cancellation could not be performed or claimed.
+- Removed the shared admission-test workflow from the KC PRS path filter. Its own guard workflow remains triggered by .github/workflows/** changes.
+- Added a regression assertion that shared admission-harness changes cannot re-trigger the KC PRS experiment, and documented the rule in README.
+- The repair commit deliberately omits [QFR-ADMIT], so it cannot admit another research backtest. The guard workflow should run and verify the change.
+- The new Fed research run and admission guard remain separately queued for commit 82eab87d53a7b16196a7964af40dc63bd9225c9b; their outcomes are not yet known.
+
+This is a workflow-trigger isolation defect, not a reason to repeat either empirical experiment. Preserve the queued-run record and do not describe the KC PRS job as cancelled unless GitHub reports that state.

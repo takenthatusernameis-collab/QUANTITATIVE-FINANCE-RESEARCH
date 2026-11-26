@@ -93,6 +93,12 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertIn("research/fed_balance_sheet_btc_downside_semivariance.py", text)
         self.assertIn("research/test_fed_balance_sheet_btc_downside_semivariance.py", text)
 
+    def test_shared_admission_harness_change_does_not_retrigger_kcprs(self):
+        workflow = (WORKFLOW_DIR / "kcprs-policy-skew-dgs2.yml").read_text(encoding="utf-8")
+        self.assertNotIn(".github/workflows/workflow-admission-tests.yml", workflow)
+        readme = README.read_text(encoding="utf-8")
+        self.assertIn("Shared admission-harness changes must not appear in unrelated research workflow path filters", readme)
+
 
 if __name__ == "__main__":
     unittest.main()
