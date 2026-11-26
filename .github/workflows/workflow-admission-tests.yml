@@ -7,6 +7,10 @@ on:
       - "README.md"
       - ".github/workflows/**"
       - "research/test_workflow_admission.py"
+      - "research/wikipedia_attention_btc_downside.py"
+      - "research/test_wikipedia_attention_btc_downside.py"
+      - "research/wikipedia_attention_source_preflight.py"
+      - "research/PREREGISTERED-QFR-2026-11-26-WIKIPEDIA-ATTENTION-BTC-DOWNSIDE-01.md"
       - "research/kcprs_policy_skew_dgs2.py"
       - "research/test_kcprs_policy_skew_dgs2.py"
       - "research/wti_shock_sp500_rv.py"
@@ -16,7 +20,7 @@ on:
       - "research/deribit_relative_dvol_ethbtc_rv.py"
       - "research/test_deribit_relative_dvol_ethbtc_rv.py"
       - "research/mexc_btc_funding_downside.py"
-      - "research/test_mexc_btc_funding_downside.py"
+      - "research/test_mexc_btc_funding_downside.py research/wikipedia_attention_btc_downside.py research/test_wikipedia_attention_btc_downside.py research/wikipedia_attention_source_preflight.py"
       - "research/PREREGISTERED-QFR-2026-11-26-MEXC-BTC-FUNDING-DOWNSIDE-01.md"
   workflow_dispatch:
 
@@ -62,3 +66,7 @@ jobs:
 
       - name: Run MEXC BTC funding downside regression tests
         run: python -m unittest discover -s research -p "test_mexc_btc_funding_downside.py" -v
+
+
+      - name: Run Bitcoin Wikipedia-attention downside regression tests
+        run: PYTHONPATH=research python -m unittest discover -s research -p "test_wikipedia_attention_btc_downside.py" -v

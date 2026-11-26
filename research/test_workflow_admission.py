@@ -83,6 +83,21 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
                 self.assertRegex(text, r"(?m)^  cancel-in-progress: false$")
 
 
+    def test_wikipedia_attention_backtest_workflow_validates_before_source_retrieval(self):
+        path = WORKFLOW_DIR / "wikipedia-attention-btc-downside.yml"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertIn(ADMISSION_IF, text)
+        self.assertIn("ref: ${{ github.sha }}", text)
+        self.assertIn("cancel-in-progress: false", text)
+        self.assertIn('python -m unittest discover -s research -p "test_wikipedia_attention_btc_downside.py" -v', text)
+        self.assertIn('python -m unittest discover -s research -p "test_workflow_admission.py" -v', text)
+        self.assertLess(
+            text.index("Run deterministic pageview, timing, event, walk-forward and decision tests"),
+            text.index("Retrieve frozen Wikimedia and checksummed Binance sources"),
+        )
+        self.assertIn("contents: write", text)
+
     def test_readme_requires_difficulty_adjusted_model_timeboxes(self):
         text = README.read_text(encoding="utf-8")
         required = [
