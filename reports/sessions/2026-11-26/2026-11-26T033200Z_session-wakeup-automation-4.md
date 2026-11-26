@@ -94,3 +94,50 @@ Commit 512ce133a86872fdea94e684d2bb65967e175bc2:
 ## Next executable action
 
 Monitor the existing post-fix runs; do not dispatch duplicate work while they are queued. When a runner starts, verify the full deterministic suite, actual FRED source coverage, strict-prior KCPRS alignment, non-overlap and target maturity, forecast metrics, bootstrap, and the persistence commit. If runner assignment remains unavailable, diagnose the runner path and use a materially different authorized execution route; do not claim an empirical result or weaken the frozen acceptance rules.
+
+
+## Final update — 2026-11-26 03:34 UTC
+
+The post-fix execution completed successfully.
+
+- Research run: https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45749415970 — SUCCESS.
+- Admission/regression run: https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45749416059 — SUCCESS.
+- KC PRS deterministic suite: 13/13 passed.
+- Repository admission tests: 6/6 passed.
+- Separate admission workflow also ran 16/16 VXN/VIX tests and 13/13 KC PRS tests; all passed.
+- The live data and walk-forward job checked out and verified exact source commit 512ce133a86872fdea94e684d2bb65967e175bc2.
+- Evidence persistence succeeded in commit 634da9102cc1b2506d69b095400b927be6aa6073. The generated report and manifest, registry disposition and preregistration update are on main.
+
+### Empirical result
+
+Accepted FRED current-vintage coverage:
+- KCPRS: 9,503 observations, 1989-04-03 through 2026-11-24.
+- DGS2: 9,419 observations, same date envelope.
+- DGS10: 9,419 observations, same date envelope.
+- Common KCPRS/DGS2/DGS10 dates: 9,419.
+- 425 candidate origins; 425 accepted; zero skipped for stale, missing, overlapping or incomplete observations.
+- Source-regime counts: 381 Eurodollar-options events and 44 SOFR-options events.
+- Validation/test forecasts: 56/44.
+
+| Metric | Validation 2018–2022 | Test 2023 onward |
+|---|---:|---:|
+| Baseline RMSE (bp) | 23.3375 | 37.4701 |
+| Augmented RMSE (bp) | 25.1597 | 39.1801 |
+| RMSE improvement | -7.8081% | -4.5637% |
+| Baseline MAE (bp) | 15.7849 | 26.1761 |
+| Augmented MAE (bp) | 17.9396 | 27.5079 |
+| Baseline directional accuracy | 71.43% | 52.27% |
+| Augmented directional accuracy | 71.43% | 43.18% |
+
+Test paired squared-loss bootstrap:
+- Mean baseline-minus-augmented loss: -131.07 bp² (negative favours the baseline).
+- 95% circular-block interval: [-424.96, 54.20] bp².
+- 2,000 resamples; three events per block; 14.1% of resampled means were positive.
+
+**Final disposition: INCONCLUSIVE.** The augmented model has worse RMSE in both periods, but the paired-loss confidence interval crosses zero. The preregistered rule therefore does not permit a formal rejection. It also clearly does not support promotion.
+
+### Interpretation and next action
+
+Do not tune the KCPRS horizon, feature set or split in response to this result. Preserve it as an inconclusive forecast experiment. The source-regime change (Eurodollar options before 2023, SOFR options from 2023) and modest 44-event test sample limit inference. DGS2 is a market-yield proxy, not a realized policy rate or executable P&L; current FRED vintages do not provide historical point-in-time revision control.
+
+The daily real-data backtest minimum was already met by three earlier distinct experiments; this fourth experiment was additional. No further backtest is required to satisfy today's minimum. The next research wake-up should select a materially different information mechanism rather than cosmetically modify this one.
