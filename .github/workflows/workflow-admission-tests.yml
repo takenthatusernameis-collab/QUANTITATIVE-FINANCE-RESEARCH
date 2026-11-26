@@ -7,6 +7,8 @@ on:
       - "README.md"
       - ".github/workflows/**"
       - "research/test_workflow_admission.py"
+      - "research/kcprs_policy_skew_dgs2.py"
+      - "research/test_kcprs_policy_skew_dgs2.py"
   workflow_dispatch:
 
 permissions:
@@ -15,7 +17,7 @@ permissions:
 jobs:
   admission-guard-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 7
     steps:
       - name: Checkout trusted default branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -28,11 +30,14 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Compile VXN/VIX research module
-        run: python -m py_compile research/vxn_vix_cross_index_sp500_rv.py research/test_vxn_vix_cross_index_sp500_rv.py
+      - name: Compile research modules
+        run: python -m py_compile research/vxn_vix_cross_index_sp500_rv.py research/test_vxn_vix_cross_index_sp500_rv.py research/kcprs_policy_skew_dgs2.py research/test_kcprs_policy_skew_dgs2.py
 
       - name: Verify every research workflow has the atomic admission gate
         run: python -m unittest discover -s research -p "test_workflow_admission.py" -v
 
       - name: Run VXN/VIX handoff regression tests
         run: python -m unittest discover -s research -p "test_vxn_vix_cross_index_sp500_rv.py" -v
+
+      - name: Run KC PRS policy-skew regression tests
+        run: python -m unittest discover -s research -p "test_kcprs_policy_skew_dgs2.py" -v
