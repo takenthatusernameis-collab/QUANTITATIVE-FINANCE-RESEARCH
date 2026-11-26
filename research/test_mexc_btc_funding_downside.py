@@ -173,6 +173,7 @@ class MexcFundingDownsideTests(unittest.TestCase):
                 "signal_date": day,
                 "target_end_date": day + dt.timedelta(days=1),
                 "target_bp": 0.3 + 0.04 * math.sin(index / 3.0),
+                "target_downside_loss_pct2": math.expm1(0.3 + 0.04 * math.sin(index / 3.0)),
                 "pre_downside1_log": 0.1 + 0.03 * math.sin(index / 4.0),
                 "pre_downside5_log": 0.2 + 0.04 * math.cos(index / 7.0),
                 "pre_rv5_log": 0.3 + 0.02 * math.sin(index / 9.0),
