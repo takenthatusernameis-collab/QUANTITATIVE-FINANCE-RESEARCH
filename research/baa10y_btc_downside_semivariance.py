@@ -272,8 +272,9 @@ def build_events(spread: dict, prices: dict) -> tuple[list[dict], dict]:
         })
 
     for left, right in zip(events, events[1:]):
-        if (right["signal_date"] - left["signal_date"]).days != 7:
-            raise ValueError("Accepted signal origins are not exactly seven calendar days apart")
+        gap_days = (right["signal_date"] - left["signal_date"]).days
+        if gap_days <= 0 or gap_days % 7 != 0:
+            raise ValueError("Accepted signal origins do not follow the Wednesday weekly schedule")
         if left["target_end_date"] >= right["signal_date"]:
             raise ValueError("BTC target windows overlap or are not fully matured")
 

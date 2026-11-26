@@ -27,7 +27,7 @@ class Baa10yBtcTests(unittest.TestCase):
         index = 0
         while day <= last_price:
             if day.weekday() < 5:
-                spread[day] = 2.0 + 0.0005 * index + 0.1 * math.sin(index / 10.0)
+                spread[day] = 2.0 + 0.0005 * index
                 index += 1
             day += dt.timedelta(days=1)
         return spread, prices
@@ -91,7 +91,7 @@ class Baa10yBtcTests(unittest.TestCase):
         cutoff = signal - dt.timedelta(days=model.RELEASE_LAG_DAYS)
         stale_days = [
             day for day in spread
-            if cutoff - dt.timedelta(days=12) < day <= cutoff
+            if cutoff - dt.timedelta(days=6) < day <= cutoff
         ]
         for day in stale_days:
             del spread[day]
