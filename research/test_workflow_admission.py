@@ -129,11 +129,11 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         text = README.read_text(encoding="utf-8")
         required = [
             "Failed-admission recovery",
-            "never put [QFR-ADMIT] on a repair",
+            "never put `[QFR-ADMIT]` on a repair",
             "ordinary unmarked commits",
             "workflow_dispatch",
             "genuinely new, complete atomic hypothesis admission",
-            "record the dispatched run's exact source_commit_sha",
+            "record the dispatched run's exact `source_commit_sha`",
         ]
         for phrase in required:
             with self.subTest(phrase=phrase):
