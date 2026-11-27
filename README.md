@@ -192,11 +192,11 @@ The daily research KPI for 2026-11-27 had already been met by distinct ETF-relat
 
 Hypothesis QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01 was frozen before implementation at **2026-11-27T22:29:15Z** as a LOW-difficulty, two-cycle study. Its implementation deadline is **2026-11-28T22:29:15Z** and its final research-conclusion deadline is **2026-11-29T22:29:15Z**.
 
-- Predictor: four-week log increase in the combined Wednesday Treasury General Account balance plus same-day ON RRP balance; RRP billions are converted to millions before addition.
+- Predictor: four-week log increase in the combined Wednesday Treasury General Account balance plus same-day ON RRP balance; two single-series FRED CSV responses are aligned by exact Wednesday date, and RRP billions are converted to millions before addition.
 - This is a narrow liability-side reserve-drain proxy, not total net liquidity or bank reserves. It is distinct from the completed WALCL-only balance-sheet screen and SOFR-EFFR funding-spread screen.
 - The frozen five-session BTC downside-semivariance target, 104-event rolling walk-forward model, 2019–2021 validation, 2022-onward test and paired-loss bootstrap are unchanged from the registered specification.
 - The 2026-11-27 daily real-data backtest minimum was already met by the distinct ETF-relative-flow and BTC blockspace-fee-rate screens. This study is additional research and may count for a later UTC date only if its empirical run actually completes on that date.
-- No empirical result has been inspected. The workflow must run the one frozen screen; if source acceptance or execution fails, preserve an INCONCLUSIVE/INFEASIBLE result rather than infer a performance NO-GO. Do not retune or repeat this hypothesis ID.
+- The first admitted attempt passed all 56 deterministic tests but failed before source acceptance with a UTF-8 decode error from a non-text response; no empirical result was inspected. The failed report is persisted. The remaining repair cycle separates the two FRED CSV requests and adds source-stage diagnostics plus a public exchangeInfo fallback. If that attempt does not reach the frozen screen, close INCONCLUSIVE/INFEASIBLE; do not infer a performance NO-GO or run a third attempt.
 
 [Preregistration](research/PREREGISTERED-QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01.md) · [Registry](research/HYPOTHESIS-REGISTRY.md) · [Workflow](.github/workflows/treasury-rrp-drain-btc-downside.yml)
 
