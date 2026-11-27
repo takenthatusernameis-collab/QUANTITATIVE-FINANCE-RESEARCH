@@ -2,7 +2,7 @@
 
 - **Hypothesis ID:** QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01
 - **Registered:** 2026-11-27T22:29:15Z, before substantive implementation and empirical-result inspection.
-- **Status:** IMPLEMENTATION_READY
+- **Status:** INCONCLUSIVE
 - **Difficulty:** LOW.
 - **Difficulty rationale:** Both inputs are free official FRED series with public CSV access; the BTC archive ingestion, downside target, walk-forward estimator and paired-loss bootstrap already exist as tested repository components. The new work is one aligned feature, one model module, deterministic tests and one frozen screen.
 - **Timebox start:** 2026-11-27T22:29:15Z
@@ -109,20 +109,12 @@ The repository already tested WALCL-only Federal Reserve total-assets contractio
 ## Empirical disposition
 
 - **Status:** INCONCLUSIVE
-- **Disposition:** INCONCLUSIVE/INFEASIBLE — bounded source/execution failure: UnicodeDecodeError: 'utf-8' codec can't decode byte 0x89 in position 10: invalid start byte
+- **Disposition:** INCONCLUSIVE/INFEASIBLE — bounded source/execution failure: RuntimeError: Both public Binance exchangeInfo endpoints failed: [{"error": "ValueError: expected exactly one BTCUSDT symbol, got 3756", "response_bytes": 18178232, "response_prefix_hex": "7b2274696d657a6f6e65223a22555443222c227365727665", "url": "https://data-api.binance.vision/api/v3/exchangeInfo"}, {"error": "RuntimeError: Non-retryable HTTP 451 for https://api.binance.com/api/v3/exchangeInfo?symbol=BTCUSDT", "response_bytes": 0, "response_prefix_hex": "", "url": "https://api.binance.com/api/v3/exchangeInfo?symbol=BTCUSDT"}]
 - **Completed real-data backtest:** no
 - **Data scope:** source acceptance incomplete
 - **Summary metrics:** {}
 - **Paired test-loss bootstrap:** null
-- **Report:** [reports/sessions/2026-11-27/2026-11-27T223617Z_session-treasury-rrp-drain-btc-46077644835.md](../reports/sessions/2026-11-27/2026-11-27T223617Z_session-treasury-rrp-drain-btc-46077644835.md)
-- **Manifest:** [reports/generated/treasury-rrp-drain-btc-downside/46077644835-attempt-1/manifest.json](../reports/generated/treasury-rrp-drain-btc-downside/46077644835-attempt-1/manifest.json)
+- **Report:** [reports/sessions/2026-11-27/2026-11-27T224315Z_session-treasury-rrp-drain-btc-46078321167.md](../reports/sessions/2026-11-27/2026-11-27T224315Z_session-treasury-rrp-drain-btc-46078321167.md)
+- **Manifest:** [reports/generated/treasury-rrp-drain-btc-downside/46078321167-attempt-1/manifest.json](../reports/generated/treasury-rrp-drain-btc-downside/46078321167-attempt-1/manifest.json)
 - Forecast screen only; no causal, trading or deployment claim.
-
-
-
-## Bounded implementation-repair log
-
-- 2026-11-27T22:36:18Z: the first admitted push passed all deterministic parser/model/admission tests but failed before source acceptance or empirical-result inspection with a UTF-8 decode error from a non-text source response. The first attempt's report and manifest are retained. The response stage was not identified in that run.
-- Repair cycle: split the FRED multi-series request into two single-series CSV requests, add endpoint fallback for the public Binance exchangeInfo check, and persist response-byte prefixes in any source-parse error. No predictor, lag, target, model, split, bootstrap or decision rule changes are permitted.
-- One repaired bridge-dispatched execution is the remaining substantive cycle. If it does not reach a valid frozen backtest, close INCONCLUSIVE/INFEASIBLE at the existing timebox; do not make a third attempt under this ID.
 
