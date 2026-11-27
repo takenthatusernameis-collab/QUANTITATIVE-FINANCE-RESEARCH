@@ -8,7 +8,7 @@
 - **Admission commit:** [8ec52261714abc586bd42df962a7ba0c9d41e34a] (https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/8ec52261714abc586bd42df962a7ba0c9d41e34a)
 - **Deterministic CI:** [run #46024683649](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46024683649)
 - **Empirical backtest:** [run #46024917193](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46024917193)
-- **Primary report:** [reports/sessions/2026-11-27/2026-11-27T152638Z_session-btc-blockspace-feerate-46024917193.md](../2026-11-27/2026-11-27T152638Z_session-btc-blockspace-feerate-46024917193.md)
+- **Primary report:** [2026-11-27T152638Z_session-btc-blockspace-feerate-46024917193.md](2026-11-27T152638Z_session-btc-blockspace-feerate-46024917193.md)
 - **Manifest:** [reports/generated/btc-blockspace-fee-rate-btc-downside/46024917193-attempt-1/manifest.json](../../generated/btc-blockspace-fee-rate-btc-downside/46024917193-attempt-1/manifest.json)
 
 ## 1. Independent source and provenance checks
