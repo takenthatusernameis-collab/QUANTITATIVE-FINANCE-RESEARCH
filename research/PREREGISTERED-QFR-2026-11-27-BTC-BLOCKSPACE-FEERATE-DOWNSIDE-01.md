@@ -1,6 +1,7 @@
 # Preregistered Research: Bitcoin Blockspace Fee-Rate Pressure and Downside Semivariance
 
 - **Hypothesis ID:** `QFR-2026-11-27-BTC-BLOCKSPACE-FEERATE-DOWNSIDE-01`
+- **Status:** IMPLEMENTATION_READY — implementation commit `2930958302d11ad609bb53a2299952436a7f4b86`; 13 deterministic model tests, source-preflight regression tests and full workflow-admission suite passed in CI run [#46024683649](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46024683649); empirical backtest pending.
 - **Registered:** `2026-11-27T13:55:51Z`
 - **Difficulty:** MEDIUM
 - **Difficulty rationale:** One public Mempool.space three-year block-feerate endpoint, an already verified Binance Vision BTCUSDT Spot 1d UTC source, one prespecified feature, strict UTC aggregation, and the repository's existing walk-forward/paired-loss framework. The main uncertainty is endpoint schema/coverage and the short three-year history; no credentials, paid data, or new execution infrastructure are intended.
@@ -116,6 +117,17 @@ This is a source-semantics correction, not a search across percentiles or altern
 ## 10. Cycle log
 
 - Cycle 1: freeze this preregistration and perform a read-only source/schema/coverage preflight. The first response confirmed the field schema but exposed a boundary-date handling issue; corrected validation must verify 12-hour bins and exclude both partial boundary dates. No model fit or backtest is permitted in this cycle.
-- Cycle 2: only if corrected source preflight passes, implement the frozen parser, event construction, model, and deterministic tests.
+- Cycle 2 — COMPLETED 2026-11-27T15:24:45Z: implemented the frozen parser integration, accepted-source checksum reuse, event construction, walk-forward OLS comparison, paired block bootstrap, deterministic regression tests and gated workflow. Implementation commit `2930958302d11ad609bb53a2299952436a7f4b86`; 13 model tests plus source-preflight and full admission-guard suites passed in CI run #46024683649. No empirical backtest ran in that unmarked implementation commit.
 - Cycle 3: run the single frozen real-data backtest after deterministic validation.
 - Cycle 4: independently audit timing, data provenance, metrics, and the frozen decision rule; persist the final disposition.
+
+
+## 11. Implementation acceptance — 2026-11-27T15:24:45Z
+
+- **Implementation commit:** [2930958302d11ad609bb53a2299952436a7f4b86](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/2930958302d11ad609bb53a2299952436a7f4b86).
+- **Model regression suite:** 13/13 deterministic tests passed, including exact fee-lag timing, next-five-session target construction, six-day event spacing, no target overlap, 65-event training maturity, sample minimums, decision thresholds, deterministic bootstrap and accepted archive-hash matching.
+- **Source-preflight regression suite:** passed.
+- **Repository admission guard:** all workflow-admission tests passed, including the new workflow's exact job-level gate, immutable triggering commit, narrow path filters, preregistration guard and Bash syntax checks.
+- **CI evidence:** [global admission/test run #46024683649](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46024683649).
+- The research workflow's push event for the unmarked implementation commit was correctly **skipped** in [run #46024683640](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46024683640). No empirical source retrieval, backtest or performance-result inspection occurred before this acceptance gate.
+- Cycle 2 is complete. Cycle 3 may now execute the single frozen empirical backtest; Cycle 4 remains reserved for independent audit.
