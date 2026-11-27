@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       actions: write
-      issues: write
+      pull-requests: write
     steps:
       - name: Dispatch only the exact allowlisted workflow
         env:
@@ -70,5 +70,10 @@ jobs:
             exit 1
           fi
 
-          curl --fail-with-body --silent --show-error --request POST --header "Accept: application/vnd.github+json" --header "Authorization: Bearer $GH_TOKEN" --header "X-GitHub-Api-Version: 2022-11-28" --header "Content-Type: application/json" --data '{"content":"rocket"}' "https://api.github.com/repos/$REPOSITORY/issues/comments/$COMMENT_ID/reactions" >/dev/null
-          echo "GitHub accepted $workflow_id workflow_dispatch from the exact authorized comment."
+          reaction_http_code="$(curl --silent --show-error --output "$RUNNER_TEMP/reaction-response.json" --write-out '%{http_code}' --request POST --header "Accept: application/vnd.github+json" --header "Authorization: Bearer $GH_TOKEN" --header "X-GitHub-Api-Version: 2022-11-28" --header "Content-Type: application/json" --data '{"content":"rocket"}' "https://api.github.com/repos/$REPOSITORY/issues/comments/$COMMENT_ID/reactions")"
+          if [ "$reaction_http_code" != "201" ]; then
+            cat "$RUNNER_TEMP/reaction-response.json"
+            echo "Could not persist the idempotency reaction; HTTP $reaction_http_code."
+            exit 1
+          fi
+          echo "GitHub accepted $workflow_id workflow_dispatch and persisted the idempotency reaction."
