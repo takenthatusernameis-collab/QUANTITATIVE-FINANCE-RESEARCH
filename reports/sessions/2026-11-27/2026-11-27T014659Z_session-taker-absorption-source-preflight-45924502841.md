@@ -3,9 +3,9 @@
 **Status: PASS — source feasibility only; no model/backtest executed.**
 
 - Hypothesis: QFR-2026-11-27-BTC-TAKER-ABSORPTION-DOWNSIDE-01
-- Workflow run: [45924502841](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45924502841)
-- Source-preflight code commit: 6525b49f86d080eb9688a23502c43099049c4aae
-- Retrieval time: 2026-11-27T01:46:59Z
+- Workflow run: [45925248340](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45924502841)
+- Source-preflight code commit: 6f91629a1f3b5003da516ae1829de1fadf8a0530
+- Retrieval time: 2026-11-27T01:54:42Z
 - Official source: Binance Vision BTCUSDT Spot 1d UTC monthly/daily klines and .CHECKSUM sidecars.
 - Verified archives: **136**
 - Verified observations: **3,388**
