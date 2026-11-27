@@ -1,7 +1,7 @@
 # Bitcoin blockspace fee-rate source-feasibility session
 
 **Session time:** 2026-11-27T13:55:51Z  
-**Initial main HEAD:** \`f7515df575f60565c193528412bcfdb58f4dc88c\`
+**Initial main HEAD:** `f7515df575f60565c193528412bcfdb58f4dc88c`
 
 ## 1. Initial repository reconciliation
 
@@ -23,7 +23,7 @@ These works motivate the mechanism but do not validate this particular lagged pr
 
 ## 3. Frozen admission and timebox
 
-Created preregistration \`QFR-2026-11-27-BTC-BLOCKSPACE-FEERATE-DOWNSIDE-01\` before model implementation or performance-result inspection.
+Created preregistration `QFR-2026-11-27-BTC-BLOCKSPACE-FEERATE-DOWNSIDE-01` before model implementation or performance-result inspection.
 
 - Difficulty: MEDIUM.
 - Maximum substantive cycles: 4.
@@ -38,15 +38,15 @@ The preregistration freezes one feature: seven-calendar-day change in the log of
 The first corrected-workflow source-preflight run was [46013134908](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46013134908). It completed successfully and made exactly one read-only GET:
 
 - HTTP 200; no payment; zero retries.
-- 319,519 response bytes; SHA-256 \`ae6bad8494d4c06a41105e512ef536007eb56ac1fc3710f181f528fa856230d1\`.
+- 319,519 response bytes; SHA-256 `ae6bad8494d4c06a41105e512ef536007eb56ac1fc3710f181f528fa856230d1`.
 - 2,193 rows across 1,097 raw UTC dates.
 - Raw first timestamp: 2023-11-27T18:50:20Z.
 - Raw last timestamp: 2026-11-27T12:51:46Z.
-- Exact expected fields were present, including \`avgFee_75\`.
+- Exact expected fields were present, including `avgFee_75`.
 
 A deeper inspection of the pinned Mempool implementation found an important source-semantics detail:
-- \`mining.ts\` selects a 43,200-second divisor for a three-year history.
-- \`BlocksRepository.ts\` groups by \`UNIX_TIMESTAMP(blockTimestamp) DIV div\` and averages each block's fee-span percentiles inside each bin.
+- `mining.ts` selects a 43,200-second divisor for a three-year history.
+- `BlocksRepository.ts` groups by `UNIX_TIMESTAMP(blockTimestamp) DIV div` and averages each block's fee-span percentiles inside each bin.
 - The response is therefore two 12-hour aggregates per complete UTC date, not individual per-block observations.
 - The first date is partial because the rolling window starts at 18:50 UTC; the current final date is partial because the response ends at 12:51 UTC.
 
@@ -76,8 +76,8 @@ Run the corrected source preflight once. It must:
 - verify the latest completed date is one to three days stale;
 - retain one GET, zero retries, no payment, and no raw observations saved.
 
-If it passes, proceed to Cycle 2. If not, close this identity as \`INCONCLUSIVE/INFEASIBLE\`; do not switch endpoint or feature.
+If it passes, proceed to Cycle 2. If not, close this identity as `INCONCLUSIVE/INFEASIBLE`; do not switch endpoint or feature.
 
 ## 7. Research disposition at this checkpoint
 
-\`SOURCE_PREFLIGHT_CORRECTION_PENDING\`. The source endpoint and field schema are verified, but complete-day coverage has not yet been accepted. This is not an empirical performance result, not a GO/NO-GO decision, and not a tradable strategy.
+`SOURCE_PREFLIGHT_CORRECTION_PENDING`. The source endpoint and field schema are verified, but complete-day coverage has not yet been accepted. This is not an empirical performance result, not a GO/NO-GO decision, and not a tradable strategy.

@@ -1,26 +1,26 @@
 # Preregistered Research: Bitcoin Blockspace Fee-Rate Pressure and Downside Semivariance
 
-- **Hypothesis ID:** \`QFR-2026-11-27-BTC-BLOCKSPACE-FEERATE-DOWNSIDE-01\`
-- **Registered:** \`2026-11-27T13:55:51Z\`
+- **Hypothesis ID:** `QFR-2026-11-27-BTC-BLOCKSPACE-FEERATE-DOWNSIDE-01`
+- **Registered:** `2026-11-27T13:55:51Z`
 - **Difficulty:** MEDIUM
 - **Difficulty rationale:** One public Mempool.space three-year block-feerate endpoint, an already verified Binance Vision BTCUSDT Spot 1d UTC source, one prespecified feature, strict UTC aggregation, and the repository's existing walk-forward/paired-loss framework. The main uncertainty is endpoint schema/coverage and the short three-year history; no credentials, paid data, or new execution infrastructure are intended.
-- **Timebox start:** \`2026-11-27T13:55:51Z\`
+- **Timebox start:** `2026-11-27T13:55:51Z`
 - **Maximum substantive cycles:** 4
-- **Hard implementation deadline:** \`2026-11-30T13:55:51Z\`
-- **Hard final research-conclusion deadline:** \`2026-12-02T13:55:51Z\`
-- **Expiry rule:** If the public source cannot provide the frozen \`avgFee_75\` field, two 12-hour bins per complete UTC date, at least 900 contiguous complete UTC dates, and a latest completed date no more than three days stale without payment or access circumvention, close this identity as \`INCONCLUSIVE/INFEASIBLE\`. Do not substitute another endpoint, percentile, metric, or vendor under this ID. If implementation is not complete by the implementation deadline, or a final evidence-based decision is not recorded by the conclusion deadline, close it as \`INCONCLUSIVE/INFEASIBLE\`; do not silently reset the clock or extend the budget.
+- **Hard implementation deadline:** `2026-11-30T13:55:51Z`
+- **Hard final research-conclusion deadline:** `2026-12-02T13:55:51Z`
+- **Expiry rule:** If the public source cannot provide the frozen `avgFee_75` field, two 12-hour bins per complete UTC date, at least 900 contiguous complete UTC dates, and a latest completed date no more than three days stale without payment or access circumvention, close this identity as `INCONCLUSIVE/INFEASIBLE`. Do not substitute another endpoint, percentile, metric, or vendor under this ID. If implementation is not complete by the implementation deadline, or a final evidence-based decision is not recorded by the conclusion deadline, close it as `INCONCLUSIVE/INFEASIBLE`; do not silently reset the clock or extend the budget.
 
 ## 1. Falsifiable question
 
 Does a strictly lagged seven-calendar-day increase in Bitcoin blockspace fee pressure add out-of-sample information about the next five UTC daily BTC downside-semivariance observations, beyond BTC's own recent downside risk, realized variance, and momentum?
 
-For UTC date \(d\), define \(F_d\) as the median of the two 12-hour-bin \`avgFee_75\` values assigned to that date. Each source row's \`avgFee_75\` is itself the average of the underlying per-block 75th-percentile transaction feerates within that 12-hour bin. The single augmented predictor is:
+For UTC date \(d\), define \(F_d\) as the median of the two 12-hour-bin `avgFee_75` values assigned to that date. Each source row's `avgFee_75` is itself the average of the underlying per-block 75th-percentile transaction feerates within that 12-hour bin. The single augmented predictor is:
 
 \[
 x_t = \log(1 + F_{t-1}) - \log(1 + F_{t-8})
 \]
 
-The source's \`avgFee_75\` is measured in sat/vB. The first and last raw UTC dates in the rolling three-year response are partial boundary dates and are excluded. Every included UTC date must contain exactly two 12-hour bins: one timestamped in 00:00–11:59 UTC and one in 12:00–23:59 UTC.
+The source's `avgFee_75` is measured in sat/vB. The first and last raw UTC dates in the rolling three-year response are partial boundary dates and are excluded. Every included UTC date must contain exactly two 12-hour bins: one timestamped in 00:00–11:59 UTC and one in 12:00–23:59 UTC.
 
 ## 2. Economic mechanism and novelty boundary
 
@@ -37,21 +37,21 @@ This is an incremental forecasting test, not a first-discovery, causal, forced-s
 ### Predictor source
 
 - Provider: Mempool Open Source Project.
-- Endpoint: \`https://mempool.space/api/v1/mining/blocks/fee-rates/3y\`
-- Expected response fields: \`timestamp\`, \`avgFee_0\`, \`avgFee_10\`, \`avgFee_25\`, \`avgFee_50\`, \`avgFee_75\`, \`avgFee_90\`, \`avgFee_100\`, and \`avgHeight\`.
+- Endpoint: `https://mempool.space/api/v1/mining/blocks/fee-rates/3y`
+- Expected response fields: `timestamp`, `avgFee_0`, `avgFee_10`, `avgFee_25`, `avgFee_50`, `avgFee_75`, `avgFee_90`, `avgFee_100`, and `avgHeight`.
 - The official API documentation describes historical block-feerate percentiles for a trailing interval up to three years and warns that rate limits are enforced.
-- Source-code inspection of the pinned Mempool implementation confirms that a three-year interval uses a 43,200-second grouping interval. The SQL groups block timestamps by \`UNIX_TIMESTAMP(blockTimestamp) DIV div\`, averages each block's fee-span percentile within the bin, and reports the average timestamp and height for the bin. Thus the response is **12-hour aggregates**, not one row per individual block.
-- \`avgFee_75\` is the average of the underlying per-block 75th-percentile fee-rate values inside each 12-hour bin. The daily predictor \(F_d\) is the median of the two 12-hour-bin averages on UTC date \(d\).
+- Source-code inspection of the pinned Mempool implementation confirms that a three-year interval uses a 43,200-second grouping interval. The SQL groups block timestamps by `UNIX_TIMESTAMP(blockTimestamp) DIV div`, averages each block's fee-span percentile within the bin, and reports the average timestamp and height for the bin. Thus the response is **12-hour aggregates**, not one row per individual block.
+- `avgFee_75` is the average of the underlying per-block 75th-percentile fee-rate values inside each 12-hour bin. The daily predictor \(F_d\) is the median of the two 12-hour-bin averages on UTC date \(d\).
 - The rolling three-year response begins and ends at arbitrary intraday times. Exclude the first and last raw UTC dates. For every remaining date require exactly two rows, with one average timestamp before 12:00 UTC and one at/after 12:00 UTC. Require at least 900 contiguous completed UTC dates after boundary exclusion.
-- Timestamps must be valid Unix seconds, ordered oldest-to-newest. \`avgFee_75\` must be finite and nonnegative when present. Do not interpolate or forward-fill missing dates or half-day bins.
+- Timestamps must be valid Unix seconds, ordered oldest-to-newest. `avgFee_75` must be finite and nonnegative when present. Do not interpolate or forward-fill missing dates or half-day bins.
 - The newest included completed UTC date must be one to three calendar days before the preflight run date. Do not count the current UTC date as complete, even if the API already returns a partial current-day bin.
 - Source preflight must use one GET only. No retry on HTTP 429; no payment, credentials, proxy, browser scraping, or alternate endpoint.
 - The source is current-vintage historical block-feerate data, not an archived point-in-time mempool snapshot. The one-day feature embargo below is conservative but does not reconstruct historical API publication timestamps.
 
 ### Price source
 
-- Binance Vision official Spot \`BTCUSDT\` \`1d\` UTC klines, with archive and sidecar checksum verification.
-- Existing accepted source evidence is available in \`reports/generated/taker-absorption-btc-downside/45926394994-attempt-1/manifest.json\`: 3,388 complete UTC daily candles from 2017-08-17 through 2026-11-25, with verified archive checksums. Reuse this accepted source evidence; do not repeat a full historical price preflight unless the model implementation requires a new date range.
+- Binance Vision official Spot `BTCUSDT` `1d` UTC klines, with archive and sidecar checksum verification.
+- Existing accepted source evidence is available in `reports/generated/taker-absorption-btc-downside/45926394994-attempt-1/manifest.json`: 3,388 complete UTC daily candles from 2017-08-17 through 2026-11-25, with verified archive checksums. Reuse this accepted source evidence; do not repeat a full historical price preflight unless the model implementation requires a new date range.
 
 ### Frozen sample window
 
@@ -76,7 +76,7 @@ This is an incremental forecasting test, not a first-discovery, causal, forced-s
 - Estimator: standardized expanding/rolling OLS using the latest 65 fully matured prior events. No hyperparameter search, threshold search, or post-holdout feature changes.
 - Validation period: signal dates 2025-01-01 through 2025-06-30.
 - Test period: signal dates 2025-07-01 through the latest eligible date.
-- Minimum sample: 25 validation forecasts and 60 test forecasts. If either minimum is not met, the performance conclusion is \`INCONCLUSIVE\`.
+- Minimum sample: 25 validation forecasts and 60 test forecasts. If either minimum is not met, the performance conclusion is `INCONCLUSIVE`.
 - Primary metric: RMSE of \(\log(1+y_t)\). Report MAE and directional/level diagnostics only as secondary diagnostics; they cannot override the primary rule.
 - Inference: 2,000 paired moving-block bootstrap replications of test squared-loss differences, block length five events, with a fixed seed recorded in the manifest.
 
@@ -94,7 +94,7 @@ No result under this ID authorizes live trading, portfolio allocation, or a clai
 1. The endpoint is limited to a trailing three-year history, which constrains sample size and regime coverage.
 2. The endpoint returns 12-hour aggregates of block-level fee-rate percentiles, not raw per-block observations. The daily median of two bins is a prespecified aggregation, not a true daily median of every block's p75.
 3. The series is current-vintage and does not provide point-in-time revisions or historical publication timestamps.
-4. \`avgFee_75\` is a blockspace fee-rate percentile, not a direct mempool backlog, transaction-count, exchange-flow, or investor-positioning measure.
+4. `avgFee_75` is a blockspace fee-rate percentile, not a direct mempool backlog, transaction-count, exchange-flow, or investor-positioning measure.
 5. Blockspace fee demand may respond to BTC price and volatility. The baseline controls price momentum and realized risk, but residual endogeneity remains.
 6. The public API enforces rate limits. One GET per preflight/backtest execution; no retries on HTTP 429.
 
