@@ -7,7 +7,7 @@ This bridge removes the need for the connected ChatGPT agent to expose a direct 
 ## Control surface
 
 - Dedicated draft control PR: [#15](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/pull/15).
-- Keep PR #15 open and in draft. Do not merge it.
+- Keep PR #15 open and in draft. Do not merge it; it is a command surface only.
 - Connected comment actor: `takenthatusernameis-collab`.
 - Listener: `.github/workflows/chatgpt-control-pr-dispatch.yml` on `main`.
 - Probe target: `.github/workflows/dispatch-bridge-probe.yml`.
