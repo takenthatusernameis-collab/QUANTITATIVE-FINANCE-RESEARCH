@@ -268,7 +268,7 @@ def main() -> int:
         with open(summary_path, "a", encoding="utf-8") as handle:
             handle.write("# Bitcoin blockspace fee-rate source preflight\n\n")
             handle.write(f"- Status: **{result['status']}**\n")
-            handle.write(f"- Hypothesis: \`{HYPOTHESIS_ID}\`\n")
+            handle.write(f"- Hypothesis: `{HYPOTHESIS_ID}`\n")
             handle.write("- Backtest executed: **No**\n")
             handle.write("- API requests / retries: **1 / 0**\n\n")
             handle.write(rendered + "\n")

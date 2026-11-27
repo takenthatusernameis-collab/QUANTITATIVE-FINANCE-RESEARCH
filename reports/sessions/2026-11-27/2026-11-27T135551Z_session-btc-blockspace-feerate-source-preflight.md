@@ -1,7 +1,7 @@
 # Bitcoin blockspace fee-rate source-feasibility session
 
 **Session time:** 2026-11-27T13:55:51Z  
-**Initial main HEAD:** \`f7515df575f60565c193528412bcfdb58f4dc88c\`
+**Initial main HEAD:** `f7515df575f60565c193528412bcfdb58f4dc88c`
 
 ## 1. Initial repository reconciliation
 
@@ -16,7 +16,7 @@ Selected a demand-side blockspace-price hypothesis: the daily median of Bitcoin 
 
 This is materially distinct from the closed mining-difficulty proposal. Difficulty is a supply-side retarget/hashrate proxy; block feerates measure the price users pay to compete for scarce blockspace. It is also distinct from the already tested exchange funding, ETF flow, stablecoin supply, Wikipedia attention, and macro predictors.
 
-The Mempool.space API documentation identifies the \`/api/v1/mining/blocks/fee-rates/:timePeriod\` endpoint, supports a trailing three-year window, describes oldest-to-newest historical block-feerate percentiles, and warns that rate limits are enforced. The project's own chart implementation maps \`avgFee_75\` to the 75th-percentile series and labels the displayed unit as sat/vB. No Mempool request has been made in this session yet.
+The Mempool.space API documentation identifies the `/api/v1/mining/blocks/fee-rates/:timePeriod` endpoint, supports a trailing three-year window, describes oldest-to-newest historical block-feerate percentiles, and warns that rate limits are enforced. The project's own chart implementation maps `avgFee_75` to the 75th-percentile series and labels the displayed unit as sat/vB. No Mempool request has been made in this session yet.
 
 Adjacent literature:
 - Ilk et al. (2021), *MIS Quarterly*, studies the supply/demand structure of Bitcoin transaction fees.
@@ -27,7 +27,7 @@ These works motivate the mechanism but do not validate this particular lagged pr
 
 ## 3. Frozen admission and timebox
 
-Created preregistration \`QFR-2026-11-27-BTC-BLOCKSPACE-FEERATE-DOWNSIDE-01\` before model implementation or empirical-result inspection.
+Created preregistration `QFR-2026-11-27-BTC-BLOCKSPACE-FEERATE-DOWNSIDE-01` before model implementation or empirical-result inspection.
 
 - Difficulty: MEDIUM.
 - Maximum substantive cycles: 4.
@@ -35,7 +35,7 @@ Created preregistration \`QFR-2026-11-27-BTC-BLOCKSPACE-FEERATE-DOWNSIDE-01\` be
 - Hard implementation deadline: 2026-11-30T13:55:51Z.
 - Hard final research-conclusion deadline: 2026-12-02T13:55:51Z.
 
-The preregistration freezes one feature: seven-calendar-day change in the log of the daily median of per-block \`avgFee_75\`, with a one-full-UTC-day embargo. The target is next-five-UTC-day BTC downside semivariance, with six-day-spaced non-overlapping events. It also freezes the baseline, chronological validation/test windows, minimum sample sizes, walk-forward estimator, bootstrap design, decision thresholds, and infeasibility rule.
+The preregistration freezes one feature: seven-calendar-day change in the log of the daily median of per-block `avgFee_75`, with a one-full-UTC-day embargo. The target is next-five-UTC-day BTC downside semivariance, with six-day-spaced non-overlapping events. It also freezes the baseline, chronological validation/test windows, minimum sample sizes, walk-forward estimator, bootstrap design, decision thresholds, and infeasibility rule.
 
 ## 4. Engineering changes
 
@@ -43,17 +43,17 @@ The preregistration freezes one feature: seven-calendar-day change in the log of
 - Added deterministic schema, timestamp, coverage, staleness, and no-retry tests.
 - Added a source-only GitHub Actions workflow with read-only repository permissions, immutable triggering-commit checkout, and a source-manifest artifact.
 - Registered the preflight workflow as a non-research workflow in the admission guard and extended the guard CI to compile and test it.
-- Added a \`SOURCE_PREFLIGHT_PENDING\` registry entry.
+- Added a `SOURCE_PREFLIGHT_PENDING` registry entry.
 - No model implementation, model fit, holdout inspection, backtest, raw-data persistence, paid API call, or live-trading action occurred in this cycle.
 
 ## 5. Next gate
 
 Inspect the source-preflight workflow run and its artifact.
 
-- If the exact \`avgFee_75\` schema, 900-day minimum coverage, recency, and UTC timestamp checks pass without payment or retries, proceed to Cycle 2.
-- If the endpoint requires payment, returns HTTP 429, lacks the frozen field, or fails coverage, do not switch endpoint or feature under this identity. Record the failure and close as \`INCONCLUSIVE/INFEASIBLE\`.
+- If the exact `avgFee_75` schema, 900-day minimum coverage, recency, and UTC timestamp checks pass without payment or retries, proceed to Cycle 2.
+- If the endpoint requires payment, returns HTTP 429, lacks the frozen field, or fails coverage, do not switch endpoint or feature under this identity. Record the failure and close as `INCONCLUSIVE/INFEASIBLE`.
 - Do not fit a model before source acceptance and deterministic model tests.
 
 ## 6. Research disposition at this checkpoint
 
-\`SOURCE_PREFLIGHT_PENDING\`. This is not an empirical performance result, not a GO/NO-GO decision, and not a tradable strategy.
+`SOURCE_PREFLIGHT_PENDING`. This is not an empirical performance result, not a GO/NO-GO decision, and not a tradable strategy.

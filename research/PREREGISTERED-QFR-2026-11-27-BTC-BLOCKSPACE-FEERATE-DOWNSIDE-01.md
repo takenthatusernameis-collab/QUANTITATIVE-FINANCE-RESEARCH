@@ -1,14 +1,14 @@
 # Preregistered Research: Bitcoin Blockspace Fee-Rate Pressure and Downside Semivariance
 
-- **Hypothesis ID:** \`QFR-2026-11-27-BTC-BLOCKSPACE-FEERATE-DOWNSIDE-01\`
-- **Registered:** \`2026-11-27T13:55:51Z\`
+- **Hypothesis ID:** `QFR-2026-11-27-BTC-BLOCKSPACE-FEERATE-DOWNSIDE-01`
+- **Registered:** `2026-11-27T13:55:51Z`
 - **Difficulty:** MEDIUM
 - **Difficulty rationale:** One public Mempool.space three-year block-feerate endpoint, an already verified Binance Vision BTCUSDT Spot 1d UTC source, one prespecified feature, strict UTC aggregation, and the repository's existing walk-forward/paired-loss framework. The main uncertainty is endpoint schema/coverage and the short three-year history; no credentials, paid data, or new execution infrastructure are intended.
-- **Timebox start:** \`2026-11-27T13:55:51Z\`
+- **Timebox start:** `2026-11-27T13:55:51Z`
 - **Maximum substantive cycles:** 4
-- **Hard implementation deadline:** \`2026-11-30T13:55:51Z\`
-- **Hard final research-conclusion deadline:** \`2026-12-02T13:55:51Z\`
-- **Expiry rule:** If the public source cannot provide the frozen \`avgFee_75\` field, at least 900 distinct UTC dates spanning at least 900 days, and a latest completed date no more than three days stale without payment or access circumvention, close this identity as \`INCONCLUSIVE/INFEASIBLE\`. Do not substitute another endpoint, percentile, metric, or vendor under this ID. If implementation is not complete by the implementation deadline, or a final evidence-based decision is not recorded by the conclusion deadline, close it as \`INCONCLUSIVE/INFEASIBLE\`; do not silently reset the clock or extend the budget.
+- **Hard implementation deadline:** `2026-11-30T13:55:51Z`
+- **Hard final research-conclusion deadline:** `2026-12-02T13:55:51Z`
+- **Expiry rule:** If the public source cannot provide the frozen `avgFee_75` field, at least 900 distinct UTC dates spanning at least 900 days, and a latest completed date no more than three days stale without payment or access circumvention, close this identity as `INCONCLUSIVE/INFEASIBLE`. Do not substitute another endpoint, percentile, metric, or vendor under this ID. If implementation is not complete by the implementation deadline, or a final evidence-based decision is not recorded by the conclusion deadline, close it as `INCONCLUSIVE/INFEASIBLE`; do not silently reset the clock or extend the budget.
 
 ## 1. Falsifiable question
 
@@ -21,7 +21,7 @@ x_t = \log(1 + \operatorname{median}_{b \in d_{t-1}}(\text{avgFee}_{75,b}))
       - \log(1 + \operatorname{median}_{b \in d_{t-8}}(\text{avgFee}_{75,b}))
 \]
 
-The source's \`avgFee_75\` is measured in sat/vB. The daily aggregation is the median across canonical block observations whose timestamps fall within the same UTC date. The seven-day change is computed only after the daily series is complete.
+The source's `avgFee_75` is measured in sat/vB. The daily aggregation is the median across canonical block observations whose timestamps fall within the same UTC date. The seven-day change is computed only after the daily series is complete.
 
 ## 2. Economic mechanism and novelty boundary
 
@@ -38,18 +38,18 @@ This is an incremental forecasting test, not a first-discovery, causal, forced-s
 ### Predictor source
 
 - Provider: Mempool Open Source Project.
-- Endpoint: \`https://mempool.space/api/v1/mining/blocks/fee-rates/3y\`
-- Expected response: oldest-to-newest per-block observations containing \`timestamp\`, \`avgFee_0\`, \`avgFee_10\`, \`avgFee_25\`, \`avgFee_50\`, \`avgFee_75\`, \`avgFee_90\`, \`avgFee_100\`, and \`avgHeight\`.
+- Endpoint: `https://mempool.space/api/v1/mining/blocks/fee-rates/3y`
+- Expected response: oldest-to-newest per-block observations containing `timestamp`, `avgFee_0`, `avgFee_10`, `avgFee_25`, `avgFee_50`, `avgFee_75`, `avgFee_90`, `avgFee_100`, and `avgHeight`.
 - The official API documentation describes this endpoint as returning historical average block-feerate percentiles for a trailing interval up to three years and warns that rate limits are enforced.
 - Source preflight must use one GET only. No retry on HTTP 429; no payment, credentials, proxy, browser scraping, or alternate endpoint.
-- Accept only if the schema is exact, timestamps are valid UTC Unix seconds, the \`avgFee_75\` field is finite and nonnegative when present, observations are oldest-to-newest, at least 900 distinct UTC dates span at least 900 days, and the newest completed UTC date is no more than three days stale.
-- Aggregate \`avgFee_75\` by UTC date using the median of that day's block observations. A date with no valid fee-rate observation remains missing; do not interpolate or forward-fill.
+- Accept only if the schema is exact, timestamps are valid UTC Unix seconds, the `avgFee_75` field is finite and nonnegative when present, observations are oldest-to-newest, at least 900 distinct UTC dates span at least 900 days, and the newest completed UTC date is no more than three days stale.
+- Aggregate `avgFee_75` by UTC date using the median of that day's block observations. A date with no valid fee-rate observation remains missing; do not interpolate or forward-fill.
 - The source is a current-vintage historical block-feerate series, not an archived point-in-time mempool snapshot. The one-day feature embargo below is conservative but does not reconstruct historical API publication timestamps.
 
 ### Price source
 
-- Binance Vision official Spot \`BTCUSDT\` \`1d\` UTC klines, with archive and sidecar checksum verification.
-- Existing accepted source evidence is available in \`reports/generated/taker-absorption-btc-downside/45926394994-attempt-1/manifest.json\`: 3,388 complete UTC daily candles from 2017-08-17 through 2026-11-25, with verified archive checksums. Reuse this accepted source evidence; do not repeat a full historical price preflight unless the model implementation requires a new date range.
+- Binance Vision official Spot `BTCUSDT` `1d` UTC klines, with archive and sidecar checksum verification.
+- Existing accepted source evidence is available in `reports/generated/taker-absorption-btc-downside/45926394994-attempt-1/manifest.json`: 3,388 complete UTC daily candles from 2017-08-17 through 2026-11-25, with verified archive checksums. Reuse this accepted source evidence; do not repeat a full historical price preflight unless the model implementation requires a new date range.
 
 ### Frozen sample window
 
@@ -74,7 +74,7 @@ This is an incremental forecasting test, not a first-discovery, causal, forced-s
 - Estimator: standardized expanding/rolling OLS using the latest 65 fully matured prior events. No hyperparameter search, threshold search, or post-holdout feature changes.
 - Validation period: signal dates 2025-01-01 through 2025-06-30.
 - Test period: signal dates 2025-07-01 through the latest eligible date.
-- Minimum sample: 25 validation forecasts and 60 test forecasts. If either minimum is not met, the performance conclusion is \`INCONCLUSIVE\`.
+- Minimum sample: 25 validation forecasts and 60 test forecasts. If either minimum is not met, the performance conclusion is `INCONCLUSIVE`.
 - Primary metric: RMSE of \(\log(1+y_t)\). Report MAE and directional/level diagnostics only as secondary diagnostics; they cannot override the primary rule.
 - Inference: 2,000 paired moving-block bootstrap replications of test squared-loss differences, block length five events, with a fixed seed recorded in the manifest.
 
@@ -91,7 +91,7 @@ No result under this ID authorizes live trading, portfolio allocation, or a clai
 
 1. The endpoint is limited to a trailing three-year history, which constrains sample size and regime coverage.
 2. The API series is current-vintage and does not provide point-in-time revisions or historical publication timestamps.
-3. \`avgFee_75\` is a block-level fee-rate percentile, not a direct mempool backlog, transaction-count, exchange-flow, or investor-positioning measure.
+3. `avgFee_75` is a block-level fee-rate percentile, not a direct mempool backlog, transaction-count, exchange-flow, or investor-positioning measure.
 4. Blockspace fee demand may respond to BTC price and volatility. The baseline controls price momentum and realized risk, but residual endogeneity remains.
 5. The public API enforces rate limits. One source-preflight request is allowed; an HTTP 429 is recorded without retry.
 

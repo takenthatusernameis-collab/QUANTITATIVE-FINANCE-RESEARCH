@@ -606,7 +606,7 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertIn("btc_blockspace_fee_rate_source_preflight.py", text)
         self.assertNotIn("btc_blockspace_fee_rate_btc_downside.py", text)
         self.assertIn("do not run a backtest", text.lower())
-        self.assertIn("ref: \${{ github.sha }}", text)
+        self.assertIn("ref: " + "$" + "{{ github.sha }}", text)
         self.assertIn("cancel-in-progress: false", text)
 
     def test_btc_blockspace_fee_rate_source_preflight_has_narrow_path_filters(self):
