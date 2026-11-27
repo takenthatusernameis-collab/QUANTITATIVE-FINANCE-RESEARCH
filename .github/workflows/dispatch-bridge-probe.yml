@@ -1,0 +1,40 @@
+name: ChatGPT dispatch bridge harmless probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_comment_id:
+        description: "Originating control-PR comment ID"
+        required: true
+        type: string
+      source_control_pr:
+        description: "Exact control PR number"
+        required: true
+        type: string
+      source_actor:
+        description: "Verified command author"
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions: {}
+    steps:
+      - name: Verify the authenticated dispatch arrived on the default branch
+        env:
+          SOURCE_COMMENT_ID: ${{ inputs.source_comment_id }}
+          SOURCE_CONTROL_PR: ${{ inputs.source_control_pr }}
+          SOURCE_ACTOR: ${{ inputs.source_actor }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test -n "$SOURCE_COMMENT_ID"
+          test "$SOURCE_CONTROL_PR" = "15"
+          test "$SOURCE_ACTOR" = "takenthatusernameis-collab"
+          printf 'PROBE_OK event=%s ref=%s comment_id=%s control_pr=%s source_actor=%s sha=%s\\n' \\
+            "$GITHUB_EVENT_NAME" "$GITHUB_REF" "$SOURCE_COMMENT_ID" "$SOURCE_CONTROL_PR" "$SOURCE_ACTOR" "$GITHUB_SHA"
