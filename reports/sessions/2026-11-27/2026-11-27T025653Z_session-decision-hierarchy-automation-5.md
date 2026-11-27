@@ -23,7 +23,7 @@ Complete the pending repository task: consolidate and operationalize the adaptiv
 
 ## Validation
 - Local deterministic decision-policy suite: 19/19 passed after follow-up hardening.
-- GitHub Actions admission-guard suite: pending post-commit verification.
+- GitHub Actions admission-guard suite: PASS on the implementation commit (run 45931775351) and on the hardened follow-up commit (run 45931844406).
 - No empirical market-data test was run in this session; the daily KPI was already satisfied by run 45926394994.
 - The policy helper is a pure reference selector. It does not fetch data, dispatch workflows or replace evidence review.
 
@@ -39,3 +39,12 @@ Complete the pending repository task: consolidate and operationalize the adaptiv
 ## Follow-up hardening
 
 The first guard run passed, but code review found that the route-stop counter grouped all non-transient errors on a route together. The rule is specifically about two identical non-transient failure classes on the same route. Added an explicit failure-code dimension and a regression proving that two different failure classes do not prematurely exhaust a route. The repeated identical failure case remains covered. The policy suite now contains 19 tests.
+
+## Final verification — VERIFIED
+
+- Canonical implementation commit: [eafc19d](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/eafc19d775c9a0d400ce2af1872c3aac11378c8e).
+- Failure-class accounting hardening commit: [c0fae08](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/c0fae081e4d37d18259a94b902c7486db2599efe).
+- Admission guard run [45931775351](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45931775351) passed on the initial implementation commit.
+- Final admission guard run [45931844406](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45931844406) passed on the hardened follow-up commit. All 19 decision-policy tests and all existing guard regression steps passed.
+- The policy-change commits did not admit or duplicate a market-data backtest; the research admission prefix was not used.
+- Main immediately before this report update: `c0fae081e4d37d18259a94b902c7486db2599efe`.
