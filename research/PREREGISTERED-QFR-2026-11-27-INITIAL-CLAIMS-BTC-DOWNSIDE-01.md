@@ -1,7 +1,7 @@
 # Preregistered Research: U.S. Initial-Claims Deterioration and Bitcoin Downside Semivariance
 
 - **Hypothesis ID:** `QFR-2026-11-27-INITIAL-CLAIMS-BTC-DOWNSIDE-01`
-- **Status:** FEASIBILITY_CHECKED — source preflight passed; one frozen empirical run is authorized.
+- **Status:** INCONCLUSIVE/INFEASIBLE; decision=INCONCLUSIVE/INFEASIBLE. No valid empirical backtest completed.
 - **Registered:** `2026-11-27T15:40:06Z`
 - **Difficulty:** LOW
 - **Difficulty rationale:** One public weekly FRED series (ICSA), the repository's already-tested Binance BTCUSDT Spot daily-archive pipeline, one prespecified four-week transformation, and the existing OLS/walk-forward/paired-loss framework. No new credentials, paid data, execution infrastructure or custom simulator are required.
@@ -86,3 +86,18 @@ The candidate is closed after Cycle 2. A new source, feature, lag, target, marke
 - **Units correction:** FRED reports ICSA in **number of claims, seasonally adjusted**, not thousands; the feature is a ratio/log change, so the scale cancels. The source-preflight metadata label is corrected in this implementation commit.
 - **BTCUSDT:** exchangeInfo confirms active Spot trading; the 2026-11-23 daily archive and checksum sidecar both verified. Archive SHA-256 `d778c53e3a42ec9e6ae13f39401b530028a37c78b94be1cfd80aec7706e3d96a`; checksum-sidecar SHA-256 `c042ab4efd94ff8117026fc7a817ac7ad887f83a7b19323cfcfe8eb3659a3d4f`.
 - **Raw observations saved:** no. **Backtest run:** no; this was source feasibility only.
+
+## Empirical disposition
+
+- **Final status:** INCONCLUSIVE/INFEASIBLE; decision=INCONCLUSIVE/INFEASIBLE.
+- **Disposition:** INCONCLUSIVE/INFEASIBLE — frozen source or implementation acceptance failed: KeyError: 'target_bp'.
+- **Completed real-data backtest:** no.
+- **Data scope:** source acceptance incomplete.
+- **Validation metrics:** {}.
+- **Test metrics:** {}.
+- **Paired test-loss bootstrap:** null.
+- **Report:** [reports/sessions/2026-11-27/2026-11-27T155050Z_session-initial-claims-btc-downside-46028463325.md](../reports/sessions/2026-11-27/2026-11-27T155050Z_session-initial-claims-btc-downside-46028463325.md).
+- **Manifest:** [reports/generated/initial-claims-btc-downside/46028463325-attempt-1/manifest.json](../reports/generated/initial-claims-btc-downside/46028463325-attempt-1/manifest.json).
+- **Forecast rows:** [reports/generated/initial-claims-btc-downside/46028463325-attempt-1/forecast_rows.csv](../reports/generated/initial-claims-btc-downside/46028463325-attempt-1/forecast_rows.csv).
+- Forecast-only; no causal, trading or deployment claim.
+

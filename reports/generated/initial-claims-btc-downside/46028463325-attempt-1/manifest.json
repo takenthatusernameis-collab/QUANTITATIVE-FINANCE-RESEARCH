@@ -1,0 +1,18 @@
+{
+  "completed_backtest": false,
+  "daily_kpi": "The 2026-11-27 minimum was already met by two distinct real-data forecast screens; this failed attempt does not count as another backtest.",
+  "data_scope": "source acceptance incomplete",
+  "decision": "INCONCLUSIVE/INFEASIBLE",
+  "disposition": "INCONCLUSIVE/INFEASIBLE \u2014 frozen source or implementation acceptance failed: KeyError: 'target_bp'",
+  "error": "KeyError: 'target_bp'",
+  "forecast_path": "reports/generated/initial-claims-btc-downside/46028463325-attempt-1/forecast_rows.csv",
+  "forecast_rows": [],
+  "hypothesis_id": "QFR-2026-11-27-INITIAL-CLAIMS-BTC-DOWNSIDE-01",
+  "manifest_path": "reports/generated/initial-claims-btc-downside/46028463325-attempt-1/manifest.json",
+  "report_path": "reports/sessions/2026-11-27/2026-11-27T155050Z_session-initial-claims-btc-downside-46028463325.md",
+  "retrieved_at_utc": "2026-11-27T15:51:00.545506+00:00",
+  "run_attempt": "1",
+  "run_id": "46028463325",
+  "source_commit_sha": "cde68e04733382d8ee1e1feb6fef6e94fd103c5f",
+  "status": "INCONCLUSIVE/INFEASIBLE"
+}
