@@ -2,7 +2,7 @@ name: Research workflow admission guard tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, agent/etf-relative-flow-implementation-20261127]
     paths:
       - "README.md"
       - ".github/workflows/**"
@@ -100,3 +100,14 @@ jobs:
 
       - name: Run taker-absorption evidence persistence regression tests
         run: PYTHONPATH=research python -m unittest discover -s research -p "test_persist_taker_absorption_evidence.py" -v
+      - name: Compile BTC/ETH ETF relative-flow implementation
+        run: python -m py_compile research/etf_relative_flow_source_preflight.py research/test_etf_relative_flow_source_preflight.py research/etf_relative_flow_ethbtc.py research/test_etf_relative_flow_ethbtc.py research/persist_etf_relative_flow_evidence.py research/test_persist_etf_relative_flow_evidence.py
+
+      - name: Run BTC/ETH ETF relative-flow source parser tests
+        run: PYTHONPATH=research python -m unittest discover -s research -p "test_etf_relative_flow_source_preflight.py" -v
+
+      - name: Run BTC/ETH ETF relative-flow model tests
+        run: PYTHONPATH=research python -m unittest discover -s research -p "test_etf_relative_flow_ethbtc.py" -v
+
+      - name: Run BTC/ETH ETF relative-flow persistence tests
+        run: PYTHONPATH=research python -m unittest discover -s research -p "test_persist_etf_relative_flow_evidence.py" -v
