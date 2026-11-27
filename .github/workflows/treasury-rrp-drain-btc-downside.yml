@@ -9,6 +9,19 @@ on:
       - "research/PREREGISTERED-QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01.md"
       - ".github/workflows/treasury-rrp-drain-btc-downside.yml"
   workflow_dispatch:
+    inputs:
+      source_comment_id:
+        description: Authenticated source issue-comment ID from the control-PR bridge
+        required: true
+        type: string
+      source_control_pr:
+        description: Exact control PR number
+        required: true
+        type: string
+      source_actor:
+        description: Verified owner account that authorized the command
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -44,6 +57,19 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Record authenticated dispatch provenance
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          SOURCE_COMMENT_ID: ${{ github.event.inputs.source_comment_id }}
+          SOURCE_CONTROL_PR: ${{ github.event.inputs.source_control_pr }}
+          SOURCE_ACTOR: ${{ github.event.inputs.source_actor }}
+        run: |
+          set -euo pipefail
+          test -n "$SOURCE_COMMENT_ID"
+          test "$SOURCE_CONTROL_PR" = "15"
+          test "$SOURCE_ACTOR" = "takenthatusernameis-collab"
+          echo "Authenticated dispatch provenance: comment=$SOURCE_COMMENT_ID control_pr=$SOURCE_CONTROL_PR actor=$SOURCE_ACTOR"
+
       - name: Run deterministic parser, timing, event, model and admission tests
         run: |
           set -euo pipefail
@@ -56,6 +82,9 @@ jobs:
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
           GITHUB_SHA: ${{ github.sha }}
+          SOURCE_COMMENT_ID: ${{ github.event.inputs.source_comment_id }}
+          SOURCE_CONTROL_PR: ${{ github.event.inputs.source_control_pr }}
+          SOURCE_ACTOR: ${{ github.event.inputs.source_actor }}
         run: |
           set -euo pipefail
           PYTHONPATH=research python research/treasury_rrp_drain_btc_downside.py
