@@ -13,7 +13,7 @@ ADMISSION_IF = (
     "if: github.event_name != 'push' || "
     "startsWith(github.event.head_commit.message, '[QFR-ADMIT] research:')"
 )
-NON_RESEARCH_WORKFLOWS = {"workflow-admission-tests.yml", "stablecoin-supply-source-preflight.yml", "wikipedia-attention-source-preflight.yml", "taker-absorption-source-preflight.yml", "btc-cross-venue-funding-dispersion-source-preflight.yml", "btc-mining-difficulty-closure-tests.yml", "etf-relative-flow-source-preflight.yml"}
+NON_RESEARCH_WORKFLOWS = {"workflow-admission-tests.yml", "stablecoin-supply-source-preflight.yml", "wikipedia-attention-source-preflight.yml", "taker-absorption-source-preflight.yml", "btc-cross-venue-funding-dispersion-source-preflight.yml", "btc-mining-difficulty-closure-tests.yml", "etf-relative-flow-source-preflight.yml", "btc-blockspace-fee-rate-source-preflight.yml"}
 
 
 TIMEBOX_POLICY_CUTOVER = dt.datetime.fromisoformat("2026-11-26T10:12:25+00:00")
@@ -592,6 +592,30 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertNotIn('"research/test_workflow_admission.py"', text)
         self.assertNotIn('"research/etf_relative_flow_ethbtc.py"', text)
         self.assertNotIn('"research/PREREGISTERED-QFR-2026-11-27-BTC-ETH-ETF-RELATIVE-FLOW-ETHBTC-01.md"', text)
+
+
+    def test_btc_blockspace_fee_rate_source_preflight_is_registered_as_non_research_workflow(self):
+        self.assertIn("btc-blockspace-fee-rate-source-preflight.yml", NON_RESEARCH_WORKFLOWS)
+
+    def test_btc_blockspace_fee_rate_source_preflight_is_read_only_and_not_a_backtest(self):
+        path = WORKFLOW_DIR / "btc-blockspace-fee-rate-source-preflight.yml"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertIn("contents: read", text)
+        self.assertNotIn("contents: write", text)
+        self.assertIn("btc_blockspace_fee_rate_source_preflight.py", text)
+        self.assertNotIn("btc_blockspace_fee_rate_btc_downside.py", text)
+        self.assertIn("do not run a backtest", text.lower())
+        self.assertIn("ref: \${{ github.sha }}", text)
+        self.assertIn("cancel-in-progress: false", text)
+
+    def test_btc_blockspace_fee_rate_source_preflight_has_narrow_path_filters(self):
+        text = (WORKFLOW_DIR / "btc-blockspace-fee-rate-source-preflight.yml").read_text(encoding="utf-8")
+        self.assertIn('"research/btc_blockspace_fee_rate_source_preflight.py"', text)
+        self.assertIn('"research/test_btc_blockspace_fee_rate_source_preflight.py"', text)
+        self.assertIn('".github/workflows/btc-blockspace-fee-rate-source-preflight.yml"', text)
+        self.assertNotIn('"research/test_workflow_admission.py"', text)
+        self.assertNotIn('".github/workflows/workflow-admission-tests.yml"', text)
 
 
 if __name__ == "__main__":
