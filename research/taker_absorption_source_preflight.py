@@ -147,7 +147,9 @@ def download_archive(spec: dict) -> tuple[dict[dt.date, dict], dict]:
     }
 
 
-def validate_coverage(\n    rows: dict[dt.date, dict], start: dt.date, end: dt.date, min_nonzero_rows: int = 3000\n) -> dict:
+def validate_coverage(
+    rows: dict[dt.date, dict], start: dt.date, end: dt.date, min_nonzero_rows: int = 3000
+) -> dict:
     expected_days = (end - start).days + 1
     expected = {start + dt.timedelta(days=i) for i in range(expected_days)}
     observed = set(rows)
