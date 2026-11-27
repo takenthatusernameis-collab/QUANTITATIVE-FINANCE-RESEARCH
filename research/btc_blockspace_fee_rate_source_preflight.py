@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One-request, read-only Mempool.space block-feerate source feasibility probe."""
+"""One-request, read-only Mempool.space 12-hour-bin source feasibility probe."""
 from __future__ import annotations
 
 import datetime as dt
@@ -19,6 +19,7 @@ REQUIRED_FIELDS = {
     "timestamp", "avgFee_0", "avgFee_10", "avgFee_25", "avgFee_50",
     "avgFee_75", "avgFee_90", "avgFee_100", "avgHeight",
 }
+EXPECTED_HALF_DAY_BINS = 2
 MIN_UNIQUE_UTC_DAYS = 900
 MIN_SPAN_DAYS = 900
 MAX_PUBLICATION_LAG_DAYS = 3
@@ -62,7 +63,7 @@ def _finite_nonnegative(value: object, field: str, row_number: int) -> float | N
     return number
 
 
-def parse_fee_rate_payload(body: bytes) -> tuple[dict[dt.date, float], dict]:
+def parse_fee_rate_payload(body: bytes) -> tuple[dict[dt.date, list[tuple[dt.datetime, float]]], dict]:
     try:
         payload = json.loads(body.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
@@ -70,9 +71,9 @@ def parse_fee_rate_payload(body: bytes) -> tuple[dict[dt.date, float], dict]:
 
     rows = payload.get("data") if isinstance(payload, dict) else payload
     if not isinstance(rows, list) or not rows:
-        raise ValueError("Expected a non-empty per-block JSON array")
+        raise ValueError("Expected a non-empty 12-hour-bin JSON array")
 
-    daily_values: dict[dt.date, list[float]] = defaultdict(list)
+    daily_bins: dict[dt.date, list[tuple[dt.datetime, float]]] = defaultdict(list)
     timestamps: list[int] = []
     p75_values: list[float] = []
     heights: list[float] = []
@@ -100,27 +101,24 @@ def parse_fee_rate_payload(body: bytes) -> tuple[dict[dt.date, float], dict]:
         heights.append(height)
         if p75 is not None:
             p75_values.append(p75)
-            daily_values[timestamp.date()].append(p75)
+            daily_bins[timestamp.date()].append((timestamp, p75))
 
     if any(right < left for left, right in zip(timestamps, timestamps[1:])):
         raise ValueError("Mempool observations are not ordered oldest-to-newest")
-    if not daily_values:
+    if not daily_bins:
         raise ValueError("No usable avgFee_75 observations were returned")
 
-    daily_medians = {
-        day: statistics.median(values)
-        for day, values in sorted(daily_values.items())
-        if values
-    }
-    first_day, last_day = min(daily_medians), max(daily_medians)
-    return daily_medians, {
+    raw_dates = sorted(daily_bins)
+    bin_counts = [len(daily_bins[day]) for day in raw_dates]
+    return daily_bins, {
         "row_count": len(rows),
         "first_timestamp_utc": dt.datetime.fromtimestamp(timestamps[0], dt.timezone.utc).isoformat(),
         "last_timestamp_utc": dt.datetime.fromtimestamp(timestamps[-1], dt.timezone.utc).isoformat(),
-        "first_utc_date": first_day.isoformat(),
-        "last_utc_date": last_day.isoformat(),
-        "unique_utc_dates": len(daily_medians),
-        "span_calendar_days_inclusive": (last_day - first_day).days + 1,
+        "raw_first_utc_date": raw_dates[0].isoformat(),
+        "raw_last_utc_date": raw_dates[-1].isoformat(),
+        "raw_unique_utc_dates": len(raw_dates),
+        "raw_bin_count_min": min(bin_counts),
+        "raw_bin_count_max": max(bin_counts),
         "valid_avgFee_75_rows": len(p75_values),
         "avgFee_75_min_sat_vb": min(p75_values),
         "avgFee_75_median_sat_vb": statistics.median(p75_values),
@@ -128,36 +126,67 @@ def parse_fee_rate_payload(body: bytes) -> tuple[dict[dt.date, float], dict]:
         "avgHeight_min": min(heights),
         "avgHeight_max": max(heights),
         "response_schema": sorted(rows[0].keys()),
-        "daily_aggregation": "median of per-block avgFee_75 values by UTC date",
+        "source_bucket_seconds": 43_200,
+        "daily_aggregation": (
+            "median of the two 12-hour-bin avgFee_75 averages by UTC date; "
+            "each bin avgFee_75 is the mean of underlying block p75 values"
+        ),
     }
 
 
 def validate_coverage(
-    daily_medians: dict[dt.date, float],
+    daily_bins: dict[dt.date, list[tuple[dt.datetime, float]]],
     now: dt.datetime,
-) -> dict:
+) -> tuple[dict[dt.date, float], dict]:
     if now.tzinfo is None:
         raise ValueError("Coverage validation requires an offset-aware UTC time")
     now_utc = now.astimezone(dt.timezone.utc)
-    first_day, last_day = min(daily_medians), max(daily_medians)
-    unique_days = len(daily_medians)
-    span_days = (last_day - first_day).days + 1
-    lag_days = (now_utc.date() - last_day).days
+    raw_dates = sorted(daily_bins)
+    if len(raw_dates) < 3:
+        raise ValueError("Insufficient raw UTC dates to exclude partial window boundaries")
 
+    first_boundary, last_boundary = raw_dates[0], raw_dates[-1]
+    completed_dates = raw_dates[1:-1]
+    completed_daily: dict[dt.date, float] = {}
+
+    for day in completed_dates:
+        entries = daily_bins[day]
+        if len(entries) != EXPECTED_HALF_DAY_BINS:
+            raise ValueError(
+                f"UTC date {day} has {len(entries)} 12-hour bins; expected {EXPECTED_HALF_DAY_BINS}"
+            )
+        halves = sorted(0 if timestamp.hour < 12 else 1 for timestamp, _ in entries)
+        if halves != [0, 1]:
+            raise ValueError(
+                f"UTC date {day} does not contain one 00:00-11:59 and one 12:00-23:59 bin"
+            )
+        completed_daily[day] = statistics.median(value for _, value in entries)
+
+    if not completed_daily:
+        raise ValueError("No complete UTC dates remain after excluding partial boundaries")
+
+    completed_dates_sorted = sorted(completed_daily)
+    first_day, last_day = completed_dates_sorted[0], completed_dates_sorted[-1]
+    unique_days = len(completed_dates_sorted)
+    span_days = (last_day - first_day).days + 1
+    if unique_days != span_days:
+        raise ValueError("Missing UTC dates remain inside the completed source window")
     if unique_days < MIN_UNIQUE_UTC_DAYS:
         raise ValueError(
-            f"Insufficient unique UTC dates: {unique_days} < {MIN_UNIQUE_UTC_DAYS}"
+            f"Insufficient completed UTC dates: {unique_days} < {MIN_UNIQUE_UTC_DAYS}"
         )
     if span_days < MIN_SPAN_DAYS:
-        raise ValueError(f"Insufficient calendar span: {span_days} < {MIN_SPAN_DAYS}")
-    if lag_days < 0:
-        raise ValueError(f"Future-dated fee-rate observations: latest={last_day}")
+        raise ValueError(f"Insufficient completed calendar span: {span_days} < {MIN_SPAN_DAYS}")
+
+    lag_days = (now_utc.date() - last_day).days
+    if lag_days < 1:
+        raise ValueError("Latest included date is not a completed UTC date")
     if lag_days > MAX_PUBLICATION_LAG_DAYS:
         raise ValueError(
-            f"Fee-rate source is stale by {lag_days} days; maximum is {MAX_PUBLICATION_LAG_DAYS}"
+            f"Completed fee-rate source is stale by {lag_days} days; maximum is {MAX_PUBLICATION_LAG_DAYS}"
         )
 
-    return {
+    return completed_daily, {
         "first_utc_date": first_day.isoformat(),
         "last_utc_date": last_day.isoformat(),
         "unique_utc_dates": unique_days,
@@ -166,7 +195,10 @@ def validate_coverage(
         "minimum_unique_utc_dates": MIN_UNIQUE_UTC_DAYS,
         "minimum_span_calendar_days": MIN_SPAN_DAYS,
         "maximum_publication_lag_days": MAX_PUBLICATION_LAG_DAYS,
+        "expected_12h_bins_per_complete_date": EXPECTED_HALF_DAY_BINS,
+        "boundary_dates_excluded": [first_boundary.isoformat(), last_boundary.isoformat()],
         "missing_utc_dates_not_interpolated": True,
+        "partial_current_utc_date_excluded": last_boundary == now_utc.date(),
     }
 
 
@@ -209,9 +241,12 @@ def run_preflight(
 ) -> dict:
     retrieved_at = now or dt.datetime.now(dt.timezone.utc)
     body, status, final_url, headers = fetcher()
-    daily_medians, source_summary = parse_fee_rate_payload(body)
-    coverage = validate_coverage(daily_medians, retrieved_at)
-    total_days = sorted(daily_medians)
+    daily_bins, source_summary = parse_fee_rate_payload(body)
+    completed_daily, coverage = validate_coverage(daily_bins, retrieved_at)
+    total_days = sorted(completed_daily)
+    source_summary["completed_unique_utc_dates"] = len(completed_daily)
+    source_summary["completed_first_utc_date"] = total_days[0].isoformat()
+    source_summary["completed_last_utc_date"] = total_days[-1].isoformat()
     return {
         "hypothesis_id": HYPOTHESIS_ID,
         "status": "PASS",
@@ -229,11 +264,17 @@ def run_preflight(
         "source_summary": source_summary,
         "coverage": coverage,
         "feature_definition": (
-            "daily median of per-block avgFee_75 (sat/vB), then "
+            "daily median of two 12-hour-bin avgFee_75 averages (sat/vB), then "
             "log1p(value[t-1]) - log1p(value[t-8]); one full UTC-day embargo"
         ),
-        "first_daily_value": {"date": total_days[0].isoformat(), "avgFee_75_median_sat_vb": daily_medians[total_days[0]]},
-        "last_daily_value": {"date": total_days[-1].isoformat(), "avgFee_75_median_sat_vb": daily_medians[total_days[-1]]},
+        "first_daily_value": {
+            "date": total_days[0].isoformat(),
+            "avgFee_75_median_sat_vb": completed_daily[total_days[0]],
+        },
+        "last_daily_value": {
+            "date": total_days[-1].isoformat(),
+            "avgFee_75_median_sat_vb": completed_daily[total_days[-1]],
+        },
         "raw_observations_saved": False,
         "backtest_run": False,
     }
@@ -268,7 +309,7 @@ def main() -> int:
         with open(summary_path, "a", encoding="utf-8") as handle:
             handle.write("# Bitcoin blockspace fee-rate source preflight\n\n")
             handle.write(f"- Status: **{result['status']}**\n")
-            handle.write(f"- Hypothesis: `{HYPOTHESIS_ID}`\n")
+            handle.write(f"- Hypothesis: \`{HYPOTHESIS_ID}\`\n")
             handle.write("- Backtest executed: **No**\n")
             handle.write("- API requests / retries: **1 / 0**\n\n")
             handle.write(rendered + "\n")

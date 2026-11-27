@@ -35,7 +35,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Run deterministic source-schema and timing tests
+      - name: Run deterministic 12-hour-bin, UTC-boundary, schema and timing tests
         run: |
           set -euo pipefail
           python -m py_compile research/btc_blockspace_fee_rate_source_preflight.py research/test_btc_blockspace_fee_rate_source_preflight.py
