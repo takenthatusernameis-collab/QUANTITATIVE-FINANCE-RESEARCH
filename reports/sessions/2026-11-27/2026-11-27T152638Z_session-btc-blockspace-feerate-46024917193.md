@@ -76,4 +76,4 @@ The separate Cycle 4 audit confirmed the following:
 - The 2,000-replication paired-loss 95% interval is [-0.016317454039132775, +0.005471370322788428], crossing zero. The frozen decision is **INCONCLUSIVE**, not REJECTED.
 - No raw observations were saved. The result remains forecast-only and does not establish a trading edge.
 
-Full audit: [Cycle 4 independent audit](../reports/sessions/2026-11-27/20261127T152939Z_session-btc-blockspace-feerate-independent-audit.md).
+Full audit: [Cycle 4 independent audit](20261127T152939Z_session-btc-blockspace-feerate-independent-audit.md).
