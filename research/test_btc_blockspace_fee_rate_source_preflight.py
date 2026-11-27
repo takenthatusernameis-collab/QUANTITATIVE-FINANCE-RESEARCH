@@ -13,8 +13,7 @@ UTC = dt.timezone.utc
 AS_OF = dt.datetime(2026, 11, 27, 13, 55, 51, tzinfo=UTC)
 
 
-def sample_rows(days: int = 901) -> list[dict]:
-    start = dt.date(2024, 6, 9)
+def sample_rows(days: int = 901, start: dt.date = dt.date(2024, 6, 9)) -> list[dict]:
     rows = []
     for offset in range(days):
         day = start + dt.timedelta(days=offset)
@@ -89,7 +88,7 @@ class BitcoinBlockspaceFeeRatePreflightTests(unittest.TestCase):
             model.validate_coverage(daily, AS_OF)
 
     def test_coverage_rejects_stale_latest_date(self):
-        rows = sample_rows()
+        rows = sample_rows(start=dt.date(2024, 6, 1))
         stale_cutoff = dt.date(2026, 11, 20)
         rows = [row for row in rows if dt.datetime.fromtimestamp(row["timestamp"], UTC).date() <= stale_cutoff]
         daily, _ = model.parse_fee_rate_payload(json.dumps(rows).encode())
