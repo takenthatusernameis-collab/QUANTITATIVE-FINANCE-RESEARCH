@@ -3,10 +3,13 @@
 - **Hypothesis ID:** QFR-2026-11-27-BTC-TAKER-ABSORPTION-DOWNSIDE-01
 - **Status:** BACKTESTED; decision=INCONCLUSIVE; workflow run 45926394994; validation/test forecasts 159/298.
 - **Preregistration freeze:** 2026-11-27T01:34:56Z
+- **Timebox start:** 2026-11-27T01:34:56Z (the exact preregistration-freeze timestamp; frozen before source preflight and model implementation).
 - **Difficulty:** LOW
+- **Difficulty rationale:** LOW because the signal is a single deterministic feature derived from fields already present in the existing Binance Spot kline archive pipeline; the source, checksum, market-price and walk-forward helpers were already available, and the model adds one feature without a new venue or complex integration.
 - **Maximum substantive cycles:** 2
 - **Implementation deadline:** 2026-11-28T01:34:56Z
 - **Final research-conclusion deadline:** 2026-11-29T01:34:56Z
+- **Expiry rule:** the earlier of the two substantive-cycle cap or the two-calendar-day maximum governs. If source acceptance or implementation is incomplete at the implementation deadline, close INCONCLUSIVE/INFEASIBLE with the exact blocker; if a valid empirical conclusion is not complete by the final deadline, close INCONCLUSIVE/INFEASIBLE. Expiry is never a performance NO-GO. No automatic extension, clock reset, gate weakening or same-ID retuning is permitted.
 - **No timebox extension or parameter search is authorized.**
 
 ## 1. Falsifiable hypothesis

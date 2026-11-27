@@ -102,6 +102,18 @@ The earlier of the cycle cap or calendar limit governs. A substantive cycle must
 At expiry, publish the strongest defensible conclusion. If valid empirical evidence exists, apply the frozen criteria. If implementation, source acceptance or execution remains unresolved, close as **INCONCLUSIVE/INFEASIBLE**, never infer a performance **NO-GO** from elapsed time. Do not silently reset the clock, extend it automatically, weaken acceptance gates or keep an experiment open indefinitely. A materially changed hypothesis, source, feature, lag, target, market or model requires a new identity and preregistered timebox. No untimeboxed research workstream is admitted.
 
 
+### Mainline activation and machine-enforced timebox admission
+
+The mandatory preregistration timebox rule became active on the current mainline at commit [3debfd54](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/3debfd54e3fc46674d507b0c166301a4410f6b51), timestamped **2026-11-26T10:12:25Z**. This is the fixed cutover used by the regression suite. Preregistrations frozen before that timestamp are historical records; do not invent, backdate or retroactively rewrite missing timebox fields. Every preregistration frozen at or after the cutover must contain the complete contract above.
+
+The admission-guard suite now checks two structural invariants before research work can pass repository CI:
+
+- Every non-test research module declaring a literal `HYPOTHESIS_ID` must have its matching `PREREGISTERED-{HYPOTHESIS_ID}.md` or an explicit `CLOSED-{HYPOTHESIS_ID}.md` closure record. A closed module must remain fail-closed. The shared `research/treasury_auction_demand.py` engine is the sole legacy shared-helper exemption; every new hypothesis built on it still needs its own preregistration.
+- Every post-cutover preregistration must record a difficulty tier and rationale, exact UTC timebox start, maximum substantive cycles, separate implementation and final-conclusion deadlines, and an explicit expiry rule. The guard checks the cycle and elapsed-time limits against the LOW/MEDIUM/HIGH budget table above.
+
+This catches missing admission artifacts and incomplete timeboxes in CI; it does not authorize implementation, replace deterministic model tests, or relax the atomic `[QFR-ADMIT] research:` gate.
+
+
 ## Adaptive execution and real repository commits
 
 ## Deadline-aware direct-agent recovery

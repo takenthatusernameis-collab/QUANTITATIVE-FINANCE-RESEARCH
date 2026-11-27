@@ -1,4 +1,5 @@
 from pathlib import Path
+import datetime as dt
 import re
 import shutil
 import subprocess
@@ -13,6 +14,14 @@ ADMISSION_IF = (
     "startsWith(github.event.head_commit.message, '[QFR-ADMIT] research:')"
 )
 NON_RESEARCH_WORKFLOWS = {"workflow-admission-tests.yml", "stablecoin-supply-source-preflight.yml", "wikipedia-attention-source-preflight.yml", "taker-absorption-source-preflight.yml", "btc-cross-venue-funding-dispersion-source-preflight.yml", "btc-mining-difficulty-closure-tests.yml"}
+
+
+TIMEBOX_POLICY_CUTOVER = dt.datetime.fromisoformat("2026-11-26T10:12:25+00:00")
+TIMEBOX_BUDGETS = {
+    "LOW": (2, 2),
+    "MEDIUM": (4, 5),
+    "HIGH": (8, 10),
+}
 
 
 class ResearchWorkflowAdmissionTests(unittest.TestCase):
@@ -365,6 +374,138 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertIn("not a preregistration", closure.lower())
         self.assertIn("mandatory preregistration", closure.lower())
         self.assertIn("assert_empirical_execution_allowed()", module)
+
+
+    def test_every_hypothesis_module_has_preregistration_or_explicit_closure(self):
+        # The Treasury auction module is a shared legacy engine, not a standalone
+        # hypothesis admission. All new hypotheses built on it still need their own prereg.
+        shared_core_helpers = {"treasury_auction_demand.py"}
+        research_dir = ROOT / "research"
+
+        for path in sorted(research_dir.glob("*.py")):
+            if path.name.startswith("test_") or path.name in shared_core_helpers:
+                continue
+            source = path.read_text(encoding="utf-8")
+            match = re.search(
+                r"(?m)^HYPOTHESIS_ID\\s*=\\s*['\"]([^'\"]+)['\"]",
+                source,
+            )
+            if not match:
+                continue
+
+            hypothesis_id = match.group(1)
+            prereg = research_dir / f"PREREGISTERED-{hypothesis_id}.md"
+            closure = research_dir / f"CLOSED-{hypothesis_id}.md"
+            with self.subTest(module=path.name, hypothesis_id=hypothesis_id):
+                self.assertTrue(
+                    prereg.is_file() or closure.is_file(),
+                    msg=f"{path.name} has no matching preregistration or explicit closure",
+                )
+                if closure.is_file():
+                    closure_text = closure.read_text(encoding="utf-8")
+                    self.assertIn("CLOSED", closure_text.upper())
+                    self.assertIn(
+                        "assert_empirical_execution_allowed()",
+                        source,
+                        msg=f"{path.name} has a closure record but no fail-closed execution guard",
+                    )
+
+    def test_post_cutover_preregistrations_have_complete_bounded_timeboxes(self):
+        research_dir = ROOT / "research"
+        prereg_paths = sorted(research_dir.glob("PREREGISTERED-*.md"))
+
+        for path in prereg_paths:
+            content = path.read_text(encoding="utf-8")
+            registration_match = re.search(
+                r"(?mi)^-\\s*\\*\\*(?:Registered|Preregistration freeze):\\*\\*\\s*"
+                r"`?(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z)`?",
+                content,
+            )
+            hypothesis_date_match = re.search(r"QFR-(\\d{4}-\\d{2}-\\d{2})", path.name)
+
+            if registration_match is None:
+                if hypothesis_date_match:
+                    hypothesis_date = dt.date.fromisoformat(hypothesis_date_match.group(1))
+                    if hypothesis_date >= TIMEBOX_POLICY_CUTOVER.date():
+                        self.fail(f"{path.name} has no exact UTC registration/freeze timestamp")
+                continue
+
+            registered_at = dt.datetime.fromisoformat(
+                registration_match.group(1).replace("Z", "+00:00")
+            )
+            if registered_at < TIMEBOX_POLICY_CUTOVER:
+                continue
+
+            with self.subTest(preregistration=path.name):
+                difficulty_match = re.search(
+                    r"(?mi)^-\\s*\\*\\*(?:Expected )?Difficulty:\\*\\*\\s*`?(LOW|MEDIUM|HIGH)\\b",
+                    content,
+                )
+                rationale_match = re.search(
+                    r"(?mi)^-\\s*\\*\\*Difficulty rationale:\\*\\*\\s*\\S",
+                    content,
+                )
+                start_match = re.search(
+                    r"(?mi)^-\\s*\\*\\*Timebox start:\\*\\*\\s*`?"
+                    r"(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z)`?",
+                    content,
+                )
+                cycles_match = re.search(
+                    r"(?mi)^-\\s*\\*\\*Maximum substantive cycles:\\*\\*\\s*(\\d+)\\b",
+                    content,
+                )
+                implementation_match = re.search(
+                    r"(?mi)^-\\s*\\*\\*(?:Hard )?Implementation deadline:\\*\\*\\s*`?"
+                    r"(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z)`?",
+                    content,
+                )
+                conclusion_match = re.search(
+                    r"(?mi)^-\\s*\\*\\*(?:Hard )?Final research-conclusion deadline:\\*\\*\\s*`?"
+                    r"(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z)`?",
+                    content,
+                )
+                expiry_match = re.search(
+                    r"(?mi)^-\\s*\\*\\*Expiry rule:\\*\\*\\s*\\S",
+                    content,
+                )
+
+                self.assertIsNotNone(difficulty_match, "missing LOW/MEDIUM/HIGH difficulty")
+                self.assertIsNotNone(rationale_match, "missing difficulty rationale")
+                self.assertIsNotNone(start_match, "missing exact UTC timebox start")
+                self.assertIsNotNone(cycles_match, "missing maximum substantive cycles")
+                self.assertIsNotNone(implementation_match, "missing implementation deadline")
+                self.assertIsNotNone(conclusion_match, "missing final research-conclusion deadline")
+                self.assertIsNotNone(expiry_match, "missing explicit expiry outcome rule")
+
+                difficulty = difficulty_match.group(1)
+                maximum_cycles, maximum_days = TIMEBOX_BUDGETS[difficulty]
+                cycles = int(cycles_match.group(1))
+                start = dt.datetime.fromisoformat(start_match.group(1).replace("Z", "+00:00"))
+                implementation = dt.datetime.fromisoformat(
+                    implementation_match.group(1).replace("Z", "+00:00")
+                )
+                conclusion = dt.datetime.fromisoformat(
+                    conclusion_match.group(1).replace("Z", "+00:00")
+                )
+
+                self.assertGreaterEqual(start, registered_at, "timebox starts before preregistration")
+                self.assertGreater(cycles, 0)
+                self.assertLessEqual(cycles, maximum_cycles, "cycle cap exceeds difficulty tier")
+                self.assertGreater(implementation, start, "implementation deadline must follow start")
+                self.assertGreater(conclusion, implementation, "final deadline must follow implementation deadline")
+                self.assertLessEqual(
+                    conclusion - start,
+                    dt.timedelta(days=maximum_days),
+                    "final deadline exceeds the difficulty-tier calendar budget",
+                )
+
+    def test_readme_documents_mainline_timebox_cutover_and_machine_enforcement(self):
+        text = README.read_text(encoding="utf-8")
+        self.assertIn("2026-11-26T10:12:25Z", text)
+        self.assertIn("matching preregistration or explicit closure", text)
+        self.assertIn("post-cutover preregistration", text.lower())
+        self.assertIn("research/test_workflow_admission.py", text)
+
 
 
 if __name__ == "__main__":
