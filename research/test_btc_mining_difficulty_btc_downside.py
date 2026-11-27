@@ -2,6 +2,7 @@ import datetime as dt
 import json
 import math
 import unittest
+from unittest.mock import patch
 
 import btc_mining_difficulty_btc_downside as study
 
@@ -108,6 +109,13 @@ class BitcoinMiningDifficultyDownsideTests(unittest.TestCase):
         self.assertEqual(study.decide(period(60, 1.0), period(110, 0.5), paired)[0], "PROMISING")
         self.assertEqual(study.decide(period(60, -1.0), period(110, -0.5), {"ci_95_low": -0.03, "ci_95_high": -0.01})[0], "REJECTED")
         self.assertEqual(study.decide(period(20, 1.0), period(110, 0.5), paired)[0], "INCONCLUSIVE")
+
+
+    def test_unadmitted_closed_identity_blocks_before_any_source_fetch(self):
+        with patch.object(study.base, "fetch_bytes") as fetch:
+            with self.assertRaisesRegex(RuntimeError, "closed as an unadmitted draft"):
+                study.run_research()
+            fetch.assert_not_called()
 
 
 if __name__ == "__main__":
