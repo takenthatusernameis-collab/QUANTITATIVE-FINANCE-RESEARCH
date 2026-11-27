@@ -12,7 +12,7 @@ ADMISSION_IF = (
     "if: github.event_name != 'push' || "
     "startsWith(github.event.head_commit.message, '[QFR-ADMIT] research:')"
 )
-NON_RESEARCH_WORKFLOWS = {"workflow-admission-tests.yml", "stablecoin-supply-source-preflight.yml", "wikipedia-attention-source-preflight.yml", "taker-absorption-source-preflight.yml", "btc-cross-venue-funding-dispersion-source-preflight.yml"}
+NON_RESEARCH_WORKFLOWS = {"workflow-admission-tests.yml", "stablecoin-supply-source-preflight.yml", "wikipedia-attention-source-preflight.yml", "taker-absorption-source-preflight.yml", "btc-cross-venue-funding-dispersion-source-preflight.yml", "btc-mining-difficulty-closure-tests.yml"}
 
 
 class ResearchWorkflowAdmissionTests(unittest.TestCase):
@@ -345,6 +345,26 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
 
     def test_cross_venue_source_preflight_is_excluded_from_research_admission_gate(self):
         self.assertIn("btc-cross-venue-funding-dispersion-source-preflight.yml", NON_RESEARCH_WORKFLOWS)
+
+
+    def test_mining_difficulty_closure_workflow_is_read_only_and_never_runs_research(self):
+        path = WORKFLOW_DIR / "btc-mining-difficulty-closure-tests.yml"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertIn("contents: read", text)
+        self.assertNotIn("contents: write", text)
+        self.assertIn("test_btc_mining_difficulty_btc_downside.py", text)
+        self.assertIn("do not run empirical", text.lower())
+        self.assertIn("ref: ${{ github.sha }}", text)
+        self.assertIn("cancel-in-progress: false", text)
+        self.assertIn("btc-mining-difficulty-closure-tests.yml", NON_RESEARCH_WORKFLOWS)
+
+    def test_mining_difficulty_identity_is_closed_and_guarded(self):
+        closure = (ROOT / "research" / "CLOSED-QFR-2026-11-27-BTC-DIFFICULTY-CUT-DOWNSIDE-01.md").read_text(encoding="utf-8")
+        module = (ROOT / "research" / "btc_mining_difficulty_btc_downside.py").read_text(encoding="utf-8")
+        self.assertIn("not a preregistration", closure.lower())
+        self.assertIn("mandatory preregistration", closure.lower())
+        self.assertIn("assert_empirical_execution_allowed()", module)
 
 
 if __name__ == "__main__":
