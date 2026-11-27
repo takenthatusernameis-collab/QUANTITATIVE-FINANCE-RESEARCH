@@ -1,0 +1,75 @@
+{
+  "api_requests": 1,
+  "backtest_run": false,
+  "coverage": {
+    "boundary_dates_excluded": [
+      "2023-11-27",
+      "2026-11-27"
+    ],
+    "expected_12h_bins_per_complete_date": 2,
+    "first_utc_date": "2023-11-28",
+    "last_utc_date": "2026-11-26",
+    "maximum_publication_lag_days": 3,
+    "minimum_span_calendar_days": 900,
+    "minimum_unique_utc_dates": 900,
+    "missing_utc_dates_not_interpolated": true,
+    "partial_current_utc_date_excluded": true,
+    "publication_lag_calendar_days": 1,
+    "span_calendar_days_inclusive": 1095,
+    "unique_utc_dates": 1095
+  },
+  "endpoint": "https://mempool.space/api/v1/mining/blocks/fee-rates/3y",
+  "feature_definition": "daily median of two 12-hour-bin avgFee_75 averages (sat/vB), then log1p(value[t-1]) - log1p(value[t-8]); one full UTC-day embargo",
+  "final_url": "https://mempool.space/api/v1/mining/blocks/fee-rates/3y",
+  "first_daily_value": {
+    "avgFee_75_median_sat_vb": 58.5,
+    "date": "2023-11-28"
+  },
+  "http_status": 200,
+  "hypothesis_id": "QFR-2026-11-27-BTC-BLOCKSPACE-FEERATE-DOWNSIDE-01",
+  "last_daily_value": {
+    "avgFee_75_median_sat_vb": 2,
+    "date": "2026-11-26"
+  },
+  "payment_attempted": false,
+  "rate_limit_header": null,
+  "raw_observations_saved": false,
+  "response_bytes": 319519,
+  "response_sha256": "0709dcedb6270446fecaebc0dfaac1957a0031f6bceca08e66cdeef99a317cf4",
+  "retrieved_at_utc": "2026-11-27T14:13:08.070971+00:00",
+  "retry_count": 0,
+  "source": "Mempool Open Source Project REST API",
+  "source_summary": {
+    "avgFee_75_max_sat_vb": 1372,
+    "avgFee_75_median_sat_vb": 4,
+    "avgFee_75_min_sat_vb": 1,
+    "avgHeight_max": 977809,
+    "avgHeight_min": 818739,
+    "completed_first_utc_date": "2023-11-28",
+    "completed_last_utc_date": "2026-11-26",
+    "completed_unique_utc_dates": 1095,
+    "daily_aggregation": "median of the two 12-hour-bin avgFee_75 averages by UTC date; each bin avgFee_75 is the mean of underlying block p75 values",
+    "first_timestamp_utc": "2023-11-27T18:54:58+00:00",
+    "last_timestamp_utc": "2026-11-27T12:51:46+00:00",
+    "raw_bin_count_max": 2,
+    "raw_bin_count_min": 1,
+    "raw_first_utc_date": "2023-11-27",
+    "raw_last_utc_date": "2026-11-27",
+    "raw_unique_utc_dates": 1097,
+    "response_schema": [
+      "avgFee_0",
+      "avgFee_10",
+      "avgFee_100",
+      "avgFee_25",
+      "avgFee_50",
+      "avgFee_75",
+      "avgFee_90",
+      "avgHeight",
+      "timestamp"
+    ],
+    "row_count": 2193,
+    "source_bucket_seconds": 43200,
+    "valid_avgFee_75_rows": 2193
+  },
+  "status": "PASS"
+}
