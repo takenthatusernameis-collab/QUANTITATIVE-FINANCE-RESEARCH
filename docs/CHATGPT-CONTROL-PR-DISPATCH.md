@@ -11,7 +11,7 @@ This bridge removes the need for the connected ChatGPT agent to expose a direct 
 - Connected comment actor: `takenthatusernameis-collab`.
 - Listener: `.github/workflows/chatgpt-control-pr-dispatch.yml` on `main`.
 - Probe target: `.github/workflows/dispatch-bridge-probe.yml`.
-- Current research target: `.github/workflows/initial-claims-btc-downside.yml`.
+- Research targets: `.github/workflows/initial-claims-btc-downside.yml` and `.github/workflows/treasury-rrp-drain-btc-downside.yml`.
 
 The old control PR #2 is superseded and must not be reused.
 
@@ -21,6 +21,7 @@ The old control PR #2 is superseded and must not be reused.
 |---|---|
 | `/qfr-probe-dispatch-bridge` | `dispatch-bridge-probe.yml` |
 | `/qfr-run-initial-claims-btc-downside` | `initial-claims-btc-downside.yml` |
+| `/qfr-run-treasury-rrp-drain-btc-downside` | `treasury-rrp-drain-btc-downside.yml` |
 
 No arbitrary workflow name, ref, shell text, parameter or free-form input is accepted. Adding another target requires an explicit allowlist update, a target workflow with provenance inputs, and regression tests.
 
