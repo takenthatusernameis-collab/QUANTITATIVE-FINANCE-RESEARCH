@@ -121,7 +121,7 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
                     if candidate.strip() and not candidate.startswith("          "):
                         break
                     body.append(candidate[10:] if candidate.startswith("          ") else "")
-                scripts.append("\\n".join(body) + "\\n")
+                scripts.append("\n".join(body) + "\n")
         self.assertGreaterEqual(len(scripts), 2)
         for script_index, script in enumerate(scripts):
             with self.subTest(script=script_index):
