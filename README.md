@@ -198,7 +198,7 @@ Hypothesis QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01 was frozen before i
 - The 2026-11-27 daily real-data backtest minimum was already met by the distinct ETF-relative-flow and BTC blockspace-fee-rate screens. This study is additional research and may count for a later UTC date only if its empirical run actually completes on that date.
 - The first admitted attempt passed deterministic tests but failed before source acceptance with a UTF-8 decode error. The second and final cycle passed the deterministic suites and retrieved/parsed both separate FRED series, but the primary Binance exchangeInfo request omitted the symbol=BTCUSDT filter and returned all 3,756 symbols; the filtered fallback returned HTTP 451. BTC archive ingestion and the empirical backtest were not reached. The two-cycle cap is exhausted. This hypothesis is closed INCONCLUSIVE/INFEASIBLE, with no performance inference and no third attempt under this ID.
 
-[Preregistration](research/PREREGISTERED-QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01.md) · [Registry](research/HYPOTHESIS-REGISTRY.md) · [Workflow](.github/workflows/treasury-rrp-drain-btc-downside.yml)
+[Preregistration](research/PREREGISTERED-QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01.md) · [Registry](research/HYPOTHESIS-REGISTRY.md) · [Final report](reports/sessions/2026-11-27/2026-11-27T224315Z_session-treasury-rrp-drain-btc-46078321167.md) · [Manifest](reports/generated/treasury-rrp-drain-btc-downside/46078321167-attempt-1/manifest.json)
 
 ## Non-negotiable boundaries
 
