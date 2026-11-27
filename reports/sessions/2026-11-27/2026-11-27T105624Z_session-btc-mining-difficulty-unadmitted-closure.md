@@ -38,7 +38,7 @@ Therefore the hypothesis `QFR-2026-11-27-BTC-DIFFICULTY-CUT-DOWNSIDE-01` is clos
 - Updated the registry and README with the unadmitted closure and evidence links.
 - Added a read-only GitHub Actions validation workflow. It only compiles and runs deterministic tests; it does not fetch data or run a backtest.
 
-The changes are kept on the existing branch pending its test-only workflow result and review. No research admission marker was used.
+The recovery was merged to main through [PR #14](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/pull/14), merge commit `f65a7b83d7e4eca43f40cf06ff32f79ed49522ef`. No research admission marker was used. The branch and post-merge validation-only workflow both passed; no empirical workflow was triggered.
 
 ## DAILY KPI
 
@@ -63,6 +63,6 @@ No new empirical research result was produced or claimed. Work was limited to re
 
 ## Next
 
-1. Verify the read-only validation workflow passes on the recovery branch.
-2. Merge only the closure, fail-closed guard, tests and audit trail after that verification.
-3. Do not reopen this identity. A materially redesigned mining-network hypothesis must receive a new ID, source-feasibility plan, exact implementation deadline and final conclusion deadline before substantive code is written.
+1. Preserve the merged closure and fail-closed guard; do not reopen this identity.
+2. The branch validation run [45987797871](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45987797871) passed: 7 mining-difficulty tests and 32 admission/closure tests. Post-merge validation run [45988067371](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45988067371) passed, as did the full repository admission suite [45988067365](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45988067365).
+3. The next research hypothesis must have a new identity, source-feasibility plan, exact implementation deadline and final conclusion deadline frozen before substantive code is written.
