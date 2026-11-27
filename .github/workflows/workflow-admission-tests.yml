@@ -55,6 +55,10 @@ on:
       - "research/initial_claims_btc_downside.py"
       - "research/test_initial_claims_btc_downside.py"
       - ".github/workflows/initial-claims-btc-downside.yml"
+      - "research/treasury_rrp_drain_btc_downside.py"
+      - "research/test_treasury_rrp_drain_btc_downside.py"
+      - "research/PREREGISTERED-QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01.md"
+      - ".github/workflows/treasury-rrp-drain-btc-downside.yml"
   workflow_dispatch:
 
 permissions:
@@ -96,6 +100,9 @@ jobs:
 
       - name: Run Fed balance-sheet and BTC regression tests
         run: python -m unittest discover -s research -p "test_fed_balance_sheet_btc_downside_semivariance.py" -v
+
+      - name: Run Treasury and ON RRP BTC downside regression tests
+        run: PYTHONPATH=research python -m unittest discover -s research -p "test_treasury_rrp_drain_btc_downside.py" -v
 
       - name: Run Deribit relative DVOL regression tests
         run: python -m unittest discover -s research -p "test_deribit_relative_dvol_ethbtc_rv.py" -v

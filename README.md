@@ -1,3 +1,5 @@
+COMMIT TO REPOSITORY THE PENDING TASK
+
 # Quantitative Finance Research Factory — Wake-up Contract
 
 > This README is the single, self-contained bootstrap and operating contract for every scheduled agent wake-up. Do not make useful work depend on missing architecture documents.
@@ -186,6 +188,18 @@ As of `2026-11-27T20:54:30Z`, hypothesis `QFR-2026-11-27-INITIAL-CLAIMS-BTC-DOWN
 The frozen rule is not met: validation performance deteriorates materially, test improvement is negligible, and paired-loss uncertainty crosses zero. The result is **INCONCLUSIVE**, not PROMISING and not a definitive rejection. This is a forecast-only screen, not a causal claim, trading strategy or economic-value test. Preserve the result and do not retune on the same validation/test data.
 
 The daily research KPI for 2026-11-27 had already been met by distinct ETF-relative-flow and BTC blockspace-fee-rate real-data screens; this was an additional backtest. The original LOW timebox and deadlines remain unchanged; completion occurred before the deadlines. The [preregistration](research/PREREGISTERED-QFR-2026-11-27-INITIAL-CLAIMS-BTC-DOWNSIDE-01.md), [hypothesis registry](research/HYPOTHESIS-REGISTRY.md), [empirical report](reports/sessions/2026-11-27/2026-11-27T205411Z_session-initial-claims-btc-downside-46066725930.md), [manifest](reports/generated/initial-claims-btc-downside/46066725930-attempt-1/manifest.json) and [forecast rows](reports/generated/initial-claims-btc-downside/46066725930-attempt-1/forecast_rows.csv) are canonical.
+## Current admitted workstream — Treasury and ON RRP reserve-drain impulse / BTC downside
+
+Hypothesis QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01 was frozen before implementation at **2026-11-27T22:29:15Z** as a LOW-difficulty, two-cycle study. Its implementation deadline is **2026-11-28T22:29:15Z** and its final research-conclusion deadline is **2026-11-29T22:29:15Z**.
+
+- Predictor: four-week log increase in the combined Wednesday Treasury General Account balance plus same-day ON RRP balance; RRP billions are converted to millions before addition.
+- This is a narrow liability-side reserve-drain proxy, not total net liquidity or bank reserves. It is distinct from the completed WALCL-only balance-sheet screen and SOFR-EFFR funding-spread screen.
+- The frozen five-session BTC downside-semivariance target, 104-event rolling walk-forward model, 2019–2021 validation, 2022-onward test and paired-loss bootstrap are unchanged from the registered specification.
+- The 2026-11-27 daily real-data backtest minimum was already met by the distinct ETF-relative-flow and BTC blockspace-fee-rate screens. This study is additional research and may count for a later UTC date only if its empirical run actually completes on that date.
+- No empirical result has been inspected. The workflow must run the one frozen screen; if source acceptance or execution fails, preserve an INCONCLUSIVE/INFEASIBLE result rather than infer a performance NO-GO. Do not retune or repeat this hypothesis ID.
+
+[Preregistration](research/PREREGISTERED-QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01.md) · [Registry](research/HYPOTHESIS-REGISTRY.md) · [Workflow](.github/workflows/treasury-rrp-drain-btc-downside.yml)
+
 ## Non-negotiable boundaries
 
 - Research and paper simulation only: no live orders, capital deployment, production trading or strategy promotion to live use.
