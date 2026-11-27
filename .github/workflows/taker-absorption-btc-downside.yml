@@ -103,8 +103,7 @@ jobs:
             mkdir -p "$(dirname "$report")" "$(dirname "$manifest")"
             cp "$tmp/report.md" "$report"
             cp "$tmp/manifest.json" "$manifest"
-            cp "$tmp/HYPOTHESIS-REGISTRY.md" research/HYPOTHESIS-REGISTRY.md
-            cp "$tmp/prereg.md" research/PREREGISTERED-QFR-2026-11-27-TAKER-ABSORPTION-BTC-DOWNSIDE-01.md
+            PYTHONPATH=research python research/persist_taker_absorption_evidence.py "$manifest" "$report"
             git add "$report" "$manifest" research/HYPOTHESIS-REGISTRY.md research/PREREGISTERED-QFR-2026-11-27-TAKER-ABSORPTION-BTC-DOWNSIDE-01.md
             if git diff --cached --quiet; then
               echo "Evidence already present on main."
