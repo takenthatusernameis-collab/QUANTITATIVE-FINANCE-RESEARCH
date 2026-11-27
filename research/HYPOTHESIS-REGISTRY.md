@@ -44,3 +44,6 @@ This registry records stable hypothesis identities and evidence-backed dispositi
 - INCONCLUSIVE: data, coverage, sample size or inference cannot support a decision.
 
 A forecasting backtest is not a trading P&L. Do not assign CAGR, Sharpe, Sortino or drawdown to a yield-forecasting result. Tradable evaluation requires a separately validated instrument-price series and realistic execution assumptions.
+
+
+| QFR-2026-11-27-BTC-TAKER-ABSORPTION-DOWNSIDE-01 | FEASIBILITY_CHECKED | Signed Binance Spot taker-flow/price-response divergence (buy-initiated imbalance while price falls, less sell-initiated imbalance while price rises) may add information about next-five-session BTC downside semivariance beyond prior downside risk, realized variance and momentum. | Binance Vision BTCUSDT Spot 1d UTC monthly/daily klines; 136 checksum-verified archives; 2017-08-17 to 2026-11-25; 3,388 complete rows; no missing or zero-volume days | SOURCE PREFLIGHT PASS; backtest pending. The 2026-11-26 daily archive was not yet published, so the frozen end date is 2026-11-25. This is a venue-specific daily price-response proxy, not direct order-book absorption. | [source preflight report](../reports/sessions/2026-11-27/2026-11-27T014659Z_session-taker-absorption-source-preflight-45924502841.md) / [preregistration](PREREGISTERED-QFR-2026-11-27-TAKER-ABSORPTION-BTC-DOWNSIDE-01.md) |
