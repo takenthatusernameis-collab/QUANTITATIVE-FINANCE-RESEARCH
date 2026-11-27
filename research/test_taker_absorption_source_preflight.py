@@ -85,6 +85,50 @@ class TakerAbsorptionSourcePreflightTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "checksum mismatch"):
                 model.download_archive(spec)
 
+    def test_latest_archive_probe_backs_off_only_for_trailing_404(self):
+        requested = dt.date(2026, 11, 26)
+        available = requested - dt.timedelta(days=1)
+
+        def specs(start, end, as_of_date):
+            return [{
+                "kind": "daily",
+                "tag": end.isoformat(),
+                "expected_date": end.isoformat(),
+                "filename": f"BTCUSDT-1d-{end.isoformat()}.zip",
+                "url": "https://data.binance.vision/example/" + end.isoformat(),
+            }]
+
+        with patch.object(model.market, "build_archive_specs", side_effect=specs):
+            with patch.object(
+                model, "download_archive",
+                side_effect=[
+                    RuntimeError("Non-retryable HTTP 404 for newest daily archive"),
+                    ({available: {"taker_imbalance": 0.1}}, {"archive_sha256": "a" * 64}),
+                ],
+            ):
+                selected, attempts = model.resolve_latest_available_end_date(
+                    dt.date(2017, 8, 17), requested
+                )
+        self.assertEqual(selected, available)
+        self.assertEqual([x["status"] for x in attempts], ["not_yet_published", "available"])
+
+    def test_latest_archive_probe_does_not_hide_non_404_source_errors(self):
+        requested = dt.date(2026, 11, 26)
+        spec = {
+            "kind": "daily", "tag": requested.isoformat(),
+            "expected_date": requested.isoformat(),
+            "filename": "BTCUSDT-1d-2026-11-26.zip",
+            "url": "https://data.binance.vision/example/latest.zip",
+        }
+        with patch.object(model.market, "build_archive_specs", return_value=[spec]):
+            with patch.object(
+                model, "download_archive", side_effect=RuntimeError("checksum mismatch")
+            ):
+                with self.assertRaisesRegex(RuntimeError, "checksum mismatch"):
+                    model.resolve_latest_available_end_date(
+                        dt.date(2017, 8, 17), requested
+                    )
+
     def test_coverage_rejects_missing_daily_rows(self):
         start = dt.date(2026, 11, 24)
         rows = {
