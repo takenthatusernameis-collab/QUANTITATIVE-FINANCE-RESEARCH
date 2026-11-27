@@ -168,6 +168,17 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertNotIn("stablecoin_supply_btc_downside.py", text)
         self.assertIn("do not run a backtest", text.lower())
 
+    def test_taker_absorption_persistence_merges_into_latest_main(self):
+        text = (WORKFLOW_DIR / "taker-absorption-btc-downside.yml").read_text(encoding="utf-8")
+        self.assertIn("research/persist_taker_absorption_evidence.py", text)
+        self.assertNotIn('cp research/HYPOTHESIS-REGISTRY.md "$tmp/HYPOTHESIS-REGISTRY.md"', text)
+        self.assertNotIn('cp research/PREREGISTERED-QFR-2026-11-27-TAKER-ABSORPTION-BTC-DOWNSIDE-01.md "$tmp/prereg.md"', text)
+        reset = text.index("git reset --hard origin/main")
+        merge = text.index("research/persist_taker_absorption_evidence.py")
+        stage = text.index('git add "$report" "$manifest" research/HYPOTHESIS-REGISTRY.md')
+        self.assertLess(reset, merge)
+        self.assertLess(merge, stage)
+
     def test_taker_absorption_backtest_workflow_validates_before_source_retrieval(self):
         path = WORKFLOW_DIR / "taker-absorption-btc-downside.yml"
         text = path.read_text(encoding="utf-8")
