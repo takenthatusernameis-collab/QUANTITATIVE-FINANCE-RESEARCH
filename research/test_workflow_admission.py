@@ -13,7 +13,7 @@ ADMISSION_IF = (
     "if: github.event_name != 'push' || "
     "startsWith(github.event.head_commit.message, '[QFR-ADMIT] research:')"
 )
-NON_RESEARCH_WORKFLOWS = {"workflow-admission-tests.yml", "stablecoin-supply-source-preflight.yml", "wikipedia-attention-source-preflight.yml", "taker-absorption-source-preflight.yml", "btc-cross-venue-funding-dispersion-source-preflight.yml", "btc-mining-difficulty-closure-tests.yml", "etf-relative-flow-source-preflight.yml", "btc-blockspace-fee-rate-source-preflight.yml"}
+NON_RESEARCH_WORKFLOWS = {"workflow-admission-tests.yml", "stablecoin-supply-source-preflight.yml", "wikipedia-attention-source-preflight.yml", "taker-absorption-source-preflight.yml", "btc-cross-venue-funding-dispersion-source-preflight.yml", "btc-mining-difficulty-closure-tests.yml", "etf-relative-flow-source-preflight.yml", "btc-blockspace-fee-rate-source-preflight.yml", "initial-claims-source-preflight.yml"}
 
 
 TIMEBOX_POLICY_CUTOVER = dt.datetime.fromisoformat("2026-11-26T10:12:25+00:00")
@@ -683,6 +683,29 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
                 self.assertIn(path, text)
         self.assertNotIn('"research/test_workflow_admission.py"', text)
         self.assertNotIn('".github/workflows/workflow-admission-tests.yml"', text)
+
+
+    def test_initial_claims_source_preflight_has_narrow_source_only_path_filters(self):
+        text = (WORKFLOW_DIR / "initial-claims-source-preflight.yml").read_text(encoding="utf-8")
+        self.assertIn('"research/initial_claims_source_preflight.py"', text)
+        self.assertIn('"research/test_initial_claims_source_preflight.py"', text)
+        self.assertIn('"research/PREREGISTERED-QFR-2026-11-27-INITIAL-CLAIMS-BTC-DOWNSIDE-01.md"', text)
+        self.assertIn('".github/workflows/initial-claims-source-preflight.yml"', text)
+        self.assertNotIn('"research/test_workflow_admission.py"', text)
+
+    def test_initial_claims_source_preflight_is_read_only_and_never_runs_backtest(self):
+        path = WORKFLOW_DIR / "initial-claims-source-preflight.yml"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertIn("contents: read", text)
+        self.assertNotIn("contents: write", text)
+        self.assertIn("initial_claims_source_preflight.py", text)
+        self.assertNotIn("initial_claims_btc_downside.py", text)
+        self.assertIn("do not run a backtest", text.lower())
+        self.assertIn("cancel-in-progress: false", text)
+        self.assertIn("ref: ${{ github.sha }}", text)
+        self.assertIn("initial-claims-source-preflight.yml", NON_RESEARCH_WORKFLOWS)
+
 
 
 if __name__ == "__main__":

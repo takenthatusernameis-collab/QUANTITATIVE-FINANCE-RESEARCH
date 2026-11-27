@@ -48,6 +48,10 @@ on:
       - "research/test_btc_cross_venue_funding_dispersion_source_preflight.py"
       - "research/PREREGISTERED-QFR-2026-11-27-BTC-CROSS-VENUE-FUNDING-DISPERSION-DOWNSIDE-01.md"
       - "research/PREREGISTERED-QFR-2026-11-27-BTC-BLOCKSPACE-FEERATE-DOWNSIDE-01.md"
+      - "research/initial_claims_source_preflight.py"
+      - "research/test_initial_claims_source_preflight.py"
+      - "research/PREREGISTERED-QFR-2026-11-27-INITIAL-CLAIMS-BTC-DOWNSIDE-01.md"
+      - ".github/workflows/initial-claims-source-preflight.yml"
   workflow_dispatch:
 
 permissions:
@@ -128,3 +132,7 @@ jobs:
 
       - name: Run Bitcoin blockspace fee-rate BTC downside regression tests
         run: PYTHONPATH=research python -m unittest discover -s research -p "test_btc_blockspace_fee_rate_btc_downside.py" -v
+      - name: Compile initial-claims source preflight
+        run: python -m py_compile research/initial_claims_source_preflight.py research/test_initial_claims_source_preflight.py
+      - name: Run initial-claims source-preflight regression tests
+        run: PYTHONPATH=research python -m unittest discover -s research -p "test_initial_claims_source_preflight.py" -v
