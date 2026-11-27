@@ -562,6 +562,28 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertNotIn("etf_relative_flow_ethbtc.py", text)
         self.assertIn("do not run a backtest", text.lower())
 
+
+    def test_etf_relative_flow_backtest_workflow_validates_before_source_retrieval(self):
+        path = WORKFLOW_DIR / "etf-relative-flow-ethbtc.yml"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertIn(ADMISSION_IF, text)
+        self.assertIn("ref: ${{ github.sha }}", text)
+        self.assertIn("cancel-in-progress: false", text)
+        self.assertIn("contents: write", text)
+        self.assertIn("test_etf_relative_flow_source_preflight.py", text)
+        self.assertIn("test_etf_relative_flow_ethbtc.py", text)
+        self.assertIn("test_persist_etf_relative_flow_evidence.py", text)
+        self.assertLess(
+            text.index("Run deterministic flow, embargo, event, walk-forward, inference and persistence tests"),
+            text.index("Retrieve frozen Farside and checksummed Binance sources"),
+        )
+        self.assertIn("if: always()", text)
+        self.assertIn("git fetch origin main", text)
+        self.assertIn("git reset --hard origin/main", text)
+        self.assertIn("git push origin HEAD:main", text)
+
+
     def test_etf_relative_flow_source_preflight_has_narrow_source_only_path_filters(self):
         text = (WORKFLOW_DIR / "etf-relative-flow-source-preflight.yml").read_text(encoding="utf-8")
         self.assertIn('"research/etf_relative_flow_source_preflight.py"', text)
@@ -569,6 +591,7 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertIn('".github/workflows/etf-relative-flow-source-preflight.yml"', text)
         self.assertNotIn('"research/test_workflow_admission.py"', text)
         self.assertNotIn('"research/etf_relative_flow_ethbtc.py"', text)
+        self.assertNotIn('"research/PREREGISTERED-QFR-2026-11-27-BTC-ETH-ETF-RELATIVE-FLOW-ETHBTC-01.md"', text)
 
 
 if __name__ == "__main__":

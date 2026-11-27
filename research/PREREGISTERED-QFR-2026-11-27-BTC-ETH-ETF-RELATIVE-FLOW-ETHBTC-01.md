@@ -1,7 +1,7 @@
 # Preregistered experiment: relative U.S. spot BTC/ETH ETF flow pressure and ETH/BTC returns
 
 - **Hypothesis ID:** QFR-2026-11-27-BTC-ETH-ETF-RELATIVE-FLOW-ETHBTC-01
-- **Status:** SOURCE_ACCEPTED — read-only source preflight PASS (run 45996756282); frozen hashes below; model implementation and backtest now authorized under the unchanged preregistration.
+- **Status:** ADMITTED; source feasibility PASS; empirical backtest pending.
 - **Preregistration freeze:** 2026-11-27T12:08:25Z
 - **Difficulty:** MEDIUM
 - **Difficulty rationale:** Two independent public ETF-flow histories must be parsed and reconciled, then joined to checksum-verified BTC and ETH Spot archives with a conservative publication embargo. The forecast itself reuses the repository's existing rolling OLS and bootstrap helpers, but cross-source alignment and current-vintage limitations require moderate integration and validation.
@@ -121,4 +121,17 @@ No alternate feature, lag, normalization window, event spacing, target horizon, 
 - Raw observations were not saved or committed. The source preflight performed no model fitting, forecast evaluation or backtest.
 
 **Admission rule:** the model implementation must reproduce the frozen flow-panel SHA-256, both archive-manifest SHA-256 values, and the exact 2026-11-26 price end date. Any mismatch fails closed; the sample cannot be silently refreshed.
+
+## 8. Atomic execution admission
+
+- Admission parent commit: `e63aae7093c5d76e494da116fe418efa60e68d8d`.
+- Source feasibility: [read-only preflight run 45996756282](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45996756282), successful before model implementation.
+- Frozen flow-panel SHA-256: `4d7d2a8c54b5b6eebbf48631f4641ad24d4692a21dc5d6681beba65e4ae79a18`.
+- Frozen BTC archive-manifest SHA-256: `f70f8a1b01098cee6f8299514888363b04956f66cf122ffae95579b12e08faf5`.
+- Frozen ETH archive-manifest SHA-256: `0ef90c2cde6888e0ca7512670a84ff2fba17995950870ce847f0d22e635dc314`.
+- Frozen sample: 583 common flow observations through 2026-11-16 and 879 checksum-verified daily price observations per symbol through 2026-11-26.
+- The atomic admission workflow checks out the exact triggering commit and runs the source-parser, event-timing, no-look-ahead, rolling-model, paired-bootstrap, persistence and repository-admission regression suites before retrieving empirical sources. Any test failure prevents data retrieval and model fitting.
+- The exact admitted `source_commit_sha` is captured from `GITHUB_SHA` in the run manifest and session report.
+- No feature, lag, normalization window, event spacing, target horizon, split, training window, bootstrap rule or acceptance threshold is changed by this admission.
+- No raw observations, paid data, credentials, live orders or capital deployment are authorized.
 

@@ -6,7 +6,6 @@ on:
     paths:
       - "research/etf_relative_flow_source_preflight.py"
       - "research/test_etf_relative_flow_source_preflight.py"
-      - "research/PREREGISTERED-QFR-2026-11-27-BTC-ETH-ETF-RELATIVE-FLOW-ETHBTC-01.md"
       - "research/treasury_auction_demand.py"
       - "research/stlfsi4_btc_downside_semivariance.py"
       - ".github/workflows/etf-relative-flow-source-preflight.yml"

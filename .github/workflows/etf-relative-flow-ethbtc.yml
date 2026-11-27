@@ -1,0 +1,131 @@
+name: BTC/ETH relative ETF-flow pressure -> ETH/BTC return forecast
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "research/etf_relative_flow_ethbtc.py"
+      - "research/test_etf_relative_flow_ethbtc.py"
+      - "research/persist_etf_relative_flow_evidence.py"
+      - "research/test_persist_etf_relative_flow_evidence.py"
+      - "research/etf_relative_flow_source_preflight.py"
+      - "research/test_etf_relative_flow_source_preflight.py"
+      - "research/PREREGISTERED-QFR-2026-11-27-BTC-ETH-ETF-RELATIVE-FLOW-ETHBTC-01.md"
+      - "research/treasury_auction_demand.py"
+      - "research/stlfsi4_btc_downside_semivariance.py"
+      - ".github/workflows/etf-relative-flow-ethbtc.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qfr-btc-eth-etf-relative-flow-ethbtc-main
+  cancel-in-progress: false
+
+jobs:
+  etf-relative-flow-backtest:
+    if: github.event_name != 'push' || startsWith(github.event.head_commit.message, '[QFR-ADMIT] research:')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout exact admitted commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Assert immutable source checkout
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$GITHUB_SHA"
+          echo "Verified source commit: $actual"
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Run deterministic flow, embargo, event, walk-forward, inference and persistence tests
+        run: |
+          set -euo pipefail
+          python -m py_compile research/etf_relative_flow_source_preflight.py research/test_etf_relative_flow_source_preflight.py research/etf_relative_flow_ethbtc.py research/test_etf_relative_flow_ethbtc.py research/persist_etf_relative_flow_evidence.py research/test_persist_etf_relative_flow_evidence.py
+          PYTHONPATH=research python -m unittest discover -s research -p "test_etf_relative_flow_source_preflight.py" -v
+          PYTHONPATH=research python -m unittest discover -s research -p "test_etf_relative_flow_ethbtc.py" -v
+          PYTHONPATH=research python -m unittest discover -s research -p "test_persist_etf_relative_flow_evidence.py" -v
+          PYTHONPATH=research python -m unittest discover -s research -p "test_workflow_admission.py" -v
+
+      - name: Retrieve frozen Farside and checksummed Binance sources and run the real-data forecast
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          PYTHONPATH=research python research/etf_relative_flow_ethbtc.py
+          pattern="*session-etf-relative-flow-ethbtc-${GITHUB_RUN_ID}.md"
+          report="$(find reports/sessions -type f -name "$pattern" | sort | tail -n 1)"
+          manifest="reports/generated/etf-relative-flow-ethbtc/${GITHUB_RUN_ID}-attempt-${GITHUB_RUN_ATTEMPT}/manifest.json"
+          test -n "$report"
+          test -s "$report"
+          test -s "$manifest"
+          echo "=== RESEARCH REPORT ==="
+          cat "$report"
+          echo "=== GENERATED MANIFEST ==="
+          cat "$manifest"
+
+      - name: Persist report, manifest and canonical registry/preregistration update
+        if: always()
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          pattern="*session-etf-relative-flow-ethbtc-${GITHUB_RUN_ID}.md"
+          report="$(find reports/sessions -type f -name "$pattern" | sort | tail -n 1)"
+          manifest="reports/generated/etf-relative-flow-ethbtc/${GITHUB_RUN_ID}-attempt-${GITHUB_RUN_ATTEMPT}/manifest.json"
+          if [[ -z "$report" || ! -s "$manifest" ]]; then
+            echo "No complete research output exists to persist."
+            exit 0
+          fi
+          tmp="$RUNNER_TEMP/qfr-etf-relative-flow-$GITHUB_RUN_ID"
+          mkdir -p "$tmp"
+          cp "$report" "$tmp/report.md"
+          cp "$manifest" "$tmp/manifest.json"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p "$(dirname "$report")" "$(dirname "$manifest")"
+            cp "$tmp/report.md" "$report"
+            cp "$tmp/manifest.json" "$manifest"
+            PYTHONPATH=research python research/persist_etf_relative_flow_evidence.py "$manifest" "$report"
+            git add "$report" "$manifest" research/HYPOTHESIS-REGISTRY.md research/PREREGISTERED-QFR-2026-11-27-BTC-ETH-ETF-RELATIVE-FLOW-ETHBTC-01.md
+            if git diff --cached --quiet; then
+              echo "Evidence already present on main."
+              exit 0
+            fi
+            git commit -m "Persist BTC/ETH ETF relative-flow evidence $GITHUB_RUN_ID"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Main advanced during evidence persistence; refreshing and retrying."
+          done
+          echo "Could not persist BTC/ETH ETF relative-flow evidence after three main-branch refreshes."
+          exit 1
+
+      - name: Require a complete empirical result after evidence persistence
+        if: always()
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          manifest="reports/generated/etf-relative-flow-ethbtc/${GITHUB_RUN_ID}-attempt-${GITHUB_RUN_ATTEMPT}/manifest.json"
+          test -s "$manifest"
+          python -c 'import json,sys; assert json.load(open(sys.argv[1], encoding="utf-8"))["status"] == "COMPLETE"' "$manifest"
