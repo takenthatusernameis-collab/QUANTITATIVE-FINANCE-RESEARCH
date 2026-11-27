@@ -855,7 +855,7 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
             "draft control PR",
             "exact control PR number",
             "pull-requests: write",
-            "Do not merge it.",
+            "Do not merge it;",
             "does not checkout code",
             "GITHUB_TOKEN",
             "workflow_dispatch",
