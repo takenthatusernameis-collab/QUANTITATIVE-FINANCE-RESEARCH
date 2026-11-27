@@ -174,7 +174,7 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertNotIn('cp research/HYPOTHESIS-REGISTRY.md "$tmp/HYPOTHESIS-REGISTRY.md"', text)
         self.assertNotIn('cp research/PREREGISTERED-QFR-2026-11-27-TAKER-ABSORPTION-BTC-DOWNSIDE-01.md "$tmp/prereg.md"', text)
         reset = text.index("git reset --hard origin/main")
-        merge = text.index("research/persist_taker_absorption_evidence.py")
+        merge = text.index("PYTHONPATH=research python research/persist_taker_absorption_evidence.py")
         stage = text.index('git add "$report" "$manifest" research/HYPOTHESIS-REGISTRY.md')
         self.assertLess(reset, merge)
         self.assertLess(merge, stage)
