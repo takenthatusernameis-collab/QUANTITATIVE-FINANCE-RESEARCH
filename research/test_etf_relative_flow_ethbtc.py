@@ -39,8 +39,7 @@ class ETFRelativeFlowETHBTCTests(unittest.TestCase):
         price_start = dt.date(2024, 7, 1)
         btc, eth = self.synthetic_prices(price_start, 300)
         panel = self.synthetic_panel(70)
-        events, metadata = model.build_events(panel, btc, eth)
-        self.assertEqual(len(events), 5)
+        with patch.object(model, "PRICE_START_DATE", price_start), patch.object(\n            model, "PRICE_END_DATE", price_start + dt.timedelta(days=299)\n        ):\n            events, metadata = model.build_events(panel, btc, eth)\n        self.assertEqual(len(events), 5)
         first = events[0]
         self.assertEqual(first["flow_date"], panel[60]["date"])
         self.assertEqual(events[1]["flow_date"], panel[62]["date"])
@@ -67,13 +66,7 @@ class ETFRelativeFlowETHBTCTests(unittest.TestCase):
         price_start = dt.date(2024, 7, 1)
         btc, eth = self.synthetic_prices(price_start, 300)
         del btc[price_start + dt.timedelta(days=30)]
-        with self.assertRaisesRegex(ValueError, "price calendar"):
-            model.build_events(self.synthetic_panel(70), btc, eth)
-        btc, eth = self.synthetic_prices(price_start, 300)
-        eth[price_start + dt.timedelta(days=40)] = -1.0
-        with self.assertRaisesRegex(ValueError, "Non-positive"):
-            model.build_events(self.synthetic_panel(70), btc, eth)
-
+        with patch.object(model, "PRICE_START_DATE", price_start), patch.object(\n            model, "PRICE_END_DATE", price_start + dt.timedelta(days=299)\n        ):\n            with self.assertRaisesRegex(ValueError, "price calendar"):\n                model.build_events(self.synthetic_panel(70), btc, eth)\n        btc, eth = self.synthetic_prices(price_start, 300)\n        eth[price_start + dt.timedelta(days=40)] = -1.0\n        with patch.object(model, "PRICE_START_DATE", price_start), patch.object(\n            model, "PRICE_END_DATE", price_start + dt.timedelta(days=299)\n        ):\n            with self.assertRaisesRegex(ValueError, "Non-positive"):\n                model.build_events(self.synthetic_panel(70), btc, eth)\n
     def test_walk_forward_excludes_unmatured_targets_and_uses_65_event_window(self):
         events = []
         start = dt.date(2020, 1, 1)
