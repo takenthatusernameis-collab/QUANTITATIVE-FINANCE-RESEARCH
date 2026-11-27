@@ -130,7 +130,7 @@ This is a source-semantics correction, not a search across percentiles or altern
 - **Repository admission guard:** all workflow-admission tests passed, including the new workflow's exact job-level gate, immutable triggering commit, narrow path filters, preregistration guard and Bash syntax checks.
 - **CI evidence:** [global admission/test run #46024683649](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46024683649).
 - The research workflow's push event for the unmarked implementation commit was correctly **skipped** in [run #46024683640](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46024683640). No empirical source retrieval, backtest or performance-result inspection occurred before this acceptance gate.
-- Cycle 2 is complete. Cycle 3 may now execute the single frozen empirical backtest; Cycle 4 remains reserved for independent audit.
+- Cycles 2, 3 and 4 are complete. The single frozen backtest and independent audit are persisted; final disposition is CLOSED / INCONCLUSIVE.
 
 ## Empirical disposition
 
