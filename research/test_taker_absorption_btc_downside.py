@@ -206,7 +206,8 @@ class TakerAbsorptionBitcoinDownsideTests(unittest.TestCase):
                 second = registry.read_text(encoding="utf-8")
             self.assertEqual(first, second)
             self.assertEqual(first.count(model.HYPOTHESIS_ID), 1)
-            self.assertIn("BACKTESTED", first)\n            self.assertIn("decision=INCONCLUSIVE", first)
+            self.assertIn("BACKTESTED", first)
+            self.assertIn("decision=INCONCLUSIVE", first)
             self.assertIn("EXECUTED", prereg.read_text(encoding="utf-8"))
 
 
