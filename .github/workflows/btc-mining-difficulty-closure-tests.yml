@@ -1,0 +1,46 @@
+name: BTC mining-difficulty unadmitted-draft closure tests
+
+on:
+  push:
+    branches:
+      - main
+      - agent/btc-mining-difficulty-20261127
+    paths:
+      - "research/btc_mining_difficulty_btc_downside.py"
+      - "research/test_btc_mining_difficulty_btc_downside.py"
+      - "research/CLOSED-QFR-2026-11-27-BTC-DIFFICULTY-CUT-DOWNSIDE-01.md"
+      - "research/test_workflow_admission.py"
+      - ".github/workflows/btc-mining-difficulty-closure-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: btc-mining-difficulty-closure-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deterministic-closure-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Checkout exact triggering commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Compile the closed draft and its deterministic tests
+        run: python -m py_compile research/btc_mining_difficulty_btc_downside.py research/test_btc_mining_difficulty_btc_downside.py
+
+      - name: Run deterministic tests only; do not run empirical research or retrieve market data
+        run: PYTHONPATH=research python -m unittest discover -s research -p "test_btc_mining_difficulty_btc_downside.py" -v
+
+      - name: Run repository admission and closure regression tests
+        run: python -m unittest discover -s research -p "test_workflow_admission.py" -v
