@@ -20,7 +20,7 @@ class TakerAbsorptionSourcePreflightTests(unittest.TestCase):
         close_time = open_time + day_units - 1
         return ",".join([
             str(open_time), "100", "110", "90", "105", str(volume),
-            str(close_time), "105", "0" if volume == 0 else "100", str(taker_buy), str(taker_buy * 105), "0"
+            str(close_time), str(105 * volume), "0" if volume == 0 else "100", str(taker_buy), str(taker_buy * 105), "0"
         ])
 
     def test_parser_reads_documented_taker_fields_in_millisecond_and_microsecond_eras(self):
