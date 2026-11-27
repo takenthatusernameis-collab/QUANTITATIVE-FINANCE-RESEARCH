@@ -37,7 +37,7 @@ FRED_PREFLIGHT_SHA256 = "2bcf8c35377a4280459bc015dc53cba21cbcd992a916a7fd0d29bd5
 BINANCE_SAMPLE_DATE = dt.date(2026, 11, 23)
 BINANCE_SAMPLE_ARCHIVE_SHA256 = "d778c53e3a42ec9e6ae13f39401b530028a37c78b94be1cfd80aec7706e3d96a"
 BINANCE_SAMPLE_CHECKSUM_SHA256 = "c042ab4efd94ff8117026fc7a817ac7ad887f83a7b19323cfcfe8eb3659a3d4f"
-FRED_PREFLIGHT_RUN_ID = "46026936399"
+FRED_PREFLIGHT_RUN_ID = "46028463525"
 FRED_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv"
 BINANCE_EXCHANGE_INFO = "https://data-api.binance.vision/api/v3/exchangeInfo"
 ROOT = Path(__file__).resolve().parents[1]
@@ -291,7 +291,8 @@ def build_events(claims: dict, prices: dict) -> tuple[list[dict], dict]:
             "pre_return5": math.fsum(p5),
             "pre_return20": math.fsum(p20),
             "target_semivariance_pct2": target,
-            # Shared OLS helper expects the legacy target_bp key; its value here is log1p semivariance.\n            "target_bp": math.log1p(target),
+            # Shared OLS helper expects the legacy target_bp key; its value here is log1p semivariance.
+            "target_bp": math.log1p(target),
             "target_log1p_semivariance": math.log1p(target),
         })
 
@@ -474,6 +475,7 @@ def run_research() -> dict:
             "FRED ICSA is current-vintage data; historical ALFRED vintages and exact historical publication timestamps were not reconstructed. The seven-day lag is conservative but does not eliminate revision look-ahead.",
             "ICSA measures weekly initial unemployment-insurance claims, not layoffs alone, unemployment stocks or real-time labor-market expectations.",
             "The feature is one four-week log change in a single national series; no alternative transformations, lags, series or parameters were tested.",
+            "This is one of many exploratory repository hypothesis screens; nominal paired-loss intervals do not correct for repository-wide multiple testing or selection bias. Any promising result requires independent confirmation.",
             "BTCUSDT is one venue's Spot close. Binance archive checksums establish file integrity, not exchange-independent consolidated prices.",
             "This is a forecast-only screen, not an executable strategy, trading P&L, causal claim or live deployment recommendation.",
             "No raw ICSA observations or raw BTC price rows are committed; the manifest contains source hashes, coverage and derived forecast rows only.",
@@ -490,7 +492,7 @@ def render_report(result: dict) -> str:
         f"- **Decision:** {result.get('decision')}",
         f"- **Disposition:** {result.get('disposition')}",
         f"- **Daily KPI:** {result.get('daily_kpi')}",
-        "- **Implementation timebox:** LOW; 2 substantive cycles maximum; implementation deadline 2026-11-28T15:34:22Z; final research-conclusion deadline 2026-11-29T15:34:22Z.",
+        "- **Implementation timebox:** LOW; 2 substantive cycles maximum; implementation deadline 2026-11-28T15:40:06Z; final research-conclusion deadline 2026-11-29T15:40:06Z.",
         f"- **GitHub run:** {RUN_ID}, attempt {ATTEMPT}",
         f"- **Triggering commit:** {SOURCE_SHA}",
         "",

@@ -1,7 +1,7 @@
 # Preregistered Research: U.S. Initial-Claims Deterioration and Bitcoin Downside Semivariance
 
 - **Hypothesis ID:** `QFR-2026-11-27-INITIAL-CLAIMS-BTC-DOWNSIDE-01`
-- **Status:** INCONCLUSIVE/INFEASIBLE; decision=INCONCLUSIVE/INFEASIBLE. No valid empirical backtest completed.
+- **Status:** IMPLEMENTATION_INCOMPLETE — source feasibility passed; first empirical execution stopped before backtesting; code and final-check repairs committed; deterministic validation pending; manual workflow_dispatch required.
 - **Registered:** `2026-11-27T15:40:06Z`
 - **Difficulty:** LOW
 - **Difficulty rationale:** One public weekly FRED series (ICSA), the repository's already-tested Binance BTCUSDT Spot daily-archive pipeline, one prespecified four-week transformation, and the existing OLS/walk-forward/paired-loss framework. No new credentials, paid data, execution infrastructure or custom simulator are required.
@@ -76,28 +76,34 @@ The candidate is closed after Cycle 2. A new source, feature, lag, target, marke
 - FRED current-vintage observations may contain revisions; a seven-day embargo does not eliminate vintage look-ahead.
 - Initial claims are a macroeconomic flow measure, not direct BTC market positioning, order flow or forced selling.
 - The model is a BTC Spot volatility-forecast screen, not an executable strategy or trading P&L.
-- This is one of many exploratory repository hypothesis screens; nominal paired-loss intervals do not correct for repository-wide multiple testing or selection bias. Any promising result requires independent confirmation.\n- No raw observations are committed; no live orders or capital deployment are authorized.
+- This is one of many exploratory repository hypothesis screens; nominal paired-loss intervals do not correct for repository-wide multiple testing or selection bias. Any promising result requires independent confirmation.
+- No raw observations are committed; no live orders or capital deployment are authorized.
 - If any source or timing acceptance criterion fails, preserve the failure evidence and close as INCONCLUSIVE/INFEASIBLE rather than relaxing the protocol.
 
 ## Source preflight evidence
 
-- **Preflight run:** [#46026936399](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46026936399), completed successfully at `2026-11-27T15:40:15Z`.
+- **Initial preflight run:** [#46026936399](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46026936399), completed successfully at `2026-11-27T15:40:15Z`; its units label was subsequently corrected.
 - **ICSA:** 484 weekly observations, 2017-08-19 through 2026-11-21; Saturday cadence; 480 complete five-observation windows; latest age 6 days; response SHA-256 `2bcf8c35377a4280459bc015dc53cba21cbcd992a916a7fd0d29bd5d09aed0bb`.
-- **Units correction:** FRED reports ICSA in **number of claims, seasonally adjusted**, not thousands; the feature is a ratio/log change, so the scale cancels. The source-preflight metadata label is corrected in this implementation commit.
+- **Corrected preflight rerun:** [#46028463525](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46028463525), completed successfully at `2026-11-27T15:50:44Z`; same response SHA, 484 rows, and corrected units metadata: number of claims, seasonally adjusted. The feature is a ratio/log change, so the scale cancels.
 - **BTCUSDT:** exchangeInfo confirms active Spot trading; the 2026-11-23 daily archive and checksum sidecar both verified. Archive SHA-256 `d778c53e3a42ec9e6ae13f39401b530028a37c78b94be1cfd80aec7706e3d96a`; checksum-sidecar SHA-256 `c042ab4efd94ff8117026fc7a817ac7ad887f83a7b19323cfcfe8eb3659a3d4f`.
 - **Raw observations saved:** no. **Backtest run:** no; this was source feasibility only.
 
-## Empirical disposition
+## Initial execution attempt — blocked before empirical evaluation
 
-- **Final status:** INCONCLUSIVE/INFEASIBLE; decision=INCONCLUSIVE/INFEASIBLE.
-- **Disposition:** INCONCLUSIVE/INFEASIBLE — frozen source or implementation acceptance failed: KeyError: 'target_bp'.
-- **Completed real-data backtest:** no.
-- **Data scope:** source acceptance incomplete.
-- **Validation metrics:** {}.
-- **Test metrics:** {}.
-- **Paired test-loss bootstrap:** null.
-- **Report:** [reports/sessions/2026-11-27/2026-11-27T155050Z_session-initial-claims-btc-downside-46028463325.md](../reports/sessions/2026-11-27/2026-11-27T155050Z_session-initial-claims-btc-downside-46028463325.md).
-- **Manifest:** [reports/generated/initial-claims-btc-downside/46028463325-attempt-1/manifest.json](../reports/generated/initial-claims-btc-downside/46028463325-attempt-1/manifest.json).
-- **Forecast rows:** [reports/generated/initial-claims-btc-downside/46028463325-attempt-1/forecast_rows.csv](../reports/generated/initial-claims-btc-downside/46028463325-attempt-1/forecast_rows.csv).
-- Forecast-only; no causal, trading or deployment claim.
+- **Workflow run:** [#46028463325](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46028463325).
+- **Source retrieval:** succeeded; source preflight and deterministic tests passed.
+- **Implementation error:** `KeyError: 'target_bp'`; the required shared-OLS target mapping had accidentally been commented out by a literal newline escape.
+- **Workflow final-check error:** the final Python assertion omitted the manifest path argument and raised `IndexError` after the failure manifest had been persisted.
+- **Completed real-data backtest:** no. **Validation/test forecasts:** zero. **Paired-loss interval:** not computed.
+- **Persisted failure report:** [initial session report](../reports/sessions/2026-11-27/2026-11-27T155050Z_session-initial-claims-btc-downside-46028463325.md).
+- **Persisted failure manifest:** [manifest](../reports/generated/initial-claims-btc-downside/46028463325-attempt-1/manifest.json).
+- This is an implementation failure, not a negative empirical result and not a strategy NO-GO.
 
+## Recovery state
+
+- The target mapping is restored as an actual dictionary entry; a deterministic regression assertion now verifies that `target_bp = log1p(target semivariance)` is present.
+- The workflow's final guard now passes the manifest path to Python.
+- The report deadline strings are aligned with the committed timebox: implementation by `2026-11-28T15:40:06Z`; final conclusion by `2026-11-29T15:40:06Z`.
+- **Deterministic validation:** pending the repair commit's CI.
+- **Empirical retry:** not yet run. After CI passes, exactly one `workflow_dispatch` run on `main` is required. The connected GitHub tool surface in this run does not expose a workflow-dispatch action; do not bypass the repository's admission policy with another marker push. The manual [Run workflow page](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/workflows/initial-claims-btc-downside.yml) is the permitted retry route.
+- If no authorized dispatch occurs before the hard conclusion deadline, close the candidate as INCONCLUSIVE/INFEASIBLE with no empirical result; do not extend or reset the timebox.

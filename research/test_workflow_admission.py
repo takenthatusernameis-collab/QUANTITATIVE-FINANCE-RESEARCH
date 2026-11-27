@@ -721,6 +721,7 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         )
         self.assertIn("forecast_rows.csv", text)
         self.assertIn("completed_backtest", text)
+        self.assertIn('"$manifest"', text)
 
     def test_initial_claims_backtest_workflow_run_blocks_have_valid_bash_syntax(self):
         if not shutil.which("bash"):

@@ -38,6 +38,8 @@ class InitialClaimsBtcDownsideTests(unittest.TestCase):
         index = weeks.index(first["observation_date"])
         expected = 100.0 * math.log(claims[weeks[index]] / claims[weeks[index - 4]])
         self.assertAlmostEqual(first["icsa_change_4w_pct"], expected)
+        self.assertIn("target_bp", first)
+        self.assertAlmostEqual(first["target_bp"], math.log1p(first["target_semivariance_pct2"]))
         self.assertEqual(meta["release_lag_days"], 7)
 
     def test_five_session_target_windows_do_not_overlap(self):
