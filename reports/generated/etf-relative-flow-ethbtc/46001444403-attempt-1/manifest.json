@@ -1,0 +1,264 @@
+{
+  "decision": "INCONCLUSIVE",
+  "decision_reason": "INCONCLUSIVE \u2014 frozen validation/test and paired-loss rules do not establish incremental predictive value or decisive inferiority",
+  "event_metadata": {
+    "accepted_events": 262,
+    "candidate_origins": 262,
+    "event_step_common_flow_observations": 2,
+    "first_flow_date": "2024-10-16",
+    "first_signal_date": "2024-10-21",
+    "flow_embargo_calendar_days": 5,
+    "flow_warmup_observations": 60,
+    "last_flow_date": "2026-11-16",
+    "last_signal_date": "2026-11-21",
+    "skipped": {
+      "incomplete_target": 0,
+      "insufficient_price_history": 0,
+      "invalid_price_returns": 0,
+      "invalid_variance": 0,
+      "missing_signal_anchor": 0,
+      "zero_flow_standard_deviation": 0
+    },
+    "target_sessions": 5,
+    "target_windows_overlap": true
+  },
+  "forecast_count": 196,
+  "generated_at_utc": "2026-11-27T12:46:45.243169+00:00",
+  "hypothesis_id": "QFR-2026-11-27-BTC-ETH-ETF-RELATIVE-FLOW-ETHBTC-01",
+  "manifest_path": "reports/generated/etf-relative-flow-ethbtc/46001444403-attempt-1/manifest.json",
+  "model": {
+    "augmented_features": [
+      "pre_ratio_return5",
+      "pre_ratio_return20",
+      "pre_ratio_rv20_log",
+      "pre_btc_return5",
+      "pre_eth_return5",
+      "common_flow_pressure",
+      "relative_flow_pressure"
+    ],
+    "baseline_features": [
+      "pre_ratio_return5",
+      "pre_ratio_return20",
+      "pre_ratio_rv20_log",
+      "pre_btc_return5",
+      "pre_eth_return5",
+      "common_flow_pressure"
+    ],
+    "bootstrap_block_size_events": 5,
+    "bootstrap_reps": 2000,
+    "bootstrap_seed": 20261127,
+    "event_step_common_flow_observations": 2,
+    "flow_zscore_window": 60,
+    "minimum_test_n": 60,
+    "minimum_validation_n": 45,
+    "rolling_training_events": 65,
+    "target_sessions": 5,
+    "test_end": "2026-11-21",
+    "test_start": "2026-01-01",
+    "validation_end": "2025-12-31",
+    "validation_start": "2025-01-01"
+  },
+  "paired_test_loss_bootstrap": {
+    "block_size_events": 5,
+    "bootstrap_fraction_positive": 0.204,
+    "ci_95_high_bp2": 2428.2418167694427,
+    "ci_95_low_bp2": -5801.035715112694,
+    "observations": 112,
+    "observed_mean_baseline_minus_augmented_squared_loss_bp2": -1767.0820058856775,
+    "reps": 2000,
+    "seed": 20261127,
+    "status": "COMPUTED"
+  },
+  "prereg_sha256": "7afd4af1c2094a650a00d58f1d78c907bf994e8a74a56989f5c4b33204ef48cf",
+  "raw_observations_saved": false,
+  "registry_sha256": "dc40c7a34d2afe6497879f689cd1976c238857dc42f84f8065663f646fc04fb6",
+  "report_path": "reports/sessions/2026-11-27/2026-11-27T124630Z_session-etf-relative-flow-ethbtc-46001444403.md",
+  "report_sha256": "a39a37b60c6076cfeb6387fc7927c3a5a5cb4852ac6f9162aa1ade66fa4a1a20",
+  "run_attempt": "1",
+  "run_id": "46001444403",
+  "sample": {
+    "eligible_signal_end_date": "2026-11-21",
+    "eligible_signal_start_date": "2024-07-28",
+    "flow_cutoff_date": "2026-11-16",
+    "flow_rows": 583,
+    "flow_start_date": "2024-07-23",
+    "price_end_date": "2026-11-26",
+    "price_rows_per_symbol": 879,
+    "price_start_date": "2024-07-01"
+  },
+  "source_commit_sha": "107f1aa5199d6f0e3905b22707bd1da3445392b3",
+  "source_manifest": {
+    "btc_flow_source": {
+      "first_date": "2024-01-11",
+      "fund_columns": [
+        "IBIT",
+        "FBTC",
+        "BITB",
+        "ARKB",
+        "BTCO",
+        "EZBC",
+        "BRRR",
+        "HODL",
+        "BTCW",
+        "MSBT",
+        "GBTC",
+        "BTC"
+      ],
+      "header": [
+        "Date",
+        "IBIT",
+        "FBTC",
+        "BITB",
+        "ARKB",
+        "BTCO",
+        "EZBC",
+        "BRRR",
+        "HODL",
+        "BTCW",
+        "MSBT",
+        "GBTC",
+        "BTC",
+        "Total"
+      ],
+      "last_date": "2026-11-25",
+      "maximum_numeric_fund_components": 12,
+      "minimum_numeric_fund_components": 10,
+      "numeric_flow_rows": 722,
+      "raw_html_sha256": "d3a259a06c69a1ba36dda5de1f5f6fdad7eeb68f1933fca82c943ccef8ca9337",
+      "source": "Farside Bitcoin ETF all-data"
+    },
+    "eth_flow_source": {
+      "first_date": "2024-07-23",
+      "fund_columns": [
+        "ETHA",
+        "ETHB",
+        "FETH",
+        "ETHW",
+        "TETH",
+        "ETHV",
+        "QETH",
+        "EZET",
+        "MSSE",
+        "ETHE",
+        "ETH"
+      ],
+      "header": [
+        "Date",
+        "ETHA",
+        "ETHB",
+        "FETH",
+        "ETHW",
+        "TETH",
+        "ETHV",
+        "QETH",
+        "EZET",
+        "MSSE",
+        "ETHE",
+        "ETH",
+        "Total"
+      ],
+      "last_date": "2026-11-25",
+      "maximum_numeric_fund_components": 11,
+      "minimum_numeric_fund_components": 8,
+      "numeric_flow_rows": 590,
+      "raw_html_sha256": "c47f311e42ddafcc1d341098ee5073eac1855592ba8f9be24b40366335692369",
+      "source": "Farside Ethereum ETF all-data"
+    },
+    "flow_embargo_calendar_days": 5,
+    "flow_panel": {
+      "cutoff_date": "2026-11-16",
+      "first_date": "2024-07-23",
+      "last_date": "2026-11-16",
+      "rows": 583,
+      "sha256": "4d7d2a8c54b5b6eebbf48631f4641ad24d4692a21dc5d6681beba65e4ae79a18",
+      "unmatched_dates": []
+    },
+    "price_sources": {
+      "btc": {
+        "archive_count": 54,
+        "archive_manifest_sha256": "f70f8a1b01098cee6f8299514888363b04956f66cf122ffae95579b12e08faf5",
+        "end_date": "2026-11-26",
+        "interval": "1d UTC",
+        "missing_dates": [],
+        "rows": 879,
+        "start_date": "2024-07-01",
+        "symbol": "BTCUSDT"
+      },
+      "btc_end_probes": [
+        {
+          "archive_sha256": "59e9ad80199299465ef984f4ba126459e7a6e13a9d72155970eb2fd994889dfe",
+          "date": "2026-11-26",
+          "status": "available"
+        }
+      ],
+      "common_end_date": "2026-11-26",
+      "eth": {
+        "archive_count": 54,
+        "archive_manifest_sha256": "0ef90c2cde6888e0ca7512670a84ff2fba17995950870ce847f0d22e635dc314",
+        "end_date": "2026-11-26",
+        "interval": "1d UTC",
+        "missing_dates": [],
+        "rows": 879,
+        "start_date": "2024-07-01",
+        "symbol": "ETHUSDT"
+      },
+      "eth_end_probes": [
+        {
+          "archive_sha256": "a8edd14ac97f0a9712e6e265ff6368f3d703c32bcab04be9a576274fa60f6f9b",
+          "date": "2026-11-26",
+          "status": "available"
+        }
+      ],
+      "requested_end_date": "2026-11-26"
+    },
+    "raw_observations_saved": false,
+    "retrieved_at_utc": "2026-11-27T12:46:30.147701+00:00",
+    "source_preflight_commit_sha": "8538e696c78a590916145a8c0cbcb313cc901ae1",
+    "source_preflight_run_id": 45996756282,
+    "target_sessions": 5
+  },
+  "source_preflight_commit_sha": "8538e696c78a590916145a8c0cbcb313cc901ae1",
+  "source_preflight_run_id": 45996756282,
+  "status": "COMPLETE",
+  "test": {
+    "augmented": {
+      "directional_accuracy": 0.4375,
+      "mae_bp": 234.6932826170479,
+      "mean_actual_bp": -50.894883785933075,
+      "n": 112,
+      "oos_r2_vs_mean": -0.19026562862818586,
+      "rmse_bp": 314.8169358128975
+    },
+    "baseline": {
+      "directional_accuracy": 0.5089285714285714,
+      "mae_bp": 229.8131377497683,
+      "mean_actual_bp": -50.894883785933075,
+      "n": 112,
+      "oos_r2_vs_mean": -0.1690437208903588,
+      "rmse_bp": 311.99779016643106
+    },
+    "n": 112,
+    "rmse_improvement_pct": -0.9035787224526823
+  },
+  "trading_pnl_evaluated": false,
+  "validation": {
+    "augmented": {
+      "directional_accuracy": 0.39285714285714285,
+      "mae_bp": 488.84686348123785,
+      "mean_actual_bp": 122.83970388370744,
+      "n": 84,
+      "oos_r2_vs_mean": -0.394731031668371,
+      "rmse_bp": 710.4849514203687
+    },
+    "baseline": {
+      "directional_accuracy": 0.35714285714285715,
+      "mae_bp": 490.54668198692065,
+      "mean_actual_bp": 122.83970388370744,
+      "n": 84,
+      "oos_r2_vs_mean": -0.3798148767947884,
+      "rmse_bp": 706.6755464035765
+    },
+    "n": 84,
+    "rmse_improvement_pct": -0.5390599740119886
+  }
+}

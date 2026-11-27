@@ -1,7 +1,7 @@
 # Preregistered experiment: relative U.S. spot BTC/ETH ETF flow pressure and ETH/BTC returns
 
 - **Hypothesis ID:** QFR-2026-11-27-BTC-ETH-ETF-RELATIVE-FLOW-ETHBTC-01
-- **Status:** ADMITTED; source feasibility PASS; empirical backtest pending.
+- **Status:** BACKTESTED; decision=INCONCLUSIVE; workflow run 46001444403; validation/test forecasts 84/112.
 - **Preregistration freeze:** 2026-11-27T12:08:25Z
 - **Difficulty:** MEDIUM
 - **Difficulty rationale:** Two independent public ETF-flow histories must be parsed and reconciled, then joined to checksum-verified BTC and ETH Spot archives with a conservative publication embargo. The forecast itself reuses the repository's existing rolling OLS and bootstrap helpers, but cross-source alignment and current-vintage limitations require moderate integration and validation.
@@ -134,4 +134,19 @@ No alternate feature, lag, normalization window, event spacing, target horizon, 
 - The exact admitted `source_commit_sha` is captured from `GITHUB_SHA` in the run manifest and session report.
 - No feature, lag, normalization window, event spacing, target horizon, split, training window, bootstrap rule or acceptance threshold is changed by this admission.
 - No raw observations, paid data, credentials, live orders or capital deployment are authorized.
+
+## 9. Execution result
+
+- Workflow run: https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46001444403
+- Triggering source commit: 107f1aa5199d6f0e3905b22707bd1da3445392b3
+- Status: COMPLETE
+- Decision: INCONCLUSIVE
+- Source-preflight run: https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45996756282
+- Validation/test forecasts: 84/112
+- Validation/test RMSE improvement: -0.5390599740119886/-0.9035787224526823
+- Paired test-loss bootstrap: {"block_size_events": 5, "bootstrap_fraction_positive": 0.204, "ci_95_high_bp2": 2428.2418167694427, "ci_95_low_bp2": -5801.035715112694, "observations": 112, "observed_mean_baseline_minus_augmented_squared_loss_bp2": -1767.0820058856775, "reps": 2000, "seed": 20261127, "status": "COMPUTED"}
+- Report: ../reports/sessions/2026-11-27/2026-11-27T124630Z_session-etf-relative-flow-ethbtc-46001444403.md
+- Manifest: ../reports/generated/etf-relative-flow-ethbtc/46001444403-attempt-1/manifest.json
+
+INCONCLUSIVE — frozen validation/test and paired-loss rules do not establish incremental predictive value or decisive inferiority
 
