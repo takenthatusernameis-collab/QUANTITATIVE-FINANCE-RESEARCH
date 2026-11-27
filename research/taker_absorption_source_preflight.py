@@ -17,7 +17,8 @@ import stlfsi4_btc_downside_semivariance as market
 
 HYPOTHESIS_ID = "QFR-2026-11-27-BTC-TAKER-ABSORPTION-DOWNSIDE-01"
 START_DATE = dt.date(2017, 8, 17)
-END_DATE = dt.datetime.now(dt.timezone.utc).date() - dt.timedelta(days=1)
+REQUESTED_END_DATE = dt.datetime.now(dt.timezone.utc).date() - dt.timedelta(days=1)
+MAX_PUBLICATION_LAG_DAYS = 3
 WORKERS = 6
 ROOT = Path(__file__).resolve().parents[1]
 RUN_ID = os.environ.get("GITHUB_RUN_ID", "local")
@@ -178,7 +179,45 @@ def validate_coverage(
     }
 
 
-def fetch_all_archives(start: dt.date = START_DATE, end: dt.date = END_DATE) -> tuple[dict, dict]:
+def resolve_latest_available_end_date(
+    start: dt.date, requested_end: dt.date, max_lag_days: int = MAX_PUBLICATION_LAG_DAYS
+) -> tuple[dt.date, list[dict]]:
+    """Back off only on a trailing 404 while the newest daily archive is not yet published."""
+    today = dt.datetime.now(dt.timezone.utc).date()
+    attempts = []
+    for lag in range(max_lag_days + 1):
+        candidate = requested_end - dt.timedelta(days=lag)
+        specs = market.build_archive_specs(start, candidate, today)
+        if not specs:
+            raise RuntimeError("No Binance archive spec covers the requested end date")
+        spec = specs[-1]
+        try:
+            rows, record = download_archive(spec)
+            if candidate not in rows:
+                raise ValueError(
+                    f"Latest archive {spec['filename']} does not contain requested end date {candidate}"
+                )
+            attempts.append({
+                "date": candidate.isoformat(),
+                "status": "available",
+                "archive_sha256": record["archive_sha256"],
+            })
+            return candidate, attempts
+        except Exception as exc:
+            if "HTTP 404" not in str(exc):
+                raise
+            attempts.append({
+                "date": candidate.isoformat(),
+                "status": "not_yet_published",
+                "error": f"{type(exc).__name__}: {exc}",
+            })
+    raise RuntimeError(
+        f"No published Binance daily archive found within {max_lag_days} days of "
+        f"{requested_end}; probes={attempts}"
+    )
+
+
+def fetch_all_archives(start: dt.date, end: dt.date) -> tuple[dict, dict]:
     specs = market.build_archive_specs(start, end, dt.datetime.now(dt.timezone.utc).date())
     rows: dict[dt.date, dict] = {}
     manifests: list[dict] = []
@@ -223,11 +262,16 @@ def fetch_all_archives(start: dt.date = START_DATE, end: dt.date = END_DATE) -> 
 
 
 def run_preflight() -> dict:
-    rows, source = fetch_all_archives()
+    selected_end, end_probes = resolve_latest_available_end_date(START_DATE, REQUESTED_END_DATE)
+    rows, source = fetch_all_archives(START_DATE, selected_end)
     return {
         "hypothesis_id": HYPOTHESIS_ID,
         "status": "PASS",
         "retrieved_at_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "requested_end_date": REQUESTED_END_DATE.isoformat(),
+        "selected_end_date": selected_end.isoformat(),
+        "publication_lag_days": (REQUESTED_END_DATE - selected_end).days,
+        "end_date_probes": end_probes,
         "source": source,
         "feature_definition": (
             "taker_imbalance = 2*taker_buy_base_volume/base_volume - 1; "
