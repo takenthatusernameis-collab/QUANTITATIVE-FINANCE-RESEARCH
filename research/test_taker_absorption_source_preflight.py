@@ -78,7 +78,7 @@ class TakerAbsorptionSourcePreflightTests(unittest.TestCase):
             rows, manifest = model.download_archive(spec)
         self.assertEqual(fetch.call_count, 2)
         self.assertTrue(manifest["checksum_verified"])
-        self.assertEqual(rows[day]["taker_imbalance"], 0.2)
+        self.assertAlmostEqual(rows[day]["taker_imbalance"], 0.2)
 
         bad_checksum = b"0" * 64 + b"  " + filename.encode()
         with patch.object(model.market.base, "fetch_bytes", side_effect=[payload, bad_checksum]):
