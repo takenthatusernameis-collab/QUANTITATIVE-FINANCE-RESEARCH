@@ -1,8 +1,10 @@
 {
   "alternatives_attempted": [
-    "FRED public combined WDTGAL/RRPONTSYD CSV",
-    "Binance public exchangeInfo market-data endpoint",
-    "Binance official checksummed Spot monthly/daily archive route"
+    "FRED WDTGAL single-series CSV: retrieved and parsed",
+    "FRED RRPONTSYD single-series CSV: retrieved and parsed",
+    "Binance data-api exchangeInfo: returned 3,756 symbols because the request omitted symbol=BTCUSDT",
+    "Binance api.binance.com exchangeInfo with symbol=BTCUSDT: HTTP 451",
+    "Binance Vision BTCUSDT archives: not attempted because the metadata gate failed"
   ],
   "completed_backtest": false,
   "daily_kpi": "The 2026-11-27 minimum was already met by distinct real-data screens; this failed source/execution attempt does not count.",
@@ -11,13 +13,28 @@
     "source_comment_id": "7229558801",
     "source_control_pr": "15"
   },
-  "disposition": "INCONCLUSIVE/INFEASIBLE \u2014 bounded source/execution failure: RuntimeError: Both public Binance exchangeInfo endpoints failed: [{\"error\": \"ValueError: expected exactly one BTCUSDT symbol, got 3756\", \"response_bytes\": 18178232, \"response_prefix_hex\": \"7b2274696d657a6f6e65223a22555443222c227365727665\", \"url\": \"https://data-api.binance.vision/api/v3/exchangeInfo\"}, {\"error\": \"RuntimeError: Non-retryable HTTP 451 for https://api.binance.com/api/v3/exchangeInfo?symbol=BTCUSDT\", \"response_bytes\": 0, \"response_prefix_hex\": \"\", \"url\": \"https://api.binance.com/api/v3/exchangeInfo?symbol=BTCUSDT\"}]",
-  "error": "RuntimeError: Both public Binance exchangeInfo endpoints failed: [{\"error\": \"ValueError: expected exactly one BTCUSDT symbol, got 3756\", \"response_bytes\": 18178232, \"response_prefix_hex\": \"7b2274696d657a6f6e65223a22555443222c227365727665\", \"url\": \"https://data-api.binance.vision/api/v3/exchangeInfo\"}, {\"error\": \"RuntimeError: Non-retryable HTTP 451 for https://api.binance.com/api/v3/exchangeInfo?symbol=BTCUSDT\", \"response_bytes\": 0, \"response_prefix_hex\": \"\", \"url\": \"https://api.binance.com/api/v3/exchangeInfo?symbol=BTCUSDT\"}]",
+  "disposition": "INCONCLUSIVE/INFEASIBLE — the second and final substantive cycle reached the BTCUSDT exchangeInfo gate, but the primary request omitted the required symbol=BTCUSDT query parameter and returned all 3,756 symbols; the filtered api.binance.com fallback returned HTTP 451. The two-cycle cap is exhausted. No BTC archive ingestion, accepted coverage, event construction or empirical backtest occurred; no performance inference is possible.",
+  "error": "The primary Binance data-api exchangeInfo request was sent without ?symbol=BTCUSDT, so it returned the full 3,756-symbol payload. The fallback https://api.binance.com/api/v3/exchangeInfo?symbol=BTCUSDT returned HTTP 451. The implementation failed to isolate BTCUSDT before archive ingestion.",
   "hypothesis_id": "QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01",
   "manifest_path": "reports/generated/treasury-rrp-drain-btc-downside/46078321167-attempt-1/manifest.json",
   "report_path": "reports/sessions/2026-11-27/2026-11-27T224315Z_session-treasury-rrp-drain-btc-46078321167.md",
   "run_attempt": "1",
   "run_id": "46078321167",
   "source_commit_sha": "beb4892ff91154f5411b50f2dc3e72529f812104",
-  "status": "INCONCLUSIVE"
+  "status": "INCONCLUSIVE",
+  "source_diagnosis": {
+    "stage": "BTCUSDT exchangeInfo metadata",
+    "fred_wdtgal_single_series_csv": "retrieved and parsed",
+    "fred_rrpontsyd_single_series_csv": "retrieved and parsed",
+    "primary_url": "https://data-api.binance.vision/api/v3/exchangeInfo",
+    "primary_response_symbol_count": 3756,
+    "primary_missing_query_parameter": "symbol=BTCUSDT",
+    "fallback_url": "https://api.binance.com/api/v3/exchangeInfo?symbol=BTCUSDT",
+    "fallback_http_status": 451,
+    "btc_archive_ingestion": "not attempted",
+    "coverage_acceptance": "not reached",
+    "event_construction": "not reached",
+    "empirical_backtest": "not run",
+    "performance_inference": "none"
+  }
 }
