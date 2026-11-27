@@ -105,7 +105,7 @@ def parse_farside_html(body: bytes, source_name: str) -> tuple[dict[dt.date, flo
     for table in parser.tables:
         header_index = None
         for index, row in enumerate(table):
-            if len(row) >= 10 and row[-1].strip().lower() == "total" and row[0].strip().lower() in {"", "date"}:
+            if len(row) >= 4 and row[-1].strip().lower() == "total" and row[0].strip().lower() in {"", "date"}:
                 header_index = index
                 break
         if header_index is None:
