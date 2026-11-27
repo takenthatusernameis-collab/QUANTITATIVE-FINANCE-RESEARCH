@@ -2,6 +2,7 @@
 
 - **Hypothesis ID:** QFR-2026-11-26-KCPRS-POLICY-SKEW-DGS2-01
 - **Registered:** 2026-11-26, before retrieval of the empirical source series for this experiment.
+- **Mainline admission commit timestamp:** 2026-11-26T03:29:03Z (verified from commit `0ea3ae1c3c8f33c8c84b874d6c09434794dec1fc`; this legacy admission predates the 2026-11-26T10:12:25Z mainline timebox-policy cutover).
 - **Status:** INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen decision rule
 - **Difficulty:** MEDIUM.
 - **Difficulty rationale:** three public daily series, one lagged options-implied risk-asymmetry feature, one Treasury-yield target, and the repository's existing rolling OLS / circular-block bootstrap harness.

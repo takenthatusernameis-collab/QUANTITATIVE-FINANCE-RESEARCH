@@ -108,7 +108,7 @@ The mandatory preregistration timebox rule became active on the current mainline
 
 The admission-guard suite now checks two structural invariants before research work can pass repository CI:
 
-- Every non-test research module declaring a literal `HYPOTHESIS_ID` must have its matching `PREREGISTERED-{HYPOTHESIS_ID}.md` or an explicit `CLOSED-{HYPOTHESIS_ID}.md` closure record. A closed module must remain fail-closed. The shared `research/treasury_auction_demand.py` engine is the sole legacy shared-helper exemption; every new hypothesis built on it still needs its own preregistration.
+- Every non-test research module declaring a literal `HYPOTHESIS_ID` must have exactly one preregistration whose embedded `Hypothesis ID` matches that constant, or an explicit `CLOSED-{HYPOTHESIS_ID}.md` closure record. This is matching by embedded ID, not by filename slug. A closed module must remain fail-closed. The shared `research/treasury_auction_demand.py` engine is the sole legacy shared-helper exemption; every new hypothesis built on it still needs its own preregistration.
 - Every post-cutover preregistration must record a difficulty tier and rationale, exact UTC timebox start, maximum substantive cycles, separate implementation and final-conclusion deadlines, and an explicit expiry rule. The guard checks the cycle and elapsed-time limits against the LOW/MEDIUM/HIGH budget table above.
 
 This catches missing admission artifacts and incomplete timeboxes in CI; it does not authorize implementation, replace deterministic model tests, or relax the atomic `[QFR-ADMIT] research:` gate.

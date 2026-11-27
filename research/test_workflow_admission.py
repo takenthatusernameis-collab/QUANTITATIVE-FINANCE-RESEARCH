@@ -381,6 +381,22 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         # hypothesis admission. All new hypotheses built on it still need their own prereg.
         shared_core_helpers = {"treasury_auction_demand.py"}
         research_dir = ROOT / "research"
+        prereg_by_id = {}
+
+        for prereg_path in sorted(research_dir.glob("PREREGISTERED-*.md")):
+            prereg_text = prereg_path.read_text(encoding="utf-8")
+            prereg_id = re.search(
+                r"(?mi)^-\s*\*\*Hypothesis ID:\*\*\s*[\x60]?([A-Z0-9-]+)[\x60]?",
+                prereg_text,
+            )
+            self.assertIsNotNone(prereg_id, msg=f"{prereg_path.name} has no embedded Hypothesis ID")
+            hypothesis_id = prereg_id.group(1)
+            self.assertNotIn(
+                hypothesis_id,
+                prereg_by_id,
+                msg=f"duplicate preregistrations for {hypothesis_id}",
+            )
+            prereg_by_id[hypothesis_id] = prereg_path
 
         for path in sorted(research_dir.glob("*.py")):
             if path.name.startswith("test_") or path.name in shared_core_helpers:
@@ -394,12 +410,12 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
                 continue
 
             hypothesis_id = match.group(1)
-            prereg = research_dir / f"PREREGISTERED-{hypothesis_id}.md"
+            prereg = prereg_by_id.get(hypothesis_id)
             closure = research_dir / f"CLOSED-{hypothesis_id}.md"
             with self.subTest(module=path.name, hypothesis_id=hypothesis_id):
                 self.assertTrue(
-                    prereg.is_file() or closure.is_file(),
-                    msg=f"{path.name} has no matching preregistration or explicit closure",
+                    prereg is not None or closure.is_file(),
+                    msg=f"{path.name} has no preregistration whose embedded ID matches, or explicit closure",
                 )
                 if closure.is_file():
                     closure_text = closure.read_text(encoding="utf-8")
@@ -418,16 +434,39 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
             content = path.read_text(encoding="utf-8")
             registration_match = re.search(
                 r"(?mi)^-\s*\*\*(?:Registered|Preregistration freeze):\*\*\s*"
-                r"`?(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)`?",
+                r"[\x60]?(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)[\x60]?",
                 content,
             )
-            hypothesis_date_match = re.search(r"QFR-(\d{4}-\d{2}-\d{2})", path.name)
+            hypothesis_id_match = re.search(
+                r"(?mi)^-\s*\*\*Hypothesis ID:\*\*\s*[\x60]?([A-Z0-9-]+)[\x60]?",
+                content,
+            )
 
             if registration_match is None:
-                if hypothesis_date_match:
-                    hypothesis_date = dt.date.fromisoformat(hypothesis_date_match.group(1))
-                    if hypothesis_date >= TIMEBOX_POLICY_CUTOVER.date():
-                        self.fail(f"{path.name} has no exact UTC registration/freeze timestamp")
+                legacy_commit_match = re.search(
+                    r"(?mi)^-\s*\*\*Mainline admission commit timestamp:\*\*\s*"
+                    r"[\x60]?(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)[\x60]?",
+                    content,
+                )
+                if legacy_commit_match:
+                    legacy_commit_at = dt.datetime.fromisoformat(
+                        legacy_commit_match.group(1).replace("Z", "+00:00")
+                    )
+                    self.assertLess(
+                        legacy_commit_at,
+                        TIMEBOX_POLICY_CUTOVER,
+                        msg=f"{path.name} legacy commit timestamp is not pre-cutover",
+                    )
+                    continue
+                if hypothesis_id_match:
+                    hypothesis_date_match = re.search(
+                        r"QFR-(\d{4}-\d{2}-\d{2})",
+                        hypothesis_id_match.group(1),
+                    )
+                    if hypothesis_date_match:
+                        hypothesis_date = dt.date.fromisoformat(hypothesis_date_match.group(1))
+                        if hypothesis_date >= TIMEBOX_POLICY_CUTOVER.date():
+                            self.fail(f"{path.name} has no exact UTC registration/freeze timestamp")
                 continue
 
             registered_at = dt.datetime.fromisoformat(
@@ -438,7 +477,7 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
 
             with self.subTest(preregistration=path.name):
                 difficulty_match = re.search(
-                    r"(?mi)^-\s*\*\*(?:Expected )?Difficulty:\*\*\s*`?(LOW|MEDIUM|HIGH)\b",
+                    r"(?mi)^-\s*\*\*(?:Expected )?Difficulty:\*\*\s*[\x60]?(LOW|MEDIUM|HIGH)\b",
                     content,
                 )
                 rationale_match = re.search(
@@ -446,8 +485,8 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
                     content,
                 )
                 start_match = re.search(
-                    r"(?mi)^-\s*\*\*Timebox start:\*\*\s*`?"
-                    r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)`?",
+                    r"(?mi)^-\s*\*\*Timebox start:\*\*\s*[\x60]?"
+                    r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)[\x60]?",
                     content,
                 )
                 cycles_match = re.search(
@@ -455,13 +494,13 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
                     content,
                 )
                 implementation_match = re.search(
-                    r"(?mi)^-\s*\*\*(?:Hard )?Implementation deadline:\*\*\s*`?"
-                    r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)`?",
+                    r"(?mi)^-\s*\*\*(?:Hard )?Implementation deadline:\*\*\s*[\x60]?"
+                    r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)[\x60]?",
                     content,
                 )
                 conclusion_match = re.search(
-                    r"(?mi)^-\s*\*\*(?:Hard )?Final research-conclusion deadline:\*\*\s*`?"
-                    r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)`?",
+                    r"(?mi)^-\s*\*\*(?:Hard )?Final research-conclusion deadline:\*\*\s*[\x60]?"
+                    r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)[\x60]?",
                     content,
                 )
                 expiry_match = re.search(
