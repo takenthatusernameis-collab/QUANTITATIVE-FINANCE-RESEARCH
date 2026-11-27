@@ -187,6 +187,7 @@ def fetch_all_archives(start: dt.date = START_DATE, end: dt.date = END_DATE) -> 
             spec = future_map[future]
             try:
                 part, record = future.result()
+                part = {day: value for day, value in part.items() if start <= day <= end}
                 overlap = set(rows).intersection(part)
                 if overlap:
                     raise ValueError(f"Duplicate dates across archives: {sorted(overlap)[:3]}")
