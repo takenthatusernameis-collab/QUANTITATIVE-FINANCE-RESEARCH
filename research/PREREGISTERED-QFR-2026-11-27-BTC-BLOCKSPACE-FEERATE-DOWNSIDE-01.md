@@ -1,7 +1,7 @@
 # Preregistered Research: Bitcoin Blockspace Fee-Rate Pressure and Downside Semivariance
 
 - **Hypothesis ID:** `QFR-2026-11-27-BTC-BLOCKSPACE-FEERATE-DOWNSIDE-01`
-- **Status:** IMPLEMENTATION_READY — implementation commit `2930958302d11ad609bb53a2299952436a7f4b86`; 13 deterministic model tests, source-preflight regression tests and full workflow-admission suite passed in CI run [#46024683649](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46024683649); empirical backtest pending.
+- **Status:** INCONCLUSIVE; decision=INCONCLUSIVE. One frozen real-data backtest completed.
 - **Registered:** `2026-11-27T13:55:51Z`
 - **Difficulty:** MEDIUM
 - **Difficulty rationale:** One public Mempool.space three-year block-feerate endpoint, an already verified Binance Vision BTCUSDT Spot 1d UTC source, one prespecified feature, strict UTC aggregation, and the repository's existing walk-forward/paired-loss framework. The main uncertainty is endpoint schema/coverage and the short three-year history; no credentials, paid data, or new execution infrastructure are intended.
@@ -118,8 +118,8 @@ This is a source-semantics correction, not a search across percentiles or altern
 
 - Cycle 1: freeze this preregistration and perform a read-only source/schema/coverage preflight. The first response confirmed the field schema but exposed a boundary-date handling issue; corrected validation must verify 12-hour bins and exclude both partial boundary dates. No model fit or backtest is permitted in this cycle.
 - Cycle 2 — COMPLETED 2026-11-27T15:24:45Z: implemented the frozen parser integration, accepted-source checksum reuse, event construction, walk-forward OLS comparison, paired block bootstrap, deterministic regression tests and gated workflow. Implementation commit `2930958302d11ad609bb53a2299952436a7f4b86`; 13 model tests plus source-preflight and full admission-guard suites passed in CI run #46024683649. No empirical backtest ran in that unmarked implementation commit.
-- Cycle 3: run the single frozen real-data backtest after deterministic validation.
-- Cycle 4: independently audit timing, data provenance, metrics, and the frozen decision rule; persist the final disposition.
+- Cycle 3 — COMPLETED 2026-11-27T15:26:45Z: one frozen real-data backtest completed successfully in [run #46024917193](${runUrl}); 1 Mempool GET, 61 previously accepted checksum-matched Binance archives, 179 events, 29 validation forecasts and 85 test forecasts. Frozen decision: INCONCLUSIVE.
+- Cycle 4 — COMPLETED 2026-11-27T15:29:39.849Z: independently compared all 61 archive/checksum pairs with the accepted manifest, recomputed both RMSE-improvement percentages, replayed the paired-loss decision rule, verified CI and persisted the [independent audit](../reports/sessions/2026-11-27/20261127T152939Z_session-btc-blockspace-feerate-independent-audit.md). Final status: CLOSED / INCONCLUSIVE.
 
 
 ## 11. Implementation acceptance — 2026-11-27T15:24:45Z
@@ -131,3 +131,29 @@ This is a source-semantics correction, not a search across percentiles or altern
 - **CI evidence:** [global admission/test run #46024683649](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46024683649).
 - The research workflow's push event for the unmarked implementation commit was correctly **skipped** in [run #46024683640](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46024683640). No empirical source retrieval, backtest or performance-result inspection occurred before this acceptance gate.
 - Cycle 2 is complete. Cycle 3 may now execute the single frozen empirical backtest; Cycle 4 remains reserved for independent audit.
+
+## Empirical disposition
+
+- **Final status:** INCONCLUSIVE; decision=INCONCLUSIVE.
+- **Disposition:** INCONCLUSIVE — frozen validation/test and paired-loss rules do not establish incremental predictive value or decisive inferiority.
+- **Completed real-data backtest:** yes.
+- **Data scope:** Mempool.space avgFee_75 12h bins, daily median 2023-11-28 to 2026-11-26 (1095 complete dates); Binance BTCUSDT Spot 1d UTC 2023-11-28 to 2026-11-25 (1094 candles); six-calendar-day events; validation 2025-H1; test 2025-H2 onward.
+- **Validation metrics:** {"augmented": {"directional_accuracy": 1.0, "mae_bp": 0.6642420548006267, "mean_actual_bp": 0.9319469818749616, "n": 29, "oos_r2_vs_mean": -0.16482303918310848, "rmse_bp": 0.8917247810925903}, "baseline": {"directional_accuracy": 1.0, "mae_bp": 0.6629490714978765, "mean_actual_bp": 0.9319469818749616, "n": 29, "oos_r2_vs_mean": -0.15317480895290414, "rmse_bp": 0.8872549546059562}, "n": 29, "rmse_improvement_pct": -0.5037815188779992}.
+- **Test metrics:** {"augmented": {"directional_accuracy": 1.0, "mae_bp": 0.5693593121802689, "mean_actual_bp": 0.8864444986066968, "n": 85, "oos_r2_vs_mean": -0.10075714864166763, "rmse_bp": 0.7208686337088329}, "baseline": {"directional_accuracy": 1.0, "mae_bp": 0.5626729496417313, "mean_actual_bp": 0.8864444986066968, "n": 85, "oos_r2_vs_mean": -0.09019275103589064, "rmse_bp": 0.7174010643964365}, "n": 85, "rmse_improvement_pct": -0.4833515706188392}.
+- **Paired test-loss bootstrap:** {"block_size_events": 5, "bootstrap_fraction_positive": 0.1655, "ci_95_high": 0.005471370322788428, "ci_95_low": -0.016317454039132775, "mean_baseline_minus_augmented_squared_loss": -0.004987299868099742, "observations": 85, "reps": 2000, "seed": 20261127, "status": "COMPUTED"}.
+- **Report:** [reports/sessions/2026-11-27/2026-11-27T152638Z_session-btc-blockspace-feerate-46024917193.md](../reports/sessions/2026-11-27/2026-11-27T152638Z_session-btc-blockspace-feerate-46024917193.md).
+- **Manifest:** [reports/generated/btc-blockspace-fee-rate-btc-downside/46024917193-attempt-1/manifest.json](../reports/generated/btc-blockspace-fee-rate-btc-downside/46024917193-attempt-1/manifest.json).
+- Forecast-only; no causal, trading or deployment claim.
+
+
+
+## 12. Independent audit and final closure — 2026-11-27T15:29:39.849Z
+
+- **Final disposition:** CLOSED / INCONCLUSIVE under the frozen rule. Both validation and test RMSE are worse for the augmented model, but the paired test-loss 95% interval crosses zero; the stricter REJECTED criterion is not met.
+- **Independent archive verification:** 61 of 61 Binance archive and checksum hashes match the previously accepted full-history manifest.
+- **Independent metric verification:** recomputed RMSE improvements match the persisted values exactly: validation -0.5037815188779992%; test -0.4833515706188392%.
+- **Timing/sample verification:** 179 accepted events, six-day spacing, five-session non-overlapping targets, 65-event warm-up, 29 validation and 85 test forecasts.
+- **CI:** 13/13 model tests, source-preflight tests and repository admission-guard suite passed; backtest run #46024917193 completed successfully.
+- **Timebox:** all four cycles completed before the implementation deadline (2026-11-30T13:55:51Z) and final conclusion deadline (2026-12-02T13:55:51Z). No extension was used.
+- **Stop rule:** no further tuning or rerun under this identity. A materially distinct hypothesis requires a new ID and preregistered timebox.
+- **Audit report:** [reports/sessions/2026-11-27/20261127T152939Z_session-btc-blockspace-feerate-independent-audit.md](../reports/sessions/2026-11-27/20261127T152939Z_session-btc-blockspace-feerate-independent-audit.md).
