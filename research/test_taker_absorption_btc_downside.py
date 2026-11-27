@@ -179,7 +179,9 @@ class TakerAbsorptionBitcoinDownsideTests(unittest.TestCase):
             prereg = root / "PREREG.md"
             registry.write_text("| header |\n|---|\n", encoding="utf-8")
             prereg.write_text(
-                "- **Status:** PREREGISTERED; source feasibility PASS; backtest not yet run.\n",
+                "- **Status:** ADMITTED; source feasibility PASS; empirical backtest pending.\n"
+                "\\n## 8. Atomic execution admission\\nFrozen admission record.\\n"
+                "\\n## 8. Execution result\\nStale result heading.\\n",
                 encoding="utf-8",
             )
             result = {
@@ -209,7 +211,11 @@ class TakerAbsorptionBitcoinDownsideTests(unittest.TestCase):
             self.assertEqual(first.count(model.HYPOTHESIS_ID), 1)
             self.assertIn("BACKTESTED", first)
             self.assertIn("decision=INCONCLUSIVE", first)
-            self.assertIn("EXECUTED", prereg.read_text(encoding="utf-8"))
+            saved_prereg = prereg.read_text(encoding="utf-8")
+            self.assertIn("**Status:** BACKTESTED; decision=INCONCLUSIVE;", saved_prereg)
+            self.assertIn("## 8. Atomic execution admission", saved_prereg)
+            self.assertIn("## 9. Execution result", saved_prereg)
+            self.assertNotIn("## 8. Execution result", saved_prereg)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 # Preregistered experiment: BTC daily taker-flow/price-response absorption proxy
 
 - **Hypothesis ID:** QFR-2026-11-27-BTC-TAKER-ABSORPTION-DOWNSIDE-01
-- **Status:** ADMITTED; source feasibility PASS; empirical backtest pending.
+- **Status:** BACKTESTED; decision=INCONCLUSIVE; workflow run 45926394994; validation/test forecasts 159/298.
 - **Preregistration freeze:** 2026-11-27T01:34:56Z
 - **Difficulty:** LOW
 - **Maximum substantive cycles:** 2
@@ -105,15 +105,16 @@ Model:
 - Final pre-admission deterministic CI: [run 45925665470](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45925665470), completed successfully on the admission parent. It compiled the research modules and passed workflow-admission, source-preflight, BTC downside-model and evidence-persistence regression suites, as well as the existing registered-hypothesis regression suites.
 - Frozen source-preflight: [run 45925248340](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45925248340), completed successfully on code commit `6f91629a1f3b5003da516ae1829de1fadf8a0530`; 136 checksum-verified archives, 3,388 complete UTC daily rows, 2017-08-17 through 2026-11-25, no missing dates, no zero-volume days, and all 3,388 rows have finite taker imbalance. Archive-manifest SHA-256: `978b00dda884620e6e19cfb32f42bbf93df1f1a19d5d0a906951e23762440bbe`.
 - The final atomic admission commit uses the exact `[QFR-ADMIT] research:` prefix. The push-triggered workflow must check out that exact `github.sha`, rerun the deterministic suites, re-fetch and checksum-verify the frozen archive population, require the exact preflight manifest hash, execute the frozen walk-forward forecast and paired bootstrap, then persist the report/manifest with report-hash and registry/preregistration-digest verification.
-- Earlier non-admission pushes were correctly skipped by the research admission gate; no empirical backtest has run yet. The current commit is the first authorized empirical execution for this frozen hypothesis.
+- Earlier non-admission pushes were correctly skipped by the research admission gate. The first authorized empirical run, [45926394994](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45926394994), completed successfully on the exact admission commit; no second admission-marker commit was created.
 - The two-cycle LOW-difficulty budget and both frozen UTC deadlines remain unchanged. No feature, model, target, sample, split, threshold or acceptance rule is changed by this admission.
 
-## 8. Execution result
+## 9. Execution result
 
 - Workflow run: https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45926394994
 - Triggering source commit: 7e968673f39e26001ea45f6664129efe77240db2
 - Status: COMPLETE
 - Decision: INCONCLUSIVE
+- Evidence persistence commit: [a87e750](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/a87e7509ebd564dfeab85f631cb543dbea02811c)
 - Validation/test forecasts: 159/298
 - Validation/test RMSE improvement: 0.3119332997745025/-1.0491040022776774
 - Paired test-loss bootstrap: {"block_size_events": 4, "bootstrap_fraction_positive": 0.045, "ci_95_high": 0.0018984357165540003, "ci_95_low": -0.037146350903781586, "observations": 298, "observed_mean_baseline_minus_augmented_squared_loss": -0.015970332330204357, "reps": 2000, "seed": 20261127, "status": "COMPUTED"}

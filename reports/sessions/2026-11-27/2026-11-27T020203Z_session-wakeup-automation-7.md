@@ -2,54 +2,55 @@
 
 ## Objective
 
-Reconcile the live main branch and commit the pending, source-feasible research task without duplicating work or weakening the frozen protocol.
+Reconcile the live main branch and execute the pending source-feasible research task without duplicating work or weakening the frozen protocol.
 
-## Research output
+## Research output — completed
 
-- No empirical result existed at wake-up.
-- Admitted hypothesis: `QFR-2026-11-27-BTC-TAKER-ABSORPTION-DOWNSIDE-01`.
-- The signed daily taker-imbalance/price-response proxy is venue-specific and is not direct observation of order-book absorption.
-- The real-data backtest is triggered by this atomic admission commit; the daily research KPI remains pending until a valid run and evidence-backed registry disposition are persisted.
+- Hypothesis: `QFR-2026-11-27-BTC-TAKER-ABSORPTION-DOWNSIDE-01`.
+- Real-data backtest: [Actions run 45926394994](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45926394994), completed successfully on exact admission commit `7e968673f39e26001ea45f6664129efe77240db2`.
+- Evidence persistence commit: [a87e750](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/a87e7509ebd564dfeab85f631cb543dbea02811c).
+- Disposition: **INCONCLUSIVE**, exactly as required by the frozen rule.
+- Candidate origins/events: 561/561; walk-forward forecasts: 457; validation/test forecasts: 159/298.
+- Validation RMSE improvement: **+0.3119%**. Test RMSE improvement: **−1.0491%**.
+- Paired test squared-loss bootstrap: 2,000 replications, block size 4, seed 20261127; baseline-minus-augmented mean loss difference **−0.0159703**; 95% CI **[−0.0371464, +0.00189844]**. The interval crosses zero. Only 4.5% of bootstrap draws favored the augmented model.
+- Both models also had negative OOS R² versus the unconditional-mean benchmark in validation and test. This is a weak absolute forecasting result; the preregistered decision concerns incremental performance against the fixed risk/momentum baseline.
+- The validation improvement and test deterioration are mixed evidence. The test CI does not establish decisive inferiority, so neither PROMISING nor REJECTED is justified.
+- No trading P&L, profitability, Sharpe, drawdown or live deployment was evaluated.
 
 ## Source feasibility — VERIFIED
 
-- Latest successful source preflight: [GitHub Actions run 45925248340](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45925248340), source code commit `6f91629a1f3b5003da516ae1829de1fadf8a0530`.
-- 136 checksum-verified Binance Vision BTCUSDT Spot 1d UTC archives; 3,388 rows; coverage 2017-08-17 through 2026-11-25; zero missing dates and zero zero-volume dates; 3,388 finite taker-imbalance observations.
-- Frozen archive-manifest SHA-256: `978b00dda884620e6e19cfb32f42bbf93df1f1a19d5d0a906951e23762440bbe`.
-- A second successful preflight reproduced the same manifest hash. The 2026-11-26 archive was unavailable at probe time; the sample end remains frozen at 2026-11-25.
-- Source-preflight report is now named for the run and completion time it actually documents: [2026-11-27T015513Z report](2026-11-27T015513Z_session-taker-absorption-source-preflight-45925248340.md). The earlier mismatched report path was removed, not retained as a duplicate.
+- Latest successful source preflight: [run 45925248340](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45925248340), code commit `6f91629a1f3b5003da516ae1829de1fadf8a0530`.
+- 136 checksum-verified Binance Vision BTCUSDT Spot 1d UTC archives; 3,388 rows; coverage 2017-08-17 through 2026-11-25; zero missing dates and zero zero-volume days; all 3,388 rows have finite taker imbalance.
+- Frozen archive-manifest SHA-256: `978b00dda884620e6e19cfb32f42bbf93df1f1a19d5d0a906951e23762440bbe`. The empirical run reproduced this exact hash.
+- The 2026-11-26 archive was unavailable at preflight time; the frozen sample end remains 2026-11-25.
+- The corrected source-preflight report is [here](2026-11-27T015513Z_session-taker-absorption-source-preflight-45925248340.md).
 
 ## Implementation and validation — VERIFIED
 
-- The frozen model, source parser, deterministic tests, workflow and evidence-persistence helper are present on main.
-- Final pre-admission CI: [run 45925665470](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45925665470) succeeded on parent commit `5f645f5de49d49afb37406d4ff565e48b4dde0bc`.
-- That run passed compilation, the workflow-admission suite, 11 source-preflight tests, 14 BTC downside-model tests, 2 evidence-persistence tests and the existing registered research regression suites.
-- Earlier admission-guard runs failed during rapid fixture/handoff corrections; the final parent-commit CI is green. The most recent non-admission backtest push, [45925665370](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45925665370), was correctly skipped by the exact-prefix gate; it did not execute a backtest.
+- Pre-admission CI [45925665470](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45925665470) passed on parent `5f645f5de49d49afb37406d4ff565e48b4dde0bc`, including compilation, workflow admission, 11 source-preflight tests, 14 model tests, 2 persistence tests and existing research regression suites.
+- Post-admission guard CI [45926395000](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45926395000) passed.
+- The empirical workflow passed exact-`github.sha` checkout, immutable-source assertion, deterministic tests, frozen source retrieval, forecast execution, evidence persistence and final COMPLETE-manifest gate.
+- The evidence report is `reports/sessions/2026-11-27/2026-11-27T020646Z_session-taker-absorption-btc-downside-45926394994.md`; the manifest is `reports/generated/taker-absorption-btc-downside/45926394994-attempt-1/manifest.json`.
+- The registry now records BACKTESTED / INCONCLUSIVE with metrics and evidence links.
+
+## Same-session handoff correction
+
+The evidence-persistence helper updated the registry but failed to update the preregistration's top status because it only matched the original `PREREGISTERED` literal. Since the atomic admission had changed the status to `ADMITTED`, the result document retained a stale pending status and duplicated section number 8.
+
+I corrected the helper to update any top-level `- **Status:**` line and to normalize the execution-result heading to section 9. The regression fixture now starts from the actual ADMITTED state and verifies preservation of the admission section, BACKTESTED status, and unique section numbering. This is a reporting/handoff fix only; it does not change the frozen model, data, target, split, bootstrap or disposition.
+
+The manifest's `prereg_sha256` remains the digest of the preregistration version at evidence-persistence time. The later status/heading repair is a post-run handoff annotation; the exact triggering protocol remains recoverable from admission commit `7e968673f39e26001ea45f6664129efe77240db2`.
 
 ## Repository reconciliation and hygiene
 
-- Main parent at admission: `5f645f5de49d49afb37406d4ff565e48b4dde0bc`.
-- Recursive tree: 298 entries, not truncated.
-- No tracked `__pycache__`, `.pyc`, CSV/ZIP raw data, log, scratch, temp or cache artifacts were found.
-- No open PRs or issues. Fifteen branches remain; no branch was deleted because their ownership and remaining value were not established.
-- The live repository is organized under `.github/`, `README.md`, `reports/` and `research/`; no duplicate design-map or active-queue files were found in the tree. The README is the self-contained wake-up contract.
-- The README path and filename were not changed.
+- Main at evidence persistence: `a87e7509ebd564dfeab85f631cb543dbea02811c`.
+- No tracked `__pycache__`, `.pyc`, CSV/ZIP raw data, log, scratch, temp or cache artifacts were present at pre-admission inspection; the only generated output added was the intentional JSON manifest.
+- No open PRs or issues. Fifteen branches remained; no branch was deleted without evidence of safe retirement.
+- Root remains `.github/`, `README.md`, `reports/`, `research/`; no duplicate design-map or active-queue files were present. The original README path/name is unchanged.
+- Earlier guard CI failures during rapid fixture/handoff edits were corrected; the final pre-admission and post-admission guard runs passed.
 
-## Admission and next verification
+## KPI, timebox and next action
 
-- The hypothesis was admitted using the required `[QFR-ADMIT] research:` commit prefix after the frozen source-feasibility and deterministic CI gates passed.
-- The admission changes only execution provenance and handoff metadata; it does not alter the frozen hypothesis, feature, model, sample, split, target, bootstrap or acceptance rule.
-- The exact commit SHA and resulting Actions run must be reconciled immediately after publication. Verify the run checks out `github.sha`, passes all deterministic tests, reproduces the source manifest hash, completes the forecast, and persists the report/manifest plus registry/preregistration hashes.
-- If the empirical run fails before valid forecast construction, inspect its logs and manifest, repair only a demonstrated defect within the existing timebox, and use the documented explicit retry path; do not make a second admission-marker commit.
-- If the run completes, report the frozen validation/test metrics and paired-loss interval, retain the preregistered disposition, and verify the evidence commit on latest main.
-
-## Research vs. operations
-
-- Research work completed this wake-up: source/run provenance reconciliation and atomic empirical admission; no new backtest result yet.
-- Operational work: one report-path/provenance correction, exact source-preflight run pinning, and a duplicate report-path removal.
-- No live trading, strategy promotion, parameter search, holdout reuse or timebox extension.
-
-## KPI and timebox
-
-- Daily backtest KPI: **PENDING** until the admitted real-data workflow completes and its result is persisted.
-- Frozen LOW-difficulty two-cycle budget and deadlines remain unchanged; no reset or extension.
+- Daily real-data backtest KPI: **SATISFIED** — one genuinely new, preregistered real-data hypothesis was completed today. INCONCLUSIVE is a valid outcome; no result was manufactured.
+- The frozen LOW-difficulty two-cycle budget and both UTC deadlines were not extended or reset.
+- Next: use this negative/mixed evidence to avoid repeating the same daily taker-imbalance proxy. Explore a materially different market microstructure mechanism only under a new ID and frozen timebox. Do not tune this hypothesis post hoc or promote it to trading.

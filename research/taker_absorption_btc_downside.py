@@ -513,14 +513,19 @@ def update_documents(result: dict, report_path: Path, manifest_path: Path) -> No
     REGISTRY_PATH.write_text(chr(10).join(lines) + chr(10), encoding="utf-8")
 
     prereg = PREREG_PATH.read_text(encoding="utf-8")
-    status_line = "- **Status:** PREREGISTERED; source feasibility PASS; backtest not yet run."
     new_status = (
-        f"- **Status:** EXECUTED; decision {decision}; workflow run {RUN_ID}; "
+        f"- **Status:** {status}; decision={decision}; workflow run {RUN_ID}; "
         f"validation/test forecasts {validation.get('n', 0)}/{test.get('n', 0)}."
     )
-    if status_line in prereg:
-        prereg = prereg.replace(status_line, new_status)
-    section = f"""## 8. Execution result
+    prereg_lines = prereg.splitlines()
+    status_index = next(
+        (index for index, line in enumerate(prereg_lines) if line.startswith("- **Status:**")),
+        None,
+    )
+    if status_index is not None:
+        prereg_lines[status_index] = new_status
+        prereg = chr(10).join(prereg_lines)
+    section = f"""## 9. Execution result
 
 - Workflow run: https://github.com/{REPOSITORY}/actions/runs/{RUN_ID}
 - Triggering source commit: {SOURCE_SHA}
@@ -534,9 +539,15 @@ def update_documents(result: dict, report_path: Path, manifest_path: Path) -> No
 
 {result.get("decision_reason", result.get("error", ""))}
 """
-    marker = "## 8. Execution result"
-    if marker in prereg:
-        prereg = prereg.split(marker, 1)[0].rstrip() + chr(10) + chr(10) + section
+    execution_heading = next(
+        (
+            line for line in prereg.splitlines()
+            if line.startswith("## ") and line.endswith(". Execution result")
+        ),
+        None,
+    )
+    if execution_heading:
+        prereg = prereg.split(execution_heading, 1)[0].rstrip() + chr(10) + chr(10) + section
     else:
         prereg = prereg.rstrip() + chr(10) + chr(10) + section
     PREREG_PATH.write_text(prereg, encoding="utf-8")
