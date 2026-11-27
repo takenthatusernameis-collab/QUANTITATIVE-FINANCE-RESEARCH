@@ -11,7 +11,7 @@ import taker_absorption_btc_downside as model
 
 
 def persist(manifest_path: Path, report_path: Path) -> dict:
-    root = Path(__file__).resolve().parents[1]
+    root = model.ROOT
     manifest_path = manifest_path.resolve()
     report_path = report_path.resolve()
     if not manifest_path.is_file() or not report_path.is_file():
