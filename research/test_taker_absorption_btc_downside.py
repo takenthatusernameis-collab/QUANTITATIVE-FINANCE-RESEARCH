@@ -179,9 +179,16 @@ class TakerAbsorptionBitcoinDownsideTests(unittest.TestCase):
             prereg = root / "PREREG.md"
             registry.write_text("| header |\n|---|\n", encoding="utf-8")
             prereg.write_text(
-                "- **Status:** ADMITTED; source feasibility PASS; empirical backtest pending.\n"
-                "\\n## 8. Atomic execution admission\\nFrozen admission record.\\n"
-                "\\n## 8. Execution result\\nStale result heading.\\n",
+                chr(10).join([
+                    "- **Status:** ADMITTED; source feasibility PASS; empirical backtest pending.",
+                    "",
+                    "## 8. Atomic execution admission",
+                    "Frozen admission record.",
+                    "",
+                    "## 8. Execution result",
+                    "Stale result heading.",
+                    "",
+                ]),
                 encoding="utf-8",
             )
             result = {
