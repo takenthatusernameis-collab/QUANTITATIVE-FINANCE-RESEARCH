@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import concurrent.futures
+import csv
 import datetime as dt
 import hashlib
 import io
@@ -41,7 +42,7 @@ def parse_kline_archive(body: bytes) -> tuple[dict[dt.date, dict], str]:
     for row_number, raw_line in enumerate(io.StringIO(body.decode("utf-8-sig")), start=1):
         if not raw_line.strip():
             continue
-        row = next(__import__("csv").reader([raw_line]))
+        row = next(csv.reader([raw_line]))
         first = row[0].strip().lower() if row else ""
         if row_number == 1 and first in {"open_time", "open time"}:
             continue
@@ -84,8 +85,8 @@ def parse_kline_archive(body: bytes) -> tuple[dict[dt.date, dict], str]:
         quote_tolerance = max(1e-8, quote_volume * 1e-10)
         if taker_buy_quote < -quote_tolerance or taker_buy_quote > quote_volume + quote_tolerance:
             raise ValueError(f"Taker-buy quote volume outside total quote volume at row {row_number}")
-        if trade_count == 0 and (volume > 0 or quote_volume > 0):
-            raise ValueError(f"Nonzero volume with zero trades at row {row_number}")
+        if (trade_count == 0 and (volume > 0 or quote_volume > 0)) or (trade_count > 0 and volume == 0):
+            raise ValueError(f"Inconsistent volume and trade count at row {row_number}")
         imbalance = None if volume == 0 else 2.0 * taker_buy_base / volume - 1.0
         if imbalance is not None and not -1.000000001 <= imbalance <= 1.000000001:
             raise ValueError(f"Taker imbalance outside [-1,1] at row {row_number}")
@@ -146,7 +147,7 @@ def download_archive(spec: dict) -> tuple[dict[dt.date, dict], dict]:
     }
 
 
-def validate_coverage(rows: dict[dt.date, dict], start: dt.date, end: dt.date) -> dict:
+def validate_coverage(\n    rows: dict[dt.date, dict], start: dt.date, end: dt.date, min_nonzero_rows: int = 3000\n) -> dict:
     expected_days = (end - start).days + 1
     expected = {start + dt.timedelta(days=i) for i in range(expected_days)}
     observed = set(rows)
@@ -159,8 +160,8 @@ def validate_coverage(rows: dict[dt.date, dict], start: dt.date, end: dt.date) -
         )
     zero_volume = sum(row["volume"] == 0 for row in rows.values())
     nonzero = [row["taker_imbalance"] for row in rows.values() if row["taker_imbalance"] is not None]
-    if len(nonzero) < 3000:
-        raise ValueError(f"Insufficient nonzero-volume taker-flow observations: {len(nonzero)}")
+    if len(nonzero) < min_nonzero_rows:
+        raise ValueError(f"Insufficient nonzero-volume taker-flow observations: {len(nonzero)} < {min_nonzero_rows}")
     return {
         "expected_daily_rows": expected_days,
         "observed_daily_rows": len(rows),
