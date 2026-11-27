@@ -1,0 +1,54 @@
+name: Taker-absorption Binance Spot source feasibility preflight
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "research/taker_absorption_source_preflight.py"
+      - "research/test_taker_absorption_source_preflight.py"
+      - ".github/workflows/taker-absorption-source-preflight.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qfr-taker-absorption-source-preflight-main
+  cancel-in-progress: false
+
+jobs:
+  source-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout trusted triggering commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Run deterministic archive-schema and coverage tests
+        run: |
+          set -euo pipefail
+          python -m py_compile research/stlfsi4_btc_downside_semivariance.py research/taker_absorption_source_preflight.py research/test_taker_absorption_source_preflight.py
+          PYTHONPATH=research python -m unittest discover -s research -p "test_taker_absorption_source_preflight.py" -v
+          PYTHONPATH=research python -m unittest discover -s research -p "test_workflow_admission.py" -v
+
+      - name: Retrieve checksummed Binance Spot archives only; do not run a backtest
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          python research/taker_absorption_source_preflight.py
+          output="reports/generated/taker-absorption-source-preflight/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/preflight.json"
+          test -s "$output"
+          echo "=== SOURCE PREFLIGHT RESULT ==="
+          cat "$output"
