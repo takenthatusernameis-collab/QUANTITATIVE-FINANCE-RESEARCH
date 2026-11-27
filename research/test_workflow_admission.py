@@ -639,6 +639,13 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
             text,
         )
 
+    def test_btc_blockspace_prereg_changes_trigger_global_admission_guard(self):
+        text = (WORKFLOW_DIR / "workflow-admission-tests.yml").read_text(encoding="utf-8")
+        self.assertIn(
+            '"research/PREREGISTERED-QFR-2026-11-27-BTC-BLOCKSPACE-FEERATE-DOWNSIDE-01.md"',
+            text,
+        )
+
     def test_btc_blockspace_fee_rate_backtest_workflow_has_narrow_path_filters(self):
         text = (WORKFLOW_DIR / "btc-blockspace-fee-rate-btc-downside.yml").read_text(encoding="utf-8")
         for path in (
