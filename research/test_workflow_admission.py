@@ -168,6 +168,47 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertNotIn("stablecoin_supply_btc_downside.py", text)
         self.assertIn("do not run a backtest", text.lower())
 
+    def test_taker_absorption_backtest_workflow_validates_before_source_retrieval(self):
+        path = WORKFLOW_DIR / "taker-absorption-btc-downside.yml"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertIn(ADMISSION_IF, text)
+        self.assertIn("ref: ${{ github.sha }}", text)
+        self.assertIn("cancel-in-progress: false", text)
+        self.assertIn("contents: write", text)
+        self.assertIn('test_taker_absorption_source_preflight.py', text)
+        self.assertIn('test_taker_absorption_btc_downside.py', text)
+        self.assertLess(
+            text.index("Run deterministic archive, event, model, inference and handoff tests"),
+            text.index("Retrieve frozen checksummed Binance sources and run the real-data forecast"),
+        )
+        self.assertIn("if: always()", text)
+        self.assertIn("git fetch origin main", text)
+        self.assertIn("git reset --hard origin/main", text)
+        self.assertIn("git push origin HEAD:main", text)
+
+    def test_taker_absorption_workflow_run_blocks_have_valid_bash_syntax(self):
+        if not shutil.which("bash"):
+            self.skipTest("bash is unavailable")
+        text = (WORKFLOW_DIR / "taker-absorption-btc-downside.yml").read_text(encoding="utf-8")
+        lines = text.splitlines()
+        scripts = []
+        for index, line in enumerate(lines):
+            if line == "        run: |":
+                body = []
+                for candidate in lines[index + 1:]:
+                    if candidate.strip() and not candidate.startswith("          "):
+                        break
+                    body.append(candidate[10:] if candidate.startswith("          ") else "")
+                scripts.append("\n".join(body) + "\n")
+        self.assertGreaterEqual(len(scripts), 3)
+        for script_index, script in enumerate(scripts):
+            with self.subTest(script=script_index):
+                result = subprocess.run(
+                    ["bash", "-n"], input=script, text=True, capture_output=True, check=False
+                )
+                self.assertEqual(result.returncode, 0, msg=result.stderr)
+
     def test_taker_absorption_source_preflight_is_read_only_and_not_a_backtest(self):
         path = WORKFLOW_DIR / "taker-absorption-source-preflight.yml"
         text = path.read_text(encoding="utf-8")
