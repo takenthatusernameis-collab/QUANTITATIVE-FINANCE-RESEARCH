@@ -14,6 +14,7 @@ Reconcile the live main branch and execute the pending source-feasible research 
 - Validation RMSE improvement: **+0.3119%**. Test RMSE improvement: **−1.0491%**.
 - Paired test squared-loss bootstrap: 2,000 replications, block size 4, seed 20261127; baseline-minus-augmented mean loss difference **−0.0159703**; 95% CI **[−0.0371464, +0.00189844]**. The interval crosses zero. Only 4.5% of bootstrap draws favored the augmented model.
 - Both models also had negative OOS R² versus the unconditional-mean benchmark in validation and test. This is a weak absolute forecasting result; the preregistered decision concerns incremental performance against the fixed risk/momentum baseline.
+- The manifest's generic `directional_accuracy=1.0` is not informative here because both the log-semivariance target and predictions are nonnegative; it was not a preregistered decision input. The shared helper's `*_bp` field names are legacy labels—the reported RMSE/MAE values are in log1p semivariance units, not basis points.
 - The validation improvement and test deterioration are mixed evidence. The test CI does not establish decisive inferiority, so neither PROMISING nor REJECTED is justified.
 - No trading P&L, profitability, Sharpe, drawdown or live deployment was evaluated.
 
