@@ -25,32 +25,35 @@ class TreasuryRrpDrainBtcTests(unittest.TestCase):
         }
         return drain, prices
 
-    def test_parser_converts_rrp_billions_to_millions_and_uses_common_wednesdays(self):
-        body = (
-            b"observation_date,WDTGAL,RRPONTSYD\n"
-            b"2017-08-16,450000,10.5\n"
-            b"2017-08-17,.,10.4\n"
-            b"2017-08-23,449000,11.0\n"
-            b"2017-08-30,.,.\n"
+    def test_parser_aligns_separate_series_and_converts_rrp_billions_to_millions(self):
+        tga_body = (
+            b"observation_date,WDTGAL\n"
+            b"2017-08-16,450000\n"
+            b"2017-08-23,449000\n"
+            b"2017-08-30,448000\n"
         )
-        parsed, meta = model.parse_treasury_rrp_drain(body)
+        rrp_body = (
+            b"observation_date,RRPONTSYD\n"
+            b"2017-08-16,10.5\n"
+            b"2017-08-17,10.4\n"
+            b"2017-08-23,11.0\n"
+        )
+        parsed, meta = model.parse_treasury_rrp_drain(tga_body, rrp_body)
         self.assertEqual(parsed[dt.date(2017, 8, 16)], 460500.0)
         self.assertEqual(parsed[dt.date(2017, 8, 23)], 460000.0)
         self.assertEqual(meta["complete_wednesday_rows"], 2)
-        self.assertEqual(meta["wednesday_rows_missing_a_component"], 1)
-        self.assertEqual(meta["ignored_non_wednesday_rows"], 1)
+        self.assertEqual(meta["tga_wednesdays_without_rrp"], 1)
+        self.assertEqual(meta["rrp_rows_outside_tga_wednesdays"], 1)
 
-    def test_parser_rejects_duplicate_or_negative_wednesday_observations(self):
-        duplicate = (
-            b"observation_date,WDTGAL,RRPONTSYD\n"
-            b"2017-08-16,450000,10.5\n"
-            b"2017-08-16,449000,10.5\n"
-        )
+    def test_parser_rejects_duplicate_tga_or_negative_rrp_observations(self):
+        duplicate_tga = b"observation_date,WDTGAL\n2017-08-16,450000\n2017-08-16,449000\n"
+        valid_rrp = b"observation_date,RRPONTSYD\n2017-08-16,10.5\n"
         with self.assertRaisesRegex(ValueError, "Duplicate"):
-            model.parse_treasury_rrp_drain(duplicate)
-        negative = b"observation_date,WDTGAL,RRPONTSYD\n2017-08-16,450000,-1\n"
+            model.parse_treasury_rrp_drain(duplicate_tga, valid_rrp)
+        valid_tga = b"observation_date,WDTGAL\n2017-08-16,450000\n"
+        negative_rrp = b"observation_date,RRPONTSYD\n2017-08-16,-1\n"
         with self.assertRaisesRegex(ValueError, "Negative"):
-            model.parse_treasury_rrp_drain(negative)
+            model.parse_treasury_rrp_drain(valid_tga, negative_rrp)
 
     def test_four_week_drain_increase_is_strictly_lagged(self):
         drain, prices = self.make_market()
