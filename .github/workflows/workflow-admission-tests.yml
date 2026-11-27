@@ -20,7 +20,15 @@ on:
       - "research/deribit_relative_dvol_ethbtc_rv.py"
       - "research/test_deribit_relative_dvol_ethbtc_rv.py"
       - "research/mexc_btc_funding_downside.py"
-      - "research/test_mexc_btc_funding_downside.py research/wikipedia_attention_btc_downside.py research/test_wikipedia_attention_btc_downside.py research/wikipedia_attention_source_preflight.py"
+      - "research/test_mexc_btc_funding_downside.py"
+      - "research/wikipedia_attention_btc_downside.py"
+      - "research/test_wikipedia_attention_btc_downside.py"
+      - "research/wikipedia_attention_source_preflight.py"
+      - "research/taker_absorption_source_preflight.py"
+      - "research/test_taker_absorption_source_preflight.py"
+      - "research/taker_absorption_btc_downside.py"
+      - "research/test_taker_absorption_btc_downside.py"
+      - "research/PREREGISTERED-QFR-2026-11-27-TAKER-ABSORPTION-BTC-DOWNSIDE-01.md"
       - "research/PREREGISTERED-QFR-2026-11-26-MEXC-BTC-FUNDING-DOWNSIDE-01.md"
   workflow_dispatch:
 
@@ -70,3 +78,6 @@ jobs:
 
       - name: Run Bitcoin Wikipedia-attention downside regression tests
         run: PYTHONPATH=research python -m unittest discover -s research -p "test_wikipedia_attention_btc_downside.py" -v
+
+      - name: Run taker-absorption source-preflight regression tests
+        run: PYTHONPATH=research python -m unittest discover -s research -p "test_taker_absorption_source_preflight.py" -v
