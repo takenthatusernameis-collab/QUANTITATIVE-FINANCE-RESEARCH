@@ -639,6 +639,28 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
             text,
         )
 
+    def test_btc_blockspace_fee_rate_backtest_workflow_run_blocks_have_valid_bash_syntax(self):
+        if not shutil.which("bash"):
+            self.skipTest("bash is unavailable")
+        text = (WORKFLOW_DIR / "btc-blockspace-fee-rate-btc-downside.yml").read_text(encoding="utf-8")
+        lines = text.splitlines()
+        scripts = []
+        for index, line in enumerate(lines):
+            if line == "        run: |":
+                body = []
+                for candidate in lines[index + 1:]:
+                    if candidate.strip() and not candidate.startswith("          "):
+                        break
+                    body.append(candidate[10:] if candidate.startswith("          ") else "")
+                scripts.append("\n".join(body) + "\n")
+        self.assertGreaterEqual(len(scripts), 3)
+        for script_index, script in enumerate(scripts):
+            with self.subTest(script=script_index):
+                result = subprocess.run(
+                    ["bash", "-n"], input=script, text=True, capture_output=True, check=False
+                )
+                self.assertEqual(result.returncode, 0, msg=result.stderr)
+
     def test_btc_blockspace_prereg_changes_trigger_global_admission_guard(self):
         text = (WORKFLOW_DIR / "workflow-admission-tests.yml").read_text(encoding="utf-8")
         self.assertIn(
