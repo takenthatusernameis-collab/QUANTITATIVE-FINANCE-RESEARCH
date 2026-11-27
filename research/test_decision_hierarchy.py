@@ -98,8 +98,8 @@ class DecisionHierarchyTests(unittest.TestCase):
                 ProviderCandidate("B", "archive", "pilot"),
             ),
             provider_failures=(
-                ProviderFailure("A", "api", "variant-1"),
-                ProviderFailure("A", "api", "variant-2"),
+                ProviderFailure("A", "api", "variant-1", failure_code="HTTP_403"),
+                ProviderFailure("A", "api", "variant-2", failure_code="HTTP_403"),
             ),
         ))
         self.assertTrue(result.candidate.startswith("B:"))
@@ -165,6 +165,22 @@ class DecisionHierarchyTests(unittest.TestCase):
     def test_spot_research_is_not_blocked_by_unaccepted_funding(self):
         result = choose_next_action(DecisionState(market_type="spot", funding_accepted=False))
         self.assertNotEqual(result.action, "BLOCK_PERPETUAL")
+
+
+    def test_different_failure_classes_do_not_trigger_identical_failure_stop(self):
+        result = choose_next_action(DecisionState(
+            provider_candidates=(
+                ProviderCandidate("A", "api", "third-diagnosis"),
+                ProviderCandidate("B", "archive", "pilot"),
+            ),
+            provider_failures=(
+                ProviderFailure("A", "api", "first-diagnosis", failure_code="HTTP_403"),
+                ProviderFailure("A", "api", "second-diagnosis", failure_code="CHECKSUM_MISMATCH"),
+            ),
+        ))
+        self.assertEqual(result.action, "TRY_PROVIDER")
+        self.assertTrue(result.candidate.startswith("A:"))
+
 
 
 if __name__ == "__main__":

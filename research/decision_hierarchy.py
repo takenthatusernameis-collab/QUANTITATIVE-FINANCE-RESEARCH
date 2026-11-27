@@ -24,6 +24,7 @@ class ProviderFailure:
     route: str
     condition_key: str
     transient: bool = False
+    failure_code: str = "unspecified"
 
 
 @dataclass(frozen=True)
@@ -91,10 +92,15 @@ def choose_next_action(state: DecisionState) -> Decision:
     non_transient_providers = {failure.provider for failure in state.provider_failures if not failure.transient}
     if len(non_transient_providers) < 2:
         route_failures = Counter(
-            (failure.provider, failure.route)
+            (failure.provider, failure.route, failure.failure_code)
             for failure in state.provider_failures
             if not failure.transient
         )
+        exhausted_routes = {
+            (provider, route)
+            for (provider, route, _failure_code), count in route_failures.items()
+            if count >= 2
+        }
         attempted_conditions = {
             (failure.provider, failure.route, failure.condition_key)
             for failure in state.provider_failures
@@ -103,7 +109,7 @@ def choose_next_action(state: DecisionState) -> Decision:
             signature = (candidate.provider, candidate.route, candidate.condition_key)
             if signature in attempted_conditions:
                 continue
-            if route_failures[(candidate.provider, candidate.route)] >= 2:
+            if (candidate.provider, candidate.route) in exhausted_routes:
                 continue
             return _decision(
                 state,

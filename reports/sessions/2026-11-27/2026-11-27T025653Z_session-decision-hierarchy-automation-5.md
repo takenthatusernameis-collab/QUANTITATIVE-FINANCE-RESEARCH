@@ -22,7 +22,7 @@ Complete the pending repository task: consolidate and operationalize the adaptiv
 - Removed the one-time top-line instruction after completing it; the README filename and canonical path were not changed.
 
 ## Validation
-- Local deterministic decision-policy suite: 18/18 passed.
+- Local deterministic decision-policy suite: 19/19 passed after follow-up hardening.
 - GitHub Actions admission-guard suite: pending post-commit verification.
 - No empirical market-data test was run in this session; the daily KPI was already satisfied by run 45926394994.
 - The policy helper is a pure reference selector. It does not fetch data, dispatch workflows or replace evidence review.
@@ -35,3 +35,7 @@ Complete the pending repository task: consolidate and operationalize the adaptiv
 ## Remaining verification
 - Confirm the atomic implementation commit and the triggered admission-guard workflow.
 - Record any CI failure and repair it in an unmarked follow-up commit; do not launch a new empirical run for this policy change.
+
+## Follow-up hardening
+
+The first guard run passed, but code review found that the route-stop counter grouped all non-transient errors on a route together. The rule is specifically about two identical non-transient failure classes on the same route. Added an explicit failure-code dimension and a regression proving that two different failure classes do not prematurely exhaust a route. The repeated identical failure case remains covered. The policy suite now contains 19 tests.
