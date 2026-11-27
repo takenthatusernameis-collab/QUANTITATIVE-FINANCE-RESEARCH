@@ -381,11 +381,23 @@ def run_research() -> dict:
 
 
 def render_report(result: dict) -> str:
-    validation = result.get("validation", {})
-    test = result.get("test", {})
+    validation = result.get("validation") or {}
+    test = result.get("test") or {}
+    val_base = validation.get("baseline") or {}
+    val_aug = validation.get("augmented") or {}
+    test_base = test.get("baseline") or {}
+    test_aug = test.get("augmented") or {}
     paired = result.get("paired_test_loss_bootstrap")
-    source_manifest = result.get("source_manifest", {})
-    coverage = source_manifest.get("coverage", {})
+    source_manifest = result.get("source_manifest") or {}
+    coverage = source_manifest.get("coverage") or {}
+    event_meta = result.get("event_metadata") or {}
+    manifest_path = result.get("manifest_path", "reports/generated/taker-absorption-btc-downside/manifest.json")
+    manifest_path_obj = Path(manifest_path)
+    manifest_relative = (
+        "../../" + manifest_path_obj.relative_to("reports").as_posix()
+        if manifest_path_obj.parts and manifest_path_obj.parts[0] == "reports"
+        else manifest_path
+    )
     report = f"""# BTC taker-flow/price-response downside forecast — {STAMP}
 
 **Hypothesis:** {HYPOTHESIS_ID}
@@ -422,20 +434,20 @@ origin has a five-session forward window, so accepted target windows do not over
 
 ## Event construction
 
-- Candidate origins: {result.get("event_metadata", {}).get("candidate_origins", "not available")}
-- Accepted events: {result.get("event_metadata", {}).get("accepted_events", "not available")}
+- Candidate origins: {event_meta.get("candidate_origins", "not available")}
+- Accepted events: {event_meta.get("accepted_events", "not available")}
 - Walk-forward forecasts: {result.get("forecast_count", "not available")}
 - Validation forecasts: {validation.get("n", 0)}
 - Test forecasts: {test.get("n", 0)}
-- First accepted signal: {result.get("event_metadata", {}).get("first_accepted_signal", "not available")}
-- Last accepted signal: {result.get("event_metadata", {}).get("last_accepted_signal", "not available")}
+- First accepted signal: {event_meta.get("first_accepted_signal", "not available")}
+- Last accepted signal: {event_meta.get("last_accepted_signal", "not available")}
 
 ## Forecast results
 
 | Metric | Validation | Test |
 |---|---:|---:|
-| Baseline log-semivariance RMSE | {validation.get("baseline", {}).get("rmse_bp", "not available")} | {test.get("baseline", {}).get("rmse_bp", "not available")} |
-| Augmented log-semivariance RMSE | {validation.get("augmented", {}).get("rmse_bp", "not available")} | {test.get("augmented", {}).get("rmse_bp", "not available")} |
+| Baseline log-semivariance RMSE | {val_base.get("rmse_bp", "not available")} | {test_base.get("rmse_bp", "not available")} |
+| Augmented log-semivariance RMSE | {val_aug.get("rmse_bp", "not available")} | {test_aug.get("rmse_bp", "not available")} |
 | RMSE improvement (%) | {validation.get("rmse_improvement_pct", "not available")} | {test.get("rmse_improvement_pct", "not available")} |
 
 Paired test squared-loss bootstrap: {json.dumps(paired, sort_keys=True) if paired else "not computed"}.
@@ -451,25 +463,24 @@ the frozen validation/test and paired-loss rules; no parameter retuning was perf
 
 ## Evidence files
 
-- Manifest: {result.get("manifest_path", "not yet written")}
-- Preregistration: research/PREREGISTERED-QFR-2026-11-27-TAKER-ABSORPTION-BTC-DOWNSIDE-01.md
-- Registry: research/HYPOTHESIS-REGISTRY.md
+- Manifest: [{result.get("manifest_path", "not yet written")}]({manifest_relative})
+- Preregistration: [frozen protocol](../../../research/PREREGISTERED-QFR-2026-11-27-TAKER-ABSORPTION-BTC-DOWNSIDE-01.md)
+- Registry: [hypothesis registry](../../../research/HYPOTHESIS-REGISTRY.md)
 """
     return report
 
-
 def update_documents(result: dict, report_path: Path, manifest_path: Path) -> None:
     decision = result.get("decision", "INCONCLUSIVE")
-    status = decision if result.get("status") == "COMPLETE" else "INCONCLUSIVE"
-    validation = result.get("validation", {})
-    test = result.get("test", {})
+    status = "BACKTESTED" if result.get("status") == "COMPLETE" else "INCONCLUSIVE"
+    validation = result.get("validation") or {}
+    test = result.get("test") or {}
     val_imp = validation.get("rmse_improvement_pct")
     test_imp = test.get("rmse_improvement_pct")
-    source_manifest = result.get("source_manifest", {})
-    coverage = source_manifest.get("coverage", {})
+    source_manifest = result.get("source_manifest") or {}
+    coverage = source_manifest.get("coverage") or {}
     summary = (
-        f"{result.get('status')}; validation/test n={validation.get('n', 0)}/"
-        f"{test.get('n', 0)}; RMSE improvement={val_imp}/{test_imp}; "
+        f"{result.get('status')}; decision={decision}; validation/test n="
+        f"{validation.get('n', 0)}/{test.get('n', 0)}; RMSE improvement={val_imp}/{test_imp}; "
         f"paired CI={result.get('paired_test_loss_bootstrap')}"
     )
     if result.get("error"):
@@ -479,13 +490,13 @@ def update_documents(result: dict, report_path: Path, manifest_path: Path) -> No
         f"checksum-verified archives; {coverage.get('observed_daily_rows', 0)} rows; "
         f"{START_DATE} to {END_DATE}; preflight run {SOURCE_PREFLIGHT_RUN_ID}"
     )
-    relative_report = "../" + report_path.relative_to(ROOT / "reports").as_posix()
-    relative_manifest = "../" + manifest_path.relative_to(ROOT / "reports").as_posix()
+    relative_report = "../" + report_path.relative_to(ROOT).as_posix()
+    relative_manifest = "../" + manifest_path.relative_to(ROOT).as_posix()
     row = (
         f"| {HYPOTHESIS_ID} | {status} | Signed Binance Spot taker-flow/price-response divergence "
         "(buy-initiated imbalance while price falls, less sell-initiated imbalance while price rises) "
         "may add information about next-five-session BTC downside semivariance beyond prior downside "
-        "risk, realized variance and momentum. | {source_summary} | {summary} | "
+        f"risk, realized variance and momentum. | {source_summary} | {summary} | "
         f"[session report]({relative_report}) / [manifest]({relative_manifest}) / "
         "[preregistration](PREREGISTERED-QFR-2026-11-27-TAKER-ABSORPTION-BTC-DOWNSIDE-01.md) |"
     )
@@ -504,7 +515,7 @@ def update_documents(result: dict, report_path: Path, manifest_path: Path) -> No
     prereg = PREREG_PATH.read_text(encoding="utf-8")
     status_line = "- **Status:** PREREGISTERED; source feasibility PASS; backtest not yet run."
     new_status = (
-        f"- **Status:** EXECUTED; disposition {status}; workflow run {RUN_ID}; "
+        f"- **Status:** EXECUTED; decision {decision}; workflow run {RUN_ID}; "
         f"validation/test forecasts {validation.get('n', 0)}/{test.get('n', 0)}."
     )
     if status_line in prereg:
@@ -514,7 +525,7 @@ def update_documents(result: dict, report_path: Path, manifest_path: Path) -> No
 - Workflow run: https://github.com/{REPOSITORY}/actions/runs/{RUN_ID}
 - Triggering source commit: {SOURCE_SHA}
 - Status: {result.get("status")}
-- Disposition: {status}
+- Decision: {decision}
 - Validation/test forecasts: {validation.get("n", 0)}/{test.get("n", 0)}
 - Validation/test RMSE improvement: {val_imp}/{test_imp}
 - Paired test-loss bootstrap: {json.dumps(result.get("paired_test_loss_bootstrap"), sort_keys=True)}
@@ -529,7 +540,6 @@ def update_documents(result: dict, report_path: Path, manifest_path: Path) -> No
     else:
         prereg = prereg.rstrip() + chr(10) + chr(10) + section
     PREREG_PATH.write_text(prereg, encoding="utf-8")
-
 
 def write_outputs(result: dict) -> tuple[Path, Path]:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
