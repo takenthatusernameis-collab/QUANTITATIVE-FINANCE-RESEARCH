@@ -541,7 +541,8 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
     def test_readme_documents_mainline_timebox_cutover_and_machine_enforcement(self):
         text = README.read_text(encoding="utf-8")
         self.assertIn("2026-11-26T10:12:25Z", text)
-        self.assertIn("matching `PREREGISTERED-{HYPOTHESIS_ID}.md`", text)
+        self.assertIn("exactly one preregistration whose embedded `Hypothesis ID` matches", text)
+        self.assertIn("matching by embedded ID, not by filename slug", text)
         self.assertIn("explicit `CLOSED-{HYPOTHESIS_ID}.md`", text)
         self.assertIn("post-cutover preregistration", text.lower())
         self.assertIn("research/test_workflow_admission.py", text)

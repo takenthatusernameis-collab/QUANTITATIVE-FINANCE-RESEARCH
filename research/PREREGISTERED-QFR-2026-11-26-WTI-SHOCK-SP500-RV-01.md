@@ -3,6 +3,7 @@
 - **Hypothesis ID:** QFR-2026-11-26-WTI-SHOCK-SP500-RV-01
 - **Status:** INCONCLUSIVE
 - **Registered:** 2026-11-26 UTC
+- **Mainline admission commit timestamp:** 2026-11-26T04:59:04Z (verified from commit `9a3991904975799e37051448b9d4e42e9a502436`; this legacy admission predates the 2026-11-26T10:12:25Z mainline timebox-policy cutover).
 - **Research class:** daily real-data forecast screen, not a trading strategy or causal study.
 
 ## Research question and mechanism
