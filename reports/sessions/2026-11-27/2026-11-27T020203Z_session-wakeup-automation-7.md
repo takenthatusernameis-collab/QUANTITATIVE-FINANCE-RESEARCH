@@ -54,3 +54,12 @@ The manifest's `prereg_sha256` remains the digest of the preregistration version
 - Daily real-data backtest KPI: **SATISFIED** — one genuinely new, preregistered real-data hypothesis was completed today. INCONCLUSIVE is a valid outcome; no result was manufactured.
 - The frozen LOW-difficulty two-cycle budget and both UTC deadlines were not extended or reset.
 - Next: use this negative/mixed evidence to avoid repeating the same daily taker-imbalance proxy. Explore a materially different market microstructure mechanism only under a new ID and frozen timebox. Do not tune this hypothesis post hoc or promote it to trading.
+
+
+## Final follow-up verification
+
+- The status/heading handoff correction was implemented in [commit 9154de9](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/9154de9186d1295e3358344955f03dc240f4935a): the evidence updater now transitions any top-level status line, including ADMITTED, and normalizes the execution-result heading to section 9.
+- Its first CI attempt, [45926670900](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45926670900), exposed an escaped-newline mistake in the new test fixture. The production updater had preserved the admission section and replaced the result heading correctly; the fixture was repaired in [commit f478f61](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/f478f611334badf9bd853371ff9f2466b11fc23e).
+- Final regression CI [45926735225](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45926735225) completed successfully, including all 14 taker-absorption model tests and 2 evidence-persistence tests plus the repository's existing research regression suites.
+- The ordinary follow-up push correctly skipped the expensive backtest workflow in [45926735261](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45926735261); no second empirical run or admission-marker commit was created.
+- Final follow-up main commit: `f478f611334badf9bd853371ff9f2466b11fc23e`. The empirical result and its persisted manifest remain unchanged.
