@@ -778,11 +778,13 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
             "github.event.comment.user.login == 'takenthatusernameis-collab'",
             "github.event.comment.body == '/qfr-probe-dispatch-bridge'",
             "github.event.comment.body == '/qfr-run-initial-claims-btc-downside'",
+            "github.event.comment.body == '/qfr-run-treasury-rrp-drain-btc-downside'",
             "actions: write",
             "pull-requests: write",
             "cancel-in-progress: false",
             "dispatch-bridge-probe.yml",
             "initial-claims-btc-downside.yml",
+            "treasury-rrp-drain-btc-downside.yml",
             "issues/comments/$COMMENT_ID/reactions",
         ]
         for phrase in required:
@@ -815,6 +817,17 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
                 self.assertIn(field, text)
         self.assertIn("Record authenticated dispatch provenance", text)
         self.assertIn("ref: ${{ github.sha }}", text)
+
+    def test_treasury_rrp_drain_workflow_records_authenticated_dispatch_provenance(self):
+        text = (WORKFLOW_DIR / "treasury-rrp-drain-btc-downside.yml").read_text(encoding="utf-8")
+        for field in ("source_comment_id", "source_control_pr", "source_actor"):
+            with self.subTest(field=field):
+                self.assertIn(field, text)
+        self.assertIn("Record authenticated dispatch provenance", text)
+        self.assertIn('test "$SOURCE_CONTROL_PR" = "15"', text)
+        self.assertIn('test "$SOURCE_ACTOR" = "takenthatusernameis-collab"', text)
+        self.assertIn("ref: " + "$" + "{{ github.sha }}", text)
+        self.assertIn("SOURCE_COMMENT_ID", text)
 
     def test_control_dispatch_shell_blocks_have_valid_bash_syntax(self):
         if not shutil.which("bash"):
