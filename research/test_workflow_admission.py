@@ -1,5 +1,7 @@
 from pathlib import Path
 import re
+import shutil
+import subprocess
 import unittest
 
 
@@ -10,7 +12,7 @@ ADMISSION_IF = (
     "if: github.event_name != 'push' || "
     "startsWith(github.event.head_commit.message, '[QFR-ADMIT] research:')"
 )
-NON_RESEARCH_WORKFLOWS = {"workflow-admission-tests.yml", "stablecoin-supply-source-preflight.yml", "wikipedia-attention-source-preflight.yml"}
+NON_RESEARCH_WORKFLOWS = {"workflow-admission-tests.yml", "stablecoin-supply-source-preflight.yml", "wikipedia-attention-source-preflight.yml", "taker-absorption-source-preflight.yml"}
 
 
 class ResearchWorkflowAdmissionTests(unittest.TestCase):
@@ -106,6 +108,28 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         )
         self.assertIn("contents: write", text)
 
+    def test_wikipedia_attention_workflow_run_blocks_have_valid_bash_syntax(self):
+        if not shutil.which("bash"):
+            self.skipTest("bash is unavailable")
+        text = (WORKFLOW_DIR / "wikipedia-attention-btc-downside.yml").read_text(encoding="utf-8")
+        lines = text.splitlines()
+        scripts = []
+        for index, line in enumerate(lines):
+            if line == "        run: |":
+                body = []
+                for candidate in lines[index + 1:]:
+                    if candidate.strip() and not candidate.startswith("          "):
+                        break
+                    body.append(candidate[10:] if candidate.startswith("          ") else "")
+                scripts.append("\\n".join(body) + "\\n")
+        self.assertGreaterEqual(len(scripts), 2)
+        for script_index, script in enumerate(scripts):
+            with self.subTest(script=script_index):
+                result = subprocess.run(
+                    ["bash", "-n"], input=script, text=True, capture_output=True, check=False
+                )
+                self.assertEqual(result.returncode, 0, msg=result.stderr)
+
     def test_wikipedia_attention_persistence_git_add_command_has_balanced_quotes(self):
         text = (WORKFLOW_DIR / "wikipedia-attention-btc-downside.yml").read_text(encoding="utf-8")
         expected = 'git add "$report" "$manifest" research/HYPOTHESIS-REGISTRY.md research/PREREGISTERED-QFR-2026-11-26-WIKIPEDIA-ATTENTION-BTC-DOWNSIDE-01.md'
@@ -144,6 +168,16 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertNotIn("stablecoin_supply_btc_downside.py", text)
         self.assertIn("do not run a backtest", text.lower())
 
+    def test_taker_absorption_source_preflight_is_read_only_and_not_a_backtest(self):
+        path = WORKFLOW_DIR / "taker-absorption-source-preflight.yml"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertIn("contents: read", text)
+        self.assertNotIn("contents: write", text)
+        self.assertIn("taker_absorption_source_preflight.py", text)
+        self.assertNotIn("taker_absorption_btc_downside.py", text)
+        self.assertIn("do not run a backtest", text.lower())
+
     def test_wikipedia_attention_source_preflight_is_read_only_and_not_a_backtest(self):
         path = WORKFLOW_DIR / "wikipedia-attention-source-preflight.yml"
         text = path.read_text(encoding="utf-8")
@@ -157,6 +191,7 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
     def test_non_research_source_preflight_workflows_are_excluded_from_research_gate(self):
         self.assertIn("stablecoin-supply-source-preflight.yml", NON_RESEARCH_WORKFLOWS)
         self.assertIn("wikipedia-attention-source-preflight.yml", NON_RESEARCH_WORKFLOWS)
+        self.assertIn("taker-absorption-source-preflight.yml", NON_RESEARCH_WORKFLOWS)
 
     def test_non_research_admission_test_workflow_is_excluded_from_research_gate(self):
         path = WORKFLOW_DIR / "workflow-admission-tests.yml"
