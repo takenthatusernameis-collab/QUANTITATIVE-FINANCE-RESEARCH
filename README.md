@@ -1,5 +1,3 @@
-COMMIT TO REPOSITORY THE PENDING TASK
-
 # Quantitative Finance Research Factory — Wake-up Contract
 
 > This README is the single, self-contained bootstrap and operating contract for every scheduled agent wake-up. Do not make useful work depend on missing architecture documents.
@@ -55,6 +53,36 @@ flowchart TD
 - Discover assets and venues from the hypothesis and verified evidence. No fixed ETH/BTC scope, whitelist, exchange or historical start date. Do not keep recurring data captures or holdouts alive without a current admitted project, identified consumers, expiry and stop condition.
 - Prefer public, free and retail-accessible sources. For relevant public funding-history work, test the MEXC API first because prior investigations found it comparatively reliable. Recheck current endpoint behaviour, pagination, cadence, symbols, gaps and retention. The prior BTC/ETH pilot observed roughly 540 days and an eight-hour cadence; this does not establish complete 2020–2026 history or universal coverage. Never extrapolate beyond verified evidence.
 - Label evidence for its exact scope: VERIFIED, SAMPLE_ONLY, PROVISIONAL, UNKNOWN or INCONCLUSIVE as appropriate. Never silently fill missing data, infer undocumented retention or describe partial samples as complete.
+
+## Canonical research decision and failover hierarchy
+
+This hierarchy applies to every admitted research objective. It is a decision order, not a universal vendor ranking. Provider order must be justified by the current hypothesis, source semantics, coverage, access, cost and expected information gain.
+
+### Ordered priorities
+
+0. **Hard invariants.** Security, legality, authorization, scientific validity, provenance, data integrity, reproducibility and holdout protection are non-negotiable. If one fails, block the affected action; never weaken the gate.
+1. **Reconcile current state and protect due work.** Inspect main, durable outputs, workflow runs and concurrent owners. Reuse valid outputs. If a deadline has passed and output is absent, the first authorized agent directly executes recovery after confirming no concurrent owner; do not merely dispatch the same unreliable route again.
+2. **Remove demonstrated compounding process bottlenecks.** Prefer changes that reduce recurring failure or manual intervention across future research cycles. Do not invent infrastructure work; finish urgent valid research and keep independent work moving.
+3. **Repair the original source path materially.** Verify the exact endpoint, instrument, semantics, coverage, pagination, archive/checksum and failure class. A network error proves only that invocation failed. Try a genuinely different authorized route or invocation when the diagnosis supports it; never repeat an unchanged failure.
+4. **Test independent providers in a frozen, research-specific order.** The preregistration must state the candidate order and acceptance criteria before implementation. Prefer public, free and retail-accessible sources. For relevant public funding-history work, MEXC remains the first bounded pilot based on the prior observed sample; its roughly 540-day, eight-hour-cadence pilot does not prove complete historical coverage. For a specifically re-admitted ETH/BTC historical spot task, the prior candidate sequence is official Binance recovery, Coinbase USD-quoted legs, then Kraken OHLCVT, followed by any justified independent source. This is a scoped example, not a permanent repository-wide provider ranking.
+5. **Change the data architecture after provider failure.** After two distinct providers produce non-transient failures, stop extending a vendor list and test materially different representations: same-venue cross-quoted legs, raw trades with independently reconstructed bars, alternative official archive formats, event-time observations, or another independently verifiable market construction. Keep venue-specific datasets separate unless a frozen method justifies combination.
+6. **Change observation frequency only when scientifically defensible.** Test another bar size or event-time representation only if it preserves the economic question and can be preregistered with new acceptance criteria.
+7. **Replace the model or strategy architecture.** A model change must introduce a materially different mechanism, not cosmetic parameter tuning. Give it a new hypothesis identity and timebox.
+8. **Replace the hypothesis when distinct alternatives are exhausted.** Close the original as INCONCLUSIVE/INFEASIBLE when evidence acquisition or implementation is infeasible; do not mislabel data failure as a performance NO-GO. Preserve the evidence and select a separately preregistered research question.
+9. **Defer cosmetic and local polish.** Do this only after higher-value research and demonstrated process bottlenecks are addressed.
+
+### Stop and independence rules
+
+- After two identical non-transient failures on the same provider route, stop that route. A retry is permitted only when a specific changed condition or materially different invocation is recorded.
+- After two distinct providers fail non-transiently, advance to data-architecture alternatives. Do not cycle through near-identical vendor wrappers.
+- Transient failures do not count as provider rejection; retry only with a changed condition and bounded attempts.
+- A blocked workstream must not block an independent admitted workstream. Preserve the blocked state and continue independent research when possible.
+- Spot-price validation and perpetual-futures validation are separate. Unaccepted final funding settlements block perpetual-futures claims, not independently valid spot research. Predicted funding rates are not substitutes for final settlements.
+- Provider acceptance requires provenance, coverage, schema, timestamp, missingness and semantic checks—not merely a successful download. Missing observations must never be silently filled or interpreted as zero without documented source semantics.
+
+### Executable reference policy
+
+`research/decision_hierarchy.py` is a pure, side-effect-free selector for the next safe action from caller-supplied verified state. It preserves the preregistered provider order, stops repeated routes, advances to data architectures after two distinct non-transient provider failures, enforces the perpetual-funding gate, reuses valid outputs, avoids concurrent duplicate execution and exposes whether independent work can continue. It does not fetch data, schedule jobs, authorize access or replace scientific review. Its deterministic regression suite runs in the repository admission-guard workflow.
 
 
 ## Mandatory difficulty-adjusted model timeboxes

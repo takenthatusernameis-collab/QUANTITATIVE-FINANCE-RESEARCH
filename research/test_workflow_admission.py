@@ -296,6 +296,31 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, text)
 
+    def test_canonical_decision_hierarchy_is_executable_and_guarded(self):
+        text = README.read_text(encoding="utf-8")
+        required = [
+            "Canonical research decision and failover hierarchy",
+            "Hard invariants",
+            "Remove demonstrated compounding process bottlenecks",
+            "Test independent providers in a frozen, research-specific order",
+            "Change the data architecture after provider failure",
+            "Replace the hypothesis when distinct alternatives are exhausted",
+            "two distinct providers",
+            "MEXC",
+            "Coinbase USD-quoted legs",
+            "Kraken OHLCVT",
+            "Unaccepted final funding settlements block perpetual-futures claims",
+        ]
+        for phrase in required:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+
+        policy = ROOT / "research" / "decision_hierarchy.py"
+        self.assertTrue(policy.is_file())
+        workflow = (WORKFLOW_DIR / "workflow-admission-tests.yml").read_text(encoding="utf-8")
+        self.assertIn("research/decision_hierarchy.py", workflow)
+        self.assertIn('test_decision_hierarchy.py', workflow)
+
 
 if __name__ == "__main__":
     unittest.main()
