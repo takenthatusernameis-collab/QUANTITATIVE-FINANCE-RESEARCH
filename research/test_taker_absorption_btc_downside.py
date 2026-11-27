@@ -158,6 +158,19 @@ class TakerAbsorptionBitcoinDownsideTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "differs from the frozen source-preflight hash"):
                 model.run_research()
 
+    def test_render_report_handles_failed_run_without_metric_objects(self):
+        result = {
+            "status": "FAILED",
+            "decision": "INCONCLUSIVE",
+            "error": "checksum mismatch",
+            "validation": {"n": 0, "baseline": None, "augmented": None},
+            "test": {"n": 0, "baseline": None, "augmented": None},
+        }
+        rendered = model.render_report(result)
+        self.assertIn("checksum mismatch", rendered)
+        self.assertIn("INCONCLUSIVE", rendered)
+        self.assertIn("not available", rendered)
+
     def test_update_documents_is_idempotent_and_updates_registry_and_prereg(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -184,16 +197,16 @@ class TakerAbsorptionBitcoinDownsideTests(unittest.TestCase):
             manifest = root / "manifest.json"
             report.write_text("report", encoding="utf-8")
             manifest.write_text("manifest", encoding="utf-8")
-            with patch.object(model, "REGISTRY_PATH", registry), patch.object(
-                model, "PREREG_PATH", prereg
-            ):
+            with patch.object(model, "ROOT", root), patch.object(
+                model, "REGISTRY_PATH", registry
+            ), patch.object(model, "PREREG_PATH", prereg):
                 model.update_documents(result, report, manifest)
                 first = registry.read_text(encoding="utf-8")
                 model.update_documents(result, report, manifest)
                 second = registry.read_text(encoding="utf-8")
             self.assertEqual(first, second)
             self.assertEqual(first.count(model.HYPOTHESIS_ID), 1)
-            self.assertIn("INCONCLUSIVE", first)
+            self.assertIn("BACKTESTED", first)\n            self.assertIn("decision=INCONCLUSIVE", first)
             self.assertIn("EXECUTED", prereg.read_text(encoding="utf-8"))
 
 
