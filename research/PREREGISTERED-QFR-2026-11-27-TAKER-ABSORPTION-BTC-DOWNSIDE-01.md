@@ -1,7 +1,7 @@
 # Preregistered experiment: BTC daily taker-flow/price-response absorption proxy
 
 - **Hypothesis ID:** QFR-2026-11-27-BTC-TAKER-ABSORPTION-DOWNSIDE-01
-- **Status:** PREREGISTERED; source feasibility PASS; backtest not yet run.
+- **Status:** ADMITTED; source feasibility PASS; empirical backtest pending.
 - **Preregistration freeze:** 2026-11-27T01:34:56Z
 - **Difficulty:** LOW
 - **Maximum substantive cycles:** 2
@@ -31,7 +31,7 @@ Binance's Spot kline schema exposes total base volume and taker-buy base volume 
 ## 3. Source-feasibility evidence (completed before model implementation)
 
 - Source: official Binance Vision BTCUSDT Spot 1d UTC monthly/daily kline archives and .CHECKSUM sidecars.
-- Preflight run: [45924502841](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45924502841), executed on source-preflight commit 6525b49f86d080eb9688a23502c43099049c4aae.
+- Preflight run: [45925248340](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45925248340), executed on source-preflight commit 6f91629a1f3b5003da516ae1829de1fadf8a0530.
 - Preflight manifest SHA-256: 978b00dda884620e6e19cfb32f42bbf93df1f1a19d5d0a906951e23762440bbe.
 - Verified archives: 136; verified daily rows: 3,388; coverage: 2017-08-17 through 2026-11-25; missing dates: 0; zero-volume dates: 0; all 3,388 observations have a finite taker-imbalance value.
 - Taker imbalance range: -0.650991 to +0.621599; median: -0.008361.
@@ -97,3 +97,13 @@ Model:
 - A forecast backtest is not a trading P&L. No CAGR, Sharpe, drawdown or deployment claim is allowed.
 - Any checksum mismatch, malformed 12-field row, duplicate/missing daily date, invalid taker volume, or non-finite value blocks the backtest.
 - If the implementation deadline is reached, commit the completed independent work and report the exact blocker. Do not silently extend the timebox.
+
+
+## 8. Atomic execution admission
+
+- Admission parent commit: `5f645f5de49d49afb37406d4ff565e48b4dde0bc`.
+- Final pre-admission deterministic CI: [run 45925665470](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45925665470), completed successfully on the admission parent. It compiled the research modules and passed workflow-admission, source-preflight, BTC downside-model and evidence-persistence regression suites, as well as the existing registered-hypothesis regression suites.
+- Frozen source-preflight: [run 45925248340](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45925248340), completed successfully on code commit `6f91629a1f3b5003da516ae1829de1fadf8a0530`; 136 checksum-verified archives, 3,388 complete UTC daily rows, 2017-08-17 through 2026-11-25, no missing dates, no zero-volume days, and all 3,388 rows have finite taker imbalance. Archive-manifest SHA-256: `978b00dda884620e6e19cfb32f42bbf93df1f1a19d5d0a906951e23762440bbe`.
+- The final atomic admission commit uses the exact `[QFR-ADMIT] research:` prefix. The push-triggered workflow must check out that exact `github.sha`, rerun the deterministic suites, re-fetch and checksum-verify the frozen archive population, require the exact preflight manifest hash, execute the frozen walk-forward forecast and paired bootstrap, then persist the report/manifest with report-hash and registry/preregistration-digest verification.
+- Earlier non-admission pushes were correctly skipped by the research admission gate; no empirical backtest has run yet. The current commit is the first authorized empirical execution for this frozen hypothesis.
+- The two-cycle LOW-difficulty budget and both frozen UTC deadlines remain unchanged. No feature, model, target, sample, split, threshold or acceptance rule is changed by this admission.
