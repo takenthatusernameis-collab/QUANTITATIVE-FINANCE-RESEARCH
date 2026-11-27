@@ -23,6 +23,9 @@ BINANCE_EXCHANGE_INFO = "https://data-api.binance.vision/api/v3/exchangeInfo"
 ROOT = Path(__file__).resolve().parents[1]
 RUN_ID, ATTEMPT = os.environ.get("GITHUB_RUN_ID", "local"), os.environ.get("GITHUB_RUN_ATTEMPT", "1")
 SOURCE_SHA, NOW = os.environ.get("GITHUB_SHA", "local"), dt.datetime.now(dt.timezone.utc)
+SOURCE_COMMENT_ID = os.environ.get("SOURCE_COMMENT_ID", "")
+SOURCE_CONTROL_PR = os.environ.get("SOURCE_CONTROL_PR", "")
+SOURCE_ACTOR = os.environ.get("SOURCE_ACTOR", "")
 STAMP = NOW.strftime("%Y-%m-%dT%H%M%SZ")
 SESSION_DIR = ROOT / "reports" / "sessions" / STAMP[:10]
 OUTPUT_DIR = ROOT / "reports" / "generated" / "treasury-rrp-drain-btc-downside" / f"{RUN_ID}-attempt-{ATTEMPT}"
@@ -32,85 +35,115 @@ BASE_FEATURES = ["pre_downside5_log", "pre_downside20_log", "pre_rv20_log"]
 AUG_FEATURES = BASE_FEATURES + ["treasury_rrp_drain_increase_4w_pct"]
 
 
-def parse_treasury_rrp_drain(body: bytes) -> tuple[dict[dt.date, float], dict]:
-    """Align Wednesday TGA and daily ON RRP observations; convert RRP billions to TGA millions."""
+def parse_fred_series(body: bytes, series_name: str) -> dict[dt.date, float]:
     reader = csv.DictReader(body.decode("utf-8-sig").splitlines())
-    if not reader.fieldnames or not {"WDTGAL", "RRPONTSYD"}.issubset(set(reader.fieldnames)):
-        raise ValueError(f"Unexpected FRED TGA/RRP schema: {reader.fieldnames}")
+    if not reader.fieldnames or series_name not in reader.fieldnames:
+        raise ValueError(f"Unexpected FRED {series_name} schema: {reader.fieldnames}")
     date_col = next((name for name in ("observation_date", "DATE") if name in reader.fieldnames), None)
     if date_col is None:
-        raise ValueError("FRED TGA/RRP CSV has no recognized observation-date column")
-    values, missing_components, non_wednesday = {}, 0, 0
+        raise ValueError(f"FRED {series_name} CSV has no recognized observation-date column")
+    values = {}
     for row in reader:
         day = base.parse_date(row.get(date_col))
         if day is None:
-            raise ValueError(f"Invalid FRED observation date: {row.get(date_col)!r}")
-        if day.weekday() != 2:
-            non_wednesday += 1
+            raise ValueError(f"Invalid FRED {series_name} observation date: {row.get(date_col)!r}")
+        value = base.parse_float(row.get(series_name))
+        if value is None:
             continue
-        tga = base.parse_float(row.get("WDTGAL"))
-        rrp_billions = base.parse_float(row.get("RRPONTSYD"))
-        if tga is None or rrp_billions is None:
-            missing_components += 1
-            continue
-        if tga < 0 or rrp_billions < 0:
-            raise ValueError(f"Negative TGA or ON RRP observation on {day}")
-        drain = tga + 1000.0 * rrp_billions
-        if not math.isfinite(drain) or drain <= 0:
-            raise ValueError(f"Invalid combined Treasury/ON RRP drain on {day}: {drain}")
+        if value < 0:
+            raise ValueError(f"Negative {series_name} observation on {day}: {value}")
         if day in values:
-            raise ValueError(f"Duplicate Wednesday TGA/RRP observation: {day}")
-        values[day] = drain
+            raise ValueError(f"Duplicate {series_name} observation: {day}")
+        if series_name == "WDTGAL" and day.weekday() != 2:
+            raise ValueError(f"WDTGAL observation is not Wednesday-dated: {day}")
+        values[day] = value
+    if not values:
+        raise ValueError(f"No valid FRED {series_name} observations")
+    return dict(sorted(values.items()))
+
+
+def parse_treasury_rrp_drain(tga_body: bytes, rrp_body: bytes) -> tuple[dict[dt.date, float], dict]:
+    """Align the weekly Wednesday TGA level with the exact same day's ON RRP balance."""
+    tga = parse_fred_series(tga_body, "WDTGAL")
+    rrp = parse_fred_series(rrp_body, "RRPONTSYD")
+    common = sorted(set(tga).intersection(rrp))
+    values = {day: tga[day] + 1000.0 * rrp[day] for day in common if day.weekday() == 2}
     if not values:
         raise ValueError("No complete common Wednesday TGA/RRP observations")
-    return dict(sorted(values.items())), {
+    return values, {
+        "tga_rows": len(tga), "rrp_daily_rows": len(rrp),
         "complete_wednesday_rows": len(values),
-        "wednesday_rows_missing_a_component": missing_components,
-        "ignored_non_wednesday_rows": non_wednesday,
+        "tga_wednesdays_without_rrp": len(set(tga).difference(rrp)),
+        "rrp_rows_outside_tga_wednesdays": len(set(rrp).difference(tga)),
         "rrp_conversion": "RRPONTSYD billions of USD multiplied by 1000 to millions of USD",
         "combined_definition": "WDTGAL + 1000 * RRPONTSYD",
     }
 
 
-def fetch_sources() -> tuple[dict, dict, dict]:
-    fred_url = f"{FRED_URL}?id=WDTGAL%2CRRPONTSYD&cosd={START_DATE.isoformat()}"
-    fred_body = base.fetch_bytes(fred_url, timeout=25)
-    drain, parse_meta = parse_treasury_rrp_drain(fred_body)
-    info_url = BINANCE_EXCHANGE_INFO + "?" + urllib.parse.urlencode({"symbol": "BTCUSDT"})
-    info_body = base.fetch_bytes(info_url, timeout=15)
-    symbols = json.loads(info_body.decode("utf-8")).get("symbols", [])
-    if len(symbols) != 1:
-        raise ValueError("Binance exchangeInfo did not return exactly BTCUSDT")
-    info = symbols[0]
-    if (info.get("symbol"), info.get("status"), info.get("baseAsset"), info.get("quoteAsset")) != (
-        "BTCUSDT", "TRADING", "BTC", "USDT"
-    ):
-        raise ValueError(f"BTCUSDT is not an active spot USDT market: {info}")
+def fetch_exchange_info() -> tuple[dict, str, list[dict]]:
+    candidates = [
+        BINANCE_EXCHANGE_INFO,
+        "https://api.binance.com/api/v3/exchangeInfo?symbol=BTCUSDT",
+    ]
+    failures = []
+    for url in candidates:
+        body = b""
+        try:
+            body = base.fetch_bytes(url, timeout=15)
+            data = json.loads(body.decode("utf-8-sig"))
+            symbols = data.get("symbols", [])
+            if len(symbols) != 1:
+                raise ValueError(f"expected exactly one BTCUSDT symbol, got {len(symbols)}")
+            info = symbols[0]
+            if (info.get("symbol"), info.get("status"), info.get("baseAsset"), info.get("quoteAsset")) != (
+                "BTCUSDT", "TRADING", "BTC", "USDT"
+            ):
+                raise ValueError(f"BTCUSDT is not an active spot USDT market: {info}")
+            return info, url, failures
+        except Exception as exc:
+            failures.append({
+                "url": url, "response_bytes": len(body),
+                "response_prefix_hex": body[:24].hex(),
+                "error": f"{type(exc).__name__}: {exc}",
+            })
+    raise RuntimeError(f"Both public Binance exchangeInfo endpoints failed: {json.dumps(failures, sort_keys=True)}")
 
+
+def fetch_sources() -> tuple[dict, dict, dict]:
+    tga_url = f"{FRED_URL}?id=WDTGAL&cosd={START_DATE.isoformat()}"
+    rrp_url = f"{FRED_URL}?id=RRPONTSYD&cosd={START_DATE.isoformat()}"
+    try:
+        tga_body = base.fetch_bytes(tga_url, timeout=25)
+    except Exception as exc:
+        raise RuntimeError(f"FRED WDTGAL fetch failed: {type(exc).__name__}: {exc}") from exc
+    try:
+        rrp_body = base.fetch_bytes(rrp_url, timeout=25)
+    except Exception as exc:
+        raise RuntimeError(f"FRED RRPONTSYD fetch failed: {type(exc).__name__}: {exc}") from exc
+    try:
+        drain, parse_meta = parse_treasury_rrp_drain(tga_body, rrp_body)
+    except Exception as exc:
+        raise RuntimeError(
+            "FRED source parsing failed: "
+            f"WDTGAL_bytes={len(tga_body)} WDTGAL_prefix={tga_body[:24].hex()} "
+            f"RRPONTSYD_bytes={len(rrp_body)} RRPONTSYD_prefix={rrp_body[:24].hex()} "
+            f"cause={type(exc).__name__}: {exc}"
+        ) from exc
+    info, info_url, info_fallbacks = fetch_exchange_info()
     end_date = NOW.date() - dt.timedelta(days=2)
     specs = btc.build_archive_specs(BTC_START_DATE, end_date, as_of_date=NOW.date())
     results, failures = {}, []
     with concurrent.futures.ThreadPoolExecutor(max_workers=ARCHIVE_WORKERS) as executor:
-        futures = {
-            executor.submit(btc.download_binance_archive, spec): (index, spec)
-            for index, spec in enumerate(specs)
-        }
+        futures = {executor.submit(btc.download_binance_archive, spec): (index, spec) for index, spec in enumerate(specs)}
         for future in concurrent.futures.as_completed(futures):
             index, spec = futures[future]
             try:
                 results[index] = future.result()
             except Exception as exc:
-                failures.append({
-                    "kind": spec["kind"], "period": spec["tag"], "url": spec["url"],
-                    "error": f"{type(exc).__name__}: {exc}",
-                })
+                failures.append({"kind": spec["kind"], "period": spec["tag"], "url": spec["url"], "error": f"{type(exc).__name__}: {exc}"})
     if failures:
         failures.sort(key=lambda item: (item["kind"], item["period"]))
-        raise RuntimeError(
-            f"Binance Vision archive ingestion failed for {len(failures)}/{len(specs)} archives: "
-            f"{json.dumps(failures, sort_keys=True)}"
-        )
-
+        raise RuntimeError(f"Binance Vision archive ingestion failed for {len(failures)}/{len(specs)} archives: {json.dumps(failures, sort_keys=True)}")
     prices, archive_manifest, timestamp_units = {}, [], set()
     for index in range(len(specs)):
         page, manifest_row = results[index]
@@ -129,41 +162,34 @@ def fetch_sources() -> tuple[dict, dict, dict]:
         day += dt.timedelta(days=1)
     missing = [day for day in expected if day not in prices]
     if missing:
-        raise ValueError(
-            f"BTCUSDT archive history has {len(missing)} missing UTC dates; "
-            f"first_missing={missing[0]}, last_missing={missing[-1]}"
-        )
-    archive_sha = hashlib.sha256(
-        json.dumps(archive_manifest, sort_keys=True, separators=(",", ":")).encode()
-    ).hexdigest()
-    fred_sha = hashlib.sha256(fred_body).hexdigest()
+        raise ValueError(f"BTCUSDT archive history has {len(missing)} missing UTC dates; first_missing={missing[0]}, last_missing={missing[-1]}")
+    archive_sha = hashlib.sha256(json.dumps(archive_manifest, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     sources = {
         "FRED": {
-            "url": fred_url, "sha256": fred_sha, "series": ["WDTGAL", "RRPONTSYD"],
-            "retrieved_at_utc": NOW.isoformat(),
-            "common_wednesday_rows": len(drain),
-            "first_date": min(drain).isoformat(), "last_date": max(drain).isoformat(),
-            "parse_diagnostics": parse_meta,
+            "tga_url": tga_url, "tga_sha256": hashlib.sha256(tga_body).hexdigest(),
+            "rrp_url": rrp_url, "rrp_sha256": hashlib.sha256(rrp_body).hexdigest(),
+            "retrieved_at_utc": NOW.isoformat(), "series": ["WDTGAL", "RRPONTSYD"],
+            "common_wednesday_rows": len(drain), "first_date": min(drain).isoformat(),
+            "last_date": max(drain).isoformat(), "parse_diagnostics": parse_meta,
         },
         "WDTGAL": {
             "series_page": WDTGAL_PAGE, "source": "Board of Governors H.4.1",
             "units": "millions of US dollars, not seasonally adjusted",
-            "frequency": "weekly, Wednesday level", "common_wednesday_rows": len(drain),
+            "frequency": "weekly, Wednesday level", "rows": len(parse_fred_series(tga_body, "WDTGAL")),
         },
         "RRPONTSYD": {
             "series_page": RRP_PAGE, "source": "Federal Reserve Bank of New York",
             "units": "billions of US dollars, not seasonally adjusted",
             "frequency": "daily; sampled only on exact common Wednesdays",
-            "common_wednesday_rows": len(drain),
+            "daily_rows": len(parse_fred_series(rrp_body, "RRPONTSYD")),
         },
         "TREASURY_RRP_DRAIN": {
-            "definition": "WDTGAL + 1000 * RRPONTSYD",
-            "units": "millions of US dollars",
-            "rows": len(drain), "first_date": min(drain).isoformat(),
-            "last_date": max(drain).isoformat(),
+            "definition": "WDTGAL + 1000 * RRPONTSYD", "units": "millions of US dollars",
+            "rows": len(drain), "first_date": min(drain).isoformat(), "last_date": max(drain).isoformat(),
         },
         "BTCUSDT": {
-            "symbol": "BTCUSDT", "market_status": info["status"],
+            "symbol": "BTCUSDT", "market_status": info["status"], "exchange_info_url": info_url,
+            "exchange_info_fallbacks": info_fallbacks,
             "endpoint": "Binance Vision official Spot monthly/daily 1d kline archives",
             "interval": "1d", "timezone": "UTC", "rows": len(prices),
             "first_date": min(prices).isoformat(), "last_date": max(prices).isoformat(),
@@ -361,6 +387,7 @@ def run_research() -> dict:
         "hypothesis_id": HYPOTHESIS_ID, "status": status, "disposition": disposition,
         "completed_backtest": True, "retrieved_at_utc": NOW.isoformat(),
         "run_id": RUN_ID, "run_attempt": ATTEMPT, "source_commit_sha": SOURCE_SHA,
+        "dispatch_provenance": {"source_comment_id": SOURCE_COMMENT_ID or None, "source_control_pr": SOURCE_CONTROL_PR or None, "source_actor": SOURCE_ACTOR or None},
         "daily_kpi": (
             "The 2026-11-27 minimum was already met by distinct ETF-relative-flow and BTC blockspace-fee-rate real-data screens; "
             "this is an additional hypothesis backtest. If execution falls on a later UTC date, this distinct completed screen "
@@ -464,6 +491,14 @@ def render_report(result: dict) -> str:
         f"- **Disposition:** {result.get('disposition')}", f"- **Daily KPI:** {result.get('daily_kpi')}",
         f"- **GitHub run:** {RUN_ID}, attempt {ATTEMPT}", f"- **Triggering commit:** {SOURCE_SHA}", "",
     ]
+    provenance = result.get("dispatch_provenance") or {}
+    if provenance.get("source_comment_id"):
+        lines += [
+            "## Authenticated dispatch provenance", "",
+            f"- Source comment: {provenance.get('source_comment_id')}",
+            f"- Control PR: {provenance.get('source_control_pr')}",
+            f"- Authorized actor: {provenance.get('source_actor')}", "",
+        ]
     if result.get("error"):
         lines += [
             "## Execution blocker", "", f"- {result['error']}",
@@ -483,7 +518,7 @@ def render_report(result: dict) -> str:
             "- Validation: 2019–2021. Test: 2022 onward.", "",
             "## Data provenance", "",
             "| Source | First | Last | Rows | SHA-256 / manifest |", "|---|---|---|---:|---|",
-            f"| FRED WDTGAL + RRPONTSYD | {fred['first_date']} | {fred['last_date']} | {fred['common_wednesday_rows']} common Wednesdays | {fred['sha256']} |",
+            f"| FRED WDTGAL + RRPONTSYD | {fred['first_date']} | {fred['last_date']} | {fred['common_wednesday_rows']} common Wednesdays | {("WDTGAL=" + fred["tga_sha256"] + "; RRPONTSYD=" + fred["rrp_sha256"])} |",
             f"| BTCUSDT | {btc_source['first_date']} | {btc_source['last_date']} | {btc_source['rows']} candles | {btc_source['archive_count']} checksummed archives; {btc_source['archive_manifest_sha256']} |",
             "", "## Walk-forward results", "",
             "| Metric | Validation 2019–2021 | Test 2022 onward |", "|---|---:|---:|",
@@ -525,6 +560,7 @@ def main() -> int:
             "disposition": f"INCONCLUSIVE/INFEASIBLE — bounded source/execution failure: {type(exc).__name__}: {exc}",
             "completed_backtest": False, "run_id": RUN_ID, "run_attempt": ATTEMPT,
             "source_commit_sha": SOURCE_SHA,
+            "dispatch_provenance": {"source_comment_id": SOURCE_COMMENT_ID or None, "source_control_pr": SOURCE_CONTROL_PR or None, "source_actor": SOURCE_ACTOR or None},
             "daily_kpi": "The 2026-11-27 minimum was already met by distinct real-data screens; this failed source/execution attempt does not count.",
             "error": f"{type(exc).__name__}: {exc}",
             "alternatives_attempted": [
