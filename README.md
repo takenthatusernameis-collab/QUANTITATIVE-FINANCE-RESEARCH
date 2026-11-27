@@ -180,7 +180,7 @@ As of `2026-11-27T20:54:30Z`, hypothesis `QFR-2026-11-27-INITIAL-CLAIMS-BTC-DOWN
 - Validation (119 forecasts): baseline RMSE 1.09689; augmented RMSE 1.45294; RMSE change **−32.46%**.
 - Test (255 forecasts): baseline RMSE 0.85424; augmented RMSE 0.85285; RMSE improvement **+0.163%**.
 - Paired test-loss moving-block bootstrap: 2,000 replications, block size 4, seed 20261127; mean baseline-minus-augmented squared loss 0.002374; 95% interval **[−0.02147, +0.02573]**, crossing zero.
-- Independent recomputation from the 374 persisted forecast rows reproduced validation/test counts and RMSE/MAE to floating-point precision; the paired-loss mean matched the manifest within (3.1\times10^{-18}).
+- Independent recomputation from the 374 persisted forecast rows reproduced validation/test counts and RMSE/MAE to floating-point precision; the paired-loss mean matched the manifest within 3.1e-18.1\times10^{-18}).
 
 The frozen rule is not met: validation performance deteriorates materially, test improvement is negligible, and paired-loss uncertainty crosses zero. The result is **INCONCLUSIVE**, not PROMISING and not a definitive rejection. This is a forecast-only screen, not a causal claim, trading strategy or economic-value test. Preserve the result and do not retune on the same validation/test data.
 
