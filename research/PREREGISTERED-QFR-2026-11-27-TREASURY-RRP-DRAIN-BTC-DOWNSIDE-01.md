@@ -2,7 +2,7 @@
 
 - **Hypothesis ID:** QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01
 - **Registered:** 2026-11-27T22:29:15Z, before substantive implementation and empirical-result inspection.
-- **Status:** INCONCLUSIVE
+- **Status:** IMPLEMENTATION_READY
 - **Difficulty:** LOW.
 - **Difficulty rationale:** Both inputs are free official FRED series with public CSV access; the BTC archive ingestion, downside target, walk-forward estimator and paired-loss bootstrap already exist as tested repository components. The new work is one aligned feature, one model module, deterministic tests and one frozen screen.
 - **Timebox start:** 2026-11-27T22:29:15Z
@@ -48,7 +48,7 @@ The repository already tested WALCL-only Federal Reserve total-assets contractio
 
 ### Combined feature source
 
-- Retrieval: one public FRED graph CSV request for WDTGAL and RRPONTSYD.
+- Retrieval repair after the first pre-empirical attempt: use two public single-series FRED graph CSV requests, one for WDTGAL and one for RRPONTSYD, then align exact common Wednesdays. This changes only transport/diagnostics; the frozen feature, sample, signal, target, estimator and decision rule are unchanged.
 - Keep only exact Wednesday rows where both components are present. Do not forward-fill, interpolate, or substitute zero for a missing observation.
 - Convert RRPONTSYD from billions to millions by multiplying by 1,000.
 - Combined drain in millions USD: WDTGAL + 1000 * RRPONTSYD.
@@ -117,4 +117,12 @@ The repository already tested WALCL-only Federal Reserve total-assets contractio
 - **Report:** [reports/sessions/2026-11-27/2026-11-27T223617Z_session-treasury-rrp-drain-btc-46077644835.md](../reports/sessions/2026-11-27/2026-11-27T223617Z_session-treasury-rrp-drain-btc-46077644835.md)
 - **Manifest:** [reports/generated/treasury-rrp-drain-btc-downside/46077644835-attempt-1/manifest.json](../reports/generated/treasury-rrp-drain-btc-downside/46077644835-attempt-1/manifest.json)
 - Forecast screen only; no causal, trading or deployment claim.
+
+
+
+## Bounded implementation-repair log
+
+- 2026-11-27T22:36:18Z: the first admitted push passed all deterministic parser/model/admission tests but failed before source acceptance or empirical-result inspection with a UTF-8 decode error from a non-text source response. The first attempt's report and manifest are retained. The response stage was not identified in that run.
+- Repair cycle: split the FRED multi-series request into two single-series CSV requests, add endpoint fallback for the public Binance exchangeInfo check, and persist response-byte prefixes in any source-parse error. No predictor, lag, target, model, split, bootstrap or decision rule changes are permitted.
+- One repaired bridge-dispatched execution is the remaining substantive cycle. If it does not reach a valid frozen backtest, close INCONCLUSIVE/INFEASIBLE at the existing timebox; do not make a third attempt under this ID.
 
