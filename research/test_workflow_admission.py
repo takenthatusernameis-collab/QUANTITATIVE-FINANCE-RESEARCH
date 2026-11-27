@@ -13,7 +13,23 @@ ADMISSION_IF = (
     "if: github.event_name != 'push' || "
     "startsWith(github.event.head_commit.message, '[QFR-ADMIT] research:')"
 )
-NON_RESEARCH_WORKFLOWS = {"workflow-admission-tests.yml", "stablecoin-supply-source-preflight.yml", "wikipedia-attention-source-preflight.yml", "taker-absorption-source-preflight.yml", "btc-cross-venue-funding-dispersion-source-preflight.yml", "btc-mining-difficulty-closure-tests.yml", "etf-relative-flow-source-preflight.yml", "btc-blockspace-fee-rate-source-preflight.yml", "initial-claims-source-preflight.yml"}
+NON_RESEARCH_WORKFLOWS = {
+    "workflow-admission-tests.yml",
+    "stablecoin-supply-source-preflight.yml",
+    "wikipedia-attention-source-preflight.yml",
+    "taker-absorption-source-preflight.yml",
+    "btc-cross-venue-funding-dispersion-source-preflight.yml",
+    "btc-mining-difficulty-closure-tests.yml",
+    "etf-relative-flow-source-preflight.yml",
+    "btc-blockspace-fee-rate-source-preflight.yml",
+    "initial-claims-source-preflight.yml",
+    "chatgpt-control-pr-dispatch.yml",
+    "dispatch-bridge-probe.yml",
+}
+NON_RESEARCH_NO_CHECKOUT_WORKFLOWS = {
+    "chatgpt-control-pr-dispatch.yml",
+    "dispatch-bridge-probe.yml",
+}
 
 
 TIMEBOX_POLICY_CUTOVER = dt.datetime.fromisoformat("2026-11-26T10:12:25+00:00")
@@ -76,7 +92,10 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
                     )
 
     def test_every_workflow_checks_out_the_immutable_trigger_commit(self):
-        for path in sorted(WORKFLOW_DIR.glob("*.yml")):
+        for path in sorted(
+            path for path in WORKFLOW_DIR.glob("*.yml")
+            if path.name not in NON_RESEARCH_NO_CHECKOUT_WORKFLOWS
+        ):
             with self.subTest(workflow=path.name):
                 text = path.read_text(encoding="utf-8")
                 self.assertIn("ref: ${{ github.sha }}", text)
@@ -744,6 +763,78 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
                     ["bash", "-n"], input=script, text=True, capture_output=True, check=False
                 )
                 self.assertEqual(result.returncode, 0, msg=result.stderr)
+
+    def test_chatgpt_control_pr_dispatch_bridge_is_exactly_gated_and_least_privilege(self):
+        path = WORKFLOW_DIR / "chatgpt-control-pr-dispatch.yml"
+        text = path.read_text(encoding="utf-8")
+        required = [
+            "issue_comment:",
+            "types: [created]",
+            "github.event.issue.number == 15",
+            "github.event.issue.pull_request != null",
+            "github.event.comment.user.login == 'takenthatusernameis-collab'",
+            "github.event.comment.body == '/qfr-probe-dispatch-bridge'",
+            "github.event.comment.body == '/qfr-run-initial-claims-btc-downside'",
+            "actions: write",
+            "issues: write",
+            "cancel-in-progress: false",
+            "dispatch-bridge-probe.yml",
+            "initial-claims-btc-downside.yml",
+            "issues/comments/$COMMENT_ID/reactions",
+        ]
+        for phrase in required:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+        self.assertNotIn("pull_request_target", text)
+        self.assertNotIn("actions/checkout", text)
+        self.assertNotIn("GITHUB_HEAD_REF", text)
+        self.assertNotIn("github.event.pull_request.head.sha", text)
+        self.assertNotIn("contents: write", text)
+        self.assertNotIn("workflow_dispatch:", text)
+
+    def test_dispatch_bridge_probe_is_a_noop_and_uses_no_token_permissions(self):
+        path = WORKFLOW_DIR / "dispatch-bridge-probe.yml"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertIn("source_comment_id", text)
+        self.assertIn("source_control_pr", text)
+        self.assertIn("source_actor", text)
+        self.assertIn("permissions: {}", text)
+        self.assertIn('test "$GITHUB_REF" = "refs/heads/main"', text)
+        self.assertNotIn("actions/checkout", text)
+        self.assertNotIn("contents: write", text)
+        self.assertNotIn("secrets.", text)
+
+    def test_initial_claims_workflow_records_comment_dispatch_provenance(self):
+        text = (WORKFLOW_DIR / "initial-claims-btc-downside.yml").read_text(encoding="utf-8")
+        for field in ("source_comment_id", "source_control_pr", "source_actor"):
+            with self.subTest(field=field):
+                self.assertIn(field, text)
+        self.assertIn("Record authenticated dispatch provenance", text)
+        self.assertIn("ref: ${{ github.sha }}", text)
+
+    def test_control_dispatch_shell_blocks_have_valid_bash_syntax(self):
+        if not shutil.which("bash"):
+            self.skipTest("bash is unavailable")
+        for filename in ("chatgpt-control-pr-dispatch.yml", "dispatch-bridge-probe.yml"):
+            text = (WORKFLOW_DIR / filename).read_text(encoding="utf-8")
+            lines = text.splitlines()
+            scripts = []
+            for index, line in enumerate(lines):
+                if line == "        run: |":
+                    body = []
+                    for candidate in lines[index + 1:]:
+                        if candidate.strip() and not candidate.startswith("          "):
+                            break
+                        body.append(candidate[10:] if candidate.startswith("          ") else "")
+                    scripts.append("\n".join(body) + "\n")
+            self.assertGreaterEqual(len(scripts), 1, msg=filename)
+            for script_index, script in enumerate(scripts):
+                with self.subTest(workflow=filename, script=script_index):
+                    result = subprocess.run(
+                        ["bash", "-n"], input=script, text=True, capture_output=True, check=False
+                    )
+                    self.assertEqual(result.returncode, 0, msg=result.stderr)
 
 
 
