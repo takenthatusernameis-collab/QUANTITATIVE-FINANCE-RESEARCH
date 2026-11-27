@@ -11,6 +11,19 @@ on:
       - "research/PREREGISTERED-QFR-2026-11-27-INITIAL-CLAIMS-BTC-DOWNSIDE-01.md"
       - ".github/workflows/initial-claims-btc-downside.yml"
   workflow_dispatch:
+    inputs:
+      source_comment_id:
+        description: "Originating control-PR comment ID (set by the authenticated dispatch bridge)"
+        required: false
+        type: string
+      source_control_pr:
+        description: "Exact control PR number (set by the authenticated dispatch bridge)"
+        required: false
+        type: string
+      source_actor:
+        description: "Verified command author (set by the authenticated dispatch bridge)"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -27,6 +40,20 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Record authenticated dispatch provenance
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          SOURCE_COMMENT_ID: ${{ inputs.source_comment_id }}
+          SOURCE_CONTROL_PR: ${{ inputs.source_control_pr }}
+          SOURCE_ACTOR: ${{ inputs.source_actor }}
+        run: |
+          set -euo pipefail
+          printf 'workflow_dispatch source_comment_id=%s source_control_pr=%s source_actor=%s ref=%s sha=%s\\n' \\
+            "${SOURCE_COMMENT_ID:-direct-or-unspecified}" \\
+            "${SOURCE_CONTROL_PR:-none}" \\
+            "${SOURCE_ACTOR:-none}" \\
+            "$GITHUB_REF" "$GITHUB_SHA"
+
       - name: Checkout exact admitted commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
