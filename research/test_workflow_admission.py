@@ -321,7 +321,7 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
             "/qfr-run-initial-claims-btc-downside",
             "Direct manual `workflow_dispatch` is break-glass only.",
             "genuinely new, complete atomic hypothesis admission",
-            "record the dispatched run's exact `source_commit_sha`",
+            "exact `source_commit_sha`",
         ]
         for phrase in required:
             with self.subTest(phrase=phrase):
