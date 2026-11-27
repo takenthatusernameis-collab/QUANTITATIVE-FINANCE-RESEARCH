@@ -1,7 +1,7 @@
 # Preregistered Research: U.S. Initial-Claims Deterioration and Bitcoin Downside Semivariance
 
 - **Hypothesis ID:** `QFR-2026-11-27-INITIAL-CLAIMS-BTC-DOWNSIDE-01`
-- **Status:** IMPLEMENTATION_READY — source preflight and deterministic implementation tests passed; no empirical backtest yet; one manual workflow_dispatch is required.
+- **Status:** INCONCLUSIVE; decision=INCONCLUSIVE. One frozen real-data backtest completed.
 - **Registered:** `2026-11-27T15:40:06Z`
 - **Difficulty:** LOW
 - **Difficulty rationale:** One public weekly FRED series (ICSA), the repository's already-tested Binance BTCUSDT Spot daily-archive pipeline, one prespecified four-week transformation, and the existing OLS/walk-forward/paired-loss framework. No new credentials, paid data, execution infrastructure or custom simulator are required.
@@ -113,4 +113,18 @@ The candidate is closed after Cycle 2. A new source, feature, lag, target, marke
 - [This recovery session report](../reports/sessions/2026-11-27/2026-11-27T155525Z_session-initial-claims-recovery.md).
 - [Original failed execution report](../reports/sessions/2026-11-27/2026-11-27T155050Z_session-initial-claims-btc-downside-46028463325.md).
 - [Original failure manifest](../reports/generated/initial-claims-btc-downside/46028463325-attempt-1/manifest.json).
+
+## Empirical disposition
+
+- **Final status:** INCONCLUSIVE; decision=INCONCLUSIVE.
+- **Disposition:** INCONCLUSIVE — evidence is mixed, statistically uncertain or insufficient under the frozen rule.
+- **Completed real-data backtest:** yes.
+- **Data scope:** FRED ICSA weekly 2017-08-19 to 2026-11-21 (484 observations); Binance BTCUSDT Spot 1d UTC 2017-08-17 to 2026-11-25 (3388 candles, 136 checksummed archives); weekly events; validation 2019-2021; test 2022 onward.
+- **Validation metrics:** {"augmented_mae": 0.9493061231888512, "augmented_rmse": 1.452944239614357, "baseline_mae": 0.8573925487596172, "baseline_rmse": 1.0968906043231066, "n": 119, "rmse_improvement_pct": -32.46026849787558}.
+- **Test metrics:** {"augmented_mae": 0.6818766472590648, "augmented_rmse": 0.852846082732052, "baseline_mae": 0.6862173387250456, "baseline_rmse": 0.8542368540456668, "n": 255, "rmse_improvement_pct": 0.16280862936645432}.
+- **Paired test-loss bootstrap:** {"block_size_events": 4, "bootstrap_fraction_positive": 0.584, "ci_95_high": 0.02572600248452626, "ci_95_low": -0.021474627916361365, "mean_baseline_minus_augmented_squared_loss": 0.0023741619784319553, "observations": 255, "replications": 2000, "seed": 20261127, "status": "COMPUTED"}.
+- **Report:** [reports/sessions/2026-11-27/2026-11-27T205411Z_session-initial-claims-btc-downside-46066725930.md](../reports/sessions/2026-11-27/2026-11-27T205411Z_session-initial-claims-btc-downside-46066725930.md).
+- **Manifest:** [reports/generated/initial-claims-btc-downside/46066725930-attempt-1/manifest.json](../reports/generated/initial-claims-btc-downside/46066725930-attempt-1/manifest.json).
+- **Forecast rows:** [reports/generated/initial-claims-btc-downside/46066725930-attempt-1/forecast_rows.csv](../reports/generated/initial-claims-btc-downside/46066725930-attempt-1/forecast_rows.csv).
+- Forecast-only; no causal, trading or deployment claim.
 
