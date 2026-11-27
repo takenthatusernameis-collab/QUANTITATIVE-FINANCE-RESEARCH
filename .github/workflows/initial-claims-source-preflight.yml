@@ -6,7 +6,6 @@ on:
     paths:
       - "research/initial_claims_source_preflight.py"
       - "research/test_initial_claims_source_preflight.py"
-      - "research/PREREGISTERED-QFR-2026-11-27-INITIAL-CLAIMS-BTC-DOWNSIDE-01.md"
       - ".github/workflows/initial-claims-source-preflight.yml"
   workflow_dispatch:
 

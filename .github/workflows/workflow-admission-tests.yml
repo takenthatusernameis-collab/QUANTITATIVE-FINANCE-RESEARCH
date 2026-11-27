@@ -52,6 +52,9 @@ on:
       - "research/test_initial_claims_source_preflight.py"
       - "research/PREREGISTERED-QFR-2026-11-27-INITIAL-CLAIMS-BTC-DOWNSIDE-01.md"
       - ".github/workflows/initial-claims-source-preflight.yml"
+      - "research/initial_claims_btc_downside.py"
+      - "research/test_initial_claims_btc_downside.py"
+      - ".github/workflows/initial-claims-btc-downside.yml"
   workflow_dispatch:
 
 permissions:
@@ -136,3 +139,7 @@ jobs:
         run: python -m py_compile research/initial_claims_source_preflight.py research/test_initial_claims_source_preflight.py
       - name: Run initial-claims source-preflight regression tests
         run: PYTHONPATH=research python -m unittest discover -s research -p "test_initial_claims_source_preflight.py" -v
+      - name: Compile initial-claims BTC downside model
+        run: python -m py_compile research/initial_claims_btc_downside.py research/test_initial_claims_btc_downside.py
+      - name: Run initial-claims BTC downside model regression tests
+        run: PYTHONPATH=research python -m unittest discover -s research -p "test_initial_claims_btc_downside.py" -v

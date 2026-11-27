@@ -689,7 +689,7 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         text = (WORKFLOW_DIR / "initial-claims-source-preflight.yml").read_text(encoding="utf-8")
         self.assertIn('"research/initial_claims_source_preflight.py"', text)
         self.assertIn('"research/test_initial_claims_source_preflight.py"', text)
-        self.assertIn('"research/PREREGISTERED-QFR-2026-11-27-INITIAL-CLAIMS-BTC-DOWNSIDE-01.md"', text)
+        self.assertNotIn('"research/PREREGISTERED-QFR-2026-11-27-INITIAL-CLAIMS-BTC-DOWNSIDE-01.md"', text)
         self.assertIn('".github/workflows/initial-claims-source-preflight.yml"', text)
         self.assertNotIn('"research/test_workflow_admission.py"', text)
 
@@ -705,6 +705,44 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertIn("cancel-in-progress: false", text)
         self.assertIn("ref: ${{ github.sha }}", text)
         self.assertIn("initial-claims-source-preflight.yml", NON_RESEARCH_WORKFLOWS)
+
+
+
+    def test_initial_claims_backtest_workflow_uses_atomic_admission_and_immutable_checkout(self):
+        text = (WORKFLOW_DIR / "initial-claims-btc-downside.yml").read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertIn(ADMISSION_IF, text)
+        self.assertIn("ref: ${{ github.sha }}", text)
+        self.assertIn("cancel-in-progress: false", text)
+        self.assertIn("contents: write", text)
+        self.assertLess(
+            text.index("Run deterministic source, timing, event, model and admission tests"),
+            text.index("Retrieve frozen sources and run the one preregistered real-data forecast"),
+        )
+        self.assertIn("forecast_rows.csv", text)
+        self.assertIn("completed_backtest", text)
+
+    def test_initial_claims_backtest_workflow_run_blocks_have_valid_bash_syntax(self):
+        if not shutil.which("bash"):
+            self.skipTest("bash is unavailable")
+        text = (WORKFLOW_DIR / "initial-claims-btc-downside.yml").read_text(encoding="utf-8")
+        lines = text.splitlines()
+        scripts = []
+        for index, line in enumerate(lines):
+            if line == "        run: |":
+                body = []
+                for candidate in lines[index + 1:]:
+                    if candidate.strip() and not candidate.startswith("          "):
+                        break
+                    body.append(candidate[10:] if candidate.startswith("          ") else "")
+                scripts.append("\n".join(body) + "\n")
+        self.assertGreaterEqual(len(scripts), 3)
+        for script_index, script in enumerate(scripts):
+            with self.subTest(script=script_index):
+                result = subprocess.run(
+                    ["bash", "-n"], input=script, text=True, capture_output=True, check=False
+                )
+                self.assertEqual(result.returncode, 0, msg=result.stderr)
 
 
 

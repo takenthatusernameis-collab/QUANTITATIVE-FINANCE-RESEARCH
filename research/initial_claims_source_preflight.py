@@ -91,7 +91,7 @@ def validate_icsa_coverage(
         "latest_age_days": age,
         "max_gap_days": max(gaps, default=0),
         "complete_five_observation_windows": regular_windows,
-        "units": "thousands of persons, seasonally adjusted",
+        "units": "persons, seasonally adjusted",
         "frequency": "weekly",
         "vintage": "current FRED vintage; historical ALFRED vintages not reconstructed",
     }
