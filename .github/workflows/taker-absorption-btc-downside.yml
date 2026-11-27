@@ -6,6 +6,8 @@ on:
     paths:
       - "research/taker_absorption_btc_downside.py"
       - "research/test_taker_absorption_btc_downside.py"
+      - "research/persist_taker_absorption_evidence.py"
+      - "research/test_persist_taker_absorption_evidence.py"
       - "research/taker_absorption_source_preflight.py"
       - "research/test_taker_absorption_source_preflight.py"
       - "research/PREREGISTERED-QFR-2026-11-27-TAKER-ABSORPTION-BTC-DOWNSIDE-01.md"
@@ -51,9 +53,10 @@ jobs:
       - name: Run deterministic archive, event, model, inference and handoff tests
         run: |
           set -euo pipefail
-          python -m py_compile research/taker_absorption_source_preflight.py research/test_taker_absorption_source_preflight.py research/taker_absorption_btc_downside.py research/test_taker_absorption_btc_downside.py
+          python -m py_compile research/taker_absorption_source_preflight.py research/test_taker_absorption_source_preflight.py research/taker_absorption_btc_downside.py research/test_taker_absorption_btc_downside.py research/persist_taker_absorption_evidence.py research/test_persist_taker_absorption_evidence.py
           PYTHONPATH=research python -m unittest discover -s research -p "test_taker_absorption_source_preflight.py" -v
           PYTHONPATH=research python -m unittest discover -s research -p "test_taker_absorption_btc_downside.py" -v
+          PYTHONPATH=research python -m unittest discover -s research -p "test_persist_taker_absorption_evidence.py" -v
           PYTHONPATH=research python -m unittest discover -s research -p "test_workflow_admission.py" -v
 
       - name: Retrieve frozen checksummed Binance sources and run the real-data forecast
@@ -92,8 +95,6 @@ jobs:
           mkdir -p "$tmp"
           cp "$report" "$tmp/report.md"
           cp "$manifest" "$tmp/manifest.json"
-          cp research/HYPOTHESIS-REGISTRY.md "$tmp/HYPOTHESIS-REGISTRY.md"
-          cp research/PREREGISTERED-QFR-2026-11-27-TAKER-ABSORPTION-BTC-DOWNSIDE-01.md "$tmp/prereg.md"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           for attempt in 1 2 3; do
