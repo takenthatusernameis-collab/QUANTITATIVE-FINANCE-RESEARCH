@@ -317,6 +317,9 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
             "never use the `[QFR-ADMIT] research:` prefix on a repair",
             "ordinary unmarked commits",
             "workflow_dispatch",
+            "authenticated ChatGPT control-PR comment bridge",
+            "/qfr-run-initial-claims-btc-downside",
+            "manual UI dispatch is break-glass only",
             "genuinely new, complete atomic hypothesis admission",
             "record the dispatched run's exact `source_commit_sha`",
         ]
@@ -835,6 +838,32 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
                         ["bash", "-n"], input=script, text=True, capture_output=True, check=False
                     )
                     self.assertEqual(result.returncode, 0, msg=result.stderr)
+
+    def test_readme_closes_initial_claims_gate_with_verified_bridge_and_result(self):
+        text = README.read_text(encoding="utf-8")
+        self.assertIn("CLOSED — INCONCLUSIVE", text)
+        self.assertIn("actions/runs/46066725930", text)
+        self.assertIn("pull-requests: write", text)
+        self.assertIn("7227943059", text)
+        self.assertNotIn("Only remaining action:", text)
+        self.assertNotIn("If no authorized dispatch occurs by the final deadline", text)
+
+    def test_dispatch_bridge_documentation_records_security_and_verification(self):
+        path = ROOT / "docs" / "CHATGPT-CONTROL-PR-DISPATCH.md"
+        text = path.read_text(encoding="utf-8")
+        for phrase in (
+            "draft control PR",
+            "exact control PR number",
+            "pull-requests: write",
+            "never merge",
+            "never checkout",
+            "GITHUB_TOKEN",
+            "workflow_dispatch",
+            "rocket",
+            "46066725930",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
 
 
 
