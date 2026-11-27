@@ -1,7 +1,7 @@
 # Preregistered Research: U.S. Initial-Claims Deterioration and Bitcoin Downside Semivariance
 
 - **Hypothesis ID:** `QFR-2026-11-27-INITIAL-CLAIMS-BTC-DOWNSIDE-01`
-- **Status:** IMPLEMENTATION_INCOMPLETE — source feasibility passed; first empirical execution stopped before backtesting; code and final-check repairs committed; deterministic validation pending; manual workflow_dispatch required.
+- **Status:** IMPLEMENTATION_READY — source preflight and deterministic implementation tests passed; no empirical backtest yet; one manual workflow_dispatch is required.
 - **Registered:** `2026-11-27T15:40:06Z`
 - **Difficulty:** LOW
 - **Difficulty rationale:** One public weekly FRED series (ICSA), the repository's already-tested Binance BTCUSDT Spot daily-archive pipeline, one prespecified four-week transformation, and the existing OLS/walk-forward/paired-loss framework. No new credentials, paid data, execution infrastructure or custom simulator are required.
@@ -101,9 +101,16 @@ The candidate is closed after Cycle 2. A new source, feature, lag, target, marke
 
 ## Recovery state
 
-- The target mapping is restored as an actual dictionary entry; a deterministic regression assertion now verifies that `target_bp = log1p(target semivariance)` is present.
-- The workflow's final guard now passes the manifest path to Python.
-- The report deadline strings are aligned with the committed timebox: implementation by `2026-11-28T15:40:06Z`; final conclusion by `2026-11-29T15:40:06Z`.
-- **Deterministic validation:** pending the repair commit's CI.
-- **Empirical retry:** not yet run. After CI passes, exactly one `workflow_dispatch` run on `main` is required. The connected GitHub tool surface in this run does not expose a workflow-dispatch action; do not bypass the repository's admission policy with another marker push. The manual [Run workflow page](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/workflows/initial-claims-btc-downside.yml) is the permitted retry route.
-- If no authorized dispatch occurs before the hard conclusion deadline, close the candidate as INCONCLUSIVE/INFEASIBLE with no empirical result; do not extend or reset the timebox.
+- **Implementation repair:** [commit 1799d68](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/commit/1799d68c7a5678c60dae657de1a83e06df07d334) restored the actual `target_bp` mapping entry, added a test that asserts the key and target transform, corrected the final workflow guard to pass its manifest path, and aligned report deadlines with the committed timebox.
+- **Deterministic validation:** [admission/repair CI #46029106335](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46029106335) passed. The repository admission-guard workflow completed 259 tests across 20 suites; all 8 initial-claims model-specific tests passed, including event timing, non-overlap, future-data isolation, walk-forward maturity, deterministic bootstrap, decision rules and persistence idempotency.
+- **Research workflow behavior:** [run #46029106561](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46029106561) was correctly skipped because the repair commit was unmarked. No second empirical attempt has occurred.
+- **Implementation state:** `IMPLEMENTATION_READY`. **Empirical state:** NOT RUN; no forecast metrics, paired-loss interval or strategy conclusion exists.
+- **Required retry:** exactly one `workflow_dispatch` on `main` via the [workflow page](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/workflows/initial-claims-btc-downside.yml). The connected GitHub tools available to this automation do not expose a dispatch action; preserve the admission gate and do not create another marker push.
+- **Hard deadlines remain unchanged:** implementation `2026-11-28T15:40:06Z`; final research conclusion `2026-11-29T15:40:06Z`. If no authorized dispatch occurs before the latter, close INCONCLUSIVE/INFEASIBLE. Do not extend or reset the timebox.
+
+## Recovery session evidence
+
+- [This recovery session report](../reports/sessions/2026-11-27/2026-11-27T155525Z_session-initial-claims-recovery.md).
+- [Original failed execution report](../reports/sessions/2026-11-27/2026-11-27T155050Z_session-initial-claims-btc-downside-46028463325.md).
+- [Original failure manifest](../reports/generated/initial-claims-btc-downside/46028463325-attempt-1/manifest.json).
+
