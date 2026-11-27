@@ -1,7 +1,7 @@
 # Preregistered experiment: relative U.S. spot BTC/ETH ETF flow pressure and ETH/BTC returns
 
 - **Hypothesis ID:** QFR-2026-11-27-BTC-ETH-ETF-RELATIVE-FLOW-ETHBTC-01
-- **Status:** IDEA — source feasibility preflight pending; no model implementation or backtest is authorized until the frozen source gates pass.
+- **Status:** SOURCE_ACCEPTED — read-only source preflight PASS (run 45996756282); frozen hashes below; model implementation and backtest now authorized under the unchanged preregistration.
 - **Preregistration freeze:** 2026-11-27T12:08:25Z
 - **Difficulty:** MEDIUM
 - **Difficulty rationale:** Two independent public ETF-flow histories must be parsed and reconciled, then joined to checksum-verified BTC and ETH Spot archives with a conservative publication embargo. The forecast itself reuses the repository's existing rolling OLS and bootstrap helpers, but cross-source alignment and current-vintage limitations require moderate integration and validation.
@@ -105,4 +105,20 @@ No alternate feature, lag, normalization window, event spacing, target horizon, 
 
 ## 7. Source-preflight result
 
-Pending. No model implementation or empirical backtest is authorized until the read-only preflight passes and its exact cutoff, flow-panel hash, price end date and per-symbol archive-manifest hashes are appended here.
+**PASS — source acceptance completed before model implementation.** No model was fitted and no forecast/backtest metric was calculated.
+
+- Preflight workflow: [run 45996756282](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45996756282), successful on source commit `8538e696c78a590916145a8c0cbcb313cc901ae1`.
+- Retrieved at: 2026-11-27T12:12:55.115464Z.
+- Farside BTC all-data table: 722 numeric flow rows, 2024-01-11 through 2026-11-25; 12 fund columns; 10–12 numeric fund components per valid row; raw HTML SHA-256 `d2153caf28eed0b74305a382e66152f77e3a9fc80edf4f640b4c78df006bb316`.
+- Farside ETH all-data table: 590 numeric flow rows, 2024-07-23 through 2026-11-25; 11 fund columns; 8–11 numeric fund components per valid row; raw HTML SHA-256 `e139796b2efa57a6de1b221f2a3e6a4a2efbdd5731f81b19bd476b66cbdef5a4`.
+- Common reconciled BTC/ETH flow panel: 583 rows, 2024-07-23 through 2026-11-16; zero unmatched dates; cutoff 2026-11-16; panel SHA-256 `4d7d2a8c54b5b6eebbf48631f4641ad24d4692a21dc5d6681beba65e4ae79a18`.
+- Fixed five-calendar-day flow embargo; five subsequent daily price bars fully mature by the frozen price end.
+- Binance BTCUSDT Spot 1d UTC: 2024-07-01 through 2026-11-26 inclusive; 879 daily rows; 54 checksum-verified monthly/daily archives; zero missing dates; archive-manifest SHA-256 `f70f8a1b01098cee6f8299514888363b04956f66cf122ffae95579b12e08faf5`.
+- Binance ETHUSDT Spot 1d UTC: same 879-day coverage; 54 checksum-verified monthly/daily archives; zero missing dates; archive-manifest SHA-256 `0ef90c2cde6888e0ca7512670a84ff2fba17995950870ce847f0d22e635dc314`.
+- Frozen common price end date: 2026-11-26.
+- Eligible signal anchors: 2024-07-28 through 2026-11-21; the last possible five-day target ends 2026-11-26.
+- All numeric fund components reconciled to each published Total within the preregistered one-decimal rounding tolerance. All-dash rows were excluded rather than treated as zero.
+- Raw observations were not saved or committed. The source preflight performed no model fitting, forecast evaluation or backtest.
+
+**Admission rule:** the model implementation must reproduce the frozen flow-panel SHA-256, both archive-manifest SHA-256 values, and the exact 2026-11-26 price end date. Any mismatch fails closed; the sample cannot be silently refreshed.
+
