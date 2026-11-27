@@ -9,6 +9,8 @@ on:
       - "research/test_workflow_admission.py"
       - "research/btc_blockspace_fee_rate_source_preflight.py"
       - "research/test_btc_blockspace_fee_rate_source_preflight.py"
+      - "research/btc_blockspace_fee_rate_btc_downside.py"
+      - "research/test_btc_blockspace_fee_rate_btc_downside.py"
       - "research/etf_relative_flow_source_preflight.py"
       - "research/test_etf_relative_flow_source_preflight.py"
       - "research/etf_relative_flow_ethbtc.py"
@@ -45,6 +47,7 @@ on:
       - "research/btc_cross_venue_funding_dispersion_source_preflight.py"
       - "research/test_btc_cross_venue_funding_dispersion_source_preflight.py"
       - "research/PREREGISTERED-QFR-2026-11-27-BTC-CROSS-VENUE-FUNDING-DISPERSION-DOWNSIDE-01.md"
+      - "research/PREREGISTERED-QFR-2026-11-27-BTC-BLOCKSPACE-FEERATE-DOWNSIDE-01.md"
   workflow_dispatch:
 
 permissions:
@@ -67,7 +70,7 @@ jobs:
           python-version: "3.11"
 
       - name: Compile research modules
-        run: python -m py_compile research/vxn_vix_cross_index_sp500_rv.py research/test_vxn_vix_cross_index_sp500_rv.py research/kcprs_policy_skew_dgs2.py research/test_kcprs_policy_skew_dgs2.py research/wti_shock_sp500_rv.py research/test_wti_shock_sp500_rv.py research/fed_balance_sheet_btc_downside_semivariance.py research/test_fed_balance_sheet_btc_downside_semivariance.py research/deribit_relative_dvol_ethbtc_rv.py research/test_deribit_relative_dvol_ethbtc_rv.py research/mexc_btc_funding_downside.py research/test_mexc_btc_funding_downside.py research/btc_cross_venue_funding_dispersion_source_preflight.py research/test_btc_cross_venue_funding_dispersion_source_preflight.py research/taker_absorption_source_preflight.py research/test_taker_absorption_source_preflight.py research/taker_absorption_btc_downside.py research/test_taker_absorption_btc_downside.py research/persist_taker_absorption_evidence.py research/test_persist_taker_absorption_evidence.py research/decision_hierarchy.py research/test_decision_hierarchy.py research/btc_blockspace_fee_rate_source_preflight.py research/test_btc_blockspace_fee_rate_source_preflight.py
+        run: python -m py_compile research/vxn_vix_cross_index_sp500_rv.py research/test_vxn_vix_cross_index_sp500_rv.py research/kcprs_policy_skew_dgs2.py research/test_kcprs_policy_skew_dgs2.py research/wti_shock_sp500_rv.py research/test_wti_shock_sp500_rv.py research/fed_balance_sheet_btc_downside_semivariance.py research/test_fed_balance_sheet_btc_downside_semivariance.py research/deribit_relative_dvol_ethbtc_rv.py research/test_deribit_relative_dvol_ethbtc_rv.py research/mexc_btc_funding_downside.py research/test_mexc_btc_funding_downside.py research/btc_cross_venue_funding_dispersion_source_preflight.py research/test_btc_cross_venue_funding_dispersion_source_preflight.py research/taker_absorption_source_preflight.py research/test_taker_absorption_source_preflight.py research/taker_absorption_btc_downside.py research/test_taker_absorption_btc_downside.py research/persist_taker_absorption_evidence.py research/test_persist_taker_absorption_evidence.py research/decision_hierarchy.py research/test_decision_hierarchy.py research/btc_blockspace_fee_rate_source_preflight.py research/test_btc_blockspace_fee_rate_source_preflight.py research/btc_blockspace_fee_rate_btc_downside.py research/test_btc_blockspace_fee_rate_btc_downside.py
 
       - name: Verify every research workflow has the atomic admission gate
         run: python -m unittest discover -s research -p "test_workflow_admission.py" -v
@@ -122,3 +125,6 @@ jobs:
 
       - name: Run Bitcoin blockspace fee-rate source-preflight regression tests
         run: PYTHONPATH=research python -m unittest discover -s research -p "test_btc_blockspace_fee_rate_source_preflight.py" -v
+
+      - name: Run Bitcoin blockspace fee-rate BTC downside regression tests
+        run: PYTHONPATH=research python -m unittest discover -s research -p "test_btc_blockspace_fee_rate_btc_downside.py" -v
