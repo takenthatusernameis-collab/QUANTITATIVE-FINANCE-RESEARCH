@@ -6,11 +6,9 @@ on:
     paths:
       - "research/taker_absorption_source_preflight.py"
       - "research/test_taker_absorption_source_preflight.py"
-      - "research/test_workflow_admission.py"
       - "research/stlfsi4_btc_downside_semivariance.py"
       - "research/treasury_auction_demand.py"
       - ".github/workflows/taker-absorption-source-preflight.yml"
-      - ".github/workflows/workflow-admission-tests.yml"
   workflow_dispatch:
 
 permissions:
