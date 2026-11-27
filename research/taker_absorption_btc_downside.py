@@ -494,8 +494,8 @@ def update_documents(result: dict, report_path: Path, manifest_path: Path) -> No
     relative_manifest = "../" + manifest_path.relative_to(ROOT).as_posix()
     row = (
         f"| {HYPOTHESIS_ID} | {status} | Signed Binance Spot taker-flow/price-response divergence "
-        "(buy-initiated imbalance while price falls, less sell-initiated imbalance while price rises) "
-        "may add information about next-five-session BTC downside semivariance beyond prior downside "
+        f"(buy-initiated imbalance while price falls, less sell-initiated imbalance while price rises) "
+        f"may add information about next-five-session BTC downside semivariance beyond prior downside "
         f"risk, realized variance and momentum. | {source_summary} | {summary} | "
         f"[session report]({relative_report}) / [manifest]({relative_manifest}) / "
         "[preregistration](PREREGISTERED-QFR-2026-11-27-TAKER-ABSORPTION-BTC-DOWNSIDE-01.md) |"
@@ -555,13 +555,6 @@ def write_outputs(result: dict) -> tuple[Path, Path]:
         json.dumps(result, indent=2, sort_keys=True, default=str) + chr(10),
         encoding="utf-8",
     )
-    update_documents(result, report_path, manifest_path)
-    result["registry_sha256"] = hashlib.sha256(REGISTRY_PATH.read_bytes()).hexdigest()
-    result["prereg_sha256"] = hashlib.sha256(PREREG_PATH.read_bytes()).hexdigest()
-    manifest_path.write_text(
-        json.dumps(result, indent=2, sort_keys=True, default=str) + chr(10),
-        encoding="utf-8",
-    )
     return report_path, manifest_path
 
 
@@ -594,8 +587,6 @@ def main() -> int:
         "report_path": report_path.relative_to(ROOT).as_posix(),
         "manifest_path": manifest_path.relative_to(ROOT).as_posix(),
         "report_sha256": result.get("report_sha256"),
-        "registry_sha256": result.get("registry_sha256"),
-        "prereg_sha256": result.get("prereg_sha256"),
     }, indent=2))
     return 0
 
