@@ -37,16 +37,12 @@ A possible Bitcoin on-chain fee-pressure predictor was screened but not admitted
 
 **SATISFIED** for 2026-11-27 by the previously completed BTC taker-absorption real-data backtest. No duplicate empirical run was launched.
 
-## VERIFIED / UNVERIFIED
+## Verification
 
-**Verified**
-- Mainline state, README policy cutover and the prior closed mining-difficulty draft.
-- Existing daily KPI evidence and its INCONCLUSIVE disposition.
-- The new guard and preregistration clarifications are committed atomically.
-
-**Pending verification**
-- GitHub Actions execution of the updated admission-guard regression suite.
-- The legacy Blockchain.com GET endpoint's current unauthenticated/free availability; it was deliberately not invoked.
+- Initial unmarked commit triggered the admission-guard workflow and the read-only mining-difficulty closure workflow. Both stopped at the repository admission regression suite; no empirical research or market-data retrieval ran.
+- The first CI attempt exposed one test-only defect: the new README assertion expected wording not used by the README. The new structural tests themselves passed in that run; the assertion wording was corrected and the regexes were normalized before the next CI attempt.
+- The follow-up CI result is recorded below after the updated run completes.
+- The legacy Blockchain.com GET endpoint's current unauthenticated/free availability remains unverified; it was deliberately not invoked.
 
 ## Research versus operations
 

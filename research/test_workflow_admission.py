@@ -387,7 +387,7 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
                 continue
             source = path.read_text(encoding="utf-8")
             match = re.search(
-                r"(?m)^HYPOTHESIS_ID\\s*=\\s*['\"]([^'\"]+)['\"]",
+                r"(?m)^HYPOTHESIS_ID\s*=\s*['\"]([^'\"]+)['\"]",
                 source,
             )
             if not match:
@@ -417,11 +417,11 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         for path in prereg_paths:
             content = path.read_text(encoding="utf-8")
             registration_match = re.search(
-                r"(?mi)^-\\s*\\*\\*(?:Registered|Preregistration freeze):\\*\\*\\s*"
-                r"`?(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z)`?",
+                r"(?mi)^-\s*\*\*(?:Registered|Preregistration freeze):\*\*\s*"
+                r"`?(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)`?",
                 content,
             )
-            hypothesis_date_match = re.search(r"QFR-(\\d{4}-\\d{2}-\\d{2})", path.name)
+            hypothesis_date_match = re.search(r"QFR-(\d{4}-\d{2}-\d{2})", path.name)
 
             if registration_match is None:
                 if hypothesis_date_match:
@@ -438,34 +438,34 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
 
             with self.subTest(preregistration=path.name):
                 difficulty_match = re.search(
-                    r"(?mi)^-\\s*\\*\\*(?:Expected )?Difficulty:\\*\\*\\s*`?(LOW|MEDIUM|HIGH)\\b",
+                    r"(?mi)^-\s*\*\*(?:Expected )?Difficulty:\*\*\s*`?(LOW|MEDIUM|HIGH)\b",
                     content,
                 )
                 rationale_match = re.search(
-                    r"(?mi)^-\\s*\\*\\*Difficulty rationale:\\*\\*\\s*\\S",
+                    r"(?mi)^-\s*\*\*Difficulty rationale:\*\*\s*\S",
                     content,
                 )
                 start_match = re.search(
-                    r"(?mi)^-\\s*\\*\\*Timebox start:\\*\\*\\s*`?"
-                    r"(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z)`?",
+                    r"(?mi)^-\s*\*\*Timebox start:\*\*\s*`?"
+                    r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)`?",
                     content,
                 )
                 cycles_match = re.search(
-                    r"(?mi)^-\\s*\\*\\*Maximum substantive cycles:\\*\\*\\s*(\\d+)\\b",
+                    r"(?mi)^-\s*\*\*Maximum substantive cycles:\*\*\s*(\d+)\b",
                     content,
                 )
                 implementation_match = re.search(
-                    r"(?mi)^-\\s*\\*\\*(?:Hard )?Implementation deadline:\\*\\*\\s*`?"
-                    r"(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z)`?",
+                    r"(?mi)^-\s*\*\*(?:Hard )?Implementation deadline:\*\*\s*`?"
+                    r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)`?",
                     content,
                 )
                 conclusion_match = re.search(
-                    r"(?mi)^-\\s*\\*\\*(?:Hard )?Final research-conclusion deadline:\\*\\*\\s*`?"
-                    r"(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z)`?",
+                    r"(?mi)^-\s*\*\*(?:Hard )?Final research-conclusion deadline:\*\*\s*`?"
+                    r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)`?",
                     content,
                 )
                 expiry_match = re.search(
-                    r"(?mi)^-\\s*\\*\\*Expiry rule:\\*\\*\\s*\\S",
+                    r"(?mi)^-\s*\*\*Expiry rule:\*\*\s*\S",
                     content,
                 )
 
@@ -502,7 +502,8 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
     def test_readme_documents_mainline_timebox_cutover_and_machine_enforcement(self):
         text = README.read_text(encoding="utf-8")
         self.assertIn("2026-11-26T10:12:25Z", text)
-        self.assertIn("matching preregistration or explicit closure", text)
+        self.assertIn("matching `PREREGISTERED-{HYPOTHESIS_ID}.md`", text)
+        self.assertIn("explicit `CLOSED-{HYPOTHESIS_ID}.md`", text)
         self.assertIn("post-cutover preregistration", text.lower())
         self.assertIn("research/test_workflow_admission.py", text)
 
