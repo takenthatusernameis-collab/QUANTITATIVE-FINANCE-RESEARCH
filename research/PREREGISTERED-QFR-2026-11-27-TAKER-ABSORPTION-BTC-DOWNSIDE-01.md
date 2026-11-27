@@ -37,7 +37,7 @@ Binance's Spot kline schema exposes total base volume and taker-buy base volume 
 - Taker imbalance range: -0.650991 to +0.621599; median: -0.008361.
 - The 2026-11-26 daily archive returned HTTP 404 at preflight time; 2026-11-25 was available and checksum-verified. The frozen sample therefore ends 2026-11-25. The source preflight implements a bounded three-day trailing-404 publication-lag fallback; non-404 errors and checksum mismatches remain hard failures.
 - Timestamp validation covered millisecond and microsecond encodings; all rows were complete UTC daily candles with the documented 12-column schema.
-- The source preflight saved no raw observations and executed no backtest.
+- The final source-preflight run passed both the deterministic schema/coverage tests and the read-only 136-archive probe. It saved no raw observations and executed no backtest.
 
 ## 4. Frozen sample, timing and target
 
