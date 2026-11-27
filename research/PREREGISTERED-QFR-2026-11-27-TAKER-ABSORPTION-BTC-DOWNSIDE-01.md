@@ -107,3 +107,17 @@ Model:
 - The final atomic admission commit uses the exact `[QFR-ADMIT] research:` prefix. The push-triggered workflow must check out that exact `github.sha`, rerun the deterministic suites, re-fetch and checksum-verify the frozen archive population, require the exact preflight manifest hash, execute the frozen walk-forward forecast and paired bootstrap, then persist the report/manifest with report-hash and registry/preregistration-digest verification.
 - Earlier non-admission pushes were correctly skipped by the research admission gate; no empirical backtest has run yet. The current commit is the first authorized empirical execution for this frozen hypothesis.
 - The two-cycle LOW-difficulty budget and both frozen UTC deadlines remain unchanged. No feature, model, target, sample, split, threshold or acceptance rule is changed by this admission.
+
+## 8. Execution result
+
+- Workflow run: https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/45926394994
+- Triggering source commit: 7e968673f39e26001ea45f6664129efe77240db2
+- Status: COMPLETE
+- Decision: INCONCLUSIVE
+- Validation/test forecasts: 159/298
+- Validation/test RMSE improvement: 0.3119332997745025/-1.0491040022776774
+- Paired test-loss bootstrap: {"block_size_events": 4, "bootstrap_fraction_positive": 0.045, "ci_95_high": 0.0018984357165540003, "ci_95_low": -0.037146350903781586, "observations": 298, "observed_mean_baseline_minus_augmented_squared_loss": -0.015970332330204357, "reps": 2000, "seed": 20261127, "status": "COMPUTED"}
+- Report: ../reports/sessions/2026-11-27/2026-11-27T020646Z_session-taker-absorption-btc-downside-45926394994.md
+- Manifest: ../reports/generated/taker-absorption-btc-downside/45926394994-attempt-1/manifest.json
+
+Evidence is mixed, statistically uncertain or insufficient under the frozen rule.
