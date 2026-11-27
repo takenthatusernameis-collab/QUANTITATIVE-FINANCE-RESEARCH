@@ -776,7 +776,7 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
             "github.event.comment.body == '/qfr-probe-dispatch-bridge'",
             "github.event.comment.body == '/qfr-run-initial-claims-btc-downside'",
             "actions: write",
-            "issues: write",
+            "pull-requests: write",
             "cancel-in-progress: false",
             "dispatch-bridge-probe.yml",
             "initial-claims-btc-downside.yml",
