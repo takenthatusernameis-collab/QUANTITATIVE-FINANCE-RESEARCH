@@ -247,6 +247,7 @@ class CrossVenueFundingDispersionSourcePreflightTests(unittest.TestCase):
             patch.object(model, "START_DATE", start),
             patch.object(model, "END_DATE", start + dt.timedelta(days=3)),
             patch.object(model, "PRICE_START_DATE", price_start),
+            patch.object(model, "PRICE_END_DATE", start + dt.timedelta(days=4)),
         ):
             events, metadata = model.build_events(matched, prices)
         self.assertEqual(len(events), 4)
@@ -276,9 +277,10 @@ class CrossVenueFundingDispersionSourcePreflightTests(unittest.TestCase):
         m_rows.append(mexc_row(boundary_after, 0))
         b_rows.append(binance_row(boundary_after, 0))
         price_start = start - dt.timedelta(days=5)
+        price_end = end + dt.timedelta(days=1)
         prices = {}
         close = 100.0
-        for offset in range((end - price_start).days + 1):
+        for offset in range((price_end - price_start).days + 1):
             day = price_start + dt.timedelta(days=offset)
             close *= 1.001
             prices[day] = close
@@ -289,6 +291,7 @@ class CrossVenueFundingDispersionSourcePreflightTests(unittest.TestCase):
             patch.object(model, "START_DATE", start),
             patch.object(model, "END_DATE", end),
             patch.object(model, "PRICE_START_DATE", price_start),
+            patch.object(model, "PRICE_END_DATE", price_end),
             patch.object(model, "MIN_MATCHED_DAYS", 4),
             patch.object(model, "MAX_INCOMPLETE_SHARE", 0.0),
             patch.object(model, "MAX_MISSING_RUN", 0),

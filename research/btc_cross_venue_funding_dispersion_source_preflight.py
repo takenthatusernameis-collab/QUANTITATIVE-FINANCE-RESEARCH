@@ -17,6 +17,7 @@ HYPOTHESIS_ID = "QFR-2026-11-27-BTC-CROSS-VENUE-FUNDING-DISPERSION-DOWNSIDE-01"
 START_DATE = dt.date(2025, 6, 15)
 END_DATE = dt.date(2026, 11, 23)
 PRICE_START_DATE = START_DATE - dt.timedelta(days=5)
+PRICE_END_DATE = END_DATE + dt.timedelta(days=1)
 PAGE_SIZE = 1000
 MAX_PAGES = 10
 MIN_MATCHED_DAYS = 400
@@ -278,7 +279,7 @@ def match_funding_days(mexc_rows: list[dict], binance_rows: list[dict]) -> tuple
 
 
 def build_events(matched: dict, prices: dict[dt.date, float]) -> tuple[list[dict], dict]:
-    expected_price_days = (END_DATE - PRICE_START_DATE).days + 1
+    expected_price_days = (PRICE_END_DATE - PRICE_START_DATE).days + 1
     expected_dates = {
         PRICE_START_DATE + dt.timedelta(days=index) for index in range(expected_price_days)
     }
@@ -352,12 +353,13 @@ def run_source_preflight() -> dict:
     binance_rows, binance_source = fetch_binance_funding_history()
     matched, matched_coverage = match_funding_days(mexc_selected, binance_rows)
 
-    original_start = mexc.START_DATE
+    original_start, original_end = mexc.START_DATE, mexc.END_DATE
     try:
         mexc.START_DATE = PRICE_START_DATE
+        mexc.END_DATE = PRICE_END_DATE
         prices, spot_source = mexc.fetch_binance_prices()
     finally:
-        mexc.START_DATE = original_start
+        mexc.START_DATE, mexc.END_DATE = original_start, original_end
 
     events, event_metadata = build_events(matched, prices)
     if len(events) < MIN_ACCEPTED_EVENTS:
