@@ -52,52 +52,23 @@ jobs:
               ;;
           esac
 
-          # A successful dispatch leaves a rocket reaction on this exact comment.
+          # Successful dispatch leaves a rocket reaction on this exact comment.
           # The PR-level concurrency group serializes deliveries so a replay is a no-op.
-          reactions="$(curl --fail-with-body --silent --show-error \\
-            --header "Accept: application/vnd.github+json" \\
-            --header "Authorization: Bearer $GH_TOKEN" \\
-            --header "X-GitHub-Api-Version: 2022-11-28" \\
-            "https://api.github.com/repos/$REPOSITORY/issues/comments/$COMMENT_ID/reactions")"
-          if printf '%s' "$reactions" | jq -e \\
-            --arg bot "github-actions[bot]" \\
-            'any(.[]; .user.login == $bot and .content == "rocket")' >/dev/null; then
+          reactions="$(curl --fail-with-body --silent --show-error --header "Accept: application/vnd.github+json" --header "Authorization: Bearer $GH_TOKEN" --header "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/$REPOSITORY/issues/comments/$COMMENT_ID/reactions")"
+          if printf '%s' "$reactions" | jq -e --arg bot "github-actions[bot]" 'any(.[]; .user.login == $bot and .content == "rocket")' >/dev/null; then
             echo "Duplicate delivery: this comment has already dispatched a workflow."
             exit 0
           fi
 
-          payload="$(jq -cn \\
-            --arg comment_id "$COMMENT_ID" \\
-            --arg control_pr "$CONTROL_PR" \\
-            --arg actor "$COMMENT_AUTHOR" \\
-            '{ref:"main",inputs:{source_comment_id:$comment_id,source_control_pr:$control_pr,source_actor:$actor}}')"
+          payload="$(jq -cn --arg comment_id "$COMMENT_ID" --arg control_pr "$CONTROL_PR" --arg actor "$COMMENT_AUTHOR" '{ref:"main",inputs:{source_comment_id:$comment_id,source_control_pr:$control_pr,source_actor:$actor}}')"
+          echo "Authorized control command: PR=$CONTROL_PR actor=$COMMENT_AUTHOR comment_id=$COMMENT_ID workflow=$workflow_id"
 
-          printf 'Authorized control command: PR=%s actor=%s comment_id=%s workflow=%s\\n' \\
-            "$CONTROL_PR" "$COMMENT_AUTHOR" "$COMMENT_ID" "$workflow_id"
-
-          http_code="$(curl --silent --show-error \\
-            --output "$RUNNER_TEMP/dispatch-response.json" \\
-            --write-out '%{http_code}' \\
-            --request POST \\
-            --header "Accept: application/vnd.github+json" \\
-            --header "Authorization: Bearer $GH_TOKEN" \\
-            --header "X-GitHub-Api-Version: 2022-11-28" \\
-            --header "Content-Type: application/json" \\
-            --data "$payload" \\
-            "https://api.github.com/repos/$REPOSITORY/actions/workflows/$workflow_id/dispatches")"
-          test "$http_code" = "204" || {
+          http_code="$(curl --silent --show-error --output "$RUNNER_TEMP/dispatch-response.json" --write-out '%{http_code}' --request POST --header "Accept: application/vnd.github+json" --header "Authorization: Bearer $GH_TOKEN" --header "X-GitHub-Api-Version: 2022-11-28" --header "Content-Type: application/json" --data "$payload" "https://api.github.com/repos/$REPOSITORY/actions/workflows/$workflow_id/dispatches")"
+          if [ "$http_code" != "204" ]; then
             cat "$RUNNER_TEMP/dispatch-response.json"
             echo "Workflow dispatch failed with HTTP $http_code."
             exit 1
-          }
+          fi
 
-          curl --fail-with-body --silent --show-error \\
-            --request POST \\
-            --header "Accept: application/vnd.github+json" \\
-            --header "Authorization: Bearer $GH_TOKEN" \\
-            --header "X-GitHub-Api-Version: 2022-11-28" \\
-            --header "Content-Type: application/json" \\
-            --data '{"content":"rocket"}' \\
-            "https://api.github.com/repos/$REPOSITORY/issues/comments/$COMMENT_ID/reactions" >/dev/null
-
+          curl --fail-with-body --silent --show-error --request POST --header "Accept: application/vnd.github+json" --header "Authorization: Bearer $GH_TOKEN" --header "X-GitHub-Api-Version: 2022-11-28" --header "Content-Type: application/json" --data '{"content":"rocket"}' "https://api.github.com/repos/$REPOSITORY/issues/comments/$COMMENT_ID/reactions" >/dev/null
           echo "GitHub accepted $workflow_id workflow_dispatch from the exact authorized comment."
