@@ -209,6 +209,14 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
                 )
                 self.assertEqual(result.returncode, 0, msg=result.stderr)
 
+    def test_taker_absorption_source_preflight_has_narrow_path_filters(self):
+        text = (WORKFLOW_DIR / "taker-absorption-source-preflight.yml").read_text(encoding="utf-8")
+        self.assertIn('"research/taker_absorption_source_preflight.py"', text)
+        self.assertIn('"research/test_taker_absorption_source_preflight.py"', text)
+        self.assertIn('".github/workflows/taker-absorption-source-preflight.yml"', text)
+        self.assertNotIn('"research/test_workflow_admission.py"', text)
+        self.assertNotIn('".github/workflows/workflow-admission-tests.yml"', text)
+
     def test_taker_absorption_source_preflight_is_read_only_and_not_a_backtest(self):
         path = WORKFLOW_DIR / "taker-absorption-source-preflight.yml"
         text = path.read_text(encoding="utf-8")
