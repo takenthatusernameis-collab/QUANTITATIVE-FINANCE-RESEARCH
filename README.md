@@ -152,3 +152,15 @@ Every wake-up appends one unique UTC-timestamped session report, for example rep
 Report RESEARCH OUTPUT; HYPOTHESES/RANKING; DAILY KPI; CHANGED (files and commit); VERIFIED; UNVERIFIED/BLOCKED; RESEARCH VS. OPERATIONS; NEXT. Separate facts from inference. State plainly when no meaningful progress occurred. Leave enough durable evidence for the next wake-up to resume without hidden context.
 
 **Operating test:** Did this session produce new empirical knowledge, a reproducible research artifact, or remove a verified bottleneck for an identified research objective? If not, do not present activity as research progress.
+
+<!-- QFR:BTC-MINING-DIFFICULTY:START -->
+## Closed draft — BTC mining difficulty cuts (not an admitted workstream)
+
+- Hypothesis: `QFR-2026-11-27-BTC-DIFFICULTY-CUT-DOWNSIDE-01` — **CLOSED / INCONCLUSIVE-INFEASIBLE / UNADMITTED**.
+- Reason: substantive implementation began before its mandatory preregistration and difficulty-adjusted timebox. This cannot be repaired retroactively.
+- No verifiable accepted source manifest, empirical result or backtest exists in the repository. Do not interpret closure as a performance NO-GO.
+- The source is retained only for deterministic testing and is guarded to fail before any network request. Its validation workflow is read-only and must never run the empirical model.
+- Do not reopen this hypothesis ID. Any materially redesigned mining-network hypothesis requires a new ID and a frozen preregistration/timebox before implementation.
+- Evidence: [closure record](research/CLOSED-QFR-2026-11-27-BTC-DIFFICULTY-CUT-DOWNSIDE-01.md) · [recovery session report](reports/sessions/2026-11-27/2026-11-27T105624Z_session-btc-mining-difficulty-unadmitted-closure.md).
+<!-- QFR:BTC-MINING-DIFFICULTY:END -->
+
