@@ -118,8 +118,8 @@ This is a source-semantics correction, not a search across percentiles or altern
 
 - Cycle 1: freeze this preregistration and perform a read-only source/schema/coverage preflight. The first response confirmed the field schema but exposed a boundary-date handling issue; corrected validation must verify 12-hour bins and exclude both partial boundary dates. No model fit or backtest is permitted in this cycle.
 - Cycle 2 — COMPLETED 2026-11-27T15:24:45Z: implemented the frozen parser integration, accepted-source checksum reuse, event construction, walk-forward OLS comparison, paired block bootstrap, deterministic regression tests and gated workflow. Implementation commit `2930958302d11ad609bb53a2299952436a7f4b86`; 13 model tests plus source-preflight and full admission-guard suites passed in CI run #46024683649. No empirical backtest ran in that unmarked implementation commit.
-- Cycle 3: run the single frozen real-data backtest after deterministic validation.
-- Cycle 4: independently audit timing, data provenance, metrics, and the frozen decision rule; persist the final disposition.
+- Cycle 3 — COMPLETED 2026-11-27T15:26:45Z: one frozen real-data backtest completed successfully in [run #46024917193](${runUrl}); 1 Mempool GET, 61 previously accepted checksum-matched Binance archives, 179 events, 29 validation forecasts and 85 test forecasts. Frozen decision: INCONCLUSIVE.
+- Cycle 4 — COMPLETED 2026-11-27T15:29:39.849Z: independently compared all 61 archive/checksum pairs with the accepted manifest, recomputed both RMSE-improvement percentages, replayed the paired-loss decision rule, verified CI and persisted the [independent audit](../reports/sessions/2026-11-27/20261127T152939Z_session-btc-blockspace-feerate-independent-audit.md). Final status: CLOSED / INCONCLUSIVE.
 
 
 ## 11. Implementation acceptance — 2026-11-27T15:24:45Z
@@ -130,7 +130,7 @@ This is a source-semantics correction, not a search across percentiles or altern
 - **Repository admission guard:** all workflow-admission tests passed, including the new workflow's exact job-level gate, immutable triggering commit, narrow path filters, preregistration guard and Bash syntax checks.
 - **CI evidence:** [global admission/test run #46024683649](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46024683649).
 - The research workflow's push event for the unmarked implementation commit was correctly **skipped** in [run #46024683640](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46024683640). No empirical source retrieval, backtest or performance-result inspection occurred before this acceptance gate.
-- Cycle 2 is complete. Cycle 3 may now execute the single frozen empirical backtest; Cycle 4 remains reserved for independent audit.
+- Cycles 2, 3 and 4 are complete. The single frozen backtest and independent audit are persisted; final disposition is CLOSED / INCONCLUSIVE.
 
 ## Empirical disposition
 
@@ -145,3 +145,15 @@ This is a source-semantics correction, not a search across percentiles or altern
 - **Manifest:** [reports/generated/btc-blockspace-fee-rate-btc-downside/46024917193-attempt-1/manifest.json](../reports/generated/btc-blockspace-fee-rate-btc-downside/46024917193-attempt-1/manifest.json).
 - Forecast-only; no causal, trading or deployment claim.
 
+
+
+## 12. Independent audit and final closure — 2026-11-27T15:29:39.849Z
+
+- **Final disposition:** CLOSED / INCONCLUSIVE under the frozen rule. Both validation and test RMSE are worse for the augmented model, but the paired test-loss 95% interval crosses zero; the stricter REJECTED criterion is not met.
+- **Independent archive verification:** 61 of 61 Binance archive and checksum hashes match the previously accepted full-history manifest.
+- **Independent metric verification:** recomputed RMSE improvements match the persisted values exactly: validation -0.5037815188779992%; test -0.4833515706188392%.
+- **Timing/sample verification:** 179 accepted events, six-day spacing, five-session non-overlapping targets, 65-event warm-up, 29 validation and 85 test forecasts.
+- **CI:** 13/13 model tests, source-preflight tests and repository admission-guard suite passed; backtest run #46024917193 completed successfully.
+- **Timebox:** all four cycles completed before the implementation deadline (2026-11-30T13:55:51Z) and final conclusion deadline (2026-12-02T13:55:51Z). No extension was used.
+- **Stop rule:** no further tuning or rerun under this identity. A materially distinct hypothesis requires a new ID and preregistered timebox.
+- **Audit report:** [reports/sessions/2026-11-27/20261127T152939Z_session-btc-blockspace-feerate-independent-audit.md](../reports/sessions/2026-11-27/20261127T152939Z_session-btc-blockspace-feerate-independent-audit.md).

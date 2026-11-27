@@ -63,3 +63,17 @@ INCONCLUSIVE — frozen validation/test and paired-loss rules do not establish i
 - Workflow: https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46024917193
 - Implementation: research/btc_blockspace_fee_rate_btc_downside.py
 - Tests: research/test_btc_blockspace_fee_rate_btc_downside.py
+
+
+## Independent audit — 2026-11-27T15:29:39.849Z
+
+The separate Cycle 4 audit confirmed the following:
+
+- All 61 downloaded Binance archive and checksum-sidecar hashes exactly match the previously accepted full-history manifest.
+- Mempool accepted 1,095 contiguous completed UTC dates from 2023-11-28 through 2026-11-26 using one GET and zero retries; the two partial boundary dates were excluded.
+- All 179 six-day-spaced event origins passed; five-session target windows do not overlap. The 65-event warm-up leaves 29 validation and 85 test forecasts.
+- Independently recomputed validation and test RMSE improvements are -0.5037815188779992% and -0.4833515706188392%, respectively.
+- The 2,000-replication paired-loss 95% interval is [-0.016317454039132775, +0.005471370322788428], crossing zero. The frozen decision is **INCONCLUSIVE**, not REJECTED.
+- No raw observations were saved. The result remains forecast-only and does not establish a trading edge.
+
+Full audit: [Cycle 4 independent audit](20261127T152939Z_session-btc-blockspace-feerate-independent-audit.md).

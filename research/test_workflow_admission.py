@@ -613,7 +613,8 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         text = (WORKFLOW_DIR / "btc-blockspace-fee-rate-source-preflight.yml").read_text(encoding="utf-8")
         self.assertIn('"research/btc_blockspace_fee_rate_source_preflight.py"', text)
         self.assertIn('"research/test_btc_blockspace_fee_rate_source_preflight.py"', text)
-        self.assertIn('".github/workflows/btc-blockspace-fee-rate-source-preflight.yml"', text)
+        self.assertNotIn('".github/workflows/btc-blockspace-fee-rate-source-preflight.yml"', text)
+        self.assertNotIn('"research/PREREGISTERED-QFR-2026-11-27-BTC-BLOCKSPACE-FEERATE-DOWNSIDE-01.md"', text)
         self.assertNotIn('"research/test_workflow_admission.py"', text)
         self.assertNotIn('".github/workflows/workflow-admission-tests.yml"', text)
 
