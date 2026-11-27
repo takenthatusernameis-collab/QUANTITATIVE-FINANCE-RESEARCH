@@ -109,9 +109,9 @@ The repository already tested WALCL-only Federal Reserve total-assets contractio
 ## Empirical disposition
 
 - **Status:** INCONCLUSIVE
-- **Disposition:** INCONCLUSIVE/INFEASIBLE — bounded source/execution failure: RuntimeError: Both public Binance exchangeInfo endpoints failed: [{"error": "ValueError: expected exactly one BTCUSDT symbol, got 3756", "response_bytes": 18178232, "response_prefix_hex": "7b2274696d657a6f6e65223a22555443222c227365727665", "url": "https://data-api.binance.vision/api/v3/exchangeInfo"}, {"error": "RuntimeError: Non-retryable HTTP 451 for https://api.binance.com/api/v3/exchangeInfo?symbol=BTCUSDT", "response_bytes": 0, "response_prefix_hex": "", "url": "https://api.binance.com/api/v3/exchangeInfo?symbol=BTCUSDT"}]
+- **Disposition:** INCONCLUSIVE/INFEASIBLE — the second and final cycle reached the BTCUSDT exchangeInfo gate, but the primary request omitted the symbol=BTCUSDT query and returned 3,756 symbols; the filtered api.binance.com fallback returned HTTP 451. The two-cycle cap is exhausted. No BTC archive ingestion or empirical backtest occurred.
 - **Completed real-data backtest:** no
-- **Data scope:** source acceptance incomplete
+- **Data scope:** separate FRED WDTGAL and RRPONTSYD CSVs retrieved and parsed; BTCUSDT metadata gate failed before archive ingestion or coverage acceptance
 - **Summary metrics:** {}
 - **Paired test-loss bootstrap:** null
 - **Report:** [reports/sessions/2026-11-27/2026-11-27T224315Z_session-treasury-rrp-drain-btc-46078321167.md](../reports/sessions/2026-11-27/2026-11-27T224315Z_session-treasury-rrp-drain-btc-46078321167.md)
