@@ -1,0 +1,91 @@
+name: MEXC funding-dispersion source preflight (no model fitting)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "research/PREREGISTERED-QFR-2026-11-27-MEXC-FUNDING-DISPERSION-BTC-RV-01.md"
+      - "research/mexc_funding_dispersion_source_preflight.py"
+      - "research/test_mexc_funding_dispersion_source_preflight.py"
+      - ".github/workflows/mexc-funding-dispersion-source-preflight.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qfr-mexc-funding-dispersion-source-preflight-main
+  cancel-in-progress: false
+
+jobs:
+  source-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout immutable triggering commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Run deterministic MEXC schema, cadence and coverage tests
+        run: |
+          set -euo pipefail
+          python -m py_compile research/mexc_funding_dispersion_source_preflight.py research/test_mexc_funding_dispersion_source_preflight.py
+          PYTHONPATH=research python -m unittest discover -s research -p "test_mexc_funding_dispersion_source_preflight.py" -v
+
+      - name: Retrieve MEXC public funding history and segmented hourly klines (no model)
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          PYTHONPATH=research python research/mexc_funding_dispersion_source_preflight.py
+
+      - name: Persist source-feasibility report and manifest to main
+        if: always()
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          pattern="*session-mexc-funding-dispersion-source-preflight-$GITHUB_RUN_ID.md"
+          report="$(find reports/sessions -type f -name "$pattern" | sort | tail -n 1)"
+          manifest="reports/generated/mexc-funding-dispersion-source-preflight/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/preflight.json"
+          test -n "$report"
+          test -s "$report"
+          test -s "$manifest"
+          tmp="$RUNNER_TEMP/qfr-mexc-funding-dispersion-preflight-$GITHUB_RUN_ID"
+          mkdir -p "$tmp"
+          cp "$report" "$tmp/report.md"
+          cp "$manifest" "$tmp/preflight.json"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p "$(dirname "$report")" "$(dirname "$manifest")"
+            cp "$tmp/report.md" "$report"
+            cp "$tmp/preflight.json" "$manifest"
+            git add "$report" "$manifest"
+            if git diff --cached --quiet; then
+              echo "Preflight evidence already present on main."
+              exit 0
+            fi
+            git commit -m "Persist MEXC funding-dispersion source preflight $GITHUB_RUN_ID"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Main advanced during preflight persistence; refreshing and retrying."
+          done
+          echo "Could not persist MEXC source-preflight evidence after three main refreshes."
+          exit 1

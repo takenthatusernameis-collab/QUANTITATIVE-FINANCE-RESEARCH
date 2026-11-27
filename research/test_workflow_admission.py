@@ -23,6 +23,7 @@ NON_RESEARCH_WORKFLOWS = {
     "etf-relative-flow-source-preflight.yml",
     "btc-blockspace-fee-rate-source-preflight.yml",
     "initial-claims-source-preflight.yml",
+    "mexc-funding-dispersion-source-preflight.yml",
     "chatgpt-control-pr-dispatch.yml",
     "dispatch-bridge-probe.yml",
 }
@@ -112,6 +113,16 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
                 text = path.read_text(encoding="utf-8")
                 self.assertRegex(text, r"(?m)^  cancel-in-progress: false$")
 
+
+
+    def test_mexc_funding_dispersion_source_preflight_has_narrow_source_only_path_filters(self):
+        text = (WORKFLOW_DIR / "mexc-funding-dispersion-source-preflight.yml").read_text(encoding="utf-8")
+        self.assertIn('"research/mexc_funding_dispersion_source_preflight.py"', text)
+        self.assertIn('"research/test_mexc_funding_dispersion_source_preflight.py"', text)
+        self.assertIn('"research/PREREGISTERED-QFR-2026-11-27-MEXC-FUNDING-DISPERSION-BTC-RV-01.md"', text)
+        self.assertNotIn('"research/mexc_funding_dispersion_btc_rv.py"', text)
+        self.assertNotIn('"research/test_workflow_admission.py"', text)
+        self.assertIn("no model fitting", text.lower())
 
     def test_wikipedia_source_preflight_has_narrow_source_only_path_filters(self):
         text = (WORKFLOW_DIR / "wikipedia-attention-source-preflight.yml").read_text(encoding="utf-8")

@@ -1,5 +1,3 @@
-COMMIT TO REPOSITORY THE PENDING TASK
-
 # Quantitative Finance Research Factory — Wake-up Contract
 
 > This README is the single, self-contained bootstrap and operating contract for every scheduled agent wake-up. Do not make useful work depend on missing architecture documents.
@@ -199,6 +197,17 @@ Hypothesis QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01 was frozen before i
 - The first admitted attempt passed deterministic tests but failed before source acceptance with a UTF-8 decode error. The second and final cycle passed the deterministic suites and retrieved/parsed both separate FRED series, but the primary Binance exchangeInfo request omitted the symbol=BTCUSDT filter and returned all 3,756 symbols; the filtered fallback returned HTTP 451. BTC archive ingestion and the empirical backtest were not reached. The two-cycle cap is exhausted. This hypothesis is closed INCONCLUSIVE/INFEASIBLE, with no performance inference and no third attempt under this ID.
 
 [Preregistration](research/PREREGISTERED-QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01.md) · [Registry](research/HYPOTHESIS-REGISTRY.md) · [Final report](reports/sessions/2026-11-27/2026-11-27T224315Z_session-treasury-rrp-drain-btc-46078321167.md) · [Manifest](reports/generated/treasury-rrp-drain-btc-downside/46078321167-attempt-1/manifest.json)
+
+## Current admitted workstream — MEXC funding dispersion / BTC realized volatility
+
+Hypothesis `QFR-2026-11-27-MEXC-FUNDING-DISPERSION-BTC-RV-01` is preregistered; source feasibility is pending.
+
+- The mechanism is within-day dispersion of the three 00:00/08:00/16:00 UTC MEXC funding settlements, controlling for their mean, as a predictor of the next 24-hour realized variance of the same MEXC BTC_USDT perpetual.
+- Cycle 1 is source feasibility only: exact contract metadata, all funding-history pages, segmented Min60 klines, canonical source hashes and complete event windows. No model fitting or performance inspection before source acceptance.
+- MEXC `api.mexc.com` is the primary documented REST host. The old `contract.mexc.com` host is only a bounded compatibility diagnostic; no 401/403/429/451 route-around or other-provider substitution is permitted.
+- Difficulty MEDIUM; four cycles maximum; start 2026-11-27T23:39:43Z; implementation deadline 2026-12-01T23:39:43Z; final conclusion deadline 2026-12-02T23:39:43Z.
+- The 2026-11-27 UTC daily backtest minimum was already met by earlier distinct real-data screens. This source preflight is not a backtest and does not count toward the KPI.
+- If source gates pass, implement only the frozen model. If they fail, close INCONCLUSIVE/INFEASIBLE without changing the feature, target or venue.
 
 ## Non-negotiable boundaries
 
