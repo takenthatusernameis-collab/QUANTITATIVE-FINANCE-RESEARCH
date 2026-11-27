@@ -618,5 +618,42 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertNotIn('".github/workflows/workflow-admission-tests.yml"', text)
 
 
+    def test_btc_blockspace_fee_rate_backtest_workflow_validates_before_source_retrieval(self):
+        path = WORKFLOW_DIR / "btc-blockspace-fee-rate-btc-downside.yml"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertIn(ADMISSION_IF, text)
+        self.assertIn("ref: " + "$" + "{{ github.sha }}", text)
+        self.assertIn("cancel-in-progress: false", text)
+        self.assertIn("contents: write", text)
+        self.assertIn('python -m unittest discover -s research -p "test_btc_blockspace_fee_rate_btc_downside.py" -v', text)
+        self.assertIn('python -m unittest discover -s research -p "test_btc_blockspace_fee_rate_source_preflight.py" -v', text)
+        self.assertLess(
+            text.index("Run deterministic source, timing, event, model and admission tests"),
+            text.index("Retrieve frozen Mempool and previously accepted checksummed Binance sources"),
+        )
+        self.assertIn("git fetch origin main", text)
+        self.assertIn("git reset --hard origin/main", text)
+        self.assertIn(
+            'git add "$report" "$manifest" research/HYPOTHESIS-REGISTRY.md research/PREREGISTERED-QFR-2026-11-27-BTC-BLOCKSPACE-FEERATE-DOWNSIDE-01.md',
+            text,
+        )
+
+    def test_btc_blockspace_fee_rate_backtest_workflow_has_narrow_path_filters(self):
+        text = (WORKFLOW_DIR / "btc-blockspace-fee-rate-btc-downside.yml").read_text(encoding="utf-8")
+        for path in (
+            '"research/PREREGISTERED-QFR-2026-11-27-BTC-BLOCKSPACE-FEERATE-DOWNSIDE-01.md"',
+            '"research/btc_blockspace_fee_rate_btc_downside.py"',
+            '"research/test_btc_blockspace_fee_rate_btc_downside.py"',
+            '"research/btc_blockspace_fee_rate_source_preflight.py"',
+            '"research/test_btc_blockspace_fee_rate_source_preflight.py"',
+            '".github/workflows/btc-blockspace-fee-rate-btc-downside.yml"',
+        ):
+            with self.subTest(path=path):
+                self.assertIn(path, text)
+        self.assertNotIn('"research/test_workflow_admission.py"', text)
+        self.assertNotIn('".github/workflows/workflow-admission-tests.yml"', text)
+
+
 if __name__ == "__main__":
     unittest.main()
