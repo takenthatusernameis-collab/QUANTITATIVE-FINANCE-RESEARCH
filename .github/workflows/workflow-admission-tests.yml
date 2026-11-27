@@ -28,6 +28,8 @@ on:
       - "research/test_taker_absorption_source_preflight.py"
       - "research/taker_absorption_btc_downside.py"
       - "research/test_taker_absorption_btc_downside.py"
+      - "research/persist_taker_absorption_evidence.py"
+      - "research/test_persist_taker_absorption_evidence.py"
       - "research/PREREGISTERED-QFR-2026-11-27-TAKER-ABSORPTION-BTC-DOWNSIDE-01.md"
       - "research/PREREGISTERED-QFR-2026-11-26-MEXC-BTC-FUNDING-DOWNSIDE-01.md"
   workflow_dispatch:
