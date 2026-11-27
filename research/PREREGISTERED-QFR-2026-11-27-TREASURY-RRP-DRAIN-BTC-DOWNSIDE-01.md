@@ -118,3 +118,12 @@ The repository already tested WALCL-only Federal Reserve total-assets contractio
 - **Manifest:** [reports/generated/treasury-rrp-drain-btc-downside/46078321167-attempt-1/manifest.json](../reports/generated/treasury-rrp-drain-btc-downside/46078321167-attempt-1/manifest.json)
 - Forecast screen only; no causal, trading or deployment claim.
 
+
+
+## Final closure
+
+- **Final status:** INCONCLUSIVE
+- **Final disposition:** INCONCLUSIVE/INFEASIBLE — implementation failed at the BTCUSDT metadata gate after the two-cycle budget was consumed.
+- **No performance inference:** the hypothesis was never empirically evaluated.
+- **No further execution:** this hypothesis ID is closed. A future study must be materially distinct and separately preregistered; do not reuse this ID for a code retry.
+- **Evidence:** [failed pre-empirical attempt 46077644835](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46077644835), [final bounded attempt 46078321167](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46078321167), [persisted manifest](../reports/generated/treasury-rrp-drain-btc-downside/46078321167-attempt-1/manifest.json).
