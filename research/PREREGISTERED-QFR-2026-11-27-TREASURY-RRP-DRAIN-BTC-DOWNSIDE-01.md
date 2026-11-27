@@ -2,7 +2,7 @@
 
 - **Hypothesis ID:** QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01
 - **Registered:** 2026-11-27T22:29:15Z, before substantive implementation and empirical-result inspection.
-- **Status:** IMPLEMENTATION_READY
+- **Status:** INCONCLUSIVE
 - **Difficulty:** LOW.
 - **Difficulty rationale:** Both inputs are free official FRED series with public CSV access; the BTC archive ingestion, downside target, walk-forward estimator and paired-loss bootstrap already exist as tested repository components. The new work is one aligned feature, one model module, deterministic tests and one frozen screen.
 - **Timebox start:** 2026-11-27T22:29:15Z
@@ -105,4 +105,16 @@ The repository already tested WALCL-only Federal Reserve total-assets contractio
 - BTCUSDT is one venue's spot history; checksummed archives establish file integrity, not consolidated-market representativeness.
 - Forecasting only. No live orders, capital deployment, trading P&L, causal claim or deployment authorization.
 - No raw source observations are committed.
+
+## Empirical disposition
+
+- **Status:** INCONCLUSIVE
+- **Disposition:** INCONCLUSIVE/INFEASIBLE — bounded source/execution failure: UnicodeDecodeError: 'utf-8' codec can't decode byte 0x89 in position 10: invalid start byte
+- **Completed real-data backtest:** no
+- **Data scope:** source acceptance incomplete
+- **Summary metrics:** {}
+- **Paired test-loss bootstrap:** null
+- **Report:** [reports/sessions/2026-11-27/2026-11-27T223617Z_session-treasury-rrp-drain-btc-46077644835.md](../reports/sessions/2026-11-27/2026-11-27T223617Z_session-treasury-rrp-drain-btc-46077644835.md)
+- **Manifest:** [reports/generated/treasury-rrp-drain-btc-downside/46077644835-attempt-1/manifest.json](../reports/generated/treasury-rrp-drain-btc-downside/46077644835-attempt-1/manifest.json)
+- Forecast screen only; no causal, trading or deployment claim.
 

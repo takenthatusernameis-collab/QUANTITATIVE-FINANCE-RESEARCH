@@ -1,0 +1,18 @@
+{
+  "alternatives_attempted": [
+    "FRED public combined WDTGAL/RRPONTSYD CSV",
+    "Binance public exchangeInfo market-data endpoint",
+    "Binance official checksummed Spot monthly/daily archive route"
+  ],
+  "completed_backtest": false,
+  "daily_kpi": "The 2026-11-27 minimum was already met by distinct real-data screens; this failed source/execution attempt does not count.",
+  "disposition": "INCONCLUSIVE/INFEASIBLE \u2014 bounded source/execution failure: UnicodeDecodeError: 'utf-8' codec can't decode byte 0x89 in position 10: invalid start byte",
+  "error": "UnicodeDecodeError: 'utf-8' codec can't decode byte 0x89 in position 10: invalid start byte",
+  "hypothesis_id": "QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01",
+  "manifest_path": "reports/generated/treasury-rrp-drain-btc-downside/46077644835-attempt-1/manifest.json",
+  "report_path": "reports/sessions/2026-11-27/2026-11-27T223617Z_session-treasury-rrp-drain-btc-46077644835.md",
+  "run_attempt": "1",
+  "run_id": "46077644835",
+  "source_commit_sha": "430f2d847afd2bfd4ba7cc42731cddce0c1b046f",
+  "status": "INCONCLUSIVE"
+}
