@@ -45,7 +45,7 @@ A new comment has a new comment ID and is a new authorization. Before retrying a
 
 ## Verified operation
 
-- Final admission/dispatch regression CI: [#46067137673](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46067137673), success; 56 tests passed, followed by all configured research regression suites. Earlier CI #46066618302 passed the initial 54-test version.
+- Final admission/dispatch regression CI: [#46067303557](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46067303557), success on the final README dispatch-policy wording; all 56 tests passed, followed by all configured research regression suites. Earlier CI #46067137673 also passed the 56-test version; #46066618302 passed the initial 54-test version.
 - First harmless probe target: [#46066554372](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46066554372), success. Its bridge run [#46066546997](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46066546997) failed after dispatch because the PR-comment reaction endpoint returned HTTP 403. The probe itself had already dispatched successfully.
 - Permission repair: added `pull-requests: write` and explicit HTTP response capture for the reaction request.
 - Second harmless probe: comment `7227938046`; bridge [#46066680693](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46066680693), success; target [#46066689151](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46066689151), success; idempotency reaction persisted.
