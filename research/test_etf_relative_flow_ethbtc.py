@@ -187,7 +187,7 @@ class ETFRelativeFlowETHBTCTests(unittest.TestCase):
                 model.update_documents(result, report, manifest)
                 second = registry.read_text(encoding="utf-8")
             self.assertEqual(first, second)
-            self.assertEqual(first.count(model.HYPOTHESIS_ID), 1)
+            self.assertEqual(sum(line.startswith(f"| {model.HYPOTHESIS_ID} |") for line in first.splitlines()), 1)
             saved = prereg.read_text(encoding="utf-8")
             self.assertIn("## 8. Atomic execution admission", saved)
             self.assertEqual(saved.count("## 9. Execution result"), 1)

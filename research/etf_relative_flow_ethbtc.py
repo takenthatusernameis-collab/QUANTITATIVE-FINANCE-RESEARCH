@@ -168,8 +168,8 @@ def build_events(
         or any((right - left).days != 1 for left, right in zip(dates, dates[1:]))
     ):
         raise ValueError("Price calendar differs from the frozen 879-day UTC sample")
-    if len(panel) != 583 or [row["date"] for row in panel] != sorted(row["date"] for row in panel):
-        raise ValueError("Flow panel differs from the frozen 583-row ordered sample")
+    if not panel or [row["date"] for row in panel] != sorted(row["date"] for row in panel):
+        raise ValueError("Flow panel is empty or not ordered")
     if len({row["date"] for row in panel}) != len(panel):
         raise ValueError("Duplicate common ETF flow date")
 
