@@ -62,7 +62,8 @@ jobs:
         run: |
           set -euo pipefail
           PYTHONPATH=research python research/wikipedia_attention_btc_downside.py
-          report="$(find reports/sessions -type f -name "*session-wikipedia-attention-btc-downside-$GITHUB_RUN_ID.md" | sort | tail -n 1)"
+          pattern="*session-wikipedia-attention-btc-downside-${GITHUB_RUN_ID}.md"
+          report="$(find reports/sessions -type f -name "$pattern" | sort | tail -n 1)"
           manifest="reports/generated/wikipedia-attention-btc-downside/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/manifest.json"
           test -n "$report"
           test -s "$report"
@@ -79,7 +80,8 @@ jobs:
           GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
           set -euo pipefail
-          report="$(find reports/sessions -type f -name "*session-wikipedia-attention-btc-downside-$GITHUB_RUN_ID.md" | sort | tail -n 1)"
+          pattern="*session-wikipedia-attention-btc-downside-${GITHUB_RUN_ID}.md"
+          report="$(find reports/sessions -type f -name "$pattern" | sort | tail -n 1)"
           manifest="reports/generated/wikipedia-attention-btc-downside/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/manifest.json"
           test -n "$report"
           test -s "$report"
@@ -96,7 +98,17 @@ jobs:
             mkdir -p "$(dirname "$report")" "$(dirname "$manifest")"
             cp "$tmp/report.md" "$report"
             cp "$tmp/manifest.json" "$manifest"
-            PYTHONPATH=research python -c 'import json,sys; import wikipedia_attention_btc_downside as m; m.update_documents(json.load(open(sys.argv[1], encoding="utf-8")), sys.argv[2], sys.argv[3])' "$manifest" "$report" "$manifest"
+            QFR_MANIFEST="$manifest" QFR_REPORT="$report" PYTHONPATH=research python - <<'PY'
+          import json
+          import os
+          import wikipedia_attention_btc_downside as model
+
+          manifest = os.environ["QFR_MANIFEST"]
+          report = os.environ["QFR_REPORT"]
+          with open(manifest, encoding="utf-8") as handle:
+              result = json.load(handle)
+          model.update_documents(result, report, manifest)
+          PY
             git add "$report" "$manifest" research/HYPOTHESIS-REGISTRY.md research/PREREGISTERED-QFR-2026-11-26-WIKIPEDIA-ATTENTION-BTC-DOWNSIDE-01.md
             if git diff --cached --quiet; then
               echo "Evidence already present on main."
