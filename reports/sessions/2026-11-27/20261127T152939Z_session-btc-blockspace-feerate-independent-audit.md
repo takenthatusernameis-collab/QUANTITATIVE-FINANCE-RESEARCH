@@ -13,7 +13,7 @@
 
 ## 1. Independent source and provenance checks
 
-- Mempool response: one GET, zero retries, HTTP 200, no payment; response SHA-256 `41738f90d16c9a7cd856435b0fe3f8164d0f743ba994b64d4987bfb4be4ceaa1`.
+- Initial read-only source preflight [run #46013880038](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46013880038) passed at 14:13:15Z. A second preflight [run #46024917231](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46024917231) was triggered redundantly by the later admission commit; both preflight executions used one GET and zero retries. The model backtest itself also used exactly one GET. Mempool response: one GET, zero retries, HTTP 200, no payment; response SHA-256 `41738f90d16c9a7cd856435b0fe3f8164d0f743ba994b64d4987bfb4be4ceaa1`.
 - The response contained 2,193 ordered 12-hour rows across 1,097 raw UTC dates. The first and last partial dates (2023-11-27 and 2026-11-27) were excluded. The accepted window contains 1,095 contiguous completed UTC dates from 2023-11-28 through 2026-11-26, with two bins per included date and a one-day publication lag.
 - Binance BTCUSDT Spot 1d data contains 1,094 contiguous candles from 2023-11-28 through 2026-11-25, retrieved from 61 monthly/daily archives.
 - I independently compared every downloaded archive URL, archive SHA-256 and checksum-sidecar SHA-256 against the previously accepted full-history manifest: **61/61 matched**. The reused full-history manifest hash is `978b00dda884620e6e19cfb32f42bbf93df1f1a19d5d0a906951e23762440bbe`; the model-window subset manifest hash is `337663735a90c3f86418aa550de5a715477f3e3a98493229af828e6496ae1e7a`.
