@@ -91,6 +91,7 @@ class TakerAbsorptionBitcoinDownsideTests(unittest.TestCase):
                 "target_start_date": signal + dt.timedelta(days=1),
                 "target_end_date": signal + dt.timedelta(days=5),
                 "target_bp": 0.1 * (index + 1),
+                "target_semivariance_pct2": math.expm1(0.1 * (index + 1)),
                 "signed_taker_absorption": 0.001 * index,
                 **{name: float(index + 1) for name in model.BASE_FEATURES},
             })
