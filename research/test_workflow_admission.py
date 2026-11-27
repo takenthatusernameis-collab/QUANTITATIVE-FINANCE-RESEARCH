@@ -13,7 +13,7 @@ ADMISSION_IF = (
     "if: github.event_name != 'push' || "
     "startsWith(github.event.head_commit.message, '[QFR-ADMIT] research:')"
 )
-NON_RESEARCH_WORKFLOWS = {"workflow-admission-tests.yml", "stablecoin-supply-source-preflight.yml", "wikipedia-attention-source-preflight.yml", "taker-absorption-source-preflight.yml", "btc-cross-venue-funding-dispersion-source-preflight.yml", "btc-mining-difficulty-closure-tests.yml"}
+NON_RESEARCH_WORKFLOWS = {"workflow-admission-tests.yml", "stablecoin-supply-source-preflight.yml", "wikipedia-attention-source-preflight.yml", "taker-absorption-source-preflight.yml", "btc-cross-venue-funding-dispersion-source-preflight.yml", "btc-mining-difficulty-closure-tests.yml", "etf-relative-flow-source-preflight.yml"}
 
 
 TIMEBOX_POLICY_CUTOVER = dt.datetime.fromisoformat("2026-11-26T10:12:25+00:00")
@@ -547,6 +547,28 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertIn("post-cutover preregistration", text.lower())
         self.assertIn("research/test_workflow_admission.py", text)
 
+
+
+    def test_etf_relative_flow_source_preflight_is_registered_as_non_research_workflow(self):
+        self.assertIn("etf-relative-flow-source-preflight.yml", NON_RESEARCH_WORKFLOWS)
+
+    def test_etf_relative_flow_source_preflight_is_read_only_and_not_a_backtest(self):
+        path = WORKFLOW_DIR / "etf-relative-flow-source-preflight.yml"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertIn("contents: read", text)
+        self.assertNotIn("contents: write", text)
+        self.assertIn("etf_relative_flow_source_preflight.py", text)
+        self.assertNotIn("etf_relative_flow_ethbtc.py", text)
+        self.assertIn("do not run a backtest", text.lower())
+
+    def test_etf_relative_flow_source_preflight_has_narrow_source_only_path_filters(self):
+        text = (WORKFLOW_DIR / "etf-relative-flow-source-preflight.yml").read_text(encoding="utf-8")
+        self.assertIn('"research/etf_relative_flow_source_preflight.py"', text)
+        self.assertIn('"research/test_etf_relative_flow_source_preflight.py"', text)
+        self.assertIn('".github/workflows/etf-relative-flow-source-preflight.yml"', text)
+        self.assertNotIn('"research/test_workflow_admission.py"', text)
+        self.assertNotIn('"research/etf_relative_flow_ethbtc.py"', text)
 
 
 if __name__ == "__main__":

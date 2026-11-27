@@ -1,0 +1,65 @@
+name: BTC/ETH relative ETF-flow source feasibility preflight
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "research/etf_relative_flow_source_preflight.py"
+      - "research/test_etf_relative_flow_source_preflight.py"
+      - "research/PREREGISTERED-QFR-2026-11-27-BTC-ETH-ETF-RELATIVE-FLOW-ETHBTC-01.md"
+      - "research/treasury_auction_demand.py"
+      - "research/stlfsi4_btc_downside_semivariance.py"
+      - ".github/workflows/etf-relative-flow-source-preflight.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qfr-btc-eth-etf-relative-flow-source-preflight-main
+  cancel-in-progress: false
+
+jobs:
+  source-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout trusted triggering commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: \${{ github.sha }}
+          persist-credentials: false
+
+      - name: Assert immutable source checkout
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$GITHUB_SHA"
+          echo "Verified source commit: $actual"
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Run deterministic HTML, flow reconciliation and archive-spec tests
+        run: |
+          set -euo pipefail
+          python -m py_compile research/etf_relative_flow_source_preflight.py research/test_etf_relative_flow_source_preflight.py
+          PYTHONPATH=research python -m unittest discover -s research -p "test_etf_relative_flow_source_preflight.py" -v
+          PYTHONPATH=research python -m unittest discover -s research -p "test_workflow_admission.py" -v
+
+      - name: Retrieve Farside flow pages and checksummed Binance Spot archives only; do not run a backtest
+        env:
+          GITHUB_RUN_ID: \${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: \${{ github.run_attempt }}
+          GITHUB_SHA: \${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python research/etf_relative_flow_source_preflight.py
+          output="reports/generated/etf-relative-flow-source-preflight/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/preflight.json"
+          test -s "$output"
+          echo "=== SOURCE PREFLIGHT RESULT ==="
+          cat "$output"
