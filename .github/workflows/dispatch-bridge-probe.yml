@@ -36,5 +36,4 @@ jobs:
           test -n "$SOURCE_COMMENT_ID"
           test "$SOURCE_CONTROL_PR" = "15"
           test "$SOURCE_ACTOR" = "takenthatusernameis-collab"
-          printf 'PROBE_OK event=%s ref=%s comment_id=%s control_pr=%s source_actor=%s sha=%s\\n' \\
-            "$GITHUB_EVENT_NAME" "$GITHUB_REF" "$SOURCE_COMMENT_ID" "$SOURCE_CONTROL_PR" "$SOURCE_ACTOR" "$GITHUB_SHA"
+          echo "PROBE_OK event=$GITHUB_EVENT_NAME ref=$GITHUB_REF comment_id=$SOURCE_COMMENT_ID control_pr=$SOURCE_CONTROL_PR source_actor=$SOURCE_ACTOR sha=$GITHUB_SHA"
