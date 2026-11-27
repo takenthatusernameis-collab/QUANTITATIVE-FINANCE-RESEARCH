@@ -29,7 +29,7 @@ jobs:
       - name: Checkout trusted triggering commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: \${{ github.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Assert immutable source checkout
@@ -53,9 +53,9 @@ jobs:
 
       - name: Retrieve Farside flow pages and checksummed Binance Spot archives only; do not run a backtest
         env:
-          GITHUB_RUN_ID: \${{ github.run_id }}
-          GITHUB_RUN_ATTEMPT: \${{ github.run_attempt }}
-          GITHUB_SHA: \${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GITHUB_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           python research/etf_relative_flow_source_preflight.py
