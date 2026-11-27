@@ -508,6 +508,7 @@ def render_report(result: dict) -> str:
         val, test = result["validation_metrics"], result["test_metrics"]
         fred = result["data_sources"]["FRED"]
         btc_source = result["data_sources"]["BTCUSDT"]
+        fred_hashes = "WDTGAL=" + fred["tga_sha256"] + "; RRPONTSYD=" + fred["rrp_sha256"]
         lines += [
             "## Preregistered method", "",
             "- Predictor: four-week log increase in WDTGAL plus ON RRP; RRP billions are converted to millions before addition.",
@@ -518,7 +519,7 @@ def render_report(result: dict) -> str:
             "- Validation: 2019–2021. Test: 2022 onward.", "",
             "## Data provenance", "",
             "| Source | First | Last | Rows | SHA-256 / manifest |", "|---|---|---|---:|---|",
-            f"| FRED WDTGAL + RRPONTSYD | {fred['first_date']} | {fred['last_date']} | {fred['common_wednesday_rows']} common Wednesdays | {("WDTGAL=" + fred["tga_sha256"] + "; RRPONTSYD=" + fred["rrp_sha256"])} |",
+            f"| FRED WDTGAL + RRPONTSYD | {fred['first_date']} | {fred['last_date']} | {fred['common_wednesday_rows']} common Wednesdays | {fred_hashes} |",
             f"| BTCUSDT | {btc_source['first_date']} | {btc_source['last_date']} | {btc_source['rows']} candles | {btc_source['archive_count']} checksummed archives; {btc_source['archive_manifest_sha256']} |",
             "", "## Walk-forward results", "",
             "| Metric | Validation 2019–2021 | Test 2022 onward |", "|---|---:|---:|",
