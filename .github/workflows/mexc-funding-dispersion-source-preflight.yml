@@ -61,9 +61,10 @@ jobs:
           pattern="*session-mexc-funding-dispersion-source-preflight-$GITHUB_RUN_ID.md"
           report="$(find reports/sessions -type f -name "$pattern" | sort | tail -n 1)"
           manifest="reports/generated/mexc-funding-dispersion-source-preflight/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/preflight.json"
-          test -n "$report"
-          test -s "$report"
-          test -s "$manifest"
+          if [ -z "$report" ] || [ ! -s "$report" ] || [ ! -s "$manifest" ]; then
+            echo "No preflight evidence was generated because tests may have failed before source retrieval; preserve the primary failure."
+            exit 0
+          fi
           tmp="$RUNNER_TEMP/qfr-mexc-funding-dispersion-preflight-$GITHUB_RUN_ID"
           mkdir -p "$tmp"
           cp "$report" "$tmp/report.md"

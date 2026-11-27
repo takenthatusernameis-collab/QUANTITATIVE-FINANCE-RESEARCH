@@ -52,12 +52,17 @@ class MexcFundingDispersionSourcePreflightTests(unittest.TestCase):
         for hour in (0, 8, 16):
             stamp = dt.datetime.combine(day, dt.time(hour), tzinfo=dt.timezone.utc)
             rows.append({"date": day, "hour": hour, "settle_utc": stamp.isoformat()})
-        summary, dates = preflight.funding_coverage.__wrapped__(rows) if hasattr(preflight.funding_coverage, "__wrapped__") else (None, None)
-        # Exercise the frozen grouping logic with a one-day local equivalent.
-        grouped = {}
-        for row in rows:
-            grouped.setdefault(row["date"], set()).add(row["hour"])
-        self.assertEqual(grouped[day], {0, 8, 16})
+        summary, dates = preflight.funding_coverage(
+            rows, start_date=day, end_date=day, min_rows=3,
+            min_complete_days=1, max_incomplete_share=0.0,
+        )
+        self.assertEqual(summary["complete_days"], 1)
+        self.assertEqual(dates, [day])
+        with self.assertRaises(ValueError):
+            preflight.funding_coverage(
+                rows[:2], start_date=day, end_date=day, min_rows=2,
+                min_complete_days=1, max_incomplete_share=0.0,
+            )
 
     def test_kline_parser_requires_hour_aligned_unix_seconds(self):
         start = int(dt.datetime(2026, 11, 26, tzinfo=dt.timezone.utc).timestamp())

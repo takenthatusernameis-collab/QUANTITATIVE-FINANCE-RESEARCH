@@ -218,32 +218,33 @@ def fetch_klines() -> tuple[dict[int, float], dict[int, str], list[dict], str, l
     return closes, raw_closes, segments, host, attempts
 
 
-def funding_coverage(rows: list[dict]) -> tuple[dict, list[dt.date]]:
-    if len(rows) < MIN_FUNDING_ROWS:
-        raise ValueError(f"funding rows {len(rows)} below minimum {MIN_FUNDING_ROWS}")
+def funding_coverage(rows: list[dict], start_date: dt.date = START_DATE, end_date: dt.date = END_DATE,
+                     min_rows: int = MIN_FUNDING_ROWS, min_complete_days: int = MIN_COMPLETE_DAYS,
+                     max_incomplete_share: float = MAX_INCOMPLETE_SHARE) -> tuple[dict, list[dt.date]]:
+    if len(rows) < min_rows:
+        raise ValueError(f"funding rows {len(rows)} below minimum {min_rows}")
     grouped: dict[dt.date, set[int]] = {}
     for row in rows:
         grouped.setdefault(row["date"], set())
         if row["hour"] in grouped[row["date"]]:
             raise ValueError(f"duplicate funding hour on {row['date']}")
         grouped[row["date"]].add(row["hour"])
-    total_days = (END_DATE - START_DATE).days + 1
-    complete = sorted(d for d, hours in grouped.items() if hours == {0, 8, 16})
+    total_days = (end_date - start_date).days + 1
+    complete = sorted(d for d, hours in grouped.items() if start_date <= d <= end_date and hours == {0, 8, 16})
     incomplete = total_days - len(complete)
     share = incomplete / total_days
-    if len(complete) < MIN_COMPLETE_DAYS or share > MAX_INCOMPLETE_SHARE:
+    if len(complete) < min_complete_days or share > max_incomplete_share:
         raise ValueError(f"funding coverage gate failed: complete={len(complete)}, incomplete_share={share:.4%}")
-    if max(complete) < END_DATE - dt.timedelta(days=2):
+    if max(complete) < end_date - dt.timedelta(days=2):
         raise ValueError(f"latest complete funding date is stale: {max(complete)}")
     return {
-        "sample_start": START_DATE.isoformat(), "sample_end": END_DATE.isoformat(),
+        "sample_start": start_date.isoformat(), "sample_end": end_date.isoformat(),
         "settlements": len(rows), "complete_days": len(complete),
         "incomplete_days": incomplete, "incomplete_share": share,
         "first_settlement": min(r["settle_utc"] for r in rows),
         "last_settlement": max(r["settle_utc"] for r in rows),
         "latest_complete_date": max(complete).isoformat(),
     }, complete
-
 
 def kline_coverage(closes: dict[int, float]) -> dict:
     start, end = int(KLINE_START.timestamp()), int(KLINE_END.timestamp())
@@ -294,6 +295,7 @@ def event_coverage(dates: list[dt.date], closes: dict[int, float]) -> dict:
 
 def canonical_hash(rows: list[dict], keys: tuple[str, ...]) -> str:
     serial = [{key: row[key] for key in keys} for row in rows]
+    serial.sort(key=lambda item: tuple(str(item[key]) for key in keys))
     return digest(json.dumps(serial, sort_keys=True, separators=(",", ":")).encode())
 
 
