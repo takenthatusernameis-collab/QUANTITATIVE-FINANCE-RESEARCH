@@ -1,0 +1,51 @@
+name: BTC cross-venue funding dispersion source feasibility preflight
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "research/btc_cross_venue_funding_dispersion_source_preflight.py"
+      - "research/test_btc_cross_venue_funding_dispersion_source_preflight.py"
+      - "research/PREREGISTERED-QFR-2026-11-27-BTC-CROSS-VENUE-FUNDING-DISPERSION-DOWNSIDE-01.md"
+      - "research/mexc_btc_funding_downside.py"
+      - "research/stlfsi4_btc_downside_semivariance.py"
+      - "research/treasury_auction_demand.py"
+      - ".github/workflows/btc-cross-venue-funding-dispersion-source-preflight.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qfr-btc-cross-venue-funding-dispersion-source-preflight-main
+  cancel-in-progress: false
+
+jobs:
+  source-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout trusted triggering commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Run deterministic pagination, cadence, matching and event-construction tests
+        run: |
+          set -euo pipefail
+          python -m py_compile research/treasury_auction_demand.py research/stlfsi4_btc_downside_semivariance.py research/mexc_btc_funding_downside.py research/btc_cross_venue_funding_dispersion_source_preflight.py research/test_btc_cross_venue_funding_dispersion_source_preflight.py
+          PYTHONPATH=research python -m unittest discover -s research -p "test_btc_cross_venue_funding_dispersion_source_preflight.py" -v
+          PYTHONPATH=research python -m unittest discover -s research -p "test_workflow_admission.py" -v
+
+      - name: Retrieve public funding sources and checksummed Binance Spot archives only; do not run a backtest
+        run: |
+          set -euo pipefail
+          PYTHONPATH=research python research/btc_cross_venue_funding_dispersion_source_preflight.py

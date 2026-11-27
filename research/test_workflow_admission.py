@@ -12,7 +12,7 @@ ADMISSION_IF = (
     "if: github.event_name != 'push' || "
     "startsWith(github.event.head_commit.message, '[QFR-ADMIT] research:')"
 )
-NON_RESEARCH_WORKFLOWS = {"workflow-admission-tests.yml", "stablecoin-supply-source-preflight.yml", "wikipedia-attention-source-preflight.yml", "taker-absorption-source-preflight.yml"}
+NON_RESEARCH_WORKFLOWS = {"workflow-admission-tests.yml", "stablecoin-supply-source-preflight.yml", "wikipedia-attention-source-preflight.yml", "taker-absorption-source-preflight.yml", "btc-cross-venue-funding-dispersion-source-preflight.yml"}
 
 
 class ResearchWorkflowAdmissionTests(unittest.TestCase):
@@ -320,6 +320,31 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         workflow = (WORKFLOW_DIR / "workflow-admission-tests.yml").read_text(encoding="utf-8")
         self.assertIn("research/decision_hierarchy.py", workflow)
         self.assertIn('test_decision_hierarchy.py', workflow)
+
+
+    def test_cross_venue_funding_source_preflight_has_narrow_path_filters(self):
+        text = (WORKFLOW_DIR / "btc-cross-venue-funding-dispersion-source-preflight.yml").read_text(encoding="utf-8")
+        self.assertIn('"research/btc_cross_venue_funding_dispersion_source_preflight.py"', text)
+        self.assertIn('"research/test_btc_cross_venue_funding_dispersion_source_preflight.py"', text)
+        self.assertIn('"research/PREREGISTERED-QFR-2026-11-27-BTC-CROSS-VENUE-FUNDING-DISPERSION-DOWNSIDE-01.md"', text)
+        self.assertIn('".github/workflows/btc-cross-venue-funding-dispersion-source-preflight.yml"', text)
+        self.assertNotIn('"research/test_workflow_admission.py"', text)
+        self.assertNotIn('".github/workflows/workflow-admission-tests.yml"', text)
+
+    def test_cross_venue_funding_source_preflight_is_read_only_and_not_a_backtest(self):
+        path = WORKFLOW_DIR / "btc-cross-venue-funding-dispersion-source-preflight.yml"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertIn("contents: read", text)
+        self.assertNotIn("contents: write", text)
+        self.assertIn("btc_cross_venue_funding_dispersion_source_preflight.py", text)
+        self.assertNotIn("btc_cross_venue_funding_dispersion_downside.py", text)
+        self.assertIn("do not run a backtest", text.lower())
+        self.assertIn("cancel-in-progress: false", text)
+        self.assertIn("ref: ${{ github.sha }}", text)
+
+    def test_cross_venue_source_preflight_is_excluded_from_research_admission_gate(self):
+        self.assertIn("btc-cross-venue-funding-dispersion-source-preflight.yml", NON_RESEARCH_WORKFLOWS)
 
 
 if __name__ == "__main__":
