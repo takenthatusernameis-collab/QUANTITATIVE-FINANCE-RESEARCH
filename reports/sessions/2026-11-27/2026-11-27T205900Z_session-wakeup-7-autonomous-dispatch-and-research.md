@@ -93,3 +93,14 @@ Do not reopen or retune this hypothesis ID. Next research action: identify a mat
 Approximate session effort: 70% automation/repository operations and 30% empirical result verification/research.
 
 No live trading, capital deployment, paid data acquisition or strategy promotion occurred.
+
+
+## Final README policy and CI verification addendum
+
+**Verification time:** 2026-11-27T21:00:02Z
+
+- The final README policy now explicitly states that `workflow_dispatch` is the bridge's internal target event and owner-controlled break-glass only; normal agent retries use the exact allowlisted control-PR command, not a manual UI launch.
+- The final [README/admission CI #46067303557](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46067303557) completed successfully on the README policy change. All 56 admission/dispatch tests and all configured research regression suites passed.
+- The BTC mining-difficulty unadmitted-draft closure CI [#46067137633](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46067137633) also passed.
+- At verification, GitHub reported zero queued, in-progress or waiting Actions runs.
+- Main immediately before this addendum: `ea4e9cc2d3ca605135522ea1c25f401bb9b8a064`. This addendum is committed after that state.
