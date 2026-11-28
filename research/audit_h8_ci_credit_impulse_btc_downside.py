@@ -104,8 +104,9 @@ def validate_forecast_rows(rows: list[dict]) -> None:
         if not close_enough(row["augmented_squared_error"], augmented_error):
             raise ValueError(f"row {index}: augmented squared error does not reconcile")
         if previous_signal is not None:
-            if (signal - previous_signal).days != 7:
-                raise ValueError(f"row {index}: forecast origins are not weekly")
+            gap_days = (signal - previous_signal).days
+            if gap_days < 7 or gap_days % 7 != 0:
+                raise ValueError(f"row {index}: forecast origins are not on the weekly Sunday grid")
             if previous_target_end >= signal:
                 raise ValueError(f"row {index}: a prior target overlaps or remains immature")
         previous_signal = signal

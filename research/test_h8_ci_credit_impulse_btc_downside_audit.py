@@ -39,9 +39,13 @@ class H8IndependentAuditTests(unittest.TestCase):
         ]
         audit.validate_forecast_rows(rows)
 
-    def test_rejects_nonweekly_forecast_origins(self):
+    def test_allows_skipped_invalid_weekly_vintage_without_target_overlap(self):
         rows = [self.row("2026-10-04"), self.row("2026-10-18")]
-        with self.assertRaisesRegex(ValueError, "not weekly"):
+        audit.validate_forecast_rows(rows)
+
+    def test_rejects_non_sunday_forecast_origin(self):
+        rows = [self.row("2026-10-04"), self.row("2026-10-12")]
+        with self.assertRaisesRegex(ValueError, "same Sunday"):
             audit.validate_forecast_rows(rows)
 
     def test_rejects_unmatured_or_wrong_sized_training_window(self):
