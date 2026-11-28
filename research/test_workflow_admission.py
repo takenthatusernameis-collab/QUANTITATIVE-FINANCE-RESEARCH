@@ -25,6 +25,7 @@ NON_RESEARCH_WORKFLOWS = {
     "initial-claims-source-preflight.yml",
     "mexc-funding-dispersion-source-preflight.yml",
     "ethereum-dex-turnover-eth-rv-source-preflight.yml",
+    "ethereum-dex-turnover-eth-rv-audit.yml",
     "chatgpt-control-pr-dispatch.yml",
     "dispatch-bridge-probe.yml",
 }
