@@ -1,0 +1,79 @@
+name: Delete the specifically authorized obsolete release
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_comment_id:
+        description: "Originating control-PR comment ID"
+        required: true
+        type: string
+      source_control_pr:
+        description: "Originating control PR number"
+        required: true
+        type: string
+      source_actor:
+        description: "Verified command author"
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  delete-release:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.source_control_pr == '15' &&
+      inputs.source_actor == 'takenthatusernameis-collab'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Verify exact release identity, delete release and tag, then verify absence
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          SOURCE_COMMENT_ID: ${{ inputs.source_comment_id }}
+          SOURCE_CONTROL_PR: ${{ inputs.source_control_pr }}
+          SOURCE_ACTOR: ${{ inputs.source_actor }}
+          RELEASE_ID: "455845473"
+          RELEASE_TAG: "spot-holdout-2026"
+          RELEASE_NAME: "Prospective Binance Spot ETH/BTC holdout — 2026"
+        run: |
+          set -euo pipefail
+
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+          test "$GITHUB_REF" = "refs/heads/main"
+          [[ "$SOURCE_COMMENT_ID" =~ ^[0-9]+$ ]]
+          test "$SOURCE_CONTROL_PR" = "15"
+          test "$SOURCE_ACTOR" = "takenthatusernameis-collab"
+          test "$REPOSITORY" = "takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH"
+
+          echo "AUTHORIZED_DELETE source_comment=$SOURCE_COMMENT_ID source_pr=$SOURCE_CONTROL_PR source_actor=$SOURCE_ACTOR sha=$GITHUB_SHA"
+
+          release="$(gh api "repos/$REPOSITORY/releases/$RELEASE_ID")"
+          printf '%s' "$release" | jq -e \
+            --argjson id "$RELEASE_ID" \
+            --arg tag "$RELEASE_TAG" \
+            --arg name "$RELEASE_NAME" \
+            '.id == $id and .tag_name == $tag and .name == $name' >/dev/null
+
+          echo "Verified exact release ID=$RELEASE_ID tag=$RELEASE_TAG name=$RELEASE_NAME"
+          gh api --method DELETE "repos/$REPOSITORY/releases/$RELEASE_ID"
+          echo "Deleted release record and its uploaded release assets."
+
+          # Delete only the exact tag associated with the verified release.
+          gh api --method DELETE "repos/$REPOSITORY/git/refs/tags/$RELEASE_TAG"
+          echo "Deleted tag $RELEASE_TAG"
+
+          if gh api "repos/$REPOSITORY/releases/$RELEASE_ID" >/dev/null 2>&1; then
+            echo "ERROR: release still exists after deletion."
+            exit 1
+          fi
+          if gh api "repos/$REPOSITORY/git/ref/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "ERROR: tag still exists after deletion."
+            exit 1
+          fi
+
+          echo "DELETE_VERIFIED release_id=$RELEASE_ID tag=$RELEASE_TAG assets_removed_with_release=true"
