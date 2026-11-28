@@ -463,12 +463,8 @@ def run_preflight() -> dict:
     tvl = parse_tvl_history(tvl_body)
     dex_coverage = validate_daily_coverage(dex, "Ethereum DEX daily notional volume")
     tvl_coverage = validate_daily_coverage(tvl, "Ethereum DeFi TVL", require_positive=True)
-    dex_canonical = hashlib.sha256(
-        "".join(f"{day.isoformat()},{value:.12g}\n" for day, value in sorted(dex.items())).encode("ascii")
-    ).hexdigest()
-    tvl_canonical = hashlib.sha256(
-        "".join(f"{day.isoformat()},{value:.12g}\n" for day, value in sorted(tvl.items())).encode("ascii")
-    ).hexdigest()
+    dex_canonical = canonical_daily_sha256(dex)
+    tvl_canonical = canonical_daily_sha256(tvl)
     PARTIAL_EVIDENCE["dex_source"] = {
         "endpoint": DEX_URL,
         "response_sha256": hashlib.sha256(dex_body).hexdigest(),
