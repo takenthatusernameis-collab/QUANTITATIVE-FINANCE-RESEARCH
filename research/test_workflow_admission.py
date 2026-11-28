@@ -24,6 +24,7 @@ NON_RESEARCH_WORKFLOWS = {
     "btc-blockspace-fee-rate-source-preflight.yml",
     "initial-claims-source-preflight.yml",
     "mexc-funding-dispersion-source-preflight.yml",
+    "ethereum-dex-turnover-eth-rv-source-preflight.yml",
     "chatgpt-control-pr-dispatch.yml",
     "dispatch-bridge-probe.yml",
 }
@@ -884,6 +885,31 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, text)
+
+
+    def test_ethereum_dex_turnover_source_preflight_has_narrow_path_filters(self):
+        path = WORKFLOW_DIR / "ethereum-dex-turnover-eth-rv-source-preflight.yml"
+        text = path.read_text(encoding="utf-8")
+        for expected in (
+            '"research/ethereum_dex_turnover_eth_rv_source_preflight.py"',
+            '"research/test_ethereum_dex_turnover_eth_rv_source_preflight.py"',
+            '"research/PREREGISTERED-QFR-2026-11-28-ETHEREUM-DEX-TURNOVER-ETH-RV-01.md"',
+            '".github/workflows/ethereum-dex-turnover-eth-rv-source-preflight.yml"',
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, text)
+        self.assertNotIn('"research/test_workflow_admission.py"', text)
+        self.assertNotIn('"research/ethereum_dex_turnover_eth_rv.py"', text)
+
+    def test_ethereum_dex_turnover_source_preflight_is_read_only_and_not_a_backtest(self):
+        path = WORKFLOW_DIR / "ethereum-dex-turnover-eth-rv-source-preflight.yml"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertIn("contents: read", text)
+        self.assertNotIn("contents: write", text)
+        self.assertIn("ethereum_dex_turnover_eth_rv_source_preflight.py", text)
+        self.assertNotIn("ethereum_dex_turnover_eth_rv.py", text)
+        self.assertIn("do not run a backtest", text.lower())
 
 
 
