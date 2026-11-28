@@ -281,7 +281,7 @@ class EthereumValidatorQueueSourcePreflightTests(unittest.TestCase):
         payload = synthetic_series()
         for component in payload["components"]:
             component.pop("unit")
-        with self.assertRaisesRegex(model.PreflightError, "not expressed in days"):
+        with self.assertRaisesRegex(model.PreflightError, "no validated series/catalog unit is available"):
             model.validate_queue_series(payload, headers)
 
     def test_series_rejects_parent_unit_conflict_with_validated_catalog(self):
