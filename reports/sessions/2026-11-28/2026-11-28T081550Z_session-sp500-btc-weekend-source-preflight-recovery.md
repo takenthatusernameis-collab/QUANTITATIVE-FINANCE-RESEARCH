@@ -53,3 +53,9 @@
 - The sample-size gate passes independently: 440 accepted weekly events, 90 eligible validation forecasts and 246 eligible test forecasts after 104 matured training events. This does not override the failed source-coverage gate.
 - No model was fitted, no backtest was run, and no performance inference is authorized.
 - Next bounded source-recovery experiment: fetch official Binance daily BTCUSDT 1h archives for dates containing primary missing/anomalous hours, excluding dates already retrieved. Verify each ZIP/CHECKSUM; fill only exact missing UTC-hour bars; require exact equality on every overlap; remove conflicting hours and fail closed. If the daily archives do not recover coverage below the original thresholds, close this source formulation INCONCLUSIVE/INFEASIBLE rather than relaxing the limits or fitting a model.
+
+## Implementation validation correction
+
+- The first push of the gap-specific daily-archive recovery implementation triggered CI, but the compile/test step caught a malformed `return {` boundary in the rewritten preflight function before any new archive fetch occurred.
+- Corrected the return boundary in the next commit; the source-only workflow is triggered again. The failed compile is an implementation defect, not a source-data result.
+- The daily-repair acceptance rules and frozen data-quality thresholds are unchanged.

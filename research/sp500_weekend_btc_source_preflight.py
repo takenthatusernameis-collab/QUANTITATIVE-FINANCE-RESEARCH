@@ -755,7 +755,8 @@ def run_preflight(
         gate_errors.append(
             f"Insufficient eligible test forecasts: {feasibility['eligible_test_forecasts']}"
         )
-            "hypothesis_id": HYPOTHESIS_ID,
+    return {
+        "hypothesis_id": HYPOTHESIS_ID,
         "status": "PASS" if not gate_errors else "FAIL",
         "gate_errors": gate_errors,
         "retrieved_at_utc": retrieved_at.isoformat(),
