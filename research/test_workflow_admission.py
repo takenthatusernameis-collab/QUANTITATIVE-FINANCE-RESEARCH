@@ -122,7 +122,7 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertIn("forecast_rows.csv", text)
         self.assertIn("mexc_funding_dispersion_btc_rv.py", text)
         self.assertIn("cancel-in-progress: false", text)
-        self.assertIn("pip install -r research/requirements.txt", text)
+        self.assertIn("pip install --disable-pip-version-check -r research/requirements.txt", text)
 
     def test_mexc_funding_dispersion_source_preflight_has_narrow_source_only_path_filters(self):
         text = (WORKFLOW_DIR / "mexc-funding-dispersion-source-preflight.yml").read_text(encoding="utf-8")

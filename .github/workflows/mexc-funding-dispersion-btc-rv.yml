@@ -6,6 +6,7 @@ on:
     paths:
       - "research/mexc_funding_dispersion_btc_rv.py"
       - "research/test_mexc_funding_dispersion_btc_rv.py"
+      - "research/test_workflow_admission.py"
       - "research/requirements.txt"
       - "research/PREREGISTERED-QFR-2026-11-27-MEXC-FUNDING-DISPERSION-BTC-RV-01.md"
       - ".github/workflows/mexc-funding-dispersion-btc-rv.yml"
