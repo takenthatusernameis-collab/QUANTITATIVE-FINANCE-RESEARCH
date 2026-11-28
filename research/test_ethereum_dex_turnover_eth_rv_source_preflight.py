@@ -55,7 +55,7 @@ class EthereumDexTurnoverSourcePreflightTests(unittest.TestCase):
             ]}).encode())
         with self.assertRaisesRegex(ValueError, "invalid value"):
             model.parse_tvl_history(json.dumps([tvl_row(dt.date(2021, 1, 1), 0)]).encode())
-        with self.assertRaisesRegex(ValueError, "row 0 is not an object"):
+        with self.assertRaisesRegex(ValueError, "must be \\[unix_timestamp, USD_volume\\]"):
             model.parse_dex_history(b'{"totalDataChart":[1]}')
 
     def test_daily_coverage_requires_depth_freshness_and_bounded_gaps(self):
