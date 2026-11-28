@@ -104,11 +104,71 @@ class Sp500WeekendBtcSourcePreflightTests(unittest.TestCase):
             dt.date(2017, 8, 18), dt.date(2026, 11, 22)
         )
         daily = model.build_daily_archive_specs(dt.date(2026, 11, 22))
+        gap_daily = model.build_daily_archive_specs_for_dates([
+            dt.date(2018, 2, 9), dt.date(2018, 2, 10)
+        ])
         self.assertEqual(monthly[0]["filename"], "BTCUSDT-1h-2017-08.zip")
         self.assertEqual(monthly[-1]["filename"], "BTCUSDT-1h-2026-10.zip")
         self.assertEqual(daily[0]["filename"], "BTCUSDT-1h-2026-11-01.zip")
         self.assertEqual(daily[-1]["filename"], "BTCUSDT-1h-2026-11-22.zip")
-        self.assertTrue(all("/data/spot/" in row["url"] for row in monthly + daily))
+        self.assertEqual(
+            [row["filename"] for row in gap_daily],
+            ["BTCUSDT-1h-2018-02-09.zip", "BTCUSDT-1h-2018-02-10.zip"],
+        )
+        self.assertTrue(all("/data/spot/" in row["url"] for row in monthly + daily + gap_daily))
+
+    def test_daily_archive_reconciliation_fills_only_missing_hours_and_checks_overlaps(self):
+        start = dt.datetime(2020, 1, 1, tzinfo=UTC)
+        primary = {
+            start: 100.0,
+            start + dt.timedelta(hours=2): 102.0,
+        }
+        daily = {
+            start: 100.0,
+            start + dt.timedelta(hours=1): 101.0,
+            start + dt.timedelta(hours=2): 102.0,
+        }
+        record = {
+            "period": "2020-01-01",
+            "url": "https://data.binance.vision/BTCUSDT-1h-2020-01-01.zip",
+            "checksum_url": "https://data.binance.vision/BTCUSDT-1h-2020-01-01.zip.CHECKSUM",
+            "archive_sha256": "a" * 64,
+            "checksum_sha256": "b" * 64,
+            "checksum_verified": True,
+            "rows": 24,
+            "timestamp_unit": "milliseconds",
+            "invalid_row_count": 0,
+        }
+        merged, summary = model.reconcile_daily_archive_rows(
+            primary, [(daily, record)], start, start + dt.timedelta(hours=3)
+        )
+        self.assertEqual(merged[start + dt.timedelta(hours=1)], 101.0)
+        self.assertEqual(merged[start + dt.timedelta(hours=2)], 102.0)
+        self.assertEqual(summary["recovered_hour_count"], 1)
+        self.assertEqual(summary["matching_overlap_count"], 2)
+        self.assertEqual(summary["conflict_count"], 0)
+
+    def test_daily_archive_conflict_removes_the_hour_and_fails_closed(self):
+        start = dt.datetime(2020, 1, 1, tzinfo=UTC)
+        primary = {start: 100.0}
+        daily = {start: 100.01}
+        record = {
+            "period": "2020-01-01",
+            "url": "https://data.binance.vision/BTCUSDT-1h-2020-01-01.zip",
+            "checksum_url": "https://data.binance.vision/BTCUSDT-1h-2020-01-01.zip.CHECKSUM",
+            "archive_sha256": "a" * 64,
+            "checksum_sha256": "b" * 64,
+            "checksum_verified": True,
+            "rows": 24,
+            "timestamp_unit": "milliseconds",
+            "invalid_row_count": 0,
+        }
+        merged, summary = model.reconcile_daily_archive_rows(
+            primary, [(daily, record)], start, start + dt.timedelta(hours=1)
+        )
+        self.assertNotIn(start, merged)
+        self.assertEqual(summary["conflict_count"], 1)
+        self.assertEqual(summary["conflicts"][0]["timestamp"], start.isoformat())
 
     def test_anomaly_hours_are_scoped_to_required_window_and_deduplicated(self):
         start = dt.datetime(2026, 1, 1, tzinfo=UTC)

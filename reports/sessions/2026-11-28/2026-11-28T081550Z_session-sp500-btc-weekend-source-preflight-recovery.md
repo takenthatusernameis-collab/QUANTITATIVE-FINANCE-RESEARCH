@@ -43,3 +43,13 @@
 ## Effort allocation
 
 - Approximate effort: 65% source/data-method diagnosis and research design; 35% implementation, deterministic validation and repository operations.
+
+## Follow-on result — exact source coverage and daily-archive recovery
+
+- The corrected source-only preflight [#46125803757](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46125803757) passed all 13 deterministic tests and produced a complete diagnostic manifest.
+- The prior concern that the 44 malformed rows might be inflated by out-of-scope dates or duplicate hour buckets was **not borne out**: all 44 rows are inside the required window and affect 44 distinct UTC hours.
+- FRED passed: 2,331 positive daily observations, 2017-08-18 through 2026-11-25; latest observation age 3 days; maximum calendar gap 4 days. Historical intraday first-publication timestamps remain unavailable, so the registered point-in-time limitation persists.
+- Binance monthly/current-month daily archives were checksum-verified, but only 81,033 of 81,204 required hourly bars were present. The effective gap is 171 hours (0.21058%), maximum consecutive gap 75 hours; the frozen limits are 24 hours, 0.05%, and four consecutive hours. Coverage therefore remains FAIL.
+- The sample-size gate passes independently: 440 accepted weekly events, 90 eligible validation forecasts and 246 eligible test forecasts after 104 matured training events. This does not override the failed source-coverage gate.
+- No model was fitted, no backtest was run, and no performance inference is authorized.
+- Next bounded source-recovery experiment: fetch official Binance daily BTCUSDT 1h archives for dates containing primary missing/anomalous hours, excluding dates already retrieved. Verify each ZIP/CHECKSUM; fill only exact missing UTC-hour bars; require exact equality on every overlap; remove conflicting hours and fail closed. If the daily archives do not recover coverage below the original thresholds, close this source formulation INCONCLUSIVE/INFEASIBLE rather than relaxing the limits or fitting a model.

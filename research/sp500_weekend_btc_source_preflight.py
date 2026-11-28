@@ -157,16 +157,23 @@ def build_monthly_archive_specs(start: dt.date, latest_target_end: dt.date) -> l
     return specs
 
 
-def build_daily_archive_specs(latest_target_end: dt.date) -> list[dict]:
-    month_start = dt.date(latest_target_end.year, latest_target_end.month, 1)
+def build_daily_archive_specs_for_dates(dates) -> list[dict]:
     specs = []
-    for offset in range((latest_target_end - month_start).days + 1):
-        day = month_start + dt.timedelta(days=offset)
+    for day in sorted(set(dates)):
         tag = day.isoformat()
         filename = f"BTCUSDT-1h-{tag}.zip"
         url = f"{BINANCE_VISION}/data/spot/daily/klines/BTCUSDT/1h/{filename}"
         specs.append({"kind": "daily", "tag": tag, "filename": filename, "url": url})
     return specs
+
+
+def build_daily_archive_specs(latest_target_end: dt.date) -> list[dict]:
+    month_start = dt.date(latest_target_end.year, latest_target_end.month, 1)
+    days = (
+        month_start + dt.timedelta(days=offset)
+        for offset in range((latest_target_end - month_start).days + 1)
+    )
+    return build_daily_archive_specs_for_dates(days)
 
 
 def parse_btc_hourly_archive(body: bytes) -> tuple[dict[dt.datetime, float], str, dict]:
@@ -331,6 +338,31 @@ def download_archive_group(specs: list[dict], downloader=download_archive) -> li
     return [results[index] for index in range(len(specs))]
 
 
+def download_archive_group_best_effort(
+    specs: list[dict], downloader=download_archive
+) -> tuple[list[tuple[dict, dict]], list[dict]]:
+    """Download independent repair archives while preserving per-file failures."""
+    results: dict[int, tuple[dict, dict]] = {}
+    failures = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=WORKERS) as executor:
+        futures = {
+            executor.submit(downloader, spec): (index, spec)
+            for index, spec in enumerate(specs)
+        }
+        for future in concurrent.futures.as_completed(futures):
+            index, spec = futures[future]
+            try:
+                results[index] = future.result()
+            except Exception as exc:
+                failures.append({
+                    "period": spec.get("tag"),
+                    "filename": spec.get("filename"),
+                    "error": f"{type(exc).__name__}: {exc}",
+                })
+    failures.sort(key=lambda row: str(row["period"]))
+    return [results[index] for index in range(len(specs)) if index in results], failures
+
+
 def merge_archive_results(results: list[tuple[dict, dict]]) -> dict[dt.datetime, float]:
     merged: dict[dt.datetime, float] = {}
     for rows, record in results:
@@ -344,6 +376,83 @@ def merge_archive_results(results: list[tuple[dict, dict]]) -> dict[dt.datetime,
     if not merged:
         raise ValueError("No Binance BTCUSDT hourly rows were acquired")
     return dict(sorted(merged.items()))
+
+
+def reconcile_daily_archive_rows(
+    primary_rows: dict[dt.datetime, float],
+    daily_results: list[tuple[dict, dict]],
+    start: dt.datetime,
+    end_exclusive: dt.datetime,
+) -> tuple[dict[dt.datetime, float], dict]:
+    """Fill exact missing hours from checksummed daily archives; never overwrite.
+
+    Every overlapping close must match exactly. A conflict removes that hour from
+    the trusted merged series and is returned as a hard acceptance failure.
+    """
+    merged = dict(primary_rows)
+    recovered = set()
+    conflicted = set()
+    conflicts = []
+    matching_overlaps = 0
+    archive_summaries = []
+
+    for rows, record in daily_results:
+        in_scope = {
+            stamp: close for stamp, close in rows.items()
+            if start <= stamp < end_exclusive
+        }
+        recovered_here = []
+        matching_here = 0
+        conflicts_here = []
+        for stamp, close in sorted(in_scope.items()):
+            if stamp in conflicted:
+                continue
+            if stamp in merged:
+                if float(merged[stamp]) != float(close):
+                    primary_close = float(merged.pop(stamp))
+                    conflicted.add(stamp)
+                    conflict = {
+                        "timestamp": stamp.isoformat(),
+                        "existing_close": primary_close,
+                        "daily_archive_close": float(close),
+                        "archive": record["url"].rsplit("/", 1)[-1],
+                    }
+                    conflicts.append(conflict)
+                    conflicts_here.append(conflict)
+                else:
+                    matching_overlaps += 1
+                    matching_here += 1
+            else:
+                merged[stamp] = float(close)
+                recovered.add(stamp)
+                recovered_here.append(stamp.isoformat())
+        archive_summaries.append({
+            "period": record["period"],
+            "filename": record["url"].rsplit("/", 1)[-1],
+            "url": record["url"],
+            "checksum_url": record["checksum_url"],
+            "archive_sha256": record["archive_sha256"],
+            "checksum_sha256": record["checksum_sha256"],
+            "checksum_verified": record["checksum_verified"],
+            "rows": record["rows"],
+            "timestamp_unit": record["timestamp_unit"],
+            "invalid_row_count": record["invalid_row_count"],
+            "recovered_hour_count": len(recovered_here),
+            "recovered_hour_timestamps": recovered_here,
+            "matching_overlap_count": matching_here,
+            "conflict_count": len(conflicts_here),
+            "conflicts": conflicts_here,
+        })
+
+    return dict(sorted(merged.items())), {
+        "candidate_archive_count": len(daily_results),
+        "recovered_hour_count": len(recovered),
+        "recovered_hour_timestamps": [stamp.isoformat() for stamp in sorted(recovered)],
+        "matching_overlap_count": matching_overlaps,
+        "conflict_count": len(conflicts),
+        "conflicts": conflicts,
+        "archives": archive_summaries,
+    }
 
 
 def anomaly_hour_timestamps(
@@ -554,18 +663,53 @@ def run_preflight(
     monthly_specs = build_monthly_archive_specs(START_DATE, target_end.date())
     daily_specs = build_daily_archive_specs(target_end.date())
     archive_specs = monthly_specs + daily_specs
-    archive_results = download_archive_group(archive_specs, downloader=archive_downloader)
-    all_prices = merge_archive_results(archive_results)
-    invalid_archive_rows = sum(record["invalid_row_count"] for _, record in archive_results)
+    primary_archive_results = download_archive_group(archive_specs, downloader=archive_downloader)
+    primary_all_prices = merge_archive_results(primary_archive_results)
     start = dt.datetime.combine(START_DATE, dt.time(), tzinfo=dt.timezone.utc)
-    prices = {
-        stamp: close for stamp, close in all_prices.items()
+    primary_prices = {
+        stamp: close for stamp, close in primary_all_prices.items()
         if start <= stamp < target_end
     }
-    anomaly_hours = anomaly_hour_timestamps(archive_results, start, target_end)
+    primary_anomaly_hours = anomaly_hour_timestamps(primary_archive_results, start, target_end)
+    expected_hours = {
+        start + dt.timedelta(hours=index)
+        for index in range(int((target_end - start).total_seconds() // SECONDS_PER_HOUR))
+    }
+    primary_missing_hours = expected_hours - set(primary_prices)
+    repair_dates = sorted({
+        stamp.date() for stamp in (primary_missing_hours | primary_anomaly_hours)
+    })
+    already_downloaded_daily_dates = {
+        dt.date.fromisoformat(spec["tag"]) for spec in daily_specs
+    }
+    repair_specs = build_daily_archive_specs_for_dates(
+        day for day in repair_dates if day not in already_downloaded_daily_dates
+    )
+    repair_results, repair_failures = download_archive_group_best_effort(
+        repair_specs, downloader=archive_downloader
+    )
+    prices, daily_repair = reconcile_daily_archive_rows(
+        primary_prices, repair_results, start, target_end
+    )
+    all_archive_results = primary_archive_results + repair_results
+    invalid_archive_rows = sum(
+        record["invalid_row_count"] for _, record in all_archive_results
+    )
+    raw_anomaly_hours = anomaly_hour_timestamps(all_archive_results, start, target_end)
+    unresolved_anomaly_hours = raw_anomaly_hours - set(prices)
+
+    primary_coverage = validate_hourly_coverage(
+        primary_prices, start, target_end,
+        anomaly_hours=primary_anomaly_hours, enforce_limits=False
+    )
+    hourly_coverage = validate_hourly_coverage(
+        prices, start, target_end,
+        anomaly_hours=unresolved_anomaly_hours, enforce_limits=False
+    )
     archive_anomalies = []
     invalid_archive_rows_in_required_window = 0
-    for _, record in archive_results:
+    recovered_hours = {dt.datetime.fromisoformat(value) for value in daily_repair["recovered_hour_timestamps"]}
+    for _, record in all_archive_results:
         if not record["invalid_row_count"]:
             continue
         detailed_anomalies = []
@@ -579,6 +723,8 @@ def run_preflight(
                 **anomaly,
                 "affected_hour_utc": affected_hour.isoformat(),
                 "affects_required_window": in_required_window,
+                "hour_has_verified_aligned_bar": affected_hour in prices,
+                "recovered_by_gap_daily_archive": affected_hour in recovered_hours,
             })
         archive_anomalies.append({
             "period": record["period"],
@@ -586,14 +732,13 @@ def run_preflight(
             "anomalies": detailed_anomalies,
         })
 
-    # The frozen missingness limits apply to unique affected hours inside the
-    # required sample, not raw malformed rows across whole archive files.
-    hourly_coverage = validate_hourly_coverage(
-        prices, start, target_end, anomaly_hours=anomaly_hours, enforce_limits=False
-    )
     returns = hourly_returns(prices)
     feasibility = event_feasibility(sp500, returns, latest_friday)
     gate_errors = []
+    if daily_repair["conflict_count"]:
+        gate_errors.append(
+            f"Daily archive close conflicts: {daily_repair['conflict_count']}"
+        )
     if not hourly_coverage["within_limits"]:
         gate_errors.append(
             "Binance hourly gaps exceed frozen limits: "
@@ -610,8 +755,7 @@ def run_preflight(
         gate_errors.append(
             f"Insufficient eligible test forecasts: {feasibility['eligible_test_forecasts']}"
         )
-    return {
-        "hypothesis_id": HYPOTHESIS_ID,
+            "hypothesis_id": HYPOTHESIS_ID,
         "status": "PASS" if not gate_errors else "FAIL",
         "gate_errors": gate_errors,
         "retrieved_at_utc": retrieved_at.isoformat(),
@@ -635,18 +779,40 @@ def run_preflight(
             "end_exclusive_utc": target_end.isoformat(),
             "monthly_archive_count": len(monthly_specs),
             "daily_archive_count": len(daily_specs),
-            "all_archive_checksums_verified": all(record["checksum_verified"] for _, record in archive_results),
+            "gap_repair_daily_archive_count_requested": len(repair_specs),
+            "all_archive_checksums_verified": (
+                not repair_failures
+                and all(record["checksum_verified"] for _, record in all_archive_results)
+            ),
+            "all_successfully_downloaded_archives_checksum_verified": all(
+                record["checksum_verified"] for _, record in all_archive_results
+            ),
             "invalid_archive_row_count": invalid_archive_rows,
             "invalid_archive_rows_in_required_window": invalid_archive_rows_in_required_window,
-            "unique_anomaly_affected_hour_count": len(anomaly_hours),
+            "unique_anomaly_affected_hour_count": len(raw_anomaly_hours),
+            "unresolved_anomaly_affected_hour_count": len(unresolved_anomaly_hours),
             "invalid_archive_rows_excluded_without_rounding_or_interpolation": True,
             "anomaly_hours_scoped_to_required_window_and_deduplicated": True,
             "end_exclusive_close_time_row_count": sum(
-                record["close_time_equal_to_open_plus_interval_rows"] for _, record in archive_results
+                record["close_time_equal_to_open_plus_interval_rows"] for _, record in all_archive_results
             ),
             "archive_anomalies": archive_anomalies,
-            "monthly_archives": [record for _, record in archive_results[:len(monthly_specs)]],
-            "daily_archives": [record for _, record in archive_results[len(monthly_specs):]],
+            "monthly_archives": [record for _, record in primary_archive_results[:len(monthly_specs)]],
+            "daily_archives": [record for _, record in primary_archive_results[len(monthly_specs):]],
+            "gap_repair_archives": daily_repair["archives"],
+            "daily_gap_recovery": {
+                "strategy": (
+                    "Official Binance Vision daily BTCUSDT 1h archives for dates with primary gaps; "
+                    "checksum verify each file, fill only absent aligned UTC hours, and require exact "
+                    "equality for every overlapping close."
+                ),
+                "candidate_dates": [day.isoformat() for day in repair_dates],
+                "candidate_date_count": len(repair_dates),
+                "requested_archive_count": len(repair_specs),
+                "download_failures": repair_failures,
+                **daily_repair,
+            },
+            "coverage_before_daily_repair": primary_coverage,
             "coverage": hourly_coverage,
         },
         "event_feasibility": {
