@@ -199,7 +199,7 @@ class EthereumDexTurnoverSourcePreflightTests(unittest.TestCase):
         self.assertEqual(record["filled_hours"], [missing.isoformat()])
         self.assertEqual(record["overlap_match_count"], 23)
 
-    def test_daily_archive_gap_repair_rejects_mismatched_overlap_or_incomplete_day(self):
+    def test_daily_archive_gap_repair_rejects_mismatch_and_records_remaining_daily_gap(self):
         day = dt.date(2021, 2, 11)
         start = dt.datetime.combine(day, dt.time(), tzinfo=dt.timezone.utc)
         daily = {start + dt.timedelta(hours=i): 2000.0 + i for i in range(24)}
@@ -212,8 +212,8 @@ class EthereumDexTurnoverSourcePreflightTests(unittest.TestCase):
         incomplete = dict(daily)
         incomplete.pop(start + dt.timedelta(hours=6))
         merged, record = model.reconcile_daily_gap_patch(monthly, incomplete, day)
-        self.assertEqual(merged, monthly)
-        self.assertEqual(record["filled_hour_count"], 0)
+        self.assertEqual(merged, daily)
+        self.assertEqual(record["filled_hour_count"], 1)
         self.assertEqual(record["daily_missing_hours"], [(start + dt.timedelta(hours=6)).isoformat()])
 
     def test_hourly_coverage_reports_sparse_gaps_without_filling_them(self):

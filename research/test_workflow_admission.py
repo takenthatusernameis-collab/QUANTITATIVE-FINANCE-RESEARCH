@@ -196,6 +196,8 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
             "hard implementation deadline",
             "hard final research-conclusion deadline",
             "INCONCLUSIVE/INFEASIBLE",
+            "Pre-result data-integrity amendment",
+            "No price, close or return is forward-filled",
             "Do not silently reset the clock",
         ]
         for phrase in required:
