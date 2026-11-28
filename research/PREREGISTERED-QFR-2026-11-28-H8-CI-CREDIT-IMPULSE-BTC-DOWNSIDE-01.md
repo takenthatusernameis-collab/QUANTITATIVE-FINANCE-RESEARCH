@@ -52,7 +52,7 @@ A repository search for `TOTCI`, `H.8 commercial industrial loans` and bank-cred
 - Source preflight sample vintages: 2017-08-20, 2020-03-15, 2022-01-02, 2024-01-07 and 2026-11-22. These are Sundays selected after scheduled H.8 release windows. The preflight makes one bounded GET and checks exact response headers, as-of behavior, observation age, weekly cadence, positive finite values, and historical coverage.
 - Require at least 450 TOTCI observations from 2017-08-16 onward in the 2026-11-22 vintage. Require no observation date later than its vintage date. Record—but do not require—a nonzero historical revision count between the 2020 and 2026 vintages.
 - The empirical implementation may retrieve weekly Sunday vintages in batches of at most 12 dates, with a 1.5-second inter-request delay and no retries. HTTP 401/403/429/451, malformed responses, wrong columns or insufficient coverage are terminal source failures for this identity.
-- Do not use the current-vintage FRED graph/table as a fallback. The ALFRED vintage endpoint must be demonstrated to work without a key before model implementation.
+- No current-vintage FRED fallback is permitted. The ALFRED vintage endpoint must be demonstrated to work without a key before model implementation.
 
 ### Price source
 

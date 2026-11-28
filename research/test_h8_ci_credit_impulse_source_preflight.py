@@ -57,9 +57,11 @@ class H8CICreditImpulseSourcePreflightTests(unittest.TestCase):
     def test_parser_preserves_vintage_columns_and_missing_cells(self):
         vintages = ("2024-01-07",)
         raw, maps = synthetic_panel(vintages)
+        raw = raw.replace(b"2023-12-13,970.0000", b"2023-12-13,.")
         panel = preflight.parse_vintage_csv(raw, vintages)
-        self.assertEqual(panel[vintages[0]], maps[vintages[0]])
-        self.assertEqual(len(panel[vintages[0]]), 5)
+        self.assertNotIn(dt.date(2023, 12, 13), panel[vintages[0]])
+        self.assertEqual(len(panel[vintages[0]]), 4)
+        self.assertEqual(maps[vintages[0]][dt.date(2023, 12, 13)], 970.0)
 
     def test_parser_rejects_wrong_header_duplicate_dates_and_invalid_values(self):
         vintages = ("2024-01-07",)
