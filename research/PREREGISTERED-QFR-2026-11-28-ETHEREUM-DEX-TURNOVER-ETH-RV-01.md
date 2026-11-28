@@ -1,7 +1,7 @@
 # Preregistered hypothesis — Ethereum DeFi DEX turnover / ETH realized variance
 
 - **Hypothesis ID:** `QFR-2026-11-28-ETHEREUM-DEX-TURNOVER-ETH-RV-01`
-- **Status:** IMPLEMENTING — source feasibility passed; Cycle 2 implementation in progress
+- **Status:** COMPLETED — INCONCLUSIVE; Cycle 3 empirical backtest and Cycle 4 independent audit completed at 2026-11-28T02:58:40Z
 - **Registered:** 2026-11-28T01:42:11Z
 - **Frozen UTC:** 2026-11-28T01:42:11Z
 - **Timebox start:** 2026-11-28T01:42:11Z
@@ -126,3 +126,24 @@ Cycle 1 is complete: the read-only source-preflight workflow [run 46097000508](h
 DeFiLlama returned 2,128 daily DEX-volume observations and 2,128 daily Ethereum TVL observations each from 2021-01-01 through 2026-10-29, with maximum adjacent-date gap one day. Frozen-window canonical SHA-256 values are DEX 8fdf8625a388b619d4426791f14a78bbb6bb3820ee535aa60cbd82a67c8e0696 and TVL 0d21055246d26652c684847a5c85ff1abbe7ab4e3010a1e6e8ca8f2e77cac7fe. Binance metadata confirmed active ETHUSDT Spot trading. All 70 monthly archive and all seven daily gap-check archive checksums verified. The combined hourly close series contains 51,106 of 51,120 expected bars; 14 remain missing (0.0274%), maximum consecutive run four hours. The daily archives independently reproduced all seven gap dates and repaired zero rows. Canonical close SHA-256: 64b2b592fe094ed576ec8582fe788d146293afabc2274bbb83650d0cd34c5a6c.
 
 No raw observations were saved. All missing bars remain explicit; every forecast whose target, 24-hour trailing baseline window or 168-hour trailing baseline window requires a missing hourly return is excluded. The post-exclusion minimum remains 300 validation and 300 test forecasts. This source-feasibility pass is not a model fit or backtest. Cycle 2 implementation is now in progress; the frozen specification and decision rules are unchanged.
+
+## Cycle 4 independent audit and closure — 2026-11-28T02:58:40Z
+
+The single admitted empirical run [46098199964](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46098199964) completed successfully on immutable source commit `024f91ba2e8ec039bc53d9ccd1b3540c3fb4d350`. All job steps succeeded, including deterministic tests, exact accepted-preflight-artifact verification, frozen-source refetch, the one preregistered walk-forward forecast and evidence persistence. Admission guard [46098199972](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46098199972) passed.
+
+Cycle 4 independently re-parsed all 1,392 persisted forecast rows (723 validation, 669 test). There were no duplicate forecast dates. Every signal timestamp matched 00:00 UTC; every target began at the signal and ended exactly 24 hours later; all targets were globally non-overlapping. Every DEX/TVL feature window was exactly t−8 through t−2. Every forecast used 252 training events, with the final training target strictly matured before the signal. All stored squared errors were reproduced from the target and prediction columns. The eight absent validation origins were exactly 2023-03-24 through 2023-03-31, consistent with the isolated 2023-03-24 13:00 UTC missing hourly return contaminating the 168-hour trailing feature. No test forecast dates were missing.
+
+Independent metrics:
+
+| Split | Baseline RMSE | Augmented RMSE | RMSE improvement | Baseline MAE | Augmented MAE |
+|---|---:|---:|---:|---:|---:|
+| Validation | 0.887682530 | 0.891535848 | −0.434087% | 0.687199397 | 0.692695988 |
+| Test | 0.879506070 | 0.880798316 | −0.146929% | 0.671567923 | 0.674836322 |
+
+The 669 test paired loss differences were independently decoded and bootstrapped with NumPy `default_rng(20261128)`, 2,000 circular moving-block replications, block size seven, the same wraparound construction and quantile method. The independent result exactly reproduced the manifest: mean baseline-minus-augmented squared loss `−0.0022747450467157683`, 95% interval `[−0.011202103506137949, +0.006070043616085962]`, bootstrap fraction positive `0.305`.
+
+The frozen decision rule is unchanged. Both validation and test RMSE worsen, but REJECTED additionally requires the paired-loss 95% interval upper bound to be strictly below zero. The interval crosses zero, so the final disposition is **INCONCLUSIVE**. This is a forecast-only result, not causal evidence, P&L, tradability, a strategy edge or authorization to trade. No same-ID retuning is permitted.
+
+The refetched raw DeFiLlama TVL response hash differs from the preflight raw response hash; however, the canonical hash and coverage over the frozen sample window match exactly. No in-window TVL value changed. This does not remove the current-vintage/revision caveat; the two-day lag is not proof of point-in-time availability.
+
+The original MEDIUM four-cycle cap and deadlines were not extended or reset. Cycles 1–4 are complete; the hypothesis is **CLOSED — INCONCLUSIVE**. The daily 2026-11-28 backtest KPI had already been met by the separate MEXC funding-dispersion/BTC-RV backtest [46085887442](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46085887442); this DEX run was additional research output.
