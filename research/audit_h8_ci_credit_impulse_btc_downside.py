@@ -357,7 +357,7 @@ def _decision(validation: dict, test: dict, paired: dict) -> str:
 
 def run_audit() -> dict:
     original = json.loads(ORIGINAL_MANIFEST.read_text(encoding="utf-8"))
-    if original.get("run_id") != ORIGINAL_RUN_ID or original.get("completed_backtest") is not True:
+    if str(original.get("run_id")) != str(ORIGINAL_RUN_ID) or original.get("completed_backtest") is not True:
         raise ValueError("original manifest identity or completion status is invalid")
     if original.get("hypothesis_id") != admitted.HYPOTHESIS_ID:
         raise ValueError("original manifest hypothesis identity differs")
