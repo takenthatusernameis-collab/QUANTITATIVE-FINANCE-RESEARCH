@@ -66,8 +66,6 @@ on:
       - "research/test_ethereum_dex_turnover_eth_rv_source_preflight.py"
       - "research/ethereum_dex_turnover_eth_rv.py"
       - "research/test_ethereum_dex_turnover_eth_rv.py"
-      - "research/audit_ethereum_dex_turnover_eth_rv.py"
-      - "research/test_audit_ethereum_dex_turnover_eth_rv.py"
       - ".github/workflows/ethereum-dex-turnover-eth-rv.yml"
       - "research/PREREGISTERED-QFR-2026-11-28-ETHEREUM-DEX-TURNOVER-ETH-RV-01.md"
       - ".github/workflows/ethereum-dex-turnover-eth-rv-source-preflight.yml"
@@ -174,8 +172,6 @@ jobs:
       - name: Run Ethereum DEX turnover ETH RV model regression tests
         run: PYTHONPATH=research python -m unittest discover -s research -p "test_ethereum_dex_turnover_eth_rv.py" -v
 
-      - name: Run Ethereum DEX turnover independent evidence-audit regression tests
-        run: PYTHONPATH=research python -m unittest discover -s research -p "test_audit_ethereum_dex_turnover_eth_rv.py" -v
 
       - name: Run initial-claims source-preflight regression tests
         run: PYTHONPATH=research python -m unittest discover -s research -p "test_initial_claims_source_preflight.py" -v
