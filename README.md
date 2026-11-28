@@ -243,8 +243,24 @@ Hypothesis `QFR-2026-11-28-ETH-VALIDATOR-QUEUE-ASYMMETRY-DOWNSIDE-01` is **CLOSE
 - **Daily KPI:** the 2026-11-28 UTC real-data backtest minimum was already met by MEXC funding dispersion / BTC realized variance [run #46085887442](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46085887442). This source-only audit does not count as a backtest.
 - **Canonical evidence:** [closure record](research/CLOSED-QFR-2026-11-28-ETH-VALIDATOR-QUEUE-ASYMMETRY-DOWNSIDE-01.md) · [source preflight](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46103698530) · [Git-history audit](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46109045788) · [audit report](reports/sessions/2026-11-28/2026-11-28T045011Z_session-eth-validator-queue-pit-concordance-46109045788.md) · [manifest](reports/generated/eth-validator-queue-pit-concordance/46109045788-attempt-1/pit_concordance.json).
 
-**Next:** discover a materially distinct hypothesis whose historical feature availability can be verified from server-side publication/vintage metadata. The closed queue hypothesis is not a standing assignment.
+**Next:** the H.8 C&I bank-credit source-only preflight is the current separate workstream. It uses ALFRED as-of vintages and a Sunday signal timestamp; the closed validator-queue hypothesis is not a standing assignment.
  
+## Active workstream — H.8 C&I bank-credit impulse / BTC downside (source preflight only)
+
+Hypothesis `QFR-2026-11-28-H8-CI-CREDIT-IMPULSE-BTC-DOWNSIDE-01` is frozen under a MEDIUM four-cycle timebox. **Current status: SOURCE PREFLIGHT PENDING.** This is a source-feasibility task only; no model fit or empirical result exists.
+
+- **Mechanism:** weekly commercial-bank C&I loan growth / bank-credit quantity, not the Federal Reserve's own balance sheet and not a credit-spread proxy.
+- **Predictor:** four-observation log change in H.8 `TOTCI`, with both values read from the same ALFRED vintage.
+- **Point-in-time convention:** H.8 is normally published Friday at 4:15 p.m. Eastern Time (Thursday when Friday is a federal holiday), with observations as of Wednesday close. The signal uses the ALFRED vintage as of the preceding Sunday, before the Sunday BTC daily candle closes at Monday 00:00 UTC. A delayed release leaves the older vintage in place; no later observation is backfilled.
+- **Source gate:** one public ALFRED vintage-CSV request for five frozen Sunday vintages; exact columns, no future observations, Wednesday weekly observations, 3–14 day maximum age, four prior weekly observations, and at least 450 observations in the 2017-08-16 onward overlap. No API key, paid data, current-vintage FRED fallback or retries.
+- **Price source:** reuse the accepted Binance BTCUSDT Spot 1d UTC manifest from the taker-absorption experiment (3,388 candles, 2017-08-17–2026-11-25, 136 checksum-verified archives; archive-manifest SHA-256 `978b00dda884620e6e19cfb32f42bbf93df1f1a19d5d0a906951e23762440bbe`).
+- **Frozen model if source passes:** baseline prior 5/20-session momentum, downside semivariance and 20-session realized variance; augmented model adds only the four-observation TOTCI log change. Weekly Sunday events, next-five-session BTC downside semivariance, 104 matured training events, 2019–2021 validation, 2022-onward test, 100/100 minimum forecasts and a 2,000-replication paired moving-block bootstrap.
+- **Timebox:** start 2026-11-28T05:49:20Z; four substantive cycles maximum; implementation deadline 2026-12-01T05:49:20Z; final conclusion deadline 2026-12-03T05:49:20Z. No clock reset or alternate source/series under this ID.
+- **Cycle 1:** source-only ALFRED preflight. If it fails, close INCONCLUSIVE/INFEASIBLE. If it passes, only then implement the model, execute one admitted empirical run and independently audit it.
+- **Daily KPI:** the 2026-11-28 real-data backtest minimum was already met by MEXC funding dispersion / BTC realized variance [run #46085887442](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46085887442). This source-only preflight is additional and does not count as a backtest.
+
+Canonical evidence: [frozen preregistration](research/PREREGISTERED-QFR-2026-11-28-H8-CI-CREDIT-IMPULSE-BTC-DOWNSIDE-01.md) · [registry](research/HYPOTHESIS-REGISTRY.md) · [source-only workflow](.github/workflows/h8-ci-credit-impulse-source-preflight.yml) · [session report](reports/sessions/2026-11-28/2026-11-28T054920Z_session-h8-ci-credit-impulse-source-preflight.md).
+
 ## Non-negotiable boundaries
 
 - Research and paper simulation only: no live orders, capital deployment, production trading or strategy promotion to live use.

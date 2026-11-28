@@ -27,6 +27,7 @@ NON_RESEARCH_WORKFLOWS = {
     "ethereum-dex-turnover-eth-rv-source-preflight.yml",
     "eth-validator-queue-source-preflight.yml",
     "eth-validator-queue-pit-concordance.yml",
+    "h8-ci-credit-impulse-source-preflight.yml",
     "chatgpt-control-pr-dispatch.yml",
     "dispatch-bridge-probe.yml",
 }
@@ -333,6 +334,7 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertIn("wikipedia-attention-source-preflight.yml", NON_RESEARCH_WORKFLOWS)
         self.assertIn("taker-absorption-source-preflight.yml", NON_RESEARCH_WORKFLOWS)
         self.assertIn("eth-validator-queue-pit-concordance.yml", NON_RESEARCH_WORKFLOWS)
+        self.assertIn("h8-ci-credit-impulse-source-preflight.yml", NON_RESEARCH_WORKFLOWS)
 
     def test_non_research_admission_test_workflow_is_excluded_from_research_gate(self):
         path = WORKFLOW_DIR / "workflow-admission-tests.yml"
@@ -1066,6 +1068,63 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertIn("fetch-depth: 0", text)
         self.assertIn("persist-credentials: false", text)
         self.assertNotIn("ref: main", text)
+
+    def test_h8_ci_credit_impulse_preregistration_has_frozen_identity_and_timebox(self):
+        path = ROOT / "research" / "PREREGISTERED-QFR-2026-11-28-H8-CI-CREDIT-IMPULSE-BTC-DOWNSIDE-01.md"
+        text = path.read_text(encoding="utf-8")
+        required = [
+            "Hypothesis ID:",
+            "QFR-2026-11-28-H8-CI-CREDIT-IMPULSE-BTC-DOWNSIDE-01",
+            "2026-11-28T05:49:20Z",
+            "2026-12-01T05:49:20Z",
+            "2026-12-03T05:49:20Z",
+            "Maximum substantive cycles:** 4",
+            "Difficulty:** MEDIUM",
+            "ALFRED",
+            "TOTCI",
+            "No current-vintage FRED",
+            "INCONCLUSIVE/INFEASIBLE",
+        ]
+        for phrase in required:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+
+    def test_h8_ci_credit_impulse_source_preflight_is_read_only_and_not_a_backtest(self):
+        path = WORKFLOW_DIR / "h8-ci-credit-impulse-source-preflight.yml"
+        text = path.read_text(encoding="utf-8")
+        required = [
+            "workflow_dispatch:",
+            "contents: read",
+            "ref: ${{ github.sha }}",
+            "persist-credentials: false",
+            "cancel-in-progress: false",
+            "h8_ci_credit_impulse_source_preflight.py",
+            "test_h8_ci_credit_impulse_source_preflight.py",
+            "do not run a backtest",
+            "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "retention-days: 30",
+        ]
+        for phrase in required:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+        self.assertNotIn("contents: write", text)
+        self.assertNotIn("h8_ci_credit_impulse_btc_downside.py", text)
+        self.assertNotIn("[QFR-ADMIT] research:", text)
+        self.assertNotIn('"research/PREREGISTERED-', text)
+        self.assertNotIn('"research/test_workflow_admission.py"', text)
+
+    def test_h8_ci_credit_impulse_source_preflight_has_narrow_path_filters(self):
+        text = (WORKFLOW_DIR / "h8-ci-credit-impulse-source-preflight.yml").read_text(encoding="utf-8")
+        for expected in (
+            '"research/h8_ci_credit_impulse_source_preflight.py"',
+            '"research/test_h8_ci_credit_impulse_source_preflight.py"',
+            '".github/workflows/h8-ci-credit-impulse-source-preflight.yml"',
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, text)
+        self.assertNotIn('"research/PREREGISTERED-', text)
+        self.assertNotIn('"research/test_workflow_admission.py"', text)
+        self.assertNotIn('"research/h8_ci_credit_impulse_btc_downside.py"', text)
 
 
 if __name__ == "__main__":

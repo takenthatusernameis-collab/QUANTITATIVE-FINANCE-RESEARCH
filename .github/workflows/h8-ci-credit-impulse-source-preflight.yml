@@ -1,0 +1,74 @@
+name: H.8 C&I credit impulse vintage source feasibility preflight (no model fitting)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "research/h8_ci_credit_impulse_source_preflight.py"
+      - "research/test_h8_ci_credit_impulse_source_preflight.py"
+      - ".github/workflows/h8-ci-credit-impulse-source-preflight.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qfr-h8-ci-credit-impulse-source-preflight-main
+  cancel-in-progress: false
+
+jobs:
+  source-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout trusted triggering commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Assert immutable source checkout
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$GITHUB_SHA"
+          echo "Verified source commit: $actual"
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Run deterministic ALFRED vintage parser and timing tests
+        run: |
+          set -euo pipefail
+          python -m py_compile research/h8_ci_credit_impulse_source_preflight.py research/test_h8_ci_credit_impulse_source_preflight.py
+          PYTHONPATH=research python -m unittest discover -s research -p "test_h8_ci_credit_impulse_source_preflight.py" -v
+
+      - name: Run repository workflow-admission regression tests
+        run: |
+          set -euo pipefail
+          PYTHONPATH=research python -m unittest discover -s research -p "test_workflow_admission.py" -v
+
+      - name: Retrieve public ALFRED vintage metadata only; do not run a backtest
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          python research/h8_ci_credit_impulse_source_preflight.py
+          output="reports/generated/h8-ci-credit-impulse-source-preflight/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/preflight.json"
+          test -s "$output"
+          echo "=== SOURCE-ONLY PREFLIGHT RESULT ==="
+          cat "$output"
+
+      - name: Upload source-only manifest
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: h8-ci-credit-impulse-source-preflight-${{ github.run_id }}
+          path: reports/generated/h8-ci-credit-impulse-source-preflight/${{ github.run_id }}-attempt-${{ github.run_attempt }}/preflight.json
+          if-no-files-found: warn
+          retention-days: 30

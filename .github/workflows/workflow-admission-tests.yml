@@ -75,6 +75,10 @@ on:
       - "research/test_treasury_rrp_drain_btc_downside.py"
       - "research/PREREGISTERED-QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01.md"
       - ".github/workflows/treasury-rrp-drain-btc-downside.yml"
+      - "research/h8_ci_credit_impulse_source_preflight.py"
+      - "research/test_h8_ci_credit_impulse_source_preflight.py"
+      - "research/PREREGISTERED-QFR-2026-11-28-H8-CI-CREDIT-IMPULSE-BTC-DOWNSIDE-01.md"
+      - ".github/workflows/h8-ci-credit-impulse-source-preflight.yml"
   workflow_dispatch:
 
 permissions:
@@ -184,6 +188,9 @@ jobs:
       - name: Run initial-claims source-preflight regression tests
         run: PYTHONPATH=research python -m unittest discover -s research -p "test_initial_claims_source_preflight.py" -v
       - name: Compile initial-claims BTC downside model
-        run: python -m py_compile research/initial_claims_btc_downside.py research/test_initial_claims_btc_downside.py
+        run: python -m py_compile research/initial_claims_btc_downside.py research/test_initial_claims_btc_downside.py research/h8_ci_credit_impulse_source_preflight.py research/test_h8_ci_credit_impulse_source_preflight.py
       - name: Run initial-claims BTC downside model regression tests
         run: PYTHONPATH=research python -m unittest discover -s research -p "test_initial_claims_btc_downside.py" -v
+
+      - name: Run H.8 C&I vintage source-preflight regression tests
+        run: PYTHONPATH=research python -m unittest discover -s research -p "test_h8_ci_credit_impulse_source_preflight.py" -v
