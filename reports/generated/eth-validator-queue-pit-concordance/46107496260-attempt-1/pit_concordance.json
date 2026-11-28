@@ -1,0 +1,375 @@
+{
+  "archive_reconstruction": {
+    "assessment": "Full-file reconstruction is approximately terabyte-scale. Selective HTTP range reads, canonical state-root verification and replay cost have not been tested; no archive files were downloaded.",
+    "estimated_era_count_to_2026_11_28": 1923,
+    "format_spec": "https://github.com/eth-clients/e2store-format-specs/blob/main/formats/era.md",
+    "observed_era_file_size_bytes_2025": [
+      477210982,
+      768950346,
+      873112623
+    ],
+    "observed_era_file_size_bytes_2026": [
+      660265640,
+      938248815,
+      904607902
+    ],
+    "public_mirror": "https://mainnet.era.nimbus.team/"
+  },
+  "backtest_run": false,
+  "candidate_id": "QFR-2026-11-28-ETH-VALIDATOR-QUEUE-ASYMMETRY-DOWNSIDE-01",
+  "cross_source_concordance": {
+    "clean_common_dates": 1228,
+    "clean_first_date": "2023-05-21",
+    "clean_last_date": "2026-10-25",
+    "common_dates_before_known_bug_exclusion": 1243,
+    "known_pectra_bug_dates_excluded": 15,
+    "regimes": {
+      "all_clean_overlap": {
+        "end": "2026-10-25",
+        "entry_wait_days": {
+          "mae": 0.6408277627820848,
+          "mean_bias_observed_minus_reference": -0.1896171242555374,
+          "median_absolute_error": 0.39903526049999893,
+          "n": 1228,
+          "p95_absolute_error": 2.451333333299999,
+          "pearson_r": 0.998547622311132,
+          "rmse": 1.1557699560827,
+          "spearman_r": 0.9766328850057086
+        },
+        "exit_wait_days": {
+          "mae": 0.47784966839242665,
+          "mean_bias_observed_minus_reference": 0.23527127071799675,
+          "median_absolute_error": 0.03,
+          "n": 1228,
+          "p95_absolute_error": 1.429189264199998,
+          "pearson_r": 0.986460760078708,
+          "rmse": 1.6756290716172453,
+          "spearman_r": 0.5868867758999088
+        },
+        "log1p_entry_minus_exit": {
+          "mae": 0.20153754078570946,
+          "mean_bias_observed_minus_reference": -0.048603916011234045,
+          "median_absolute_error": 0.09725416444739061,
+          "n": 1228,
+          "p95_absolute_error": 0.7281235398753267,
+          "pearson_r": 0.9791464739721915,
+          "rmse": 0.35050395535829,
+          "spearman_r": 0.9602042230104462
+        },
+        "n": 1228,
+        "start": "2023-05-21"
+      },
+      "post_pectra": {
+        "end": "2026-10-25",
+        "entry_wait_days": {
+          "mae": 0.7137400092161479,
+          "mean_bias_observed_minus_reference": -0.07995670353754855,
+          "median_absolute_error": 0.5427038564000002,
+          "n": 514,
+          "p95_absolute_error": 2.6967528314999996,
+          "pearson_r": 0.9983133542655385,
+          "rmse": 1.2472263938063943,
+          "spearman_r": 0.996845094140226
+        },
+        "exit_wait_days": {
+          "mae": 1.0146184119233463,
+          "mean_bias_observed_minus_reference": 0.5615605063883268,
+          "median_absolute_error": 0.39650473215000037,
+          "n": 514,
+          "p95_absolute_error": 5.5264482981,
+          "pearson_r": 0.9839278021553851,
+          "rmse": 2.565906064443411,
+          "spearman_r": 0.8329371566412994
+        },
+        "log1p_entry_minus_exit": {
+          "mae": 0.24302415762014495,
+          "mean_bias_observed_minus_reference": -0.13484388347201878,
+          "median_absolute_error": 0.08202487260427405,
+          "n": 514,
+          "p95_absolute_error": 1.1795672582978387,
+          "pearson_r": 0.9781807748771084,
+          "rmse": 0.44597844223514055,
+          "spearman_r": 0.9505131810700408
+        },
+        "n": 514,
+        "start": "2025-05-22"
+      },
+      "pre_pectra": {
+        "end": "2025-05-05",
+        "entry_wait_days": {
+          "mae": 0.5883391147889355,
+          "mean_bias_observed_minus_reference": -0.26856034029061615,
+          "median_absolute_error": 0.29055555555,
+          "n": 714,
+          "p95_absolute_error": 2.451333333299999,
+          "pearson_r": 0.9985361703552731,
+          "rmse": 1.0851703946746096,
+          "spearman_r": 0.8924869918546221
+        },
+        "exit_wait_days": {
+          "mae": 0.09143631520630252,
+          "mean_bias_observed_minus_reference": 0.00037958005336134314,
+          "median_absolute_error": 0.0075185185,
+          "n": 714,
+          "p95_absolute_error": 0.53,
+          "pearson_r": 0.7131593430136649,
+          "rmse": 0.29888836987918294,
+          "spearman_r": 0.2629565690345189
+        },
+        "log1p_entry_minus_exit": {
+          "mae": 0.17167182502534553,
+          "mean_bias_observed_minus_reference": 0.013479197819078768,
+          "median_absolute_error": 0.10452452661132577,
+          "n": 714,
+          "p95_absolute_error": 0.497818317411468,
+          "pearson_r": 0.9798192518572554,
+          "rmse": 0.2609790112513313,
+          "spearman_r": 0.8927159375087563
+        },
+        "n": 714,
+        "start": "2023-05-21"
+      }
+    }
+  },
+  "cryptokeyhole": {
+    "catalog_sha256": "4f1fa8e28c55a73234b92d8ce92739a458f9c74ce88d2677ffc9d1539eb98c3f",
+    "license_link": "<https://creativecommons.org/licenses/by/4.0/>; rel=\"license\"",
+    "metric_id": "eth.ValidatorQueueWait",
+    "openapi_sha256": "2a3e84f5f996f6a6fb97719d0ac2600c45ffc60d593be02ef1b385e4b05a5d45",
+    "series_sha256": "2826395da3977884234d3bcd6dca8957d9a3035c7d9b3bc3a9d09b7fd8e897e2",
+    "series_state": "delayed",
+    "vintage_limitation": "Free current-vintage daily history; first-published vintages require API & Team. The recorder began 2026-11-08, so historical first-published vintages are unavailable."
+  },
+  "model_fit_performed": false,
+  "pit_schedule_feasibility": {
+    "decision": "The existing 6-day/60-training-event schedule is PIT-source infeasible if either split has fewer than 100 origins. Any schedule change requires a pre-result design amendment and cannot be selected using model performance.",
+    "existing_frozen_schedule": {
+      "known_pectra_bug_feature_origins": 2,
+      "minimum_training_events": 60,
+      "missing_feature_origins": 149,
+      "not_published_by_origin": 0,
+      "observed_training_count_max": 100,
+      "observed_training_count_min": 60,
+      "origin_step_days": 6,
+      "scheduled_test_origins": 111,
+      "scheduled_validation_origins": 183,
+      "target_horizon_days": 5,
+      "target_windows_non_overlapping": true,
+      "test_minimum_100_met": true,
+      "valid_test_origins": 107,
+      "valid_validation_origins": 39,
+      "validation_minimum_100_met": false
+    },
+    "non_overlapping_schedule_grid": [
+      {
+        "known_pectra_bug_feature_origins": 2,
+        "minimum_training_events": 60,
+        "missing_feature_origins": 149,
+        "not_published_by_origin": 0,
+        "observed_training_count_max": 100,
+        "observed_training_count_min": 60,
+        "origin_step_days": 6,
+        "scheduled_test_origins": 111,
+        "scheduled_validation_origins": 183,
+        "target_horizon_days": 5,
+        "target_windows_non_overlapping": true,
+        "test_minimum_100_met": true,
+        "valid_test_origins": 107,
+        "valid_validation_origins": 39,
+        "validation_minimum_100_met": false
+      },
+      {
+        "known_pectra_bug_feature_origins": 3,
+        "minimum_training_events": 60,
+        "missing_feature_origins": 178,
+        "not_published_by_origin": 0,
+        "observed_training_count_max": 100,
+        "observed_training_count_min": 60,
+        "origin_step_days": 5,
+        "scheduled_test_origins": 133,
+        "scheduled_validation_origins": 220,
+        "target_horizon_days": 5,
+        "target_windows_non_overlapping": true,
+        "test_minimum_100_met": true,
+        "valid_test_origins": 129,
+        "valid_validation_origins": 57,
+        "validation_minimum_100_met": false
+      },
+      {
+        "known_pectra_bug_feature_origins": 3,
+        "minimum_training_events": 30,
+        "missing_feature_origins": 178,
+        "not_published_by_origin": 0,
+        "observed_training_count_max": 100,
+        "observed_training_count_min": 30,
+        "origin_step_days": 5,
+        "scheduled_test_origins": 133,
+        "scheduled_validation_origins": 220,
+        "target_horizon_days": 5,
+        "target_windows_non_overlapping": true,
+        "test_minimum_100_met": true,
+        "valid_test_origins": 129,
+        "valid_validation_origins": 87,
+        "validation_minimum_100_met": false
+      },
+      {
+        "known_pectra_bug_feature_origins": 3,
+        "minimum_training_events": 20,
+        "missing_feature_origins": 178,
+        "not_published_by_origin": 0,
+        "observed_training_count_max": 100,
+        "observed_training_count_min": 20,
+        "origin_step_days": 5,
+        "scheduled_test_origins": 133,
+        "scheduled_validation_origins": 220,
+        "target_horizon_days": 5,
+        "target_windows_non_overlapping": true,
+        "test_minimum_100_met": true,
+        "valid_test_origins": 129,
+        "valid_validation_origins": 97,
+        "validation_minimum_100_met": false
+      },
+      {
+        "known_pectra_bug_feature_origins": 3,
+        "minimum_training_events": 15,
+        "missing_feature_origins": 178,
+        "not_published_by_origin": 0,
+        "observed_training_count_max": 100,
+        "observed_training_count_min": 15,
+        "origin_step_days": 5,
+        "scheduled_test_origins": 133,
+        "scheduled_validation_origins": 220,
+        "target_horizon_days": 5,
+        "target_windows_non_overlapping": true,
+        "test_minimum_100_met": true,
+        "valid_test_origins": 129,
+        "valid_validation_origins": 102,
+        "validation_minimum_100_met": true
+      },
+      {
+        "known_pectra_bug_feature_origins": 4,
+        "minimum_training_events": 60,
+        "missing_feature_origins": 225,
+        "not_published_by_origin": 0,
+        "observed_training_count_max": 100,
+        "observed_training_count_min": 60,
+        "origin_step_days": 4,
+        "scheduled_test_origins": 167,
+        "scheduled_validation_origins": 274,
+        "target_horizon_days": 5,
+        "target_windows_non_overlapping": false,
+        "test_minimum_100_met": true,
+        "valid_test_origins": 159,
+        "valid_validation_origins": 86,
+        "validation_minimum_100_met": false
+      },
+      {
+        "known_pectra_bug_feature_origins": 4,
+        "minimum_training_events": 30,
+        "missing_feature_origins": 225,
+        "not_published_by_origin": 0,
+        "observed_training_count_max": 100,
+        "observed_training_count_min": 30,
+        "origin_step_days": 4,
+        "scheduled_test_origins": 167,
+        "scheduled_validation_origins": 274,
+        "target_horizon_days": 5,
+        "target_windows_non_overlapping": false,
+        "test_minimum_100_met": true,
+        "valid_test_origins": 159,
+        "valid_validation_origins": 116,
+        "validation_minimum_100_met": true
+      },
+      {
+        "known_pectra_bug_feature_origins": 5,
+        "minimum_training_events": 60,
+        "missing_feature_origins": 298,
+        "not_published_by_origin": 0,
+        "observed_training_count_max": 100,
+        "observed_training_count_min": 60,
+        "origin_step_days": 3,
+        "scheduled_test_origins": 223,
+        "scheduled_validation_origins": 366,
+        "target_horizon_days": 5,
+        "target_windows_non_overlapping": false,
+        "test_minimum_100_met": true,
+        "valid_test_origins": 214,
+        "valid_validation_origins": 136,
+        "validation_minimum_100_met": true
+      },
+      {
+        "known_pectra_bug_feature_origins": 5,
+        "minimum_training_events": 30,
+        "missing_feature_origins": 298,
+        "not_published_by_origin": 0,
+        "observed_training_count_max": 100,
+        "observed_training_count_min": 30,
+        "origin_step_days": 3,
+        "scheduled_test_origins": 223,
+        "scheduled_validation_origins": 366,
+        "target_horizon_days": 5,
+        "target_windows_non_overlapping": false,
+        "test_minimum_100_met": true,
+        "valid_test_origins": 214,
+        "valid_validation_origins": 166,
+        "validation_minimum_100_met": true
+      }
+    ]
+  },
+  "raw_observations_saved": false,
+  "retrieved_at_utc": "2026-11-28T04:28:07.205862+00:00",
+  "source_commit_sha": "96dda5892ffe4d19d9f1cb6841f53ed315f38a80",
+  "status": "PARTIAL",
+  "validatorqueue": {
+    "commit_history": {
+      "commit_count": 1232,
+      "error": "Commit count does not equal append-only history row count; row-to-commit mapping is not assumed.",
+      "mapping_complete": false,
+      "row_count": 1243
+    },
+    "expected_days": 1254,
+    "first_date": "2023-05-21",
+    "first_read_semantics": "build.py appends one historical row only when the UTC date differs from the last row; Git commit time is used as a conservative public-availability upper bound.",
+    "gap_count": 5,
+    "gaps": [
+      {
+        "after": "2024-01-19",
+        "before": "2024-01-22",
+        "missing_days": 2
+      },
+      {
+        "after": "2025-05-05",
+        "before": "2025-05-07",
+        "missing_days": 1
+      },
+      {
+        "after": "2025-12-11",
+        "before": "2025-12-15",
+        "missing_days": 3
+      },
+      {
+        "after": "2026-02-23",
+        "before": "2026-02-25",
+        "missing_days": 1
+      },
+      {
+        "after": "2026-07-22",
+        "before": "2026-07-27",
+        "missing_days": 4
+      }
+    ],
+    "history_sha256": "7899bece9d37e1a39086ac68622b54a9bd6a39e9beef2d1f7980280e12faeda9",
+    "known_inaccurate_interval": {
+      "end": "2025-05-21",
+      "reason": "Repository README documents post-Pectra queue values as validator-based rather than balance-based during this interval.",
+      "start": "2025-05-07"
+    },
+    "last_date": "2026-10-25",
+    "missing_days": 11,
+    "raw_history_url": "https://raw.githubusercontent.com/etheralpha/validatorqueue-com/main/historical_data.json",
+    "repository": "https://github.com/etheralpha/validatorqueue-com",
+    "row_count": 1243
+  },
+  "workflow_run_attempt": "1",
+  "workflow_run_id": "46107496260"
+}
