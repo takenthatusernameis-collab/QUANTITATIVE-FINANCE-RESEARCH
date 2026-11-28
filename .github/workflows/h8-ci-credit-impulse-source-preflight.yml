@@ -55,8 +55,8 @@ jobs:
       - name: Assert frozen hypothesis identity and no current-vintage fallback
         run: |
           set -euo pipefail
-          grep -F -- '- **Hypothesis ID:** \`QFR-2026-11-28-H8-CI-CREDIT-IMPULSE-BTC-DOWNSIDE-01\`' research/PREREGISTERED-QFR-2026-11-28-H8-CI-CREDIT-IMPULSE-BTC-DOWNSIDE-01.md
-          grep -F -- '- **Timebox start:** \`2026-11-28T05:49:20Z\`' research/PREREGISTERED-QFR-2026-11-28-H8-CI-CREDIT-IMPULSE-BTC-DOWNSIDE-01.md
+          grep -F -- '- **Hypothesis ID:** `QFR-2026-11-28-H8-CI-CREDIT-IMPULSE-BTC-DOWNSIDE-01`' research/PREREGISTERED-QFR-2026-11-28-H8-CI-CREDIT-IMPULSE-BTC-DOWNSIDE-01.md
+          grep -F -- '- **Timebox start:** `2026-11-28T05:49:20Z`' research/PREREGISTERED-QFR-2026-11-28-H8-CI-CREDIT-IMPULSE-BTC-DOWNSIDE-01.md
           grep -F -- 'No current-vintage FRED fallback is permitted.' research/PREREGISTERED-QFR-2026-11-28-H8-CI-CREDIT-IMPULSE-BTC-DOWNSIDE-01.md
       - name: Retrieve public ALFRED vintage metadata only; do not run a backtest
         env:

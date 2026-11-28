@@ -158,6 +158,20 @@ class H8CICreditImpulseSourcePreflightTests(unittest.TestCase):
             preflight.canonical_sha256(reversed_panel),
         )
 
+    def test_workflow_protocol_grep_uses_literal_backticks(self):
+        workflow_path = (
+            preflight.Path(__file__).resolve().parents[1]
+            / ".github"
+            / "workflows"
+            / "h8-ci-credit-impulse-source-preflight.yml"
+        )
+        workflow_text = workflow_path.read_text(encoding="utf-8")
+        self.assertNotIn(chr(92) + chr(96), workflow_text)
+        self.assertIn(
+            'grep -F -- \'- **Hypothesis ID:** `QFR-2026-11-28-H8-CI-CREDIT-IMPULSE-BTC-DOWNSIDE-01`\' ',
+            workflow_text,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
