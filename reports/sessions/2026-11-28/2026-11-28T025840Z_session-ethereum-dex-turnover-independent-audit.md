@@ -2,7 +2,8 @@
 
 - **Session timestamp:** 2026-11-28T02:58:40Z
 - **Objective:** Reconcile the live README, preregistration, hypothesis registry, source-preflight evidence, admitted backtest and persisted forecasts; complete Cycle 4 independently; close the workstream without altering its frozen model or decision rules.
-- **Main branch at inspection:** `a2bb38e52eca820463c9c7a3e587b202287af0dd`
+- **Main branch at initial inspection:** `a2bb38e52eca820463c9c7a3e587b202287af0dd`
+- **Final main branch after handoff validation:** `a94c2b0bd0fa2517f4597bede5231a1586dbec18`
 - **Workstream:** `QFR-2026-11-28-ETHEREUM-DEX-TURNOVER-ETH-RV-01`
 
 ## 1. Work completed
@@ -69,10 +70,11 @@ The refetched raw DeFiLlama TVL response SHA-256 differs from its preflight resp
 
 ## 5. Repository and automation state
 
-- No queued or in-progress Actions runs at final inspection.
+- The post-handoff repository regression suite [CI run 46101572887](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46101572887) passed on final main commit `a94c2b0bd0fa2517f4597bede5231a1586dbec18`. A stale admission-test assertion that still expected the intermediate IMPLEMENTING status was corrected to require the final COMPLETED — INCONCLUSIVE status; the final suite passed.
+- No queued or in-progress Actions runs remained after that successful CI run.
 - One open pull request remains: draft control PR [#15](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/pull/15); it was not merged or altered.
 - No open issues were found.
-- Recursive main tree: 428 entries, not truncated. There is no `tasks/` directory in the current tree; the README and research registry are the current canonical handoff. No obsolete queue file was recreated.
+- Recursive main tree: 429 entries, not truncated. There is no `tasks/` directory in the current tree; the README and research registry are the current canonical handoff. No obsolete queue file was recreated.
 - The original README path and name remain unchanged.
 
 ## 6. Next candidate — not admitted
