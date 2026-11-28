@@ -21,7 +21,7 @@ SAMPLE_START = dt.date(2021, 1, 1)
 SAMPLE_END = dt.date(2026, 10, 31)
 DEX_URL = (
     "https://api.llama.fi/overview/dexs/ethereum?"
-    "excludeTotalDataChart=false&excludeTotalDataChartBreakdown=true"
+    "excludeTotalDataChart=false&excludeTotalDataChartBreakdown=true&dataType=dailyVolume"
 )
 TVL_URL = "https://api.llama.fi/v2/historicalChainTvl/Ethereum"
 BINANCE_EXCHANGE_INFO_URL = (
@@ -89,21 +89,29 @@ def _parse_chart_rows(body: bytes, field: str, envelope: str | None) -> dict[dt.
         raise ValueError(f"DeFiLlama {envelope or 'TVL'} response has no non-empty row array; envelope={keys}")
     values: dict[dt.date, float] = {}
     for index, row in enumerate(rows):
-        if not isinstance(row, dict):
-            raise ValueError(f"DeFiLlama {field} row {index} is not an object")
-        if "date" not in row or field not in row:
-            raise ValueError(
-                f"DeFiLlama {field} row {index} lacks date/{field}; actual_keys={sorted(row.keys())}"
-            )
-        day = parse_utc_date(row["date"])
-        value = parse_number(row[field], field)
+        if envelope == "totalDataChart":
+            if not isinstance(row, (list, tuple)) or len(row) != 2:
+                raise ValueError(
+                    f"DeFiLlama DEX chart row {index} must be [unix_timestamp, USD_volume]; "
+                    f"actual_type={type(row).__name__}, actual_value={row!r}"
+                )
+            day = parse_utc_date(row[0])
+            value = parse_number(row[1], field)
+        else:
+            if not isinstance(row, dict):
+                raise ValueError(f"DeFiLlama {field} row {index} is not an object")
+            if "date" not in row or field not in row:
+                raise ValueError(
+                    f"DeFiLlama {field} row {index} lacks date/{field}; actual_keys={sorted(row.keys())}"
+                )
+            day = parse_utc_date(row["date"])
+            value = parse_number(row[field], field)
         if value < 0 or (field == "tvl" and value <= 0):
             raise ValueError(f"DeFiLlama {field} row {index} has invalid value {value}")
         if day in values:
             raise ValueError(f"Duplicate DeFiLlama {field} UTC date: {day}")
         values[day] = value
     return dict(sorted(values.items()))
-
 
 def parse_dex_history(body: bytes) -> dict[dt.date, float]:
     """Parse the documented overview/dexs/{chain}.totalDataChart aggregate."""
@@ -376,7 +384,7 @@ def run_preflight() -> dict:
         "dex_source": {
             "endpoint": DEX_URL,
             "host": "api.llama.fi",
-            "expected_field": "totalDataChart[].totalVolume",
+            "expected_field": "totalDataChart[][0:2] = [unix_timestamp, USD_volume]",
             "response_sha256": hashlib.sha256(dex_body).hexdigest(),
             "canonical_daily_sha256": dex_canonical,
             **dex_coverage,
