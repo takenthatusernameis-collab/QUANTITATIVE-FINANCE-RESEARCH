@@ -1,4 +1,4 @@
-name: Ethereum validator queue PIT concordance (source-only; no model fitting)
+name: Ethereum validator queue Git-history vintage concordance (source-only; no model fitting)
 
 on:
   push:
@@ -37,11 +37,11 @@ jobs:
           test "$actual" = "$GITHUB_SHA"
           echo "Verified source commit: $actual"
 
-      - name: Checkout full ValidatorQueue Git history for point-in-time reconstruction
+      - name: Checkout pinned full ValidatorQueue Git history for commit-dated vintage reconstruction
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: etheralpha/validatorqueue-com
-          ref: main
+          ref: 6d90783883b84129db6f17b3d454f702dc1f8f1f
           path: external/validatorqueue-com
           fetch-depth: 0
           persist-credentials: false
@@ -81,7 +81,7 @@ jobs:
           fi
           manifest="reports/generated/eth-validator-queue-pit-concordance/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/pit_concordance.json"
           if [ -z "$report" ] || [ ! -s "$report" ] || [ ! -s "$manifest" ]; then
-            echo "No PIT concordance evidence was generated; preserve the primary test or checkout failure."
+            echo "No Git-history vintage evidence was generated; preserve the primary test or checkout failure."
             exit 0
           fi
           tmp="$RUNNER_TEMP/qfr-eth-validator-queue-pit-concordance-$GITHUB_RUN_ID"

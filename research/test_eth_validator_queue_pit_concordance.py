@@ -61,13 +61,13 @@ class EthereumValidatorQueuePitConcordanceTests(unittest.TestCase):
         t1 = dt.datetime(2023, 5, 30, 16, 27, tzinfo=dt.timezone.utc)
         t2 = dt.datetime(2023, 6, 3, 23, 42, tzinfo=dt.timezone.utc)
         snapshots = [
-            {"sha": "a", "timestamp": t1, "rows": {
-                early: {"entry_wait": 34.76, "exit_wait": 0.0, "entry_queue": 62577, "exit_queue": 0},
-                later: {"entry_wait": 36.24, "exit_wait": 0.0, "entry_queue": 65225, "exit_queue": 0},
-            }},
             {"sha": "b", "timestamp": t2, "rows": {
                 early: {"entry_wait": 31.58, "exit_wait": 0.0, "entry_queue": 2002464, "exit_queue": 0},
                 later: {"entry_wait": 32.79, "exit_wait": 0.0, "entry_queue": 2087200, "exit_queue": 0},
+            }},
+            {"sha": "a", "timestamp": t1, "rows": {
+                early: {"entry_wait": 34.76, "exit_wait": 0.0, "entry_queue": 62577, "exit_queue": 0},
+                later: {"entry_wait": 36.24, "exit_wait": 0.0, "entry_queue": 65225, "exit_queue": 0},
             }},
         ]
         current = {"rows": [
@@ -88,10 +88,24 @@ class EthereumValidatorQueuePitConcordanceTests(unittest.TestCase):
         day = dt.date(2025, 5, 22)
         versions = {day: [
             {"timestamp": dt.datetime(2025, 5, 22, 2, 0, tzinfo=dt.timezone.utc), "entry_wait": 0.04, "exit_wait": 0.06},
-            {"timestamp": dt.datetime(2025, 5, 22, 17, 25, tzinfo=dt.timezone.utc), "entry_wait": 1.83, "exit_wait": 1.54},
+            {"timestamp": dt.datetime(2025, 5, 23, 17, 25, tzinfo=dt.timezone.utc), "entry_wait": 1.83, "exit_wait": 1.54},
         ]}
         self.assertEqual(audit.value_as_of(versions, day, dt.date(2025, 5, 23))["entry_wait"], 0.04)
         self.assertEqual(audit.value_as_of(versions, day, dt.date(2025, 5, 24))["entry_wait"], 1.83)
+
+    def test_value_as_of_selects_latest_eligible_timestamp_when_versions_are_unsorted(self):
+        day = dt.date(2025, 5, 22)
+        versions = {day: [
+            {"timestamp": dt.datetime(2025, 5, 23, 17, 25, tzinfo=dt.timezone.utc), "entry_wait": 2.10, "exit_wait": 1.90},
+            {"timestamp": dt.datetime(2025, 5, 22, 17, 25, tzinfo=dt.timezone.utc), "entry_wait": 1.83, "exit_wait": 1.54},
+            {"timestamp": dt.datetime(2025, 5, 22, 2, 0, tzinfo=dt.timezone.utc), "entry_wait": 0.04, "exit_wait": 0.06},
+        ]}
+        self.assertEqual(audit.value_as_of(versions, day, dt.date(2025, 5, 23))["entry_wait"], 1.83)
+        self.assertEqual(audit.value_as_of(versions, day, dt.date(2025, 5, 24))["entry_wait"], 2.10)
+
+    def test_validatorqueue_raw_history_is_pinned_to_the_git_snapshot(self):
+        self.assertEqual(len(audit.VALIDATORQUEUE_SOURCE_SHA), 40)
+        self.assertIn(audit.VALIDATORQUEUE_SOURCE_SHA, audit.VALIDATORQUEUE_RAW_URL)
 
     def test_two_day_lag_excludes_rows_not_published_by_origin_midnight(self):
         _, schedule = audit.make_origin_dates(6)
@@ -103,10 +117,12 @@ class EthereumValidatorQueuePitConcordanceTests(unittest.TestCase):
             "entry_wait": 1.0, "exit_wait": 1.0,
         }]}
         result = audit.schedule_feasibility(history, versions, step_days=6, min_train_events=0)
-        self.assertEqual(result["not_published_by_origin"], 0)
+        self.assertEqual(result["not_committed_by_origin"], 0)
+        self.assertFalse(result["public_availability_verified"])
+        self.assertIsNone(result["pit_accepted_validation_origins"])
         versions[feature_day][0]["timestamp"] += dt.timedelta(seconds=2)
         result = audit.schedule_feasibility(history, versions, step_days=6, min_train_events=0)
-        self.assertEqual(result["not_published_by_origin"], 1)
+        self.assertEqual(result["not_committed_by_origin"], 1)
 
     def test_nonoverlapping_schedule_grid_marks_short_steps_as_overlapping(self):
         start = dt.date(2023, 5, 21)
@@ -128,7 +144,7 @@ class EthereumValidatorQueuePitConcordanceTests(unittest.TestCase):
         grid = audit.schedule_grid(history, versions)
         self.assertEqual(grid[0]["origin_step_days"], 6)
         self.assertEqual(grid[0]["minimum_training_events"], 60)
-        self.assertTrue(all("valid_validation_origins" in item for item in grid))
+        self.assertTrue(all("commit_timestamp_proxy_validation_origins" in item for item in grid))
 
 
 if __name__ == "__main__":

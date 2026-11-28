@@ -1059,5 +1059,14 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
                 )
                 self.assertEqual(result.returncode, 0, msg=result.stderr)
 
+    def test_eth_validator_queue_pit_workflow_pins_external_history_without_credentials(self):
+        text = (WORKFLOW_DIR / "eth-validator-queue-pit-concordance.yml").read_text(encoding="utf-8")
+        self.assertIn("repository: etheralpha/validatorqueue-com", text)
+        self.assertIn("ref: 6d90783883b84129db6f17b3d454f702dc1f8f1f", text)
+        self.assertIn("fetch-depth: 0", text)
+        self.assertIn("persist-credentials: false", text)
+        self.assertNotIn("ref: main", text)
+
+
 if __name__ == "__main__":
     unittest.main()

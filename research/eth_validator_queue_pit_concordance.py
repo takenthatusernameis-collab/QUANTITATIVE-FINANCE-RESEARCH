@@ -14,7 +14,8 @@ from pathlib import Path
 import eth_validator_queue_source_preflight as source
 
 CANDIDATE_ID = source.CANDIDATE_ID
-VALIDATORQUEUE_RAW_URL = "https://raw.githubusercontent.com/etheralpha/validatorqueue-com/main/historical_data.json"
+VALIDATORQUEUE_SOURCE_SHA = "6d90783883b84129db6f17b3d454f702dc1f8f1f"
+VALIDATORQUEUE_RAW_URL = f"https://raw.githubusercontent.com/etheralpha/validatorqueue-com/{VALIDATORQUEUE_SOURCE_SHA}/historical_data.json"
 VALIDATORQUEUE_COMMITS_URL = "https://api.github.com/repos/etheralpha/validatorqueue-com/commits"
 PECTRA_BUG_START = dt.date(2025, 5, 7)
 PECTRA_BUG_END = dt.date(2025, 5, 21)
@@ -107,6 +108,7 @@ def load_git_snapshots(repo_path: str | Path) -> dict:
     head = subprocess.run(
         ["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True, text=True
     ).stdout.strip()
+    require(head == VALIDATORQUEUE_SOURCE_SHA, f"ValidatorQueue checkout SHA mismatch: expected {VALIDATORQUEUE_SOURCE_SHA}, got {head}")
     canonical = "".join(f"{item['sha']},{item['timestamp'].isoformat()}\n" for item in snapshots)
     return {
         "snapshots": snapshots,
@@ -117,7 +119,7 @@ def load_git_snapshots(repo_path: str | Path) -> dict:
 
 
 def build_vintage_history(git_history: dict, current_history: dict) -> dict:
-    snapshots = git_history["snapshots"]
+    snapshots = sorted(git_history["snapshots"], key=lambda item: item["timestamp"])
     versions = {}
     wait_revision_events = []
     queue_balance_revision_events = 0
@@ -200,7 +202,7 @@ def build_vintage_history(git_history: dict, current_history: dict) -> dict:
 def value_as_of(version_history: dict, day: dt.date, origin: dt.date) -> dict | None:
     origin_time = dt.datetime.combine(origin, dt.time.min, tzinfo=dt.timezone.utc)
     available = [version for version in version_history.get(day, []) if version["timestamp"] <= origin_time]
-    return available[-1] if available else None
+    return max(available, key=lambda version: version["timestamp"]) if available else None
 
 
 def average_ranks(values: list[float]) -> list[float]:
@@ -353,14 +355,17 @@ def schedule_feasibility(
         "minimum_training_events": min_train_events,
         "scheduled_validation_origins": len([day for day in schedule if day < source.TEST_START]),
         "scheduled_test_origins": len([day for day in schedule if day >= source.TEST_START]),
-        "valid_validation_origins": len(validation),
-        "valid_test_origins": len(test),
-        "validation_minimum_100_met": len(validation) >= source.MIN_VALID_PER_SPLIT,
-        "test_minimum_100_met": len(test) >= source.MIN_VALID_PER_SPLIT,
+        "commit_timestamp_proxy_validation_origins": len(validation),
+        "commit_timestamp_proxy_test_origins": len(test),
+        "commit_timestamp_proxy_validation_minimum_100_met": len(validation) >= source.MIN_VALID_PER_SPLIT,
+        "commit_timestamp_proxy_test_minimum_100_met": len(test) >= source.MIN_VALID_PER_SPLIT,
         "missing_feature_origins": missing_feature,
         "known_pectra_bug_feature_origins": known_bug_feature,
-        "not_published_by_origin": unavailable_at_origin,
-        "commit_availability_verified": True,
+        "not_committed_by_origin": unavailable_at_origin,
+        "commit_timestamp_proxy_available": True,
+        "public_availability_verified": False,
+        "pit_accepted_validation_origins": None,
+        "pit_accepted_test_origins": None,
         "observed_training_count_min": min(training_counts) if training_counts else None,
         "observed_training_count_max": max(training_counts) if training_counts else None,
     }
@@ -411,7 +416,7 @@ def summarize_sources(fetched: dict) -> dict:
     queue = fetched["series"]
     vintages = fetched["vintages"]
     version_history = vintages["version_history"]
-    current_schedule = schedule_feasibility(
+    timestamp_proxy_schedule = schedule_feasibility(
         history, version_history,
         step_days=source.ORIGIN_STEP_DAYS,
         min_train_events=source.MIN_TRAIN_EVENTS,
@@ -423,7 +428,9 @@ def summarize_sources(fetched: dict) -> dict:
         "workflow_run_id": RUN_ID,
         "workflow_run_attempt": ATTEMPT,
         "retrieved_at_utc": NOW.isoformat(),
-        "status": "COMPLETE" if vintages["mapping_complete"] else "PARTIAL",
+        "status": "COMPLETE_COMMIT_HISTORY_AUDIT" if vintages["mapping_complete"] else "PARTIAL",
+        "public_availability_verified": False,
+        "point_in_time_accepted": False,
         "model_fit_performed": False,
         "backtest_run": False,
         "raw_observations_saved": False,
@@ -455,20 +462,26 @@ def summarize_sources(fetched: dict) -> dict:
                 "end": PECTRA_BUG_END.isoformat(),
                 "reason": "Repository README documents post-Pectra queue wait values as validator-based rather than balance-based during this interval.",
             },
+            "source_commit_sha": VALIDATORQUEUE_SOURCE_SHA,
+            "source_commit_sha_verified": True,
             "first_read_semantics": (
                 "The current file is not strictly append-only. Every historical_data.json Git snapshot is replayed; "
-                "first appearances and wait-value revisions are retained in memory, and the latest version committed "
-                "by each origin is selected. Git commit time is a conservative public-availability upper bound."
+                "first appearances and wait-value revisions are retained in memory, and the latest commit-dated version "
+                "before each origin is selected. Git committer dates are mutable metadata and do not prove when a snapshot "
+                "became public; this chronology is an unverified timestamp proxy only."
             ),
             "commit_history": vintage_summary,
         },
         "cross_source_concordance": cross_source_concordance(history, queue),
-        "pit_schedule_feasibility": {
-            "existing_frozen_schedule": current_schedule,
+        "commit_timestamp_proxy_schedule": {
+            "existing_frozen_schedule": timestamp_proxy_schedule,
             "non_overlapping_schedule_grid": schedule_grid(history, version_history),
+            "public_availability_verified": False,
+            "pit_accepted": False,
             "decision": (
-                "The existing 6-day/60-training-event schedule is PIT-source infeasible if either split has fewer than 100 origins. "
-                "Any schedule change requires a pre-result design amendment and cannot be selected using model performance."
+                "Git committer timestamps are mutable metadata and do not establish when a snapshot first became public. "
+                "The schedule counts are an unverified timestamp proxy, not PIT-accepted origins. The candidate remains IDEA/not admitted. "
+                "A current-vintage alternative requires a separate preregistration and timebox; do not fit a model."
             ),
         },
         "archive_reconstruction": {
@@ -493,7 +506,7 @@ def write_outputs(result: dict, error: str | None = None) -> tuple[Path, Path]:
     report_path = SESSION_DIR / f"{stamp}_session-eth-validator-queue-pit-concordance-{RUN_ID}.md"
     manifest_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     lines = [
-        "# Ethereum validator queue — PIT and cross-source concordance audit",
+        "# Ethereum validator queue — Git-history vintage and cross-source concordance audit",
         "",
         f"- **Candidate:** {CANDIDATE_ID}",
         f"- **Status:** {result.get('status', 'INCOMPLETE')}",
@@ -508,18 +521,20 @@ def write_outputs(result: dict, error: str | None = None) -> tuple[Path, Path]:
         lines += ["## Retrieval/validation failure", "", f"- Error: {error}", ""]
     if "validatorqueue" in result:
         vq = result["validatorqueue"]
-        pit = result["pit_schedule_feasibility"]["existing_frozen_schedule"]
+        proxy = result["commit_timestamp_proxy_schedule"]["existing_frozen_schedule"]
         concordance = result["cross_source_concordance"]
         lines += [
-            "## First-read archive and conservative availability",
+            "## Git-history version audit and unverified timestamp proxy",
             "",
             f"- ValidatorQueue.com: {vq['row_count']} daily first-read rows, {vq['first_date']} through {vq['last_date']}.",
             f"- Missing calendar days: {vq['missing_days']} across {vq['gap_count']} gaps.",
             f"- Git history: {vq['commit_history']['commit_count']} commits; "
             f"{vq['commit_history'].get('same_utc_date_commit_count', 'unmapped')} share the row's UTC date.",
-            f"- Existing schedule after missing/bad feature dates and conservative commit-time checks: "
-            f"{pit['valid_validation_origins']} validation and {pit['valid_test_origins']} test origins.",
-            f"- Existing 100/100 split minima: validation {pit['validation_minimum_100_met']}; test {pit['test_minimum_100_met']}.",
+            f"- Frozen schedule under Git committer-time proxy (not verified publication time): "
+            f"{proxy['commit_timestamp_proxy_validation_origins']} validation and {proxy['commit_timestamp_proxy_test_origins']} test origins.",
+            f"- Proxy 100/100 split minima: validation {proxy['commit_timestamp_proxy_validation_minimum_100_met']}; "
+            f"test {proxy['commit_timestamp_proxy_test_minimum_100_met']}.",
+            "- Public first-publication time: UNVERIFIED; PIT-accepted validation/test origin counts are not established.",
             "",
             "## Cross-source concordance",
             "",
@@ -551,8 +566,9 @@ def write_outputs(result: dict, error: str | None = None) -> tuple[Path, Path]:
             "## Decision boundary",
             "",
             "- This is source validation only; it is not a preregistration, model fit, backtest, strategy result or trading authorization.",
-            "- The existing PIT archive fails the current validation sample minimum if fewer than 100 validation origins remain.",
-            "- Any alternative schedule or current-vintage exploratory association requires a pre-result design amendment before model fitting.",
+            "- Git committer timestamps are mutable metadata, not server-side first-publication times; the proxy schedule cannot establish point-in-time availability.",
+            "- Even under the unverified timestamp proxy, the frozen validation split fails its 100-origin minimum if fewer than 100 origins remain.",
+            "- Any current-vintage exploratory association requires a separate hypothesis identity, preregistration and timebox before model fitting.",
             "",
         ]
     lines += [
@@ -569,7 +585,7 @@ def write_outputs(result: dict, error: str | None = None) -> tuple[Path, Path]:
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary_path:
         with open(summary_path, "a", encoding="utf-8") as handle:
-            handle.write(f"## ETH validator queue PIT concordance: {result.get('status', 'INCOMPLETE')}\n\n")
+            handle.write(f"## ETH validator queue Git-history vintage audit (PIT not established): {result.get('status', 'INCOMPLETE')}\n\n")
             handle.write(f"- Manifest: {manifest_path.relative_to(ROOT)}\n")
     return manifest_path, report_path
 
@@ -589,7 +605,7 @@ def main() -> int:
     try:
         result = summarize_sources(fetch_sources())
         write_outputs(result)
-        return 0 if result["status"] == "COMPLETE" else 1
+        return 0 if result["status"] == "COMPLETE_COMMIT_HISTORY_AUDIT" else 1
     except Exception as exc:
         result["error"] = f"{type(exc).__name__}: {exc}"
         write_outputs(result, error=result["error"])
