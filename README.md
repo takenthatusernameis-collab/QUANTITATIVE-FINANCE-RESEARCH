@@ -200,14 +200,14 @@ Hypothesis QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01 was frozen before i
 
 ## Current admitted workstream — MEXC funding dispersion / BTC realized volatility
 
-Hypothesis `QFR-2026-11-27-MEXC-FUNDING-DISPERSION-BTC-RV-01` is preregistered; source feasibility is pending.
+Hypothesis `QFR-2026-11-27-MEXC-FUNDING-DISPERSION-BTC-RV-01`: MEXC source feasibility PASSED at 2026-11-27T23:57:11Z — 530 complete funding days, 1,590 settlements, 12,929/12,929 hourly bars, 530 complete event windows, 139 warm-up, 61 validation and 330 test candidates. Model implementation/backtest is pending.
 
 - The mechanism is within-day dispersion of the three 00:00/08:00/16:00 UTC MEXC funding settlements, controlling for their mean, as a predictor of the next 24-hour realized variance of the same MEXC BTC_USDT perpetual.
 - Cycle 1 is source feasibility only: exact contract metadata, all funding-history pages, segmented Min60 klines, canonical source hashes and complete event windows. No model fitting or performance inspection before source acceptance.
 - MEXC `api.mexc.com` is the primary documented REST host. The old `contract.mexc.com` host is only a bounded compatibility diagnostic; no 401/403/429/451 route-around or other-provider substitution is permitted.
 - Difficulty MEDIUM; four cycles maximum; start 2026-11-27T23:39:43Z; implementation deadline 2026-12-01T23:39:43Z; final conclusion deadline 2026-12-02T23:39:43Z.
 - The 2026-11-27 UTC daily backtest minimum was already met by earlier distinct real-data screens. This source preflight is not a backtest and does not count toward the KPI.
-- If source gates pass, implement only the frozen model. If they fail, close INCONCLUSIVE/INFEASIBLE without changing the feature, target or venue.
+- Source gates passed. Implement only the frozen model and verify its source hashes; if they no longer match, close INCONCLUSIVE/INFEASIBLE without changing the feature, target or venue.
 
 ## Non-negotiable boundaries
 

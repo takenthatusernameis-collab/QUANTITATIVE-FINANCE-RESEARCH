@@ -115,6 +115,14 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
 
 
 
+    def test_mexc_funding_dispersion_model_workflow_has_exact_admission_gate(self):
+        text = (WORKFLOW_DIR / "mexc-funding-dispersion-btc-rv.yml").read_text(encoding="utf-8")
+        self.assertIn(ADMISSION_IF, text)
+        self.assertIn("ref: ${{ github.sha }}", text)
+        self.assertIn("forecast_rows.csv", text)
+        self.assertIn("mexc_funding_dispersion_btc_rv.py", text)
+        self.assertIn("cancel-in-progress: false", text)
+
     def test_mexc_funding_dispersion_source_preflight_has_narrow_source_only_path_filters(self):
         text = (WORKFLOW_DIR / "mexc-funding-dispersion-source-preflight.yml").read_text(encoding="utf-8")
         self.assertIn('"research/mexc_funding_dispersion_source_preflight.py"', text)
