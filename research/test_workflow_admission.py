@@ -915,6 +915,9 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
             "- **Timebox start:** 2026-11-28T01:42:11Z",
             "- **Maximum substantive cycles:** 4",
             "- **Difficulty:** MEDIUM",
+            "- **Status:** IMPLEMENTING — source feasibility passed; Cycle 2 implementation in progress",
+            "46097000508",
+            "1dbf0878593b45b84e9a9e7d9a13ccc3761b10d53510c5852e60da274f62f1c6",
             "- **Expiry rule:**",
             "INCONCLUSIVE/INFEASIBLE",
             "DEX notional turnover relative to Ethereum DeFi total value locked",
@@ -927,13 +930,45 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         for expected in (
             '"research/ethereum_dex_turnover_eth_rv_source_preflight.py"',
             '"research/test_ethereum_dex_turnover_eth_rv_source_preflight.py"',
-            '"research/PREREGISTERED-QFR-2026-11-28-ETHEREUM-DEX-TURNOVER-ETH-RV-01.md"',
             '".github/workflows/ethereum-dex-turnover-eth-rv-source-preflight.yml"',
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
+        self.assertNotIn('"research/PREREGISTERED-QFR-2026-11-28-ETHEREUM-DEX-TURNOVER-ETH-RV-01.md"', text)
         self.assertNotIn('"research/test_workflow_admission.py"', text)
         self.assertNotIn('"research/ethereum_dex_turnover_eth_rv.py"', text)
+
+    def test_ethereum_dex_turnover_model_module_declares_the_registered_hypothesis(self):
+        path = ROOT / "research" / "ethereum_dex_turnover_eth_rv.py"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn('HYPOTHESIS_ID = "QFR-2026-11-28-ETHEREUM-DEX-TURNOVER-ETH-RV-01"', text)
+        self.assertIn('EXPECTED_PREFLIGHT_RUN_ID = "46097000508"', text)
+        self.assertIn("EXPECTED_PREFLIGHT_MANIFEST_SHA256", text)
+
+    def test_ethereum_dex_turnover_model_workflow_has_atomic_admission_and_frozen_sources(self):
+        path = WORKFLOW_DIR / "ethereum-dex-turnover-eth-rv.yml"
+        text = path.read_text(encoding="utf-8")
+        for expected in (
+            '"research/ethereum_dex_turnover_eth_rv.py"',
+            '"research/test_ethereum_dex_turnover_eth_rv.py"',
+            '"research/PREREGISTERED-QFR-2026-11-28-ETHEREUM-DEX-TURNOVER-ETH-RV-01.md"',
+            '".github/workflows/ethereum-dex-turnover-eth-rv.yml"',
+            "if: github.event_name != 'push' || startsWith(github.event.head_commit.message, '[QFR-ADMIT] research:')",
+            "cancel-in-progress: false",
+            "ref: ${{ github.sha }}",
+            "persist-credentials: true",
+            "actions: read",
+            "contents: write",
+            "15243896011",
+            "5faf791cc3a6c6ef31ede46af0208d41b31ca563cef808190d31634bb5be2d49",
+            "1dbf0878593b45b84e9a9e7d9a13ccc3761b10d53510c5852e60da274f62f1c6",
+            "test_ethereum_dex_turnover_eth_rv.py",
+            "if: always()",
+            "git reset --hard origin/main",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, text)
+        self.assertNotIn("pull_request_target", text)
 
     def test_ethereum_dex_turnover_source_preflight_is_read_only_and_not_a_backtest(self):
         path = WORKFLOW_DIR / "ethereum-dex-turnover-eth-rv-source-preflight.yml"

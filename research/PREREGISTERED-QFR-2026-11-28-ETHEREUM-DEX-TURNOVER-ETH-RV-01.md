@@ -1,7 +1,7 @@
 # Preregistered hypothesis — Ethereum DeFi DEX turnover / ETH realized variance
 
 - **Hypothesis ID:** `QFR-2026-11-28-ETHEREUM-DEX-TURNOVER-ETH-RV-01`
-- **Status:** PREREGISTERED — source feasibility pending
+- **Status:** IMPLEMENTING — source feasibility passed; Cycle 2 implementation in progress
 - **Registered:** 2026-11-28T01:42:11Z
 - **Frozen UTC:** 2026-11-28T01:42:11Z
 - **Timebox start:** 2026-11-28T01:42:11Z
@@ -118,3 +118,11 @@ The complete source-only preflight at 2026-11-28T02:07:22Z verified all 70 month
 The initial two-consecutive-hour cap is superseded by a maximum of **four consecutive missing hours**. The total-missing limit (24), missing-fraction limit (0.1%), and all other source, feature, model, sample-count and decision gates remain unchanged. This narrowly accommodates the verified official archive's observed maximum gap; it does not fill or infer any missing price. Every missing timestamp remains in the source manifest. No price, close or return is forward-filled, interpolated or synthesized. Any forecast whose 24-hour target, 24-hour trailing baseline window or 168-hour trailing baseline window requires a missing hourly return must be excluded. The 300-forecast minimum in each split remains binding after exclusions.
 
 The gap set is confined to 2021 and one isolated hour in 2023; no gap lies in the frozen 2025–2026 test period. The 2023 gap still invalidates every affected validation origin/window under the strict exclusion rule. The DeFiLlama DEX and TVL series each passed their 2,128-row daily coverage checks, and Binance metadata confirmed active ETHUSDT Spot trading. No model fit, validation/test metric, forecast row or empirical outcome had been inspected when this amendment was made. This is a source-integrity amendment only; it does not change the hypothesis, instrument, predictor, lag, feature windows, target, estimator, chronological splits, bootstrap or decision rules.
+
+## Source-feasibility disposition — 2026-11-28T02:13:41Z
+
+Cycle 1 is complete: the read-only source-preflight workflow [run 46097000508](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46097000508) passed on source commit aa59537e1a7938bddd8b4fd0b64bad4c73f271be. Its GitHub artifact ID is 15243896011; the artifact ZIP SHA-256 is 5faf791cc3a6c6ef31ede46af0208d41b31ca563cef808190d31634bb5be2d49; the extracted preflight.json SHA-256 is 1dbf0878593b45b84e9a9e7d9a13ccc3761b10d53510c5852e60da274f62f1c6. The backtest workflow is pinned to this exact artifact, source commit and manifest hash.
+
+DeFiLlama returned 2,128 daily DEX-volume observations and 2,128 daily Ethereum TVL observations each from 2021-01-01 through 2026-10-29, with maximum adjacent-date gap one day. Frozen-window canonical SHA-256 values are DEX 8fdf8625a388b619d4426791f14a78bbb6bb3820ee535aa60cbd82a67c8e0696 and TVL 0d21055246d26652c684847a5c85ff1abbe7ab4e3010a1e6e8ca8f2e77cac7fe. Binance metadata confirmed active ETHUSDT Spot trading. All 70 monthly archive and all seven daily gap-check archive checksums verified. The combined hourly close series contains 51,106 of 51,120 expected bars; 14 remain missing (0.0274%), maximum consecutive run four hours. The daily archives independently reproduced all seven gap dates and repaired zero rows. Canonical close SHA-256: 64b2b592fe094ed576ec8582fe788d146293afabc2274bbb83650d0cd34c5a6c.
+
+No raw observations were saved. All missing bars remain explicit; every forecast whose target, 24-hour trailing baseline window or 168-hour trailing baseline window requires a missing hourly return is excluded. The post-exclusion minimum remains 300 validation and 300 test forecasts. This source-feasibility pass is not a model fit or backtest. Cycle 2 implementation is now in progress; the frozen specification and decision rules are unchanged.

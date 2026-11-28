@@ -6,7 +6,6 @@ on:
     paths:
       - "research/ethereum_dex_turnover_eth_rv_source_preflight.py"
       - "research/test_ethereum_dex_turnover_eth_rv_source_preflight.py"
-      - "research/PREREGISTERED-QFR-2026-11-28-ETHEREUM-DEX-TURNOVER-ETH-RV-01.md"
       - ".github/workflows/ethereum-dex-turnover-eth-rv-source-preflight.yml"
   workflow_dispatch:
 
