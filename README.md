@@ -200,7 +200,7 @@ Hypothesis QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01 was frozen before i
 
 ## Closed workstream — MEXC funding dispersion / BTC realized variance
 
-Hypothesis `QFR-2026-11-27-MEXC-FUNDING-DISPERSION-BTC-RV-01` completed its frozen Cycle 3 backtest and Cycle 4 independent audit on 2026-11-28. Final disposition: **INCONCLUSIVE**. This workstream is closed; no same-ID rerun, parameter tuning or reuse of its validation/test samples is authorized.
+Hypothesis QFR-2026-11-27-MEXC-FUNDING-DISPERSION-BTC-RV-01: MEXC source feasibility PASSED; the frozen walk-forward backtest disposition is INCONCLUSIVE. See [session report](reports/sessions/2026-11-28/2026-11-28T022811Z_session-mexc-funding-dispersion-btc-rv-46098199961.md) and [forecast rows](reports/generated/mexc-funding-dispersion-btc-rv/46098199961-attempt-1/forecast_rows.csv).
 
 - Mechanism: population standard deviation of the exact 00:00/08:00/16:00 UTC MEXC BTC_USDT funding settlements, controlling for their mean, as a predictor of the next 24-hour realized variance of the same perpetual contract.
 - Source acceptance: MEXC `api.mexc.com` only; 1,590 exact 8-hour settlements across 530 complete UTC dates (2025-06-15–2026-11-26); 12,929 hourly bars with 100% coverage and no missing hours. Contract metadata confirms an active BTC_USDT USDT-settled perpetual. No compatibility fallback was used.
