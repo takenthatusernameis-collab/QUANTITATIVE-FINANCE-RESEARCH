@@ -6,6 +6,7 @@ on:
     paths:
       - "research/mexc_funding_dispersion_btc_rv.py"
       - "research/test_mexc_funding_dispersion_btc_rv.py"
+      - "research/requirements.txt"
       - "research/PREREGISTERED-QFR-2026-11-27-MEXC-FUNDING-DISPERSION-BTC-RV-01.md"
       - ".github/workflows/mexc-funding-dispersion-btc-rv.yml"
   workflow_dispatch:
@@ -43,6 +44,9 @@ jobs:
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.11"
+
+      - name: Install pinned research numerical dependencies
+        run: python -m pip install --disable-pip-version-check -r research/requirements.txt
 
       - name: Run deterministic model, maturity, bootstrap and admission tests
         run: |

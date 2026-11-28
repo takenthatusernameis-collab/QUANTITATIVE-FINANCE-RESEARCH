@@ -55,6 +55,7 @@ on:
       - "research/initial_claims_btc_downside.py"
       - "research/test_initial_claims_btc_downside.py"
       - ".github/workflows/initial-claims-btc-downside.yml"
+      - "research/requirements.txt"
       - "research/mexc_funding_dispersion_btc_rv.py"
       - "research/test_mexc_funding_dispersion_btc_rv.py"
       - ".github/workflows/mexc-funding-dispersion-btc-rv.yml"
@@ -85,6 +86,9 @@ jobs:
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.11"
+
+      - name: Install pinned research numerical dependencies
+        run: python -m pip install --disable-pip-version-check -r research/requirements.txt
 
       - name: Compile research modules
         run: python -m py_compile research/vxn_vix_cross_index_sp500_rv.py research/test_vxn_vix_cross_index_sp500_rv.py research/kcprs_policy_skew_dgs2.py research/test_kcprs_policy_skew_dgs2.py research/wti_shock_sp500_rv.py research/test_wti_shock_sp500_rv.py research/fed_balance_sheet_btc_downside_semivariance.py research/test_fed_balance_sheet_btc_downside_semivariance.py research/deribit_relative_dvol_ethbtc_rv.py research/test_deribit_relative_dvol_ethbtc_rv.py research/mexc_btc_funding_downside.py research/test_mexc_btc_funding_downside.py research/btc_cross_venue_funding_dispersion_source_preflight.py research/test_btc_cross_venue_funding_dispersion_source_preflight.py research/taker_absorption_source_preflight.py research/test_taker_absorption_source_preflight.py research/taker_absorption_btc_downside.py research/test_taker_absorption_btc_downside.py research/persist_taker_absorption_evidence.py research/test_persist_taker_absorption_evidence.py research/decision_hierarchy.py research/test_decision_hierarchy.py research/btc_blockspace_fee_rate_source_preflight.py research/test_btc_blockspace_fee_rate_source_preflight.py research/btc_blockspace_fee_rate_btc_downside.py research/test_btc_blockspace_fee_rate_btc_downside.py research/mexc_funding_dispersion_source_preflight.py research/test_mexc_funding_dispersion_source_preflight.py research/mexc_funding_dispersion_btc_rv.py research/test_mexc_funding_dispersion_btc_rv.py
