@@ -26,6 +26,7 @@ NON_RESEARCH_WORKFLOWS = {
     "mexc-funding-dispersion-source-preflight.yml",
     "ethereum-dex-turnover-eth-rv-source-preflight.yml",
     "eth-validator-queue-source-preflight.yml",
+    "eth-validator-queue-pit-concordance.yml",
     "chatgpt-control-pr-dispatch.yml",
     "dispatch-bridge-probe.yml",
 }
@@ -317,10 +318,21 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertNotIn("wikipedia_attention_btc_downside.py", text)
         self.assertIn("do not run a backtest", text.lower())
 
+    def test_eth_validator_queue_pit_concordance_workflow_is_source_only(self):
+        path = WORKFLOW_DIR / "eth-validator-queue-pit-concordance.yml"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("eth_validator_queue_pit_concordance.py", text)
+        self.assertIn("test_eth_validator_queue_pit_concordance.py", text)
+        self.assertIn("do not run a backtest", text.lower())
+        self.assertIn("no raw observations persisted", text.lower())
+        self.assertIn("contents: write", text)
+        self.assertIn("ref: " + "${{ github.sha }}", text)
+        self.assertIn("cancel-in-progress: false", text)
     def test_non_research_source_preflight_workflows_are_excluded_from_research_gate(self):
         self.assertIn("stablecoin-supply-source-preflight.yml", NON_RESEARCH_WORKFLOWS)
         self.assertIn("wikipedia-attention-source-preflight.yml", NON_RESEARCH_WORKFLOWS)
         self.assertIn("taker-absorption-source-preflight.yml", NON_RESEARCH_WORKFLOWS)
+        self.assertIn("eth-validator-queue-pit-concordance.yml", NON_RESEARCH_WORKFLOWS)
 
     def test_non_research_admission_test_workflow_is_excluded_from_research_gate(self):
         path = WORKFLOW_DIR / "workflow-admission-tests.yml"
