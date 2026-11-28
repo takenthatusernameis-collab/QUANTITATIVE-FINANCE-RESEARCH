@@ -52,7 +52,7 @@ class EthereumValidatorQueuePitConcordanceTests(unittest.TestCase):
             dt.date(2025, 5, 21),
             dt.date(2025, 5, 22),
         ]
-        history = {"rows": [row(day, 5.0 + index, 2.0 + index) for index, day in enumerate(dates)]}
+        history = {"rows": [{"date": day, "entry_wait": 5.0 + index, "exit_wait": 2.0 + index} for index, day in enumerate(dates)]}
         queue = {
             "entry_values": {day: 5.0 + index for index, day in enumerate(dates)},
             "exit_values": {day: 2.0 + index for index, day in enumerate(dates)},

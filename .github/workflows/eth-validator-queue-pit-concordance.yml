@@ -48,7 +48,7 @@ jobs:
           python -m py_compile research/eth_validator_queue_source_preflight.py research/eth_validator_queue_pit_concordance.py research/test_eth_validator_queue_pit_concordance.py
           PYTHONPATH=research python -m unittest discover -s research -p "test_eth_validator_queue_pit_concordance.py" -v
 
-      - name: Retrieve public queue sources and commit timestamps only; no model fitting, no backtest, no raw observations persisted
+      - name: Retrieve public queue sources and commit timestamps only; no model fitting, do not run a backtest, no raw observations persisted
         env:
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
