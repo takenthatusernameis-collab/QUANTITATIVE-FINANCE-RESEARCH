@@ -37,6 +37,15 @@ jobs:
           test "$actual" = "$GITHUB_SHA"
           echo "Verified source commit: $actual"
 
+      - name: Checkout full ValidatorQueue Git history for point-in-time reconstruction
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: etheralpha/validatorqueue-com
+          ref: main
+          path: external/validatorqueue-com
+          fetch-depth: 0
+          persist-credentials: false
+
       - name: Set up Python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
@@ -48,11 +57,12 @@ jobs:
           python -m py_compile research/eth_validator_queue_source_preflight.py research/eth_validator_queue_pit_concordance.py research/test_eth_validator_queue_pit_concordance.py
           PYTHONPATH=research python -m unittest discover -s research -p "test_eth_validator_queue_pit_concordance.py" -v
 
-      - name: Retrieve public queue sources and commit timestamps only; no model fitting, do not run a backtest, no raw observations persisted
+      - name: Reconstruct full public queue Git vintages and cross-source concordance only; no model fitting, do not run a backtest, no raw observations persisted
         env:
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
           GITHUB_SHA: ${{ github.sha }}
+          QFR_VALIDATORQUEUE_REPO_PATH: external/validatorqueue-com
         run: |
           set -euo pipefail
           PYTHONPATH=research python research/eth_validator_queue_pit_concordance.py

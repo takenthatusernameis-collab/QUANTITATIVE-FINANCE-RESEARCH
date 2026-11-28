@@ -7,6 +7,7 @@ import json
 import math
 import os
 import statistics
+import subprocess
 import urllib.parse
 from pathlib import Path
 
@@ -74,54 +75,132 @@ def parse_history(raw: bytes) -> dict:
     }
 
 
-def parse_commit_timestamp(item: dict) -> dict:
-    commit = item.get("commit", {})
-    raw_date = commit.get("committer", {}).get("date")
-    require(isinstance(raw_date, str), "GitHub commit history item is missing committer.date")
-    try:
-        timestamp = dt.datetime.fromisoformat(raw_date.replace("Z", "+00:00")).astimezone(dt.timezone.utc)
-    except ValueError as exc:
-        raise AuditError(f"Invalid GitHub commit timestamp: {raw_date!r}") from exc
-    return {
-        "sha": str(item.get("sha", "")),
-        "timestamp": timestamp,
-        "message": str(commit.get("message", "")).splitlines()[0],
-    }
-
-
-def fetch_commit_history() -> dict:
-    commits = []
-    remaining_headers = []
-    for page in range(1, GITHUB_MAX_PAGES + 1):
-        query = urllib.parse.urlencode({"path": "historical_data.json", "per_page": GITHUB_PAGE_SIZE, "page": page})
-        raw, headers = source.fetch_bytes(
-            f"{VALIDATORQUEUE_COMMITS_URL}?{query}",
-            accept="application/vnd.github+json",
-        )
-        payload = source.parse_json(raw, f"ValidatorQueue GitHub commit history page {page}")
-        require(isinstance(payload, list), f"GitHub commit history page {page} is not an array")
-        remaining_headers.append(headers.get("x-ratelimit-remaining"))
-        if not payload:
-            break
-        commits.extend(parse_commit_timestamp(item) for item in payload)
-        if len(payload) < GITHUB_PAGE_SIZE:
-            break
-    else:
-        raise AuditError(f"GitHub commit history exceeded the {GITHUB_MAX_PAGES}-page safety bound")
-    require(commits, "GitHub returned no commits for historical_data.json")
-    commits.sort(key=lambda item: (item["timestamp"], item["sha"]))
-    canonical = "".join(
-        f"{item['sha']},{item['timestamp'].isoformat()},{item['message']}\n" for item in commits
+def load_git_snapshots(repo_path: str | Path) -> dict:
+    repo = Path(repo_path).resolve()
+    require((repo / ".git").exists(), f"ValidatorQueue checkout is not a Git repository: {repo}")
+    log = subprocess.run(
+        ["git", "log", "--reverse", "--follow", "--format=%H|%ct", "--", "historical_data.json"],
+        cwd=repo, check=True, capture_output=True, text=True,
     )
+    snapshots = []
+    for line in log.stdout.splitlines():
+        if not line.strip():
+            continue
+        sha, epoch = line.split("|", 1)
+        timestamp = dt.datetime.fromtimestamp(int(epoch), tz=dt.timezone.utc)
+        raw = subprocess.run(
+            ["git", "show", f"{sha}:historical_data.json"],
+            cwd=repo, check=True, capture_output=True,
+        ).stdout
+        payload = source.parse_json(raw, f"ValidatorQueue historical snapshot {sha}")
+        require(isinstance(payload, list), f"ValidatorQueue snapshot {sha} is not an array")
+        rows = {}
+        for index, item in enumerate(payload):
+            try:
+                day = dt.date.fromisoformat(str(item["date"]))
+            except (KeyError, TypeError, ValueError) as exc:
+                raise AuditError(f"Snapshot {sha} row {index} has an invalid date") from exc
+            require(day not in rows, f"Snapshot {sha} contains duplicate date {day}")
+            rows[day] = item
+        snapshots.append({"sha": sha, "timestamp": timestamp, "rows": rows})
+    require(snapshots, "ValidatorQueue Git history contains no historical_data.json snapshots")
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True, text=True
+    ).stdout.strip()
+    canonical = "".join(f"{item['sha']},{item['timestamp'].isoformat()}\n" for item in snapshots)
     return {
-        "commits": commits,
-        "count": len(commits),
+        "snapshots": snapshots,
+        "commit_count": len(snapshots),
+        "head_sha": head,
         "sha256": source.sha256(canonical.encode("utf-8")),
-        "rate_limit_remaining_min": min(
-            (int(value) for value in remaining_headers if value is not None),
-            default=None,
-        ),
     }
+
+
+def build_vintage_history(git_history: dict, current_history: dict) -> dict:
+    snapshots = git_history["snapshots"]
+    versions = {}
+    wait_revision_events = []
+    queue_balance_revision_events = 0
+    removed_dates = set()
+    previous_rows = {}
+    for snapshot in snapshots:
+        current_rows = snapshot["rows"]
+        removed_dates.update(set(previous_rows) - set(current_rows))
+        for day, row in current_rows.items():
+            entry = source.parse_number(row.get("entry_wait"), f"snapshot entry_wait {day}")
+            exit_ = source.parse_number(row.get("exit_wait"), f"snapshot exit_wait {day}")
+            version = {"timestamp": snapshot["timestamp"], "entry_wait": entry, "exit_wait": exit_}
+            if day not in versions:
+                versions[day] = [version]
+            else:
+                prior = versions[day][-1]
+                if entry != prior["entry_wait"] or exit_ != prior["exit_wait"]:
+                    versions[day].append(version)
+                    wait_revision_events.append({
+                        "date": day.isoformat(),
+                        "timestamp": snapshot["timestamp"].isoformat(),
+                        "old_entry_wait": prior["entry_wait"],
+                        "new_entry_wait": entry,
+                        "old_exit_wait": prior["exit_wait"],
+                        "new_exit_wait": exit_,
+                    })
+                old_row = previous_rows.get(day, {})
+                if old_row.get("entry_queue") != row.get("entry_queue") or old_row.get("exit_queue") != row.get("exit_queue"):
+                    queue_balance_revision_events += 1
+        previous_rows = current_rows
+
+    current_by_date = {item["date"]: item for item in current_history["rows"]}
+    latest_snapshot = snapshots[-1]["rows"]
+    current_snapshot_matches = set(current_by_date) == set(latest_snapshot)
+    for day, item in current_by_date.items():
+        row = latest_snapshot.get(day)
+        if row is None:
+            current_snapshot_matches = False
+            continue
+        if (
+            source.parse_number(row.get("entry_wait"), f"latest snapshot entry_wait {day}") != item["entry_wait"]
+            or source.parse_number(row.get("exit_wait"), f"latest snapshot exit_wait {day}") != item["exit_wait"]
+        ):
+            current_snapshot_matches = False
+
+    first_seen_delays = []
+    same_day_count = 0
+    for day, day_versions in versions.items():
+        require(day_versions, f"No Git vintage exists for {day}")
+        first_timestamp = day_versions[0]["timestamp"]
+        midnight = dt.datetime.combine(day, dt.time.min, tzinfo=dt.timezone.utc)
+        require(first_timestamp >= midnight, f"First Git snapshot predates row date {day}")
+        same_day_count += int(first_timestamp.date() == day)
+        first_seen_delays.append((first_timestamp - midnight).total_seconds() / 3600.0)
+    ordered_delays = sorted(first_seen_delays)
+    p95_index = max(0, math.ceil(0.95 * len(ordered_delays)) - 1) if ordered_delays else 0
+    revision_dates = sorted({item["date"] for item in wait_revision_events})
+    mapping_complete = current_snapshot_matches and not removed_dates and set(versions) == set(current_by_date)
+    return {
+        "mapping_complete": mapping_complete,
+        "commit_count": git_history["commit_count"],
+        "commit_history_sha256": git_history["sha256"],
+        "validatorqueue_git_head_sha": git_history["head_sha"],
+        "row_count": len(current_by_date),
+        "same_utc_date_commit_count": same_day_count,
+        "same_utc_date_commit_fraction": same_day_count / len(current_by_date) if current_by_date else None,
+        "snapshot_matches_current": current_snapshot_matches,
+        "removed_date_count": len(removed_dates),
+        "wait_revision_events": len(wait_revision_events),
+        "wait_revision_dates": revision_dates,
+        "wait_revision_details": wait_revision_events[:25],
+        "queue_balance_revision_events": queue_balance_revision_events,
+        "first_seen_delay_hours_max": max(first_seen_delays) if first_seen_delays else None,
+        "first_seen_delay_hours_p95": ordered_delays[p95_index] if ordered_delays else None,
+        "first_seen_delay_days_max": max(first_seen_delays) / 24.0 if first_seen_delays else None,
+        "version_history": versions,
+    }
+
+
+def value_as_of(version_history: dict, day: dt.date, origin: dt.date) -> dict | None:
+    origin_time = dt.datetime.combine(origin, dt.time.min, tzinfo=dt.timezone.utc)
+    available = [version for version in version_history.get(day, []) if version["timestamp"] <= origin_time]
+    return available[-1] if available else None
 
 
 def average_ranks(values: list[float]) -> list[float]:
@@ -169,57 +248,6 @@ def comparison_summary(reference: list[float], observed: list[float]) -> dict:
         "rmse": math.sqrt(statistics.fmean(value * value for value in errors)),
     }
 
-
-def build_commit_vintages(history: dict, commit_history: dict) -> dict:
-    rows = history["rows"]
-    commits = commit_history["commits"]
-    if len(rows) != len(commits):
-        return {
-            "mapping_complete": False,
-            "row_count": len(rows),
-            "commit_count": len(commits),
-            "error": "Commit count does not equal append-only history row count; row-to-commit mapping is not assumed.",
-            "commit_times": {},
-        }
-    commit_times = {}
-    date_offsets = []
-    same_day_count = 0
-    expected_message_count = 0
-    availability_offsets = []
-    for row, commit in zip(rows, commits):
-        day = row["date"]
-        timestamp = commit["timestamp"]
-        offset_days = (timestamp.date() - day).days
-        date_offsets.append(offset_days)
-        same_day_count += int(offset_days == 0)
-        expected_message_count += int(
-            commit["message"].startswith("Update index.html with latest validator queue data")
-        )
-        require(
-            timestamp >= dt.datetime.combine(day, dt.time.min, tzinfo=dt.timezone.utc),
-            f"Git commit predates its mapped ValidatorQueue row: {day}",
-        )
-        commit_times[day] = timestamp
-        availability_offsets.append(
-            (timestamp - dt.datetime.combine(day, dt.time.min, tzinfo=dt.timezone.utc)).total_seconds() / 3600.0
-        )
-    ordered_offsets = sorted(availability_offsets)
-    p95_index = max(0, math.ceil(0.95 * len(ordered_offsets)) - 1)
-    return {
-        "mapping_complete": True,
-        "row_count": len(rows),
-        "commit_count": len(commits),
-        "same_utc_date_commit_count": same_day_count,
-        "same_utc_date_commit_fraction": same_day_count / len(rows),
-        "expected_daily_update_message_count": expected_message_count,
-        "commit_date_offset_days_min": min(date_offsets),
-        "commit_date_offset_days_max": max(date_offsets),
-        "commit_lag_from_utc_day_start_hours_max": max(availability_offsets),
-        "commit_lag_from_utc_day_start_hours_p95": ordered_offsets[p95_index],
-        "commit_history_sha256": commit_history["sha256"],
-        "github_rate_limit_remaining_min": commit_history["rate_limit_remaining_min"],
-        "commit_times": commit_times,
-    }
 
 
 def is_bug_date(day: dt.date) -> bool:
@@ -280,7 +308,7 @@ def make_origin_dates(step_days: int) -> tuple[list[dt.date], list[dt.date]]:
 
 def schedule_feasibility(
     history: dict,
-    commit_times: dict | None,
+    version_history: dict,
     *,
     step_days: int = source.ORIGIN_STEP_DAYS,
     min_train_events: int = source.MIN_TRAIN_EVENTS,
@@ -293,17 +321,15 @@ def schedule_feasibility(
     unavailable_at_origin = 0
     for origin in warmup + schedule:
         feature_day = origin - dt.timedelta(days=2)
-        if feature_day not in rows_by_date:
+        if feature_day not in rows_by_date or feature_day not in version_history:
             missing_feature += 1
             continue
         if is_bug_date(feature_day):
             known_bug_feature += 1
             continue
-        if commit_times is not None:
-            commit_time = commit_times.get(feature_day)
-            if commit_time is None or commit_time > dt.datetime.combine(origin, dt.time.min, tzinfo=dt.timezone.utc):
-                unavailable_at_origin += 1
-                continue
+        if value_as_of(version_history, feature_day, origin) is None:
+            unavailable_at_origin += 1
+            continue
         valid.append(origin)
     accepted = []
     training_counts = []
@@ -334,18 +360,16 @@ def schedule_feasibility(
         "missing_feature_origins": missing_feature,
         "known_pectra_bug_feature_origins": known_bug_feature,
         "not_published_by_origin": unavailable_at_origin,
+        "commit_availability_verified": True,
         "observed_training_count_min": min(training_counts) if training_counts else None,
         "observed_training_count_max": max(training_counts) if training_counts else None,
     }
 
 
-def schedule_grid(history: dict, commit_times: dict | None) -> list[dict]:
-    combinations = [
-        (6, 60), (5, 60), (5, 30), (5, 20), (5, 15),
-        (4, 60), (4, 30), (3, 60), (3, 30),
-    ]
+def schedule_grid(history: dict, version_history: dict) -> list[dict]:
+    combinations = [(6, 60), (5, 60), (5, 30), (5, 20), (5, 15), (4, 60), (4, 30), (3, 60), (3, 30)]
     return [
-        schedule_feasibility(history, commit_times, step_days=step, min_train_events=warmup)
+        schedule_feasibility(history, version_history, step_days=step, min_train_events=warmup)
         for step, warmup in combinations
     ]
 
@@ -364,8 +388,10 @@ def fetch_sources() -> dict:
     )
     history_raw, _ = source.fetch_bytes(VALIDATORQUEUE_RAW_URL, accept="application/json")
     history = parse_history(history_raw)
-    commit_history = fetch_commit_history()
-    vintages = build_commit_vintages(history, commit_history)
+    repo_path = os.environ.get("QFR_VALIDATORQUEUE_REPO_PATH")
+    require(repo_path, "QFR_VALIDATORQUEUE_REPO_PATH is required for full Git-history vintage reconstruction")
+    git_history = load_git_snapshots(repo_path)
+    vintages = build_vintage_history(git_history, history)
     return {
         "openapi": openapi,
         "openapi_sha256": source.sha256(openapi_raw),
@@ -384,19 +410,20 @@ def summarize_sources(fetched: dict) -> dict:
     history = fetched["history"]
     queue = fetched["series"]
     vintages = fetched["vintages"]
-    commit_times = vintages.get("commit_times") if vintages.get("mapping_complete") else None
+    version_history = vintages["version_history"]
     current_schedule = schedule_feasibility(
-        history, commit_times,
+        history, version_history,
         step_days=source.ORIGIN_STEP_DAYS,
         min_train_events=source.MIN_TRAIN_EVENTS,
     )
+    vintage_summary = {key: value for key, value in vintages.items() if key != "version_history"}
     return {
         "candidate_id": CANDIDATE_ID,
         "source_commit_sha": SOURCE_SHA,
         "workflow_run_id": RUN_ID,
         "workflow_run_attempt": ATTEMPT,
         "retrieved_at_utc": NOW.isoformat(),
-        "status": "PASS" if vintages.get("mapping_complete") else "PARTIAL",
+        "status": "COMPLETE" if vintages["mapping_complete"] else "PARTIAL",
         "model_fit_performed": False,
         "backtest_run": False,
         "raw_observations_saved": False,
@@ -409,7 +436,7 @@ def summarize_sources(fetched: dict) -> dict:
             "license_link": fetched["series_license"],
             "vintage_limitation": (
                 "Free current-vintage daily history; first-published vintages require API & Team. "
-                "The recorder began 2026-11-08, so historical first-published vintages are unavailable."
+                "The recorder began 2026-11-08, so historical first-published CryptoKeyhole vintages are unavailable."
             ),
         },
         "validatorqueue": {
@@ -426,18 +453,19 @@ def summarize_sources(fetched: dict) -> dict:
             "known_inaccurate_interval": {
                 "start": PECTRA_BUG_START.isoformat(),
                 "end": PECTRA_BUG_END.isoformat(),
-                "reason": "Repository README documents post-Pectra queue values as validator-based rather than balance-based during this interval.",
+                "reason": "Repository README documents post-Pectra queue wait values as validator-based rather than balance-based during this interval.",
             },
             "first_read_semantics": (
-                "build.py appends one historical row only when the UTC date differs from the last row; "
-                "Git commit time is used as a conservative public-availability upper bound."
+                "The current file is not strictly append-only. Every historical_data.json Git snapshot is replayed; "
+                "first appearances and wait-value revisions are retained in memory, and the latest version committed "
+                "by each origin is selected. Git commit time is a conservative public-availability upper bound."
             ),
-            "commit_history": {key: value for key, value in vintages.items() if key != "commit_times"},
+            "commit_history": vintage_summary,
         },
         "cross_source_concordance": cross_source_concordance(history, queue),
         "pit_schedule_feasibility": {
             "existing_frozen_schedule": current_schedule,
-            "non_overlapping_schedule_grid": schedule_grid(history, commit_times),
+            "non_overlapping_schedule_grid": schedule_grid(history, version_history),
             "decision": (
                 "The existing 6-day/60-training-event schedule is PIT-source infeasible if either split has fewer than 100 origins. "
                 "Any schedule change requires a pre-result design amendment and cannot be selected using model performance."
@@ -561,7 +589,7 @@ def main() -> int:
     try:
         result = summarize_sources(fetch_sources())
         write_outputs(result)
-        return 0 if result["status"] == "PASS" else 1
+        return 0 if result["status"] == "COMPLETE" else 1
     except Exception as exc:
         result["error"] = f"{type(exc).__name__}: {exc}"
         write_outputs(result, error=result["error"])
