@@ -169,6 +169,100 @@ def build_daily_archive_specs(latest_target_end: dt.date) -> list[dict]:
     return specs
 
 
+def parse_btc_hourly_archive(body: bytes) -> tuple[dict[dt.datetime, float], str, dict]:
+    """Parse BTC hourly bars without rounding anomalous timestamps or close bounds."""
+    reader = csv.reader(io.StringIO(body.decode("utf-8-sig")))
+    values: dict[dt.datetime, float] = {}
+    units: set[str] = set()
+    anomalies = []
+    end_exclusive_close_rows = 0
+    row_count = 0
+
+    def finite(value: str, field: str, row_number: int) -> float:
+        try:
+            number = float(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Invalid {field} at row {row_number}") from exc
+        if not math.isfinite(number):
+            raise ValueError(f"Non-finite {field} at row {row_number}")
+        return number
+
+    for row_number, row in enumerate(reader, start=1):
+        if not row:
+            continue
+        if row_number == 1 and row[0].strip().lower() in {"open_time", "open time"}:
+            continue
+        row_count += 1
+        if len(row) != 12:
+            raise ValueError(f"Expected 12 Binance kline columns at row {row_number}; found {len(row)}")
+        try:
+            open_time, close_time = int(row[0]), int(row[6])
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Invalid Binance timestamp at row {row_number}") from exc
+        if open_time >= 100_000_000_000_000:
+            unit, scale = "microseconds", 1_000_000
+        elif open_time >= 100_000_000_000:
+            unit, scale = "milliseconds", 1_000
+        else:
+            raise ValueError(f"Unsupported Binance timestamp magnitude at row {row_number}")
+        units.add(unit)
+        step = 3_600_000 * (1_000 if unit == "microseconds" else 1)
+        stamp = dt.datetime.fromtimestamp(open_time / scale, dt.timezone.utc)
+
+        if open_time % step:
+            anomalies.append({
+                "row_number": row_number,
+                "kind": "off_grid_open_time",
+                "timestamp": stamp.isoformat(),
+                "raw_open_time": open_time,
+                "timestamp_unit": unit,
+            })
+            continue
+        if close_time < open_time or close_time > open_time + step:
+            anomalies.append({
+                "row_number": row_number,
+                "kind": "invalid_close_time",
+                "timestamp": stamp.isoformat(),
+                "raw_open_time": open_time,
+                "raw_close_time": close_time,
+                "timestamp_unit": unit,
+            })
+            continue
+        if close_time == open_time + step:
+            end_exclusive_close_rows += 1
+
+        open_price, high, low, close = (
+            finite(row[1], "open", row_number),
+            finite(row[2], "high", row_number),
+            finite(row[3], "low", row_number),
+            finite(row[4], "close", row_number),
+        )
+        volume = finite(row[5], "base volume", row_number)
+        quote_volume = finite(row[7], "quote volume", row_number)
+        trade_count = finite(row[8], "trade count", row_number)
+        if min(open_price, high, low, close) <= 0:
+            raise ValueError(f"Non-positive BTCUSDT OHLC at row {row_number}")
+        if low > min(open_price, close) or high < max(open_price, close) or low > high:
+            raise ValueError(f"Invalid BTCUSDT OHLC relationship at row {row_number}")
+        if volume < 0 or quote_volume < 0 or trade_count < 0 or int(trade_count) != trade_count:
+            raise ValueError(f"Invalid BTCUSDT volume/trade-count field at row {row_number}")
+        if stamp in values:
+            raise ValueError(f"Duplicate BTCUSDT hourly candle: {stamp.isoformat()}")
+        values[stamp] = close
+
+    if len(units) != 1:
+        raise ValueError(f"Expected one timestamp unit per archive; found {sorted(units)}")
+    if not values:
+        raise ValueError("Binance BTCUSDT hourly archive contains no valid aligned candles")
+    return dict(sorted(values.items())), next(iter(units)), {
+        "row_count": row_count,
+        "valid_row_count": len(values),
+        "invalid_row_count": len(anomalies),
+        "anomalies": anomalies,
+        "close_time_equal_to_open_plus_interval_rows": end_exclusive_close_rows,
+    }
+
+
 def download_archive(spec: dict) -> tuple[dict[dt.datetime, float], dict]:
     payload = base.fetch_bytes(spec["url"], timeout=45)
     checksum_body = base.fetch_bytes(spec["url"] + ".CHECKSUM", timeout=20)
@@ -184,7 +278,7 @@ def download_archive(spec: dict) -> tuple[dict[dt.datetime, float], dict]:
         if len(csv_names) != 1:
             raise ValueError(f"Expected one CSV in {spec['filename']}; found {len(csv_names)}")
         csv_body = archive.read(csv_names[0])
-    rows, timestamp_unit = hourly_source.parse_hourly_archive(csv_body)
+    rows, timestamp_unit, parse_stats = parse_btc_hourly_archive(csv_body)
     if spec["kind"] == "monthly":
         year, month = map(int, spec["tag"].split("-"))
         invalid = any(stamp.year != year or stamp.month != month for stamp in rows)
@@ -209,6 +303,7 @@ def download_archive(spec: dict) -> tuple[dict[dt.datetime, float], dict]:
         "timestamp_unit": timestamp_unit,
         "first_timestamp": min(rows).isoformat(),
         "last_timestamp": max(rows).isoformat(),
+        **parse_stats,
     }
 
 
@@ -405,6 +500,20 @@ def run_preflight(
     archive_specs = monthly_specs + daily_specs
     archive_results = download_archive_group(archive_specs, downloader=archive_downloader)
     all_prices = merge_archive_results(archive_results)
+    invalid_archive_rows = sum(record["invalid_row_count"] for _, record in archive_results)
+    if invalid_archive_rows > MAX_MISSING_HOURS:
+        raise ValueError(
+            f"Too many invalid Binance archive rows: {invalid_archive_rows} > {MAX_MISSING_HOURS}"
+        )
+    archive_anomalies = [
+        {
+            "period": record["period"],
+            "filename": record["url"].rsplit("/", 1)[-1],
+            "anomalies": record["anomalies"],
+        }
+        for _, record in archive_results
+        if record["invalid_row_count"]
+    ]
     start = dt.datetime.combine(START_DATE, dt.time(), tzinfo=dt.timezone.utc)
     prices = {
         stamp: close for stamp, close in all_prices.items()
@@ -446,6 +555,12 @@ def run_preflight(
             "monthly_archive_count": len(monthly_specs),
             "daily_archive_count": len(daily_specs),
             "all_archive_checksums_verified": all(record["checksum_verified"] for _, record in archive_results),
+            "invalid_archive_row_count": invalid_archive_rows,
+            "invalid_archive_rows_excluded_without_rounding_or_interpolation": True,
+            "end_exclusive_close_time_row_count": sum(
+                record["close_time_equal_to_open_plus_interval_rows"] for _, record in archive_results
+            ),
+            "archive_anomalies": archive_anomalies,
             "monthly_archives": [record for _, record in archive_results[:len(monthly_specs)]],
             "daily_archives": [record for _, record in archive_results[len(monthly_specs):]],
             "coverage": hourly_coverage,

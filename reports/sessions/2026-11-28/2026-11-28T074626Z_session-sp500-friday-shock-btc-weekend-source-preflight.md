@@ -28,10 +28,10 @@
 
 ## Evidence and validation
 
-- Preflight workflow: pending at session-report creation; result must be reconciled before any model implementation.
+- First preflight run 46124207470: deterministic tests passed after fixture corrections, but archive acquisition failed closed on three historical Binance BTC rows: one close_time exactly at the interval end, one off-grid open_time, and one close_time earlier than open_time. The shared ETH parser was intentionally not modified because its acceptance contract differs.
 - No empirical result, model fit, trading P&L or strategy claim is made.
 - The FRED SP500 series lacks historical intraday first-publication timestamps. The 15–16 hour embargo reduces timing risk but does not certify historical point-in-time availability.
-- The source preflight is expected to fetch roughly nine years of monthly Binance hourly archives plus daily archives for the current partial month, verify each adjacent SHA-256 sidecar, and reject gaps beyond the frozen limits.
+- The source preflight fetched roughly nine years of monthly Binance hourly archives plus daily archives for the current partial month and verified their adjacent SHA-256 sidecars. The first parser rejected three historical row conventions. A pre-result preregistration amendment now accepts exact interval-end close timestamps, excludes and enumerates off-grid/invalid-close rows without rounding, and counts them against the existing 24-hour/0.05%/four-consecutive-hour limits. The corrected preflight is rerunning. No raw observations were committed and no model was fitted.
 
 ## Next action
 

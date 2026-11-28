@@ -28,6 +28,13 @@ def sp500_csv(
     return output.getvalue().encode("utf-8")
 
 
+def hourly_row(open_time: int, close_time: int) -> str:
+    return ",".join([
+        str(open_time), "100", "110", "90", "105", "1",
+        str(close_time), "105", "10", "0.5", "52.5", "0",
+    ])
+
+
 class Sp500WeekendBtcSourcePreflightTests(unittest.TestCase):
     def test_parse_sp500_csv_sorts_and_preserves_positive_daily_closes(self):
         body = (
@@ -65,6 +72,32 @@ class Sp500WeekendBtcSourcePreflightTests(unittest.TestCase):
         future[dt.date(2026, 11, 30)] = 5000.0
         with self.assertRaisesRegex(ValueError, "future-dated"):
             model.validate_sp500_coverage(future, now)
+
+    def test_btc_hourly_parser_records_off_grid_and_invalid_close_rows_without_rounding(self):
+        step = 3_600_000
+        start = 1_700_000_000_000
+        aligned = start - (start % step)
+        rows = [
+            hourly_row(aligned, aligned + step - 1),
+            hourly_row(aligned + step, aligned + 2 * step),
+            hourly_row(aligned + 2 * step + 1234, aligned + 3 * step),
+            hourly_row(aligned + 3 * step, aligned + 3 * step - 1000),
+        ]
+        parsed, unit, stats = model.parse_btc_hourly_archive(("\n".join(rows) + "\n").encode())
+        self.assertEqual(unit, "milliseconds")
+        self.assertEqual(len(parsed), 2)
+        self.assertEqual(stats["row_count"], 4)
+        self.assertEqual(stats["valid_row_count"], 2)
+        self.assertEqual(stats["invalid_row_count"], 2)
+        self.assertEqual(
+            [row["kind"] for row in stats["anomalies"]],
+            ["off_grid_open_time", "invalid_close_time"],
+        )
+        self.assertEqual(stats["close_time_equal_to_open_plus_interval_rows"], 1)
+        self.assertNotIn(
+            dt.datetime.fromtimestamp((aligned + 2 * step) / 1000, UTC),
+            parsed,
+        )
 
     def test_archive_spec_builders_use_official_btcusdt_hourly_paths(self):
         monthly = model.build_monthly_archive_specs(
