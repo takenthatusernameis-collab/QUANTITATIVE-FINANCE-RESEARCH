@@ -15,6 +15,7 @@ import zipfile
 from pathlib import Path
 
 import treasury_auction_demand as base
+import stlfsi4_btc_downside_semivariance as market
 
 HYPOTHESIS_ID = "QFR-2026-11-28-ETHEREUM-DEX-TURNOVER-ETH-RV-01"
 SAMPLE_START = dt.date(2021, 1, 1)
@@ -255,10 +256,13 @@ def parse_hourly_archive(body: bytes) -> tuple[dict[dt.datetime, float], str]:
     return dict(sorted(values.items())), next(iter(units))
 
 
+def parse_archive_checksum(body: bytes, filename: str) -> str:
+    return market.parse_checksum(body, filename)
+
 def download_archive(spec: dict) -> tuple[dict[dt.datetime, float], dict]:
     payload = base.fetch_bytes(spec["url"], timeout=45)
     checksum_body = base.fetch_bytes(spec["url"] + ".CHECKSUM", timeout=20)
-    expected_sha = base.parse_checksum(checksum_body, spec["filename"])
+    expected_sha = parse_archive_checksum(checksum_body, spec["filename"])
     actual_sha = hashlib.sha256(payload).hexdigest()
     if actual_sha != expected_sha:
         raise ValueError(
