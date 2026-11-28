@@ -198,16 +198,21 @@ Hypothesis QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01 was frozen before i
 
 [Preregistration](research/PREREGISTERED-QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01.md) · [Registry](research/HYPOTHESIS-REGISTRY.md) · [Final report](reports/sessions/2026-11-27/2026-11-27T224315Z_session-treasury-rrp-drain-btc-46078321167.md) · [Manifest](reports/generated/treasury-rrp-drain-btc-downside/46078321167-attempt-1/manifest.json)
 
-## Current admitted workstream — MEXC funding dispersion / BTC realized volatility
+## Closed workstream — MEXC funding dispersion / BTC realized variance
 
-Hypothesis QFR-2026-11-27-MEXC-FUNDING-DISPERSION-BTC-RV-01: MEXC source feasibility PASSED; the frozen walk-forward backtest disposition is INCONCLUSIVE. See [session report](reports/sessions/2026-11-28/2026-11-28T000426Z_session-mexc-funding-dispersion-btc-rv-46085887442.md) and [forecast rows](reports/generated/mexc-funding-dispersion-btc-rv/46085887442-attempt-1/forecast_rows.csv).
+Hypothesis `QFR-2026-11-27-MEXC-FUNDING-DISPERSION-BTC-RV-01` completed its frozen Cycle 3 backtest and Cycle 4 independent audit on 2026-11-28. Final disposition: **INCONCLUSIVE**. This workstream is closed; no same-ID rerun, parameter tuning or reuse of its validation/test samples is authorized.
 
-- The mechanism is within-day dispersion of the three 00:00/08:00/16:00 UTC MEXC funding settlements, controlling for their mean, as a predictor of the next 24-hour realized variance of the same MEXC BTC_USDT perpetual.
-- Cycle 1 is source feasibility only: exact contract metadata, all funding-history pages, segmented Min60 klines, canonical source hashes and complete event windows. No model fitting or performance inspection before source acceptance.
-- MEXC `api.mexc.com` is the primary documented REST host. The old `contract.mexc.com` host is only a bounded compatibility diagnostic; no 401/403/429/451 route-around or other-provider substitution is permitted.
-- Difficulty MEDIUM; four cycles maximum; start 2026-11-27T23:39:43Z; implementation deadline 2026-12-01T23:39:43Z; final conclusion deadline 2026-12-02T23:39:43Z.
-- The 2026-11-27 UTC daily backtest minimum was already met by earlier distinct real-data screens. This source preflight is not a backtest and does not count toward the KPI.
-- Source gates passed. Implement only the frozen model and verify its source hashes; if they no longer match, close INCONCLUSIVE/INFEASIBLE without changing the feature, target or venue.
+- Mechanism: population standard deviation of the exact 00:00/08:00/16:00 UTC MEXC BTC_USDT funding settlements, controlling for their mean, as a predictor of the next 24-hour realized variance of the same perpetual contract.
+- Source acceptance: MEXC `api.mexc.com` only; 1,590 exact 8-hour settlements across 530 complete UTC dates (2025-06-15–2026-11-26); 12,929 hourly bars with 100% coverage and no missing hours. Contract metadata confirms an active BTC_USDT USDT-settled perpetual. No compatibility fallback was used.
+- Frozen model: 120 strictly matured prior daily events; signal at 17:00 UTC after the 16:00 settlement and one-hour embargo; next-24-hour realized-variance target; 61 validation forecasts and 330 test forecasts. Forecast-only, not strategy P&L.
+- Validation: baseline/augmented RMSE `0.934295 / 0.924561` (1.042% improvement).
+- Test: baseline/augmented RMSE `0.903469 / 0.907203` (0.413% deterioration).
+- Paired test-loss moving-block bootstrap: 2,000 replications, block size 7, seed `20261127`; independently reconstructed 95% interval `[-0.020889, +0.007409]`, which crosses zero.
+- Independent Cycle 4 audit re-parsed all 391 persisted forecast rows: 61 validation / 330 test; all training windows contain 120 matured events; signals are 17:00 UTC; targets are exactly 24 hours; dates are consecutive; stored squared errors reproduce exactly. Independently recomputed RMSE/MAE and the paired-loss mean match the manifest to floating-point precision.
+- Provenance: funding canonical SHA-256 `427f4b141673a6e43108d7033c91494af554c507527e8e51330ac95c0fbafd2f`; hourly-close canonical SHA-256 `b3fc8ef0cd1f695c18499e191294214914eee96d846b70b71c7c83c541c8468e`. Both match the accepted source-preflight manifest.
+- Interpretation: mixed validation/test direction plus a paired-loss interval crossing zero meets neither PROMISING nor REJECTED. Keep INCONCLUSIVE. The roughly 17-month, single-contract sample and absence of historical API publication-time vintages limit generalization; the one-hour lag does not prove exact historical availability. No causal, tradability, profitability or cross-venue claim follows.
+- Daily KPI: the 2026-11-28 UTC minimum was met by this completed real-data hypothesis backtest, run [#46085887442](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46085887442). Failed attempts and the source-only preflight were not counted.
+- Canonical evidence: [preregistration](research/PREREGISTERED-QFR-2026-11-27-MEXC-FUNDING-DISPERSION-BTC-RV-01.md) · [registry](research/HYPOTHESIS-REGISTRY.md) · [source preflight](reports/generated/mexc-funding-dispersion-source-preflight/46085255885-attempt-1/preflight.json) · [backtest report](reports/sessions/2026-11-28/2026-11-28T000426Z_session-mexc-funding-dispersion-btc-rv-46085887442.md) · [manifest](reports/generated/mexc-funding-dispersion-btc-rv/46085887442-attempt-1/manifest.json) · [forecast rows](reports/generated/mexc-funding-dispersion-btc-rv/46085887442-attempt-1/forecast_rows.csv) · [independent audit](reports/sessions/2026-11-28/2026-11-28T000740Z_session-mexc-funding-dispersion-independent-audit.md).
 
 ## Non-negotiable boundaries
 
