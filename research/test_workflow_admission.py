@@ -25,6 +25,7 @@ NON_RESEARCH_WORKFLOWS = {
     "initial-claims-source-preflight.yml",
     "mexc-funding-dispersion-source-preflight.yml",
     "ethereum-dex-turnover-eth-rv-source-preflight.yml",
+    "eth-validator-queue-source-preflight.yml",
     "chatgpt-control-pr-dispatch.yml",
     "dispatch-bridge-probe.yml",
 }
@@ -985,6 +986,66 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertIn("retention-days: 30", text)
 
 
+    def test_eth_validator_queue_source_preflight_is_registered_as_non_research_workflow(self):
+        self.assertIn("eth-validator-queue-source-preflight.yml", NON_RESEARCH_WORKFLOWS)
+
+    def test_eth_validator_queue_source_preflight_is_source_only_and_persists_evidence(self):
+        path = WORKFLOW_DIR / "eth-validator-queue-source-preflight.yml"
+        text = path.read_text(encoding="utf-8")
+        for expected in (
+            "workflow_dispatch:",
+            "contents: read",
+            "contents: write",
+            "ref: ${{ github.sha }}",
+            "cancel-in-progress: false",
+            "eth_validator_queue_source_preflight.py",
+            "no model fitting",
+            "do not run a backtest",
+            "if: always()",
+            "git fetch origin main",
+            "git reset --hard origin/main",
+            "git push origin HEAD:main",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, text)
+        self.assertNotIn("eth_validator_queue_asymmetry.py", text)
+        self.assertNotIn("pull_request_target", text)
+
+    def test_eth_validator_queue_source_preflight_has_narrow_source_only_path_filters(self):
+        path = WORKFLOW_DIR / "eth-validator-queue-source-preflight.yml"
+        text = path.read_text(encoding="utf-8")
+        for expected in (
+            '\"research/eth_validator_queue_source_preflight.py\"',
+            '\"research/test_eth_validator_queue_source_preflight.py\"',
+            '\".github/workflows/eth-validator-queue-source-preflight.yml\"',
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, text)
+        self.assertNotIn('\"research/eth_validator_queue_asymmetry.py\"', text)
+        self.assertNotIn('\"research/test_workflow_admission.py\"', text)
+        self.assertNotIn('\"research/PREREGISTERED-', text)
+
+    def test_eth_validator_queue_source_preflight_shell_blocks_have_valid_bash_syntax(self):
+        if not shutil.which("bash"):
+            self.skipTest("bash is unavailable")
+        text = (WORKFLOW_DIR / "eth-validator-queue-source-preflight.yml").read_text(encoding="utf-8")
+        lines = text.splitlines()
+        scripts = []
+        for index, line in enumerate(lines):
+            if line == "        run: |":
+                body = []
+                for candidate in lines[index + 1:]:
+                    if candidate.strip() and not candidate.startswith("          "):
+                        break
+                    body.append(candidate[10:] if candidate.startswith("          ") else "")
+                scripts.append("\n".join(body) + "\n")
+        self.assertGreaterEqual(len(scripts), 4)
+        for script_index, script in enumerate(scripts):
+            with self.subTest(script=script_index):
+                result = subprocess.run(
+                    ["bash", "-n"], input=script, text=True, capture_output=True, check=False
+                )
+                self.assertEqual(result.returncode, 0, msg=result.stderr)
 
 if __name__ == "__main__":
     unittest.main()
