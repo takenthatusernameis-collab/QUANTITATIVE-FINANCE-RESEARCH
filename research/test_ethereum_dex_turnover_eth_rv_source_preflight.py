@@ -105,6 +105,16 @@ class EthereumDexTurnoverSourcePreflightTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "expected active"):
             model.validate_exchange_info(inactive)
 
+    def test_archive_checksum_parser_requires_sha256_and_matching_filename(self):
+        digest = "a" * 64
+        self.assertEqual(
+            model.parse_archive_checksum(f"{digest}  ETHUSDT-1h-2021-01.zip".encode(), "ETHUSDT-1h-2021-01.zip"),
+            digest,
+        )
+        with self.assertRaisesRegex(ValueError, "different archive"):
+            model.parse_archive_checksum(f"{digest}  other.zip".encode(), "ETHUSDT-1h-2021-01.zip")
+        with self.assertRaisesRegex(ValueError, "Invalid SHA-256"):
+            model.parse_archive_checksum(b"not-a-checksum", "ETHUSDT-1h-2021-01.zip")
     def test_monthly_archive_specs_cover_exact_complete_months(self):
         specs = model.build_monthly_archive_specs(dt.date(2021, 1, 1), dt.date(2021, 3, 31))
         self.assertEqual([item["tag"] for item in specs], ["2021-01", "2021-02", "2021-03"])
