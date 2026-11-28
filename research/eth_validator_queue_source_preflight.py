@@ -181,10 +181,12 @@ def validate_catalog(payload: dict) -> dict:
     }
 
 
-def parse_component(component: dict) -> dict:
+def parse_component(component: dict, default_unit: str | None = None, default_unit_source: str = "catalog_metric") -> dict:
     component_id = str(component.get("id", "")).strip()
     name = str(component.get("name", "")).strip()
-    unit = str(component.get("unit", "")).strip()
+    component_unit = str(component.get("unit") or "").strip()
+    unit = component_unit or str(default_unit or "").strip()
+    unit_source = "component" if component_unit else default_unit_source
     label = f"{component_id} {name}".lower()
     kind = "entry" if "entry" in label else "exit" if "exit" in label else (
         "consolidation" if "consolidation" in label else "other"
@@ -229,6 +231,7 @@ def parse_component(component: dict) -> dict:
         "id": component_id,
         "name": name,
         "unit": unit,
+        "unit_source": unit_source,
         "kind": kind,
         "values": values,
         "point_count": len(points),
@@ -243,8 +246,9 @@ def parse_component(component: dict) -> dict:
     }
 
 
-def validate_queue_series(payload: dict, headers: dict) -> dict:
+def validate_queue_series(payload: dict, headers: dict, default_unit: str | None = None) -> dict:
     metric = payload.get("metric", {})
+    require(isinstance(metric, dict), "Queue series metric metadata is not an object")
     require(metric.get("id") == METRIC_ID, f"Series metric mismatch: {metric.get('id')!r}")
     require(payload.get("interval") == "24h", "Queue series is not daily")
     state = payload.get("state")
@@ -256,7 +260,20 @@ def validate_queue_series(payload: dict, headers: dict) -> dict:
     components_raw = payload.get("components")
     require(isinstance(components_raw, list) and len(components_raw) >= 2,
             "Queue series does not expose component lines")
-    parsed = [parse_component(component) for component in components_raw]
+    series_unit = str(payload.get("unit") or metric.get("unit") or "").strip()
+    catalog_unit = str(default_unit or "").strip()
+    if series_unit and catalog_unit:
+        normalize = lambda value: value.strip().lower().rstrip("s")
+        require(normalize(series_unit) == normalize(catalog_unit),
+                f"Series metric unit {series_unit!r} conflicts with validated catalog unit {catalog_unit!r}")
+    fallback_unit = series_unit or catalog_unit
+    fallback_unit_source = "series_metric" if series_unit else "catalog_metric"
+    if any(not str(component.get("unit") or "").strip() for component in components_raw if isinstance(component, dict)):
+        require(bool(fallback_unit), "Queue components omit units and no validated series/catalog unit is available")
+    parsed = [
+        parse_component(component, default_unit=fallback_unit, default_unit_source=fallback_unit_source)
+        for component in components_raw
+    ]
     entries = [item for item in parsed if item["kind"] == "entry"]
     exits = [item for item in parsed if item["kind"] == "exit"]
     require(len(entries) == 1, f"Expected exactly one entry-wait component; found {[x['name'] for x in entries]}")
@@ -628,7 +645,27 @@ def run_preflight() -> dict:
         "series_license_link": series_headers.get("link"),
         "series_preview_header": series_headers.get("x-ckh-preview"),
     })
-    queue = validate_queue_series(parse_json(series_raw, "CryptoKeyhole queue series"), series_headers)
+    series_payload = parse_json(series_raw, "CryptoKeyhole queue series")
+    series_metric = series_payload.get("metric") if isinstance(series_payload, dict) else None
+    series_components = series_payload.get("components") if isinstance(series_payload, dict) else None
+    PARTIAL_EVIDENCE["cryptokeyhole"]["series_shape"] = {
+        "metric_id": series_metric.get("id") if isinstance(series_metric, dict) else None,
+        "metric_unit": series_metric.get("unit") if isinstance(series_metric, dict) else None,
+        "top_level_unit": series_payload.get("unit") if isinstance(series_payload, dict) else None,
+        "components": [
+            {
+                "id": component.get("id"),
+                "name": component.get("name"),
+                "unit": component.get("unit"),
+                "point_count": len(component.get("points", [])) if isinstance(component.get("points"), list) else None,
+                "first_timestamp": component["points"][0].get("t") if isinstance(component.get("points"), list) and component.get("points") and isinstance(component["points"][0], dict) else None,
+                "last_timestamp": component["points"][-1].get("t") if isinstance(component.get("points"), list) and component.get("points") and isinstance(component["points"][-1], dict) else None,
+            }
+            for component in (series_components if isinstance(series_components, list) else [])
+            if isinstance(component, dict)
+        ],
+    }
+    queue = validate_queue_series(series_payload, series_headers, default_unit=catalog.get("unit"))
     PARTIAL_EVIDENCE["cryptokeyhole"]["series"] = {
         key: value for key, value in queue.items() if key not in {"entry_values", "exit_values"}
     }
