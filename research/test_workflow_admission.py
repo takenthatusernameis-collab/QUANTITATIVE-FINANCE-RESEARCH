@@ -196,9 +196,26 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
             "hard implementation deadline",
             "hard final research-conclusion deadline",
             "INCONCLUSIVE/INFEASIBLE",
-            "Pre-result data-integrity amendment",
-            "No price, close or return is forward-filled",
             "Do not silently reset the clock",
+        ]
+        for phrase in required:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+
+    def test_eth_dex_preregistration_records_pre_result_sparse_gap_amendments(self):
+        text = (
+            ROOT / "research" /
+            "PREREGISTERED-QFR-2026-11-28-ETHEREUM-DEX-TURNOVER-ETH-RV-01.md"
+        ).read_text(encoding="utf-8")
+        required = [
+            "Initial pre-result data-integrity amendment",
+            "Superseding pre-result sparse-gap amendment",
+            "14 missing hourly ETHUSDT bars",
+            "51,120 expected hours",
+            "four consecutive missing hours",
+            "Seven additional official daily archives",
+            "No price, close or return is forward-filled, interpolated or synthesized",
+            "The 300-forecast minimum in each split remains binding",
         ]
         for phrase in required:
             with self.subTest(phrase=phrase):
