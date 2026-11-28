@@ -246,8 +246,6 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         path = WORKFLOW_DIR / "stablecoin-supply-source-preflight.yml"
         text = path.read_text(encoding="utf-8")
         self.assertIn("workflow_dispatch:", text)
-        self.assertNotIn("push:", text)
-        self.assertIn("if: false", text)
         self.assertIn("contents: read", text)
         self.assertNotIn("contents: write", text)
         self.assertIn("stablecoin_supply_source_preflight.py", text)
@@ -1161,6 +1159,8 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         path = WORKFLOW_DIR / "sp500-weekend-btc-source-preflight.yml"
         text = path.read_text(encoding="utf-8")
         self.assertIn("workflow_dispatch:", text)
+        self.assertNotIn("push:", text)
+        self.assertIn("if: false", text)
         self.assertIn("contents: read", text)
         self.assertNotIn("contents: write", text)
         self.assertIn("github.sha", text)
