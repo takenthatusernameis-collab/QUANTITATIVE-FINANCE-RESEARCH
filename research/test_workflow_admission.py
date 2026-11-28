@@ -406,8 +406,8 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
             "Replace the hypothesis when distinct alternatives are exhausted",
             "two distinct providers",
             "MEXC",
-            "Coinbase USD-quoted legs",
-            "Kraken OHLCVT",
+            "Provider routes must be selected and justified afresh for each admitted research question",
+            "No fixed instrument universe, whitelist, exchange or historical start date",
             "Unaccepted final funding settlements block perpetual-futures claims",
         ]
         for phrase in required:
