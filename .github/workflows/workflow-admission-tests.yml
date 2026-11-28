@@ -78,6 +78,8 @@ on:
       - "research/h8_ci_credit_impulse_source_preflight.py"
       - "research/h8_ci_credit_impulse_btc_downside.py"
       - "research/test_h8_ci_credit_impulse_btc_downside.py"
+      - "research/audit_h8_ci_credit_impulse_btc_downside.py"
+      - "research/test_h8_ci_credit_impulse_btc_downside_audit.py"
       - "research/test_h8_ci_credit_impulse_source_preflight.py"
       - "research/PREREGISTERED-QFR-2026-11-28-H8-CI-CREDIT-IMPULSE-BTC-DOWNSIDE-01.md"
       - ".github/workflows/h8-ci-credit-impulse-source-preflight.yml"
@@ -198,7 +200,10 @@ jobs:
         run: PYTHONPATH=research python -m unittest discover -s research -p "test_h8_ci_credit_impulse_source_preflight.py" -v
 
       - name: Compile H.8 C&I BTC downside model
-        run: python -m py_compile research/h8_ci_credit_impulse_btc_downside.py research/test_h8_ci_credit_impulse_btc_downside.py
+        run: python -m py_compile research/h8_ci_credit_impulse_btc_downside.py research/test_h8_ci_credit_impulse_btc_downside.py research/audit_h8_ci_credit_impulse_btc_downside.py research/test_h8_ci_credit_impulse_btc_downside_audit.py
 
       - name: Run H.8 C&I BTC downside model regression tests
         run: PYTHONPATH=research python -m unittest discover -s research -p "test_h8_ci_credit_impulse_btc_downside.py" -v
+
+      - name: Run H.8 independent reconstruction regression tests
+        run: PYTHONPATH=research python -m unittest discover -s research -p "test_h8_ci_credit_impulse_btc_downside_audit.py" -v

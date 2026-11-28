@@ -28,6 +28,7 @@ NON_RESEARCH_WORKFLOWS = {
     "eth-validator-queue-source-preflight.yml",
     "eth-validator-queue-pit-concordance.yml",
     "h8-ci-credit-impulse-source-preflight.yml",
+    "h8-ci-credit-impulse-independent-audit.yml",
     "chatgpt-control-pr-dispatch.yml",
     "dispatch-bridge-probe.yml",
 }
@@ -1136,6 +1137,20 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertNotIn('"research/PREREGISTERED-', text)
         self.assertNotIn('"research/test_workflow_admission.py"', text)
         self.assertNotIn('"research/h8_ci_credit_impulse_btc_downside.py"', text)
+
+
+    def test_h8_final_gate_passes_manifest_path_to_python(self):
+        text = (WORKFLOW_DIR / "h8-ci-credit-impulse-btc-downside.yml").read_text(encoding="utf-8")
+        block = text.split("name: Require completed empirical evaluation", 1)[1]
+        self.assertRegex(block, r'python -c [^\\n]+ "\\$manifest"')
+        self.assertIn('test -s "$manifest"', block)
+
+    def test_h8_independent_audit_is_not_a_backtest_dispatch(self):
+        text = (WORKFLOW_DIR / "h8-ci-credit-impulse-independent-audit.yml").read_text(encoding="utf-8")
+        self.assertIn("audit_h8_ci_credit_impulse_btc_downside.py", text)
+        self.assertIn("ref: ${{ github.sha }}", text)
+        self.assertIn("cancel-in-progress: false", text)
+        self.assertNotIn("python research/h8_ci_credit_impulse_btc_downside.py", text)
 
 
 if __name__ == "__main__":

@@ -138,4 +138,4 @@ jobs:
           set -euo pipefail
           manifest="reports/generated/h8-ci-credit-impulse-btc-downside/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/manifest.json"
           test -s "$manifest"
-          python -c 'import json,sys; d=json.load(open(sys.argv[1], encoding="utf-8")); assert d.get("completed_backtest") is True, d.get("error"); assert d.get("decision") in {"PROMISING","REJECTED","INCONCLUSIVE"}, d.get("decision")'
+          python -c 'import json,sys; d=json.load(open(sys.argv[1], encoding="utf-8")); assert d.get("completed_backtest") is True, d.get("error"); assert d.get("decision") in {"PROMISING","REJECTED","INCONCLUSIVE"}, d.get("decision")' "$manifest"

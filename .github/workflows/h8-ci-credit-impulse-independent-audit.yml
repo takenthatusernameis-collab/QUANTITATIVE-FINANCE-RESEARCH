@@ -1,0 +1,95 @@
+name: Independent H.8 C&I / BTC forecast reconstruction
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "research/audit_h8_ci_credit_impulse_btc_downside.py"
+      - "research/test_h8_ci_credit_impulse_btc_downside_audit.py"
+      - "research/PREREGISTERED-QFR-2026-11-28-H8-CI-CREDIT-IMPULSE-BTC-DOWNSIDE-01.md"
+      - "reports/generated/h8-ci-credit-impulse-source-preflight/46115128898-attempt-1/preflight.json"
+      - "reports/generated/taker-absorption-btc-downside/45926394994-attempt-1/manifest.json"
+      - "reports/generated/h8-ci-credit-impulse-btc-downside/46119814521-attempt-1/manifest.json"
+      - "reports/generated/h8-ci-credit-impulse-btc-downside/46119814521-attempt-1/forecast_rows.csv"
+      - ".github/workflows/h8-ci-credit-impulse-independent-audit.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: qfr-h8-ci-credit-impulse-independent-audit-main
+  cancel-in-progress: false
+
+jobs:
+  independent-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout immutable trigger commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Install pinned numerical dependency
+        run: python -m pip install --disable-pip-version-check -r research/requirements.txt
+
+      - name: Compile and test independent audit logic
+        run: |
+          set -euo pipefail
+          python -m py_compile research/h8_ci_credit_impulse_btc_downside.py research/audit_h8_ci_credit_impulse_btc_downside.py research/test_h8_ci_credit_impulse_btc_downside_audit.py
+          PYTHONPATH=research python -m unittest discover -s research -p "test_h8_ci_credit_impulse_btc_downside_audit.py" -v
+
+      - name: Re-fetch frozen sources and independently reconstruct all forecasts
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          PYTHONPATH=research python research/audit_h8_ci_credit_impulse_btc_downside.py
+
+      - name: Persist independent audit and close the workstream on latest main
+        if: success()
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          audit_path="reports/generated/h8-ci-credit-impulse-btc-downside/independent-audit/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/audit.json"
+          report_pattern="*session-h8-ci-credit-impulse-independent-audit-$GITHUB_RUN_ID.md"
+          report="$(find reports/sessions -type f -name "$report_pattern" | sort | tail -n 1)"
+          test -s "$audit_path"
+          test -n "$report"
+          test -s "$report"
+          tmp="$RUNNER_TEMP/qfr-h8-independent-audit-$GITHUB_RUN_ID"
+          mkdir -p "$tmp"
+          cp "$audit_path" "$tmp/audit.json"
+          cp "$report" "$tmp/report.md"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p "$(dirname "$audit_path")" "$(dirname "$report")"
+            cp "$tmp/audit.json" "$audit_path"
+            cp "$tmp/report.md" "$report"
+            PYTHONPATH=research python -c 'import json,sys; import audit_h8_ci_credit_impulse_btc_downside as a; d=json.load(open(sys.argv[1], encoding="utf-8")); a.update_documents(d, sys.argv[2], sys.argv[3])' "$audit_path" "$report" "$audit_path"
+            git add README.md research/HYPOTHESIS-REGISTRY.md "$report" "$audit_path"
+            if git diff --cached --quiet; then
+              echo "Independent H.8 audit already persisted on main."
+              exit 0
+            fi
+            git commit -m "Persist independent H.8 C&I BTC forecast audit $GITHUB_RUN_ID"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Main advanced during audit persistence; refreshing and retrying."
+          done
+          echo "Could not persist independent H.8 audit after three main-branch refreshes."
+          exit 1
