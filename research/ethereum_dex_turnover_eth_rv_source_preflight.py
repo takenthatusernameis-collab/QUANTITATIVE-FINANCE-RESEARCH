@@ -129,6 +129,18 @@ def parse_tvl_history(body: bytes) -> dict[dt.date, float]:
     return _parse_chart_rows(body, "tvl", None)
 
 
+def canonical_daily_sha256(values: dict[dt.date, float]) -> str:
+    sample = {
+        day: value for day, value in values.items()
+        if SAMPLE_START <= day <= MIN_LATEST_DATE
+    }
+    canonical = "".join(
+        f"{day.isoformat()},{value:.12g}\\n"
+        for day, value in sorted(sample.items())
+    )
+    return hashlib.sha256(canonical.encode("ascii")).hexdigest()
+
+
 def validate_daily_coverage(
     values: dict[dt.date, float], label: str, require_positive: bool = False
 ) -> dict:

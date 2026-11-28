@@ -60,6 +60,21 @@ class EthereumDexTurnoverSourcePreflightTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "must be \\[unix_timestamp, USD_volume\\]"):
             model.parse_dex_history(b'{"totalDataChart":[1]}')
 
+    def test_daily_canonical_hash_is_frozen_to_the_research_sample_window(self):
+        values = {
+            dt.date(2020, 12, 31): 10.0,
+            dt.date(2021, 1, 1): 20.0,
+            model.MIN_LATEST_DATE: 30.0,
+            model.MIN_LATEST_DATE + dt.timedelta(days=1): 40.0,
+        }
+        canonical = (
+            f"2021-01-01,20\\n"
+            f"{model.MIN_LATEST_DATE.isoformat()},30\\n"
+        )
+        import hashlib
+        expected = hashlib.sha256(canonical.encode("ascii")).hexdigest()
+        self.assertEqual(model.canonical_daily_sha256(values), expected)
+
     def test_daily_coverage_requires_depth_freshness_and_bounded_gaps(self):
         values = {}
         day = model.SAMPLE_START

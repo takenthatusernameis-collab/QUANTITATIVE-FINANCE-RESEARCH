@@ -25,7 +25,7 @@ This is materially distinct from the completed DeFiLlama stablecoin-supply/BTC d
 ### DeFiLlama (free, keyless endpoints)
 
 1. Ethereum DEX daily notional volume:
-   `https://api.llama.fi/overview/dexs/ethereum?excludeTotalDataChart=false&excludeTotalDataChartBreakdown=true`
+   `https://api.llama.fi/overview/dexs/ethereum?excludeTotalDataChart=false&excludeTotalDataChartBreakdown=true&dataType=dailyVolume`
    Use the documented `totalDataChart` daily aggregate, not protocol-level selection or a post-hoc subset.
 2. Ethereum DeFi TVL:
    `https://api.llama.fi/v2/historicalChainTvl/Ethereum`
@@ -39,6 +39,7 @@ Official documentation: https://api-docs.defillama.com/llms-free.txt (DEX volume
 - Metadata: `https://data-api.binance.vision/api/v3/exchangeInfo?symbol=ETHUSDT`
 - Monthly hourly archive: `https://data.binance.vision/data/spot/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-YYYY-MM.zip`
 - Checksum sidecar: append `.CHECKSUM` to each archive URL.
+- Daily hourly gap-repair archive, only for dates with monthly gaps: `https://data.binance.vision/data/spot/daily/klines/ETHUSDT/1h/ETHUSDT-1h-YYYY-MM-DD.zip`, with the same `.CHECKSUM` sidecar. Add only missing hourly rows, and only when every overlapping close matches the monthly archive within the frozen numerical tolerance; preserve unrepaired gaps.
 - Frozen price sample: 2021-01-01 00:00 UTC through 2026-10-31 23:00 UTC inclusive. The end is the last fully completed calendar month available for a checksummed monthly archive at preregistration.
 
 ### Source acceptance
