@@ -13,6 +13,30 @@ class MexcFundingDispersionBtcRvTests(unittest.TestCase):
             closes[timestamp] = value
         return closes
 
+    def test_predict_one_uses_repository_standardized_ols_helper(self):
+        train = []
+        for i in range(model.TRAIN_WINDOW):
+            row = {
+                "pre_rv24_log": 0.5 + i * 0.013,
+                "pre_rv168_log": 0.7 + (i % 19) * 0.021,
+                "abs_return24_bps": 2.0 + (i % 11) * 0.37,
+                "funding_mean_bps": -0.1 + (i % 7) * 0.025,
+            }
+            row["target"] = (
+                0.2 * row["pre_rv24_log"]
+                + 0.1 * row["pre_rv168_log"]
+                + 0.001 * row["abs_return24_bps"]
+                + 0.5 * row["funding_mean_bps"]
+            )
+            train.append(row)
+        current = {
+            "pre_rv24_log": 1.1, "pre_rv168_log": 0.9,
+            "abs_return24_bps": 3.2, "funding_mean_bps": 0.03,
+            "funding_dispersion_bps": 0.08, "target": 0.4,
+        }
+        prediction = model.predict_one(train, current, model.BASE_FEATURES)
+        self.assertTrue(__import__("math").isfinite(prediction))
+
     def test_log_returns_use_only_completed_hourly_closes(self):
         start = int(dt.datetime(2026, 11, 26, 17, tzinfo=dt.timezone.utc).timestamp())
         closes = {start - 3600: 100.0, start: 101.0, start + 3600: 102.0}

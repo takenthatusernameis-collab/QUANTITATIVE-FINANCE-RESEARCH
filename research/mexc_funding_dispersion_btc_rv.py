@@ -102,15 +102,14 @@ def predict_one(train: list[dict], test: dict, feature_names: tuple[str, ...]) -
     if len(train) != TRAIN_WINDOW:
         raise ValueError(f"expected exactly {TRAIN_WINDOW} matured training events, received {len(train)}")
     train_rows = [
-        {"features": [row[name] for name in feature_names], "target_bp": row["target"]}
+        {**{name: row[name] for name in feature_names}, "target_bp": row["target"]}
         for row in train
     ]
-    test_row = {"features": [test[name] for name in feature_names], "target_bp": test["target"]}
-    prediction = base.fit_ols_predict(train_rows, test_row, n_features=len(feature_names))
+    test_row = {**{name: test[name] for name in feature_names}, "target_bp": test["target"]}
+    prediction = base.fit_ols_predict(train_rows, test_row, list(feature_names))
     if not math.isfinite(float(prediction)):
         raise ValueError("non-finite forecast")
     return float(prediction)
-
 
 def rolling_forecasts(events: list[dict]) -> list[dict]:
     forecasts = []
@@ -274,16 +273,17 @@ def update_registry_and_readme(decision: str, manifest_path: str, report_path: s
         raise ValueError("hypothesis registry row not found")
     REGISTRY_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-    readme = README_PATH.read_text(encoding="utf-8")
-    old = f"Hypothesis \`{HYPOTHESIS_ID}\` is preregistered; source feasibility is pending."
-    new = (
-        f"Hypothesis \`{HYPOTHESIS_ID}\`: MEXC source feasibility PASSED; the frozen walk-forward backtest is {decision}. "
-        f"See [session report]({report_path}) and [forecast rows]({forecast_path})."
-    )
-    if old in readme:
-        readme = readme.replace(old, new)
+    readme_lines = README_PATH.read_text(encoding="utf-8").splitlines()
+    for index, line in enumerate(readme_lines):
+        if line.startswith("Hypothesis ") and HYPOTHESIS_ID in line:
+            readme_lines[index] = (
+                f"Hypothesis {HYPOTHESIS_ID}: MEXC source feasibility PASSED; "
+                f"the frozen walk-forward backtest disposition is {decision}. "
+                f"See [session report]({report_path}) and [forecast rows]({forecast_path})."
+            )
+            break
+    readme = "\n".join(readme_lines) + "\n"
     README_PATH.write_text(readme, encoding="utf-8")
-
 
 def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
