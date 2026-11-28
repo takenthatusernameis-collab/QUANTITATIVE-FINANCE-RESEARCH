@@ -1,0 +1,101 @@
+name: Ethereum validator queue source-only feasibility preflight (no model fitting)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "research/eth_validator_queue_source_preflight.py"
+      - "research/test_eth_validator_queue_source_preflight.py"
+      - ".github/workflows/eth-validator-queue-source-preflight.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qfr-eth-validator-queue-source-preflight-main
+  cancel-in-progress: false
+
+jobs:
+  source-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout immutable triggering commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Assert immutable source checkout
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$GITHUB_SHA"
+          echo "Verified source commit: $actual"
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Run deterministic schema, licensing, timestamp, archive and schedule tests
+        run: |
+          set -euo pipefail
+          python -m py_compile research/eth_validator_queue_source_preflight.py research/test_eth_validator_queue_source_preflight.py
+          PYTHONPATH=research python -m unittest discover -s research -p "test_eth_validator_queue_source_preflight.py" -v
+
+      - name: Retrieve public source metadata and checksummed ETH archives only; no model fitting and do not run a backtest
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          PYTHONPATH=research python research/eth_validator_queue_source_preflight.py
+
+      - name: Persist source-feasibility report and manifest to main
+        if: always()
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          pattern="*session-eth-validator-queue-source-preflight-$GITHUB_RUN_ID.md"
+          report=""
+          if [ -d reports/sessions ]; then
+            report="$(find reports/sessions -type f -name "$pattern" | sort | tail -n 1 || true)"
+          fi
+          manifest="reports/generated/eth-validator-queue-source-preflight/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/preflight.json"
+          if [ -z "$report" ] || [ ! -s "$report" ] || [ ! -s "$manifest" ]; then
+            echo "No preflight evidence was generated; preserve the primary test or checkout failure."
+            exit 0
+          fi
+          tmp="$RUNNER_TEMP/qfr-eth-validator-queue-preflight-$GITHUB_RUN_ID"
+          mkdir -p "$tmp"
+          cp "$report" "$tmp/report.md"
+          cp "$manifest" "$tmp/preflight.json"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p "$(dirname "$report")" "$(dirname "$manifest")"
+            cp "$tmp/report.md" "$report"
+            cp "$tmp/preflight.json" "$manifest"
+            git add "$report" "$manifest"
+            if git diff --cached --quiet; then
+              echo "Preflight evidence already present on main."
+              exit 0
+            fi
+            git commit -m "Persist Ethereum validator queue source preflight $GITHUB_RUN_ID"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Main advanced during evidence persistence; refreshing and retrying."
+          done
+          echo "Could not persist Ethereum validator queue preflight evidence after three main refreshes."
+          exit 1
