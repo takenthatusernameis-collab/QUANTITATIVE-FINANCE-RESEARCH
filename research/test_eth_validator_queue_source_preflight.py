@@ -93,7 +93,7 @@ class EthereumValidatorQueueSourcePreflightTests(unittest.TestCase):
     def test_series_rejects_missing_component_license_or_preview(self):
         headers = {"link": '<https://creativecommons.org/licenses/by/4.0/>; rel="license"'}
         payload = synthetic_series()
-        payload["components"] = [payload["components"][0]]
+        payload["components"] = [payload["components"][0], payload["components"][2]]
         with self.assertRaisesRegex(model.PreflightError, "entry-wait|exit-wait"):
             model.validate_queue_series(payload, headers)
         with self.assertRaisesRegex(model.PreflightError, "Link header"):
