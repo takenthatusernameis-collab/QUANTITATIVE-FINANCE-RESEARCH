@@ -645,11 +645,20 @@ def event_feasibility(
     }
 
 
+def assert_empirical_execution_allowed() -> None:
+    """Fail closed: this source-feasibility hypothesis is permanently closed."""
+    raise RuntimeError(
+        f"{HYPOTHESIS_ID} is closed INCONCLUSIVE/INFEASIBLE; "
+        "source acquisition and empirical execution are disabled."
+    )
+
+
 def run_preflight(
     now: dt.datetime | None = None,
     fred_fetcher=base.fetch_bytes,
     archive_downloader=download_archive,
 ) -> dict:
+    assert_empirical_execution_allowed()
     retrieved_at = now or dt.datetime.now(dt.timezone.utc)
     if retrieved_at.tzinfo is None:
         raise ValueError("Preflight timestamp must be timezone-aware")
@@ -834,6 +843,7 @@ def run_preflight(
 
 
 def main() -> int:
+    assert_empirical_execution_allowed()
     try:
         result = run_preflight()
     except Exception as exc:

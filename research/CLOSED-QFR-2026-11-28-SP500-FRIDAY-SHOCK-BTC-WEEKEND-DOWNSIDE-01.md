@@ -32,7 +32,7 @@ The preregistered limits were no more than 24 missing/affected hours, no more th
 
 The final source gate failed all three coverage limits (129, 0.158859%, 33) and the conflicting-close gate (one conflict). Event feasibility passed with 91 eligible validation forecasts and 246 eligible test forecasts after 104 matured weekly training events. Sample sufficiency cannot override source integrity.
 
-The final run's deterministic parser/timestamp/archive/event-feasibility tests passed. The networked source step produced a diagnostic manifest and failed the unchanged data acceptance gate. No raw market observations were committed. No model fit, empirical backtest, performance metric, or strategy decision exists.
+The final run's deterministic parser/timestamp/archive/event-feasibility tests passed. After closure, the workflow was retired (push trigger removed and job disabled), and both the Python `run_preflight()` function and CLI entrypoint were given a fail-closed guard. Parser tests remain available without source retrieval. The networked source step produced a diagnostic manifest and failed the unchanged data acceptance gate. No raw market observations were committed. No model fit, empirical backtest, performance metric, or strategy decision exists.
 
 ## Recovery disposition
 

@@ -19,6 +19,7 @@
 - Latest mainline run [#46134088157](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46134088157) failed two subtests in `test_canonical_decision_hierarchy_is_executable_and_guarded`.
 - The README had correctly removed a fixed legacy spot-provider fallback sequence, but the test still required the obsolete literal phrases `Coinbase USD-quoted legs` and `Kraken OHLCVT`.
 - The test is updated to assert the current policy instead: provider routes are selected afresh for each research question, and there is no fixed instrument universe, whitelist, exchange or historical start date.
+- The closure guard then exposed a second issue: the source-preflight module had a closure record but remained callable. Added an unconditional guard to `run_preflight()` and the CLI entrypoint, added a regression test, and retired the workflow by removing its push trigger and disabling its job.
 - This is a stale-test repair, not a reason to restore the removed vendor ordering. The admission-guard CI run must pass before the session is considered verified.
 
 ## Daily KPI and queue
@@ -28,9 +29,11 @@
 ## Files changed
 - `README.md`: replace stale "current workstream" status with the final source-only closure and evidence.
 - `research/HYPOTHESIS-REGISTRY.md`: change the row from IDEA/source-preflight-pending to INCONCLUSIVE/INFEASIBLE with final metrics and links.
-- `research/test_workflow_admission.py`: remove stale assertions for fixed legacy provider names; assert the current general source-selection policy.
+- `research/test_workflow_admission.py`: remove stale assertions for fixed legacy provider names; assert the current general source-selection policy and that the retired workflow is inert.
+- `research/sp500_weekend_btc_source_preflight.py` and its tests: add and verify the permanent fail-closed execution guard.
+- `.github/workflows/sp500-weekend-btc-source-preflight.yml`: remove automatic push execution and disable the job.
 - `research/CLOSED-QFR-2026-11-28-SP500-FRIDAY-SHOCK-BTC-WEEKEND-DOWNSIDE-01.md`: permanent closure record.
 - `reports/sessions/2026-11-28/2026-11-28T101517Z_session-sp500-btc-weekend-source-infeasibility-closure.md`: this report.
 
 ## Verification
-Source evidence and run metadata were inspected directly from the repository and GitHub Actions. Verify this commit on main and require the admission-guard workflow to pass before treating the session as fully verified.
+Source evidence and run metadata were inspected directly from the repository and GitHub Actions. The first closure commit exposed one additional fail-closed guard requirement; this follow-up addresses it. Require the admission-guard and closure-test workflows to pass before treating the session as fully verified.

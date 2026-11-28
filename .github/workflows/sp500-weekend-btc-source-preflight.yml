@@ -1,13 +1,8 @@
 name: Friday S&P 500 / Bitcoin weekend source feasibility preflight
 
+# Retired after the hypothesis was closed INCONCLUSIVE/INFEASIBLE.
+# Keep a manually visible, inert workflow record; no push or dispatch can execute it.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "research/PREREGISTERED-QFR-2026-11-28-SP500-FRIDAY-SHOCK-BTC-WEEKEND-DOWNSIDE-01.md"
-      - "research/sp500_weekend_btc_source_preflight.py"
-      - "research/test_sp500_weekend_btc_source_preflight.py"
-      - ".github/workflows/sp500-weekend-btc-source-preflight.yml"
   workflow_dispatch:
 
 permissions:
@@ -19,6 +14,7 @@ concurrency:
 
 jobs:
   source-preflight:
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:

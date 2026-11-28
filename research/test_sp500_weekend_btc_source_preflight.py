@@ -320,5 +320,12 @@ class Sp500WeekendBtcSourcePreflightTests(unittest.TestCase):
         self.assertFalse(coverage["historical_intraday_publication_timestamps_available"])
 
 
+    def test_closed_hypothesis_execution_guard_blocks_source_retrieval(self):
+        with self.assertRaisesRegex(RuntimeError, "closed INCONCLUSIVE/INFEASIBLE"):
+            model.assert_empirical_execution_allowed()
+        with self.assertRaisesRegex(RuntimeError, "closed INCONCLUSIVE/INFEASIBLE"):
+            model.run_preflight()
+
+
 if __name__ == "__main__":
     unittest.main()
