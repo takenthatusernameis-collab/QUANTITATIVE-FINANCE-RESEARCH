@@ -2,13 +2,15 @@
 
 - **Hypothesis ID:** `QFR-2026-11-28-ETHEREUM-DEX-TURNOVER-ETH-RV-01`
 - **Status:** PREREGISTERED — source feasibility pending
+- **Registered:** 2026-11-28T01:42:11Z
 - **Frozen UTC:** 2026-11-28T01:42:11Z
+- **Timebox start:** 2026-11-28T01:42:11Z
 - **Difficulty:** MEDIUM
 - **Difficulty rationale:** Requires two independently versioned DeFiLlama daily series, checksummed hourly exchange archives, UTC publication-lag alignment, a new hourly realized-variance target builder, walk-forward inference and independent reconstruction.
 - **Maximum substantive cycles:** 4
 - **Implementation deadline:** 2026-11-30T01:42:11Z
 - **Final research-conclusion deadline:** 2026-12-03T01:42:11Z
-- **Expiry:** At the earlier of four substantive cycles or the final deadline, publish the strongest defensible conclusion. If source acceptance, implementation or valid execution remains incomplete, close INCONCLUSIVE/INFEASIBLE; never infer a performance rejection from missing data or elapsed time. No automatic extension or same-ID tuning.
+- **Expiry rule:** At the earlier of four substantive cycles or the final deadline, publish the strongest defensible conclusion. If source acceptance, implementation or valid execution remains incomplete, close INCONCLUSIVE/INFEASIBLE; never infer a performance rejection from missing data or elapsed time. No automatic extension or same-ID tuning.
 
 ## 1. Research question and falsifiable claim
 
