@@ -106,8 +106,8 @@ def _parse_chart_rows(body: bytes, field: str, envelope: str | None) -> dict[dt.
                 )
             day = parse_utc_date(row["date"])
             value = parse_number(row[field], field)
-        if value < 0 or (field == "tvl" and value <= 0):
-            raise ValueError(f"DeFiLlama {field} row {index} has invalid value {value}")
+        if value < 0:
+            raise ValueError(f"DeFiLlama {field} row {index} has invalid negative value {value}")
         if day in values:
             raise ValueError(f"Duplicate DeFiLlama {field} UTC date: {day}")
         values[day] = value
@@ -123,11 +123,15 @@ def parse_tvl_history(body: bytes) -> dict[dt.date, float]:
     return _parse_chart_rows(body, "tvl", None)
 
 
-def validate_daily_coverage(values: dict[dt.date, float], label: str) -> dict:
+def validate_daily_coverage(
+    values: dict[dt.date, float], label: str, require_positive: bool = False
+) -> dict:
     sample = {day: value for day, value in values.items() if SAMPLE_START <= day <= MIN_LATEST_DATE}
     if not sample:
         raise ValueError(f"No {label} observations inside the frozen sample window")
     dates = sorted(sample)
+    if require_positive and any(value <= 0 for value in sample.values()):
+        raise ValueError(f"{label} contains non-positive values inside the frozen sample window")
     if len(dates) < MIN_DAILY_ROWS:
         raise ValueError(f"Insufficient {label} observations: {len(dates)} < {MIN_DAILY_ROWS}")
     if dates[0] > SAMPLE_START:
@@ -325,7 +329,7 @@ def run_preflight() -> dict:
     dex = parse_dex_history(dex_body)
     tvl = parse_tvl_history(tvl_body)
     dex_coverage = validate_daily_coverage(dex, "Ethereum DEX daily notional volume")
-    tvl_coverage = validate_daily_coverage(tvl, "Ethereum DeFi TVL")
+    tvl_coverage = validate_daily_coverage(tvl, "Ethereum DeFi TVL", require_positive=True)
 
     exchange_body = base.fetch_bytes(BINANCE_EXCHANGE_INFO_URL, 20)
     market = validate_exchange_info(exchange_body)
