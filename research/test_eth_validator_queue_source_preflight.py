@@ -2,6 +2,7 @@ import datetime as dt
 import json
 import math
 import unittest
+from unittest.mock import patch
 
 import eth_validator_queue_source_preflight as model
 
@@ -199,6 +200,70 @@ class EthereumValidatorQueueSourcePreflightTests(unittest.TestCase):
             entry.pop(origin["date"] - dt.timedelta(days=2), None)
         with self.assertRaisesRegex(model.PreflightError, "valid validation origins"):
             model.evaluate_schedule(entry, exit_, prices)
+
+
+    def test_catalog_url_candidates_infer_asset_from_metric_before_explicit_asset(self):
+        self.assertEqual(
+            model.build_catalog_url_candidates(),
+            [
+                f"{model.CATALOG_URL}?ids={model.METRIC_ID}",
+                f"{model.CATALOG_URL}?asset=ETH",
+            ],
+        )
+
+    def test_catalog_fetch_uses_ids_inference_then_explicit_asset_fallback(self):
+        metric = {
+            "id": model.METRIC_ID,
+            "name": "Validator Queue Wait Time",
+            "unit": "days",
+            "status": "active",
+            "intervals": ["24h", "1w"],
+            "historyStart": unix(dt.date(2020, 12, 1)),
+            "historyEnd": unix(dt.date(2026, 11, 1)),
+        }
+        responses = [
+            (json.dumps({"asset": "BTC", "metrics": []}).encode("utf-8"), {}),
+            (json.dumps({"asset": "ETH", "metrics": [metric]}).encode("utf-8"), {}),
+        ]
+        model.PARTIAL_EVIDENCE.clear()
+        with patch.object(model, "fetch_bytes", side_effect=responses):
+            url, raw, catalog = model.fetch_eth_catalog()
+        self.assertEqual(url, model.build_catalog_url_candidates()[1])
+        self.assertEqual(catalog["id"], model.METRIC_ID)
+        self.assertEqual(len(raw) > 0, True)
+        attempts = model.PARTIAL_EVIDENCE["cryptokeyhole"]["catalog_attempts"]
+        self.assertEqual([item["response_asset"] for item in attempts], ["BTC", "ETH"])
+        self.assertFalse(attempts[0]["accepted"])
+        self.assertTrue(attempts[1]["accepted"])
+        self.assertIn("Unexpected catalog asset", attempts[0]["error"])
+
+    def test_run_preflight_preserves_partial_metadata_when_both_catalog_routes_mismatch(self):
+        openapi = {
+            "openapi": "3.0.3",
+            "info": {"version": "1.0.0"},
+            "components": {"schemas": {
+                "Series": {"properties": {"components": {"type": "array"}}},
+                "Point": {"required": ["t", "v", "finality"]},
+            }},
+        }
+
+        def fake_fetch(url):
+            if url == model.OPENAPI_URL:
+                return json.dumps(openapi).encode("utf-8"), {}
+            return json.dumps({"asset": "BTC", "metrics": []}).encode("utf-8"), {}
+
+        model.PARTIAL_EVIDENCE.clear()
+        with patch.object(model, "fetch_bytes", side_effect=fake_fetch):
+            with self.assertRaisesRegex(model.PreflightError, "No valid ETH catalog response"):
+                model.run_preflight()
+        evidence = model.PARTIAL_EVIDENCE["cryptokeyhole"]
+        self.assertIn("openapi_sha256", evidence)
+        self.assertEqual(len(evidence["catalog_attempts"]), 2)
+        self.assertEqual(
+            [item["response_asset"] for item in evidence["catalog_attempts"]],
+            ["BTC", "BTC"],
+        )
+        self.assertTrue(all(not item["accepted"] for item in evidence["catalog_attempts"]))
 
 
 if __name__ == "__main__":
