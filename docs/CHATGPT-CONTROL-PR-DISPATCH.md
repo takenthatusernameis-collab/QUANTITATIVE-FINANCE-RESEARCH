@@ -12,6 +12,7 @@ This bridge removes the need for the connected ChatGPT agent to expose a direct 
 - Listener: `.github/workflows/chatgpt-control-pr-dispatch.yml` on `main`.
 - Probe target: `.github/workflows/dispatch-bridge-probe.yml`.
 - Current research target: `.github/workflows/initial-claims-btc-downside.yml`.
+- Scoped release cleanup target: `.github/workflows/delete-specific-release.yml`.
 
 The old control PR #2 is superseded and must not be reused.
 
@@ -21,6 +22,7 @@ The old control PR #2 is superseded and must not be reused.
 |---|---|
 | `/qfr-probe-dispatch-bridge` | `dispatch-bridge-probe.yml` |
 | `/qfr-run-initial-claims-btc-downside` | `initial-claims-btc-downside.yml` |
+| `/qfr-delete-obsolete-spot-holdout-release` | `delete-specific-release.yml` |
 
 No arbitrary workflow name, ref, shell text, parameter or free-form input is accepted. Adding another target requires an explicit allowlist update, a target workflow with provenance inputs, and regression tests.
 
@@ -31,11 +33,11 @@ The listener runs only for `issue_comment: created` and its job requires all of:
 - exact control PR number `15`;
 - `github.event.issue.pull_request != null`;
 - exact verified actor `takenthatusernameis-collab`;
-- exact full comment body matching one of the two commands.
+- exact full comment body matching one of the three commands.
 
 The job has only `actions: write` and `pull-requests: write`. It maps each exact command to a hard-coded workflow filename, then calls the workflow-dispatch REST endpoint with `ref: main`. It passes `source_comment_id`, `source_control_pr` and `source_actor` to the target.
 
-The bridge does not checkout code, use `pull_request_target`, inspect the PR head, interpolate comment text into shell source, or execute PR-supplied content. The listener itself is loaded from the default branch. The probe target has no token permissions and performs no checkout or writes. The research target retains its existing atomic-admission and deterministic-test gates.
+The bridge does not checkout code, use `pull_request_target`, inspect the PR head, interpolate comment text into shell source, or execute PR-supplied content. The listener itself is loaded from the default branch. The probe target has no token permissions and performs no checkout or writes. The research target retains its existing atomic-admission and deterministic-test gates. The release-cleanup target is separately pinned to one release ID, tag and exact title; it verifies that identity before deletion, has only `contents: write`, and verifies that both the release and tag are absent afterward. It accepts no caller-supplied release identifier.
 
 ## Replay protection
 
@@ -68,3 +70,8 @@ Direct `workflow_dispatch` may remain as an owner-controlled break-glass mechani
 - [`issue_comment` event](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#issue_comment): the listener must exist on the default branch; it runs from the default branch and does not execute the control PR head.
 - [Create a workflow dispatch event](https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event): the bridge uses the workflow-dispatch API with the repository's Actions write permission.
 - [GITHUB_TOKEN event behavior](https://docs.github.com/en/actions/concepts/security/github_token): `workflow_dispatch` is an allowed event for triggering another workflow with `GITHUB_TOKEN`.
+
+
+## Scoped obsolete-release cleanup
+
+The exact command `/qfr-delete-obsolete-spot-holdout-release` dispatches only `.github/workflows/delete-specific-release.yml`. That workflow is pinned to release ID `455845473`, tag `spot-holdout-2026`, and title `Prospective Binance Spot ETH/BTC holdout — 2026`. It validates the release identity before deleting the release (which removes its uploaded assets), deletes only that tag, and checks both endpoints afterward. It runs from `main`, validates the source control PR and actor inputs, and uses the workflow's narrowly scoped `contents: write` token permission. It does not delete repository files, commits, branches, other releases, or other tags.
