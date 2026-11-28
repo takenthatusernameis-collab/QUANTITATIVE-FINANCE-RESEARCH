@@ -566,22 +566,71 @@ def coverage_summary(values: dict[dt.date, float], start: dt.date, end: dt.date)
     }
 
 
+def build_catalog_url_candidates() -> list[str]:
+    """Use the documented id-inferred asset route before the explicit ETH route."""
+    return [
+        f"{CATALOG_URL}?{urllib.parse.urlencode({'ids': METRIC_ID})}",
+        f"{CATALOG_URL}?{urllib.parse.urlencode({'asset': 'ETH'})}",
+    ]
+
+
+def fetch_eth_catalog() -> tuple[str, bytes, dict]:
+    attempts = []
+    evidence = PARTIAL_EVIDENCE.setdefault("cryptokeyhole", {})
+    for url in build_catalog_url_candidates():
+        attempt = {"url": url}
+        attempts.append(attempt)
+        evidence["catalog_attempts"] = attempts
+        try:
+            raw, _ = fetch_bytes(url)
+            attempt["response_sha256"] = sha256(raw)
+            attempt["response_bytes"] = len(raw)
+            payload = parse_json(raw, "CryptoKeyhole ETH catalog")
+            attempt["response_asset"] = payload.get("asset")
+            metrics = payload.get("metrics")
+            attempt["metric_ids"] = (
+                [str(item.get("id")) for item in metrics if isinstance(item, dict)]
+                if isinstance(metrics, list) else None
+            )
+            catalog = validate_catalog(payload)
+            attempt["accepted"] = True
+            evidence["catalog_url"] = url
+            evidence["catalog_response_sha256"] = sha256(raw)
+            evidence["catalog"] = catalog
+            return url, raw, catalog
+        except PreflightError as exc:
+            attempt["accepted"] = False
+            attempt["error"] = str(exc)
+    raise PreflightError(
+        "No valid ETH catalog response from the documented id-inferred or explicit-asset routes: "
+        + json.dumps(attempts, sort_keys=True)
+    )
+
+
 def run_preflight() -> dict:
-    catalog_url = f"{CATALOG_URL}?{urllib.parse.urlencode({'asset': 'ETH', 'ids': METRIC_ID})}"
+    PARTIAL_EVIDENCE.clear()
     series_url = f"{SERIES_URL}?{urllib.parse.urlencode({'metric': METRIC_ID, 'interval': '24h', 'start': unix_seconds(QUEUE_START), 'end': unix_seconds(QUEUE_END_EXCLUSIVE), 'limit': 20000})}"
     openapi_raw, _ = fetch_bytes(OPENAPI_URL)
-    catalog_raw, _ = fetch_bytes(catalog_url)
-    series_raw, series_headers = fetch_bytes(series_url)
-    openapi = validate_openapi(parse_json(openapi_raw, "CryptoKeyhole OpenAPI"))
-    catalog = validate_catalog(parse_json(catalog_raw, "CryptoKeyhole ETH catalog"))
-    queue = validate_queue_series(parse_json(series_raw, "CryptoKeyhole queue series"), series_headers)
     PARTIAL_EVIDENCE["cryptokeyhole"] = {
+        "openapi_url": OPENAPI_URL,
         "openapi_sha256": sha256(openapi_raw),
-        "catalog_response_sha256": sha256(catalog_raw),
+        "openapi_response_bytes": len(openapi_raw),
+    }
+    openapi = validate_openapi(parse_json(openapi_raw, "CryptoKeyhole OpenAPI"))
+    PARTIAL_EVIDENCE["cryptokeyhole"]["openapi"] = openapi
+
+    catalog_url, catalog_raw, catalog = fetch_eth_catalog()
+    series_raw, series_headers = fetch_bytes(series_url)
+    PARTIAL_EVIDENCE["cryptokeyhole"].update({
+        "series_url": series_url,
         "series_response_sha256": sha256(series_raw),
-        "openapi": openapi,
-        "catalog": catalog,
-        "series": {key: value for key, value in queue.items() if key not in {"entry_values", "exit_values"}},
+        "series_response_bytes": len(series_raw),
+        "series_license_link": series_headers.get("link"),
+        "series_preview_header": series_headers.get("x-ckh-preview"),
+    })
+    queue = validate_queue_series(parse_json(series_raw, "CryptoKeyhole queue series"), series_headers)
+    PARTIAL_EVIDENCE["cryptokeyhole"]["series"] = {
+        key: value for key, value in queue.items() if key not in {"entry_values", "exit_values"}
     }
 
     entry_values = queue["entry_values"]
