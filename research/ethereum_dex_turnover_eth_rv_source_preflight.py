@@ -169,7 +169,13 @@ def validate_exchange_info(body: bytes) -> dict:
 
 
 def build_monthly_archive_specs(start: dt.date, end: dt.date) -> list[dict]:
-    if start.day != 1 or end.day != (dt.date(end.year + (end.month == 12), 1 if end.month == 12 else end.month + 1, 1) - dt.timedelta(days=1)).day:
+    next_month = (
+        dt.date(end.year + 1, 1, 1)
+        if end.month == 12
+        else dt.date(end.year, end.month + 1, 1)
+    )
+    month_end = next_month - dt.timedelta(days=1)
+    if start.day != 1 or end != month_end:
         raise ValueError("Hourly archive feasibility window must cover complete UTC calendar months")
     specs = []
     cursor = dt.date(start.year, start.month, 1)
@@ -207,7 +213,7 @@ def parse_hourly_archive(body: bytes) -> tuple[dict[dt.datetime, float], str]:
             unit, scale = "milliseconds", 1_000
         else:
             raise ValueError(f"Unsupported Binance timestamp magnitude at row {row_number}")
-        step = INTERVAL_MS * scale
+        step = INTERVAL_MS * (1_000 if unit == "microseconds" else 1)
         if open_time % step or close_time != open_time + step - 1:
             raise ValueError(f"Row {row_number} is not a complete UTC hourly candle")
         stamp = dt.datetime.fromtimestamp(open_time / scale, tz=dt.timezone.utc)
