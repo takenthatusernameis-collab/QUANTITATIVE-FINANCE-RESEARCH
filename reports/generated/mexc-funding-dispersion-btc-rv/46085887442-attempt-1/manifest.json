@@ -1,0 +1,105 @@
+{
+  "completed_backtest": true,
+  "decision": "INCONCLUSIVE",
+  "event_count": 530,
+  "forecast_count": 391,
+  "forecast_rows_path": "reports/generated/mexc-funding-dispersion-btc-rv/46085887442-attempt-1/forecast_rows.csv",
+  "hypothesis_id": "QFR-2026-11-27-MEXC-FUNDING-DISPERSION-BTC-RV-01",
+  "manifest_path": "reports/generated/mexc-funding-dispersion-btc-rv/46085887442-attempt-1/manifest.json",
+  "model": {
+    "augmented_features": [
+      "pre_rv24_log",
+      "pre_rv168_log",
+      "abs_return24_bps",
+      "funding_mean_bps",
+      "funding_dispersion_bps"
+    ],
+    "baseline_features": [
+      "pre_rv24_log",
+      "pre_rv168_log",
+      "abs_return24_bps",
+      "funding_mean_bps"
+    ],
+    "estimator": "repository standardized OLS helper; fixed ridge stabilization 1e-8",
+    "target": "log1p(next_24h_realized_variance_bp2)",
+    "training_window": 120
+  },
+  "model_fit_performed": true,
+  "paired_test_loss_bootstrap": {
+    "block_size_daily_events": 7,
+    "ci95_lower": -0.02088867331915932,
+    "ci95_upper": 0.00740868117031798,
+    "mean_baseline_minus_augmented_squared_loss": -0.006760191620531438,
+    "reps": 2000,
+    "seed": 20261127
+  },
+  "report_path": "reports/sessions/2026-11-28/2026-11-28T000426Z_session-mexc-funding-dispersion-btc-rv-46085887442.md",
+  "retrieved_at_utc": "2026-11-28T00:04:26.298946+00:00",
+  "run_attempt": "1",
+  "run_id": "46085887442",
+  "source": {
+    "event_coverage": {
+      "complete_event_windows": 530,
+      "first_complete": "2025-06-15",
+      "last_complete": "2026-11-26",
+      "test_events_before_model_warmup": 330,
+      "validation_events_before_model_warmup": 61,
+      "warmup_events": 139
+    },
+    "funding_canonical_sha256": "427f4b141673a6e43108d7033c91494af554c507527e8e51330ac95c0fbafd2f",
+    "funding_coverage": {
+      "complete_days": 530,
+      "first_settlement": "2025-06-15T00:00:00+00:00",
+      "incomplete_days": 0,
+      "incomplete_share": 0.0,
+      "last_settlement": "2026-11-26T16:00:00+00:00",
+      "latest_complete_date": "2026-11-26",
+      "sample_end": "2026-11-26",
+      "sample_start": "2025-06-15",
+      "settlements": 1590
+    },
+    "funding_host": "https://api.mexc.com",
+    "funding_pages_refetched": 2,
+    "kline_canonical_sha256": "b3fc8ef0cd1f695c18499e191294214914eee96d846b70b71c7c83c541c8468e",
+    "kline_coverage": {
+      "coverage": 1.0,
+      "end_exclusive": "2026-11-27T17:00:00+00:00",
+      "expected_hours": 12929,
+      "first_bar": "2025-06-07T00:00:00+00:00",
+      "last_bar_start": "2026-11-27T16:00:00+00:00",
+      "longest_missing_run_hours": 0,
+      "missing_hours": 0,
+      "returned_hours": 12929,
+      "start": "2025-06-07T00:00:00+00:00"
+    },
+    "kline_host": "https://api.mexc.com",
+    "kline_segments_refetched": 8,
+    "preflight_manifest": "reports/generated/mexc-funding-dispersion-source-preflight/46085255885-attempt-1/preflight.json",
+    "preflight_run_id": "46085255885",
+    "preflight_source_commit_sha": "aa76af09051a7b5b7482eafa3a0b86896a378569"
+  },
+  "source_commit_sha": "27069ede30075052a137ad2b999bc491110da9e2",
+  "status": "COMPLETED",
+  "test_metrics": {
+    "augmented_mae": 0.7261087959075107,
+    "augmented_rmse": 0.9072030148980436,
+    "baseline_mae": 0.7217647438729354,
+    "baseline_rmse": 0.9034694895897528,
+    "n": 330,
+    "rmse_improvement_fraction": -0.004132430980027958
+  },
+  "timebox": {
+    "cycle": 3,
+    "final_conclusion_deadline_utc": "2026-12-02T23:39:43+00:00",
+    "implementation_deadline_utc": "2026-12-01T23:39:43+00:00",
+    "maximum_substantive_cycles": 4
+  },
+  "validation_metrics": {
+    "augmented_mae": 0.7172996476002264,
+    "augmented_rmse": 0.9245614209610233,
+    "baseline_mae": 0.7283781665968435,
+    "baseline_rmse": 0.9342945115057494,
+    "n": 61,
+    "rmse_improvement_fraction": 0.010417582919372793
+  }
+}

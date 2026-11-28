@@ -200,7 +200,7 @@ Hypothesis QFR-2026-11-27-TREASURY-RRP-DRAIN-BTC-DOWNSIDE-01 was frozen before i
 
 ## Current admitted workstream — MEXC funding dispersion / BTC realized volatility
 
-Hypothesis `QFR-2026-11-27-MEXC-FUNDING-DISPERSION-BTC-RV-01`: MEXC source feasibility PASSED at 2026-11-27T23:57:11Z — 530 complete funding days, 1,590 settlements, 12,929/12,929 hourly bars, 530 complete event windows, 139 warm-up, 61 validation and 330 test candidates. Model implementation/backtest is pending.
+Hypothesis QFR-2026-11-27-MEXC-FUNDING-DISPERSION-BTC-RV-01: MEXC source feasibility PASSED; the frozen walk-forward backtest disposition is INCONCLUSIVE. See [session report](reports/sessions/2026-11-28/2026-11-28T000426Z_session-mexc-funding-dispersion-btc-rv-46085887442.md) and [forecast rows](reports/generated/mexc-funding-dispersion-btc-rv/46085887442-attempt-1/forecast_rows.csv).
 
 - The mechanism is within-day dispersion of the three 00:00/08:00/16:00 UTC MEXC funding settlements, controlling for their mean, as a predictor of the next 24-hour realized variance of the same MEXC BTC_USDT perpetual.
 - Cycle 1 is source feasibility only: exact contract metadata, all funding-history pages, segmented Min60 klines, canonical source hashes and complete event windows. No model fitting or performance inspection before source acceptance.
