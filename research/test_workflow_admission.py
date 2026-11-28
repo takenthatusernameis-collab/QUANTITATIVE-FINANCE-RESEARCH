@@ -119,6 +119,17 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
 
 
 
+    def test_h8_ci_credit_impulse_backtest_workflow_has_exact_admission_gate(self):
+        text = (WORKFLOW_DIR / "h8-ci-credit-impulse-btc-downside.yml").read_text(encoding="utf-8")
+        self.assertIn(ADMISSION_IF, text)
+        self.assertIn("ref: \${{ github.sha }}", text)
+        self.assertIn("h8_ci_credit_impulse_btc_downside.py", text)
+        self.assertIn("forecast_rows.csv", text)
+        self.assertIn("cancel-in-progress: false", text)
+        self.assertIn("pip install --disable-pip-version-check -r research/requirements.txt", text)
+        self.assertIn("reports/generated/h8-ci-credit-impulse-source-preflight/46115128898-attempt-1/preflight.json", text)
+        self.assertIn("reports/generated/taker-absorption-btc-downside/45926394994-attempt-1/manifest.json", text)
+
     def test_mexc_funding_dispersion_model_workflow_has_exact_admission_gate(self):
         text = (WORKFLOW_DIR / "mexc-funding-dispersion-btc-rv.yml").read_text(encoding="utf-8")
         self.assertIn(ADMISSION_IF, text)

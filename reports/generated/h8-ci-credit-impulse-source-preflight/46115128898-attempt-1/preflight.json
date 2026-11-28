@@ -1,0 +1,144 @@
+{
+  "acceptance": {
+    "exact_vintage_columns": true,
+    "four_prior_weekly_observations": true,
+    "latest_observation_age_days_within_3_to_14": true,
+    "latest_observation_is_wednesday": true,
+    "minimum_history_rows_met": true,
+    "no_future_observations": true
+  },
+  "api_key_used": false,
+  "backtest_run": false,
+  "canonical_panel_sha256": "bb50c137a1e1a1d6ce42b79e17899b027476f92b97103522bc3775c2107196c8",
+  "final_url": "https://alfred.stlouisfed.org/graph/alfredgraph.csv?id=TOTCI%2CTOTCI%2CTOTCI%2CTOTCI%2CTOTCI&vintage_date=2017-08-20%2C2020-03-15%2C2022-01-02%2C2024-01-07%2C2026-11-22",
+  "generated_at_utc": "2026-11-28T06:07:36.600903+00:00",
+  "http_status": 200,
+  "hypothesis_id": "QFR-2026-11-28-H8-CI-CREDIT-IMPULSE-BTC-DOWNSIDE-01",
+  "manifest_path": "reports/generated/h8-ci-credit-impulse-source-preflight/46115128898-attempt-1/preflight.json",
+  "model_fit": false,
+  "network_requests": 1,
+  "network_retries": 0,
+  "paid_data_used": false,
+  "raw_observations_saved": false,
+  "raw_response_sha256": "9f0d1451b2c6749738ca700535823a86d020fe76952ff7e18f7815425b3e0fff",
+  "revision_comparison": {
+    "changed_observations": 1831,
+    "common_observations": 2462,
+    "newer_vintage": "2026-11-22",
+    "older_vintage": "2020-03-15"
+  },
+  "schema_version": 1,
+  "source": {
+    "frequency": "weekly ending Wednesday",
+    "provider": "Federal Reserve Board H.8 via ALFRED",
+    "series_id": "TOTCI",
+    "series_title": "Commercial and Industrial Loans, All Commercial Banks",
+    "units": "billions of U.S. dollars, seasonally adjusted",
+    "vintage_dates": [
+      "2017-08-20",
+      "2020-03-15",
+      "2022-01-02",
+      "2024-01-07",
+      "2026-11-22"
+    ],
+    "vintage_endpoint": "https://alfred.stlouisfed.org/graph/alfredgraph.csv"
+  },
+  "source_url": "https://alfred.stlouisfed.org/graph/alfredgraph.csv?id=TOTCI%2CTOTCI%2CTOTCI%2CTOTCI%2CTOTCI&vintage_date=2017-08-20%2C2020-03-15%2C2022-01-02%2C2024-01-07%2C2026-11-22",
+  "status": "PASS",
+  "vintage_summaries": [
+    {
+      "four_observation_log_change_pct": 0.4398711664457283,
+      "four_observation_span_days": 28,
+      "fourth_prior_observation_date": "2017-07-12",
+      "history_start": "1973-01-03",
+      "latest_observation_age_days": 11,
+      "latest_observation_date": "2017-08-09",
+      "latest_value_billions_usd_sa": 2112.2787,
+      "observation_count": 2328,
+      "observations_since_2017_08_16": 0,
+      "vintage_date": "2017-08-20",
+      "weekly_gaps_days": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "four_observation_log_change_pct": 0.04789773378322838,
+      "four_observation_span_days": 28,
+      "fourth_prior_observation_date": "2020-02-05",
+      "history_start": "1973-01-03",
+      "latest_observation_age_days": 11,
+      "latest_observation_date": "2020-03-04",
+      "latest_value_billions_usd_sa": 2357.6698,
+      "observation_count": 2462,
+      "observations_since_2017_08_16": 134,
+      "vintage_date": "2020-03-15",
+      "weekly_gaps_days": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "four_observation_log_change_pct": 2.7183471282625375,
+      "four_observation_span_days": 28,
+      "fourth_prior_observation_date": "2021-11-24",
+      "history_start": "1973-01-03",
+      "latest_observation_age_days": 11,
+      "latest_observation_date": "2021-12-22",
+      "latest_value_billions_usd_sa": 2506.5922,
+      "observation_count": 2556,
+      "observations_since_2017_08_16": 228,
+      "vintage_date": "2022-01-02",
+      "weekly_gaps_days": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "four_observation_log_change_pct": -0.39547255864777586,
+      "four_observation_span_days": 28,
+      "fourth_prior_observation_date": "2023-11-29",
+      "history_start": "1973-01-03",
+      "latest_observation_age_days": 11,
+      "latest_observation_date": "2023-12-27",
+      "latest_value_billions_usd_sa": 2773.1849,
+      "observation_count": 2661,
+      "observations_since_2017_08_16": 333,
+      "vintage_date": "2024-01-07",
+      "weekly_gaps_days": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "four_observation_log_change_pct": 0.7327551294941564,
+      "four_observation_span_days": 28,
+      "fourth_prior_observation_date": "2026-10-14",
+      "history_start": "1973-01-03",
+      "latest_observation_age_days": 11,
+      "latest_observation_date": "2026-11-11",
+      "latest_value_billions_usd_sa": 3018.1473,
+      "observation_count": 2811,
+      "observations_since_2017_08_16": 483,
+      "vintage_date": "2026-11-22",
+      "weekly_gaps_days": [
+        7,
+        7,
+        7,
+        7
+      ]
+    }
+  ],
+  "run_id": 46115128898,
+  "run_attempt": 1,
+  "source_commit_sha": "3d76c559ae41c92b1befa0bfccc296a5469eb514",
+  "workflow_run_url": "https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46115128898"
+}
