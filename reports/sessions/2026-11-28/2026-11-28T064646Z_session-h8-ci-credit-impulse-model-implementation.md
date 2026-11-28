@@ -76,3 +76,11 @@ The previous accepted BTC run retained the archive manifest but not raw daily ro
 The first post-implementation CI run identified a literal escaping defect in the newly added workflow: GitHub expression placeholders had been written with a leading backslash, so the exact-commit checkout assertion correctly rejected the workflow. The admission-guard and closed mining-draft regression suites both caught the same issue through their shared workflow-admission test.
 
 The defect was corrected by removing the literal backslashes, correcting the regression assertion, and extending the trusted admission-guard workflow to compile and execute the new H.8 model tests on subsequent pushes. No empirical job ran, no source data was retrieved, and no hypothesis result was produced by the failed CI attempt.
+
+## Deterministic validation and atomic empirical admission
+
+- Implementation correction commit: 5a5156f0620ae1bc109e1f1b4a9aa775b4e1b035.
+- Repository admission-guard run #46119608646: PASS. The shared admission suite passed, the H.8 model compiled, and all 12 H.8 deterministic regression tests passed.
+- BTC mining-difficulty closure regression run #46119608707: PASS. The unrelated closed-draft checks were restored without changing or reopening that hypothesis.
+- The earlier H.8 model workflow runs on the implementation and repair commits were correctly skipped because neither commit carried the atomic admission marker. No empirical model fit or data retrieval occurred before admission.
+- One immutable empirical run is now admitted through the current [QFR-ADMIT] research: commit. The workflow checks out that exact commit, rejects rerun attempts, and will persist the report, manifest and forecast rows. Its empirical result is not yet known.
