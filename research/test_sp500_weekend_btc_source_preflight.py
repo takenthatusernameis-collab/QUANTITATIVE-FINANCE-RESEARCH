@@ -11,13 +11,16 @@ import sp500_weekend_btc_source_preflight as model
 UTC = dt.timezone.utc
 
 
-def sp500_csv(days: int = 2300, start: dt.date = dt.date(2017, 8, 18)) -> bytes:
+def sp500_csv(
+    end: dt.date = dt.date(2026, 11, 27),
+    start: dt.date = dt.date(2017, 8, 18),
+) -> bytes:
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["observation_date", "SP500"])
     day = start
     count = 0
-    while count < days:
+    while day <= end:
         if day.weekday() < 5:
             writer.writerow([day.isoformat(), 2400.0 + count])
             count += 1
@@ -85,6 +88,7 @@ class Sp500WeekendBtcSourcePreflightTests(unittest.TestCase):
         self.assertEqual(summary["missing_hours"], 0)
         missing = dict(rows)
         missing.pop(start + dt.timedelta(hours=1000))
+        missing.pop(start + dt.timedelta(hours=1001))
         with self.assertRaisesRegex(ValueError, "gaps exceed"):
             model.validate_hourly_coverage(missing, start, end)
         outside = dict(rows)
