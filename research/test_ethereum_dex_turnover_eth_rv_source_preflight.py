@@ -138,6 +138,20 @@ class EthereumDexTurnoverSourcePreflightTests(unittest.TestCase):
         self.assertEqual(unit, "microseconds")
         self.assertEqual(parsed[start], 2001.0)
 
+    def test_hourly_parser_accepts_last_trade_close_time_inside_bar(self):
+        start = dt.datetime(2023, 3, 24, 20, tzinfo=dt.timezone.utc)
+        row = hourly_row(start)
+        row[6] = str(int(row[0]) + 2_383_061)
+        parsed, unit = model.parse_hourly_archive((",".join(row) + "\n").encode())
+        self.assertEqual(unit, "milliseconds")
+        self.assertEqual(parsed[start], 2001.0)
+
+    def test_hourly_parser_rejects_close_time_outside_bar(self):
+        start = dt.datetime(2023, 3, 24, 20, tzinfo=dt.timezone.utc)
+        row = hourly_row(start)
+        row[6] = str(int(row[0]) + model.INTERVAL_MS)
+        with self.assertRaisesRegex(ValueError, "invalid UTC hourly bounds"):
+            model.parse_hourly_archive((",".join(row) + "\n").encode())
     def test_hourly_parser_rejects_bad_interval_and_invalid_ohlc(self):
         start = dt.datetime(2021, 1, 1, tzinfo=dt.timezone.utc)
         row = hourly_row(start)
