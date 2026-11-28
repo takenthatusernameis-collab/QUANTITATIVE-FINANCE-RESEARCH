@@ -90,6 +90,7 @@ class EthereumValidatorQueueSourcePreflightTests(unittest.TestCase):
         self.assertEqual([x["kind"] for x in result["components"]], ["entry", "exit", "consolidation"])
         self.assertEqual(result["entry_values"][dt.date(2020, 12, 1)], 1.0)
         self.assertEqual(result["exit_values"][dt.date(2026, 10, 31)], 2.0)
+        self.assertEqual({item["unit_source"] for item in result["components"]}, {"component"})
 
     def test_series_rejects_missing_component_license_or_preview(self):
         headers = {"link": '<https://creativecommons.org/licenses/by/4.0/>; rel="license"'}
@@ -264,6 +265,74 @@ class EthereumValidatorQueueSourcePreflightTests(unittest.TestCase):
             ["BTC", "BTC"],
         )
         self.assertTrue(all(not item["accepted"] for item in evidence["catalog_attempts"]))
+
+
+    def test_series_components_inherit_validated_catalog_unit_when_unit_is_omitted(self):
+        headers = {"link": '<https://creativecommons.org/licenses/by/4.0/>; rel="license"'}
+        payload = synthetic_series()
+        for component in payload["components"]:
+            component.pop("unit")
+        result = model.validate_queue_series(payload, headers, default_unit="days")
+        self.assertEqual({item["unit"] for item in result["components"]}, {"days"})
+        self.assertEqual({item["unit_source"] for item in result["components"]}, {"catalog_metric"})
+
+    def test_series_rejects_missing_component_unit_without_catalog_fallback(self):
+        headers = {"link": '<https://creativecommons.org/licenses/by/4.0/>; rel="license"'}
+        payload = synthetic_series()
+        for component in payload["components"]:
+            component.pop("unit")
+        with self.assertRaisesRegex(model.PreflightError, "not expressed in days"):
+            model.validate_queue_series(payload, headers)
+
+    def test_series_rejects_parent_unit_conflict_with_validated_catalog(self):
+        headers = {"link": '<https://creativecommons.org/licenses/by/4.0/>; rel="license"'}
+        payload = synthetic_series()
+        payload["metric"]["unit"] = "hours"
+        for component in payload["components"]:
+            component.pop("unit")
+        with self.assertRaisesRegex(model.PreflightError, "conflicts with validated catalog unit"):
+            model.validate_queue_series(payload, headers, default_unit="days")
+
+    def test_run_preflight_records_series_shape_before_component_validation(self):
+        openapi = {
+            "openapi": "3.0.3",
+            "info": {"version": "1.0.0"},
+            "components": {"schemas": {
+                "Series": {"properties": {"components": {"type": "array"}}},
+                "Point": {"required": ["t", "v", "finality"]},
+            }},
+        }
+        metric = {
+            "id": model.METRIC_ID,
+            "name": "Validator Queue Wait Time",
+            "unit": "days",
+            "status": "active",
+            "intervals": ["24h"],
+            "historyStart": unix(dt.date(2020, 12, 1)),
+            "historyEnd": unix(dt.date(2026, 11, 1)),
+        }
+        catalog = {"asset": "ETH", "metrics": [metric]}
+        series = synthetic_series()
+        series["components"][0]["unit"] = "hours"
+        headers = {"link": '<https://creativecommons.org/licenses/by/4.0/>; rel="license"'}
+
+        def fake_fetch(url):
+            if url == model.OPENAPI_URL:
+                return json.dumps(openapi).encode("utf-8"), {}
+            if url.startswith(model.CATALOG_URL):
+                return json.dumps(catalog).encode("utf-8"), {}
+            if url.startswith(model.SERIES_URL):
+                return json.dumps(series).encode("utf-8"), headers
+            raise AssertionError(f"Unexpected URL: {url}")
+
+        model.PARTIAL_EVIDENCE.clear()
+        with patch.object(model, "fetch_bytes", side_effect=fake_fetch):
+            with self.assertRaisesRegex(model.PreflightError, "not expressed in days"):
+                model.run_preflight()
+        shape = model.PARTIAL_EVIDENCE["cryptokeyhole"]["series_shape"]
+        self.assertEqual(shape["metric_id"], model.METRIC_ID)
+        self.assertEqual(shape["components"][0]["unit"], "hours")
+        self.assertGreater(shape["components"][0]["point_count"], 0)
 
 
 if __name__ == "__main__":
