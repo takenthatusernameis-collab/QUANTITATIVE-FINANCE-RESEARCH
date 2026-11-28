@@ -59,3 +59,12 @@ jobs:
           test -s "$output"
           echo "=== SOURCE PREFLIGHT RESULT ==="
           cat "$output"
+
+      - name: Upload source-only manifest
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ethereum-dex-turnover-eth-rv-source-preflight-${{ github.run_id }}
+          path: reports/generated/ethereum-dex-turnover-eth-rv-source-preflight/${{ github.run_id }}-attempt-${{ github.run_attempt }}/preflight.json
+          if-no-files-found: warn
+          retention-days: 30

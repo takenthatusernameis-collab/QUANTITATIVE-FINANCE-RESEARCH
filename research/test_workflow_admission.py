@@ -216,6 +216,8 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertIn("stablecoin_supply_source_preflight.py", text)
         self.assertNotIn("stablecoin_supply_btc_downside.py", text)
         self.assertIn("do not run a backtest", text.lower())
+        self.assertIn("actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02", text)
+        self.assertIn("retention-days: 30", text)
 
     def test_taker_absorption_persistence_merges_into_latest_main(self):
         text = (WORKFLOW_DIR / "taker-absorption-btc-downside.yml").read_text(encoding="utf-8")

@@ -39,6 +39,7 @@ WORKERS = 6
 ROOT = Path(__file__).resolve().parents[1]
 RUN_ID = os.environ.get("GITHUB_RUN_ID", "local")
 ATTEMPT = os.environ.get("GITHUB_RUN_ATTEMPT", "1")
+SOURCE_SHA = os.environ.get("GITHUB_SHA", "local")
 NOW = dt.datetime.now(dt.timezone.utc)
 OUTPUT_DIR = (
     ROOT / "reports" / "generated" / "ethereum-dex-turnover-eth-rv-source-preflight"
@@ -388,6 +389,9 @@ def run_preflight() -> dict:
 
     return {
         "hypothesis_id": HYPOTHESIS_ID,
+        "source_commit_sha": SOURCE_SHA,
+        "workflow_run_id": RUN_ID,
+        "workflow_run_attempt": ATTEMPT,
         "status": "PASS",
         "retrieved_at_utc": NOW.isoformat(),
         "dex_source": {
@@ -432,6 +436,9 @@ def main() -> int:
     except Exception as exc:
         result = {
             "hypothesis_id": HYPOTHESIS_ID,
+            "source_commit_sha": SOURCE_SHA,
+            "workflow_run_id": RUN_ID,
+            "workflow_run_attempt": ATTEMPT,
             "status": "FAIL",
             "retrieved_at_utc": NOW.isoformat(),
             "error": f"{type(exc).__name__}: {exc}",
