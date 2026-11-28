@@ -1,0 +1,21 @@
+{
+  "completed_backtest": false,
+  "decision": null,
+  "error": "TypeError: fit_ols_predict() got an unexpected keyword argument 'n_features'",
+  "forecast_rows_path": "reports/generated/mexc-funding-dispersion-btc-rv/46085741045-attempt-1/forecast_rows.csv",
+  "hypothesis_id": "QFR-2026-11-27-MEXC-FUNDING-DISPERSION-BTC-RV-01",
+  "manifest_path": "reports/generated/mexc-funding-dispersion-btc-rv/46085741045-attempt-1/manifest.json",
+  "model_fit_performed": false,
+  "report_path": "reports/sessions/2026-11-28/2026-11-28T000240Z_session-mexc-funding-dispersion-btc-rv-46085741045.md",
+  "retrieved_at_utc": "2026-11-28T00:02:40.676378+00:00",
+  "run_attempt": "1",
+  "run_id": "46085741045",
+  "source_commit_sha": "64a3d0ab869b857de107074bd5f552386bb83efd",
+  "status": "ERROR",
+  "timebox": {
+    "cycle": 3,
+    "final_conclusion_deadline_utc": "2026-12-02T23:39:43+00:00",
+    "implementation_deadline_utc": "2026-12-01T23:39:43+00:00",
+    "maximum_substantive_cycles": 4
+  }
+}

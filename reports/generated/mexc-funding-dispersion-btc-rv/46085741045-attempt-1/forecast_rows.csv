@@ -1,0 +1,1 @@
+date,signal_ts,target_end_ts,split,train_n,target,baseline_prediction,augmented_prediction,baseline_squared_error,augmented_squared_error,pre_rv24_log,pre_rv168_log,abs_return24_bps,funding_mean_bps,funding_dispersion_bps
