@@ -211,20 +211,51 @@ class EthereumDexTurnoverSourcePreflightTests(unittest.TestCase):
             model.reconcile_daily_gap_patch(monthly, mismatch, day)
         incomplete = dict(daily)
         incomplete.pop(start + dt.timedelta(hours=6))
-        with self.assertRaisesRegex(ValueError, "does not cover exactly 24 UTC hours"):
-            model.reconcile_daily_gap_patch(monthly, incomplete, day)
+        merged, record = model.reconcile_daily_gap_patch(monthly, incomplete, day)
+        self.assertEqual(merged, monthly)
+        self.assertEqual(record["filled_hour_count"], 0)
+        self.assertEqual(record["daily_missing_hours"], [(start + dt.timedelta(hours=6)).isoformat()])
 
-    def test_hourly_coverage_requires_every_expected_hour(self):
+    def test_hourly_coverage_reports_sparse_gaps_without_filling_them(self):
         start_day = dt.date(2021, 1, 1)
-        stamps = [dt.datetime(2021, 1, 1, hour, tzinfo=dt.timezone.utc) for hour in range(24)]
+        stamps = [
+            dt.datetime(2021, 1, 1, hour, tzinfo=dt.timezone.utc)
+            for hour in range(24)
+        ]
         rows = {stamp: 2000.0 + index for index, stamp in enumerate(stamps)}
-        with patch.object(model, "SAMPLE_START", start_day), patch.object(model, "SAMPLE_END", start_day):
+        rows.pop(stamps[5])
+        with patch.object(model, "SAMPLE_START", start_day), patch.object(model, "SAMPLE_END", start_day), patch.object(model, "MAX_MISSING_FRACTION", 0.05):
             result = model.validate_hourly_coverage(rows)
-            self.assertEqual(result["expected_hourly_rows"], 24)
-            self.assertEqual(result["missing_hours"], 0)
-            rows.pop(stamps[5])
-            with self.assertRaisesRegex(ValueError, "coverage mismatch"):
+        self.assertEqual(result["missing_hours"], 1)
+        self.assertEqual(result["missing_timestamps"], [stamps[5].isoformat()])
+        self.assertEqual(result["maximum_consecutive_missing_hours"], 1)
+        self.assertEqual(len(rows), 23)
+
+    def test_hourly_coverage_rejects_too_many_or_consecutive_gaps(self):
+        start_day = dt.date(2021, 1, 1)
+        stamps = [
+            dt.datetime(2021, 1, 1, hour, tzinfo=dt.timezone.utc)
+            for hour in range(24)
+        ]
+        rows = {stamp: 2000.0 + index for index, stamp in enumerate(stamps)}
+        for stamp in stamps[5:8]:
+            rows.pop(stamp)
+        with patch.object(model, "SAMPLE_START", start_day), patch.object(model, "SAMPLE_END", start_day), patch.object(model, "MAX_MISSING_FRACTION", 0.2):
+            with self.assertRaisesRegex(ValueError, "sparse-gap limits"):
                 model.validate_hourly_coverage(rows)
+
+    def test_hourly_coverage_rejects_out_of_window_rows(self):
+        start_day = dt.date(2021, 1, 1)
+        stamps = [
+            dt.datetime(2021, 1, 1, hour, tzinfo=dt.timezone.utc)
+            for hour in range(24)
+        ]
+        rows = {stamp: 2000.0 + index for index, stamp in enumerate(stamps)}
+        rows[dt.datetime(2021, 1, 2, 0, tzinfo=dt.timezone.utc)] = 2100.0
+        with patch.object(model, "SAMPLE_START", start_day), patch.object(model, "SAMPLE_END", start_day):
+            with self.assertRaisesRegex(ValueError, "out-of-window"):
+                model.validate_hourly_coverage(rows)
+
 
 
 if __name__ == "__main__":

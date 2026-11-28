@@ -46,7 +46,7 @@ Official documentation: https://api-docs.defillama.com/llms-free.txt (DEX volume
 - Verify the actual DeFiLlama JSON envelopes and row fields; do not infer schema from documentation examples.
 - Require at least 2,000 valid daily observations for each DeFiLlama series in the usable envelope, no duplicate dates, a latest date at or after 2026-10-29, and no gap longer than three calendar days. Never forward-fill missing values. Every seven-day feature window must contain all seven exact dates or be excluded.
 - Require ETHUSDT to be the exact active Spot symbol with base asset ETH and quote asset USDT.
-- Verify every requested Binance monthly archive against its official SHA-256 sidecar. Parse the actual 12-column hourly-kline schema and timestamp units. Require exactly one observation per expected UTC hour across the frozen price window, no duplicates, no missing hours, valid OHLC relationships, and finite nonnegative volume fields.
+- Verify every requested Binance monthly archive against its official SHA-256 sidecar. Parse the actual 12-column hourly-kline schema and timestamp units. Require all observed open times to lie on the UTC hourly grid, no duplicates, valid OHLC relationships and finite nonnegative volume fields. The source may contain sparse missing hours only when they are at most 24 in total, at most 0.1% of expected hours, and no more than two consecutive hours; enumerate every gap. Do not fill or interpolate. The model must exclude any forecast whose 24-hour target or 24/168-hour trailing price window contains a missing hourly return. Require at least 300 accepted forecasts in each chronological split after exclusions.
 - Save response/archive hashes, exact coverage, schemas, retrieval timestamp and source hosts. Do not commit raw archives or raw source observations.
 - If the DEX volume endpoint requires a paid plan, is unavailable, or lacks adequate history, stop that source route; do not use a paid key or substitute an unverified scraper. Record the exact failure and close INCONCLUSIVE/INFEASIBLE if no materially different free and authorized source passes within the timebox.
 
@@ -99,3 +99,12 @@ A positive forecast result is not causal evidence, trading P&L, a strategy edge 
 4. **Cycle 4 — independent audit:** reconstruct timing, event maturity, metrics, bootstrap and source hashes from persisted artifacts; close the workstream.
 
 The cycle cap and hard deadlines govern even if a workflow queue is delayed. Repairs do not reset the clock. Any materially changed source, lag, feature, target, instrument or model requires a new hypothesis ID and preregistration.
+
+
+## Pre-result data-integrity amendment — 2026-11-28T02:00:00Z
+
+The source-only preflight found 14 missing hourly ETHUSDT bars in the 51,120-hour frozen Binance Vision monthly sample. The official daily archive was also checked for the first affected date and contained the same missing hour. No model, validation or test outcome had been inspected when this amendment was made.
+
+The original global gap-free requirement is therefore replaced by the sparse-gap policy in Section 2: at most 24 missing hours, at most 0.1% of expected hours, and no more than two consecutive missing hours. Every gap is retained in provenance. No price, close or return is forward-filled, interpolated, or synthesized. The model excludes any origin whose 24-hour target, 24-hour trailing baseline window, or 168-hour trailing baseline window requires a missing hourly return. The 300-forecast minimum in each split remains binding after exclusions.
+
+This is a pre-result data-integrity amendment to accommodate the observed official archive coverage; the instrument, DeFiLlama predictor, two-day publication lag, feature windows, target, model, chronological splits, bootstrap and decision rules are unchanged. If the sparse-gap limits or post-exclusion sample minima fail, the hypothesis closes INCONCLUSIVE/INFEASIBLE.

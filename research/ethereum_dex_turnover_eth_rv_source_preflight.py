@@ -33,6 +33,9 @@ BINANCE_VISION = "https://data.binance.vision"
 INTERVAL_MS = 3_600_000
 MIN_DAILY_ROWS = 2_000
 MAX_DAILY_GAP_DAYS = 3
+MAX_MISSING_HOURS = 24
+MAX_MISSING_FRACTION = 0.001
+MAX_CONSECUTIVE_MISSING_HOURS = 2
 MIN_LATEST_DATE = SAMPLE_END - dt.timedelta(days=2)
 WORKERS = 6
 
@@ -352,14 +355,13 @@ def reconcile_daily_gap_patch(
     day_start = dt.datetime.combine(day, dt.time(), tzinfo=dt.timezone.utc)
     expected_day = {day_start + dt.timedelta(hours=hour) for hour in range(24)}
     observed_day = set(daily_prices)
-    if observed_day != expected_day:
-        missing = sorted(expected_day - observed_day)
-        outside = sorted(observed_day - expected_day)
+    outside = sorted(observed_day - expected_day)
+    if not observed_day or outside:
         raise ValueError(
-            f"Daily ETHUSDT archive {day} does not cover exactly 24 UTC hours: "
-            f"missing={[stamp.isoformat() for stamp in missing]}, "
-            f"outside={[stamp.isoformat() for stamp in outside]}"
+            f"Daily ETHUSDT archive {day} has no rows or contains out-of-day timestamps: "
+            f"{[stamp.isoformat() for stamp in outside]}"
         )
+    daily_missing = sorted(expected_day - observed_day)
     overlap = set(monthly_prices).intersection(daily_prices)
     mismatches = [
         stamp for stamp in sorted(overlap)
@@ -370,16 +372,13 @@ def reconcile_daily_gap_patch(
             f"Monthly/daily ETHUSDT close mismatch on {day}: "
             f"{[stamp.isoformat() for stamp in mismatches[:10]]}"
         )
-    to_fill = sorted(expected_day - set(monthly_prices))
-    if not to_fill:
-        raise ValueError(f"Daily ETHUSDT archive {day} did not repair any missing monthly hour")
+    to_fill = sorted(observed_day - set(monthly_prices))
     merged = dict(monthly_prices)
     for stamp in to_fill:
         merged[stamp] = daily_prices[stamp]
     return dict(sorted(merged.items())), {
-        "period": day.isoformat(),
-        "rows": len(daily_prices),
         "overlap_match_count": len(overlap),
+        "daily_missing_hours": [stamp.isoformat() for stamp in daily_missing],
         "filled_hour_count": len(to_fill),
         "filled_hours": [stamp.isoformat() for stamp in to_fill],
     }
@@ -391,25 +390,53 @@ def validate_hourly_coverage(rows: dict[dt.datetime, float]) -> dict:
     observed = set(rows)
     missing = sorted(expected - observed)
     outside = sorted(observed - expected)
-    if missing or outside or len(rows) != expected_count:
+    missing_fraction = len(missing) / expected_count
+    max_consecutive = 0
+    current_consecutive = 0
+    previous = None
+    for stamp in missing:
+        if previous is not None and stamp - previous == dt.timedelta(hours=1):
+            current_consecutive += 1
+        else:
+            current_consecutive = 1
+        max_consecutive = max(max_consecutive, current_consecutive)
+        previous = stamp
+    if outside:
         raise ValueError(
-            f"ETHUSDT hourly coverage mismatch: expected={expected_count}, observed={len(rows)}, "
-            f"missing={len(missing)}, missing_timestamps={[stamp.isoformat() for stamp in missing]}, "
-            f"outside={len(outside)}"
+            f"ETHUSDT hourly archive contains {len(outside)} out-of-window timestamps: "
+            f"{[stamp.isoformat() for stamp in outside[:20]]}"
+        )
+    if (
+        len(missing) > MAX_MISSING_HOURS
+        or missing_fraction > MAX_MISSING_FRACTION
+        or max_consecutive > MAX_CONSECUTIVE_MISSING_HOURS
+    ):
+        raise ValueError(
+            f"ETHUSDT hourly gaps exceed the frozen sparse-gap limits: "
+            f"missing={len(missing)}, fraction={missing_fraction:.8f}, "
+            f"max_consecutive={max_consecutive}, "
+            f"missing_timestamps={[stamp.isoformat() for stamp in missing]}"
         )
     digest = hashlib.sha256()
     for stamp, close in sorted(rows.items()):
-        digest.update(f"{stamp.isoformat()},{close:.12g}\n".encode("ascii"))
+        digest.update(f"{stamp.isoformat()},{close:.12g}\\n".encode("ascii"))
     return {
         "expected_hourly_rows": expected_count,
         "observed_hourly_rows": len(rows),
         "first_timestamp": min(rows).isoformat(),
         "last_timestamp": max(rows).isoformat(),
-        "missing_hours": 0,
+        "missing_hours": len(missing),
+        "missing_timestamps": [stamp.isoformat() for stamp in missing],
+        "missing_dates": sorted({stamp.date().isoformat() for stamp in missing}),
+        "missing_fraction": missing_fraction,
+        "coverage_ratio": 1.0 - missing_fraction,
+        "maximum_consecutive_missing_hours": max_consecutive,
+        "maximum_allowed_missing_hours": MAX_MISSING_HOURS,
+        "maximum_allowed_missing_fraction": MAX_MISSING_FRACTION,
+        "maximum_allowed_consecutive_missing_hours": MAX_CONSECUTIVE_MISSING_HOURS,
         "outside_hours": 0,
         "canonical_close_sha256": digest.hexdigest(),
     }
-
 
 
 def run_preflight() -> dict:
@@ -493,11 +520,12 @@ def run_preflight() -> dict:
 
     missing_before_patch = missing_hour_timestamps(prices)
     daily_manifest = []
+    daily_failures = []
+    daily_reconciliation_failures = []
     if missing_before_patch:
         missing_days = sorted({stamp.date() for stamp in missing_before_patch})
         daily_specs = build_daily_archive_specs(missing_days)
         daily_results: dict[int, tuple[dict[dt.datetime, float], dict]] = {}
-        daily_failures = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=min(WORKERS, len(daily_specs))) as executor:
             futures = {
                 executor.submit(download_archive, spec): (index, spec)
@@ -509,27 +537,36 @@ def run_preflight() -> dict:
                     daily_results[index] = future.result()
                 except Exception as exc:
                     daily_failures.append({
-                        "period": spec["tag"],
-                        "url": spec["url"],
+                        "period": spec["tag"], "url": spec["url"],
                         "error": f"{type(exc).__name__}: {exc}",
                     })
-        if daily_failures:
-            daily_failures.sort(key=lambda row: row["period"])
-            PARTIAL_EVIDENCE["binance_daily_archive_failures"] = daily_failures
-            raise RuntimeError(
-                f"Official Binance daily gap-repair archive ingestion failed for {len(daily_failures)}/{len(daily_specs)} dates: "
-                f"{json.dumps(daily_failures, sort_keys=True)}"
-            )
         for index, day in enumerate(missing_days):
+            if index not in daily_results:
+                continue
             day_rows, record = daily_results[index]
-            prices, patch = reconcile_daily_gap_patch(prices, day_rows, day)
-            daily_manifest.append({**record, **patch})
+            try:
+                prices, patch = reconcile_daily_gap_patch(prices, day_rows, day)
+                daily_manifest.append({**record, **patch})
+            except Exception as exc:
+                daily_reconciliation_failures.append({
+                    "period": day.isoformat(),
+                    "error": f"{type(exc).__name__}: {exc}",
+                })
+    if daily_failures:
+        daily_failures.sort(key=lambda row: row["period"])
+        PARTIAL_EVIDENCE["binance_daily_archive_failures"] = daily_failures
+    if daily_reconciliation_failures:
+        PARTIAL_EVIDENCE["binance_daily_reconciliation_failures"] = daily_reconciliation_failures
+        raise RuntimeError(
+            "Official Binance monthly/daily archives disagree: "
+            + json.dumps(daily_reconciliation_failures, sort_keys=True)
+        )
     PARTIAL_EVIDENCE["binance_daily_gap_repairs"] = {
         "archive_count": len(daily_manifest),
         "archives": daily_manifest,
+        "daily_archive_failures": daily_failures,
         "hours_missing_before_patch": len(missing_before_patch),
     }
-
     price_coverage = validate_hourly_coverage(prices)
     PARTIAL_EVIDENCE["binance_hourly_coverage"] = price_coverage
 
@@ -562,7 +599,8 @@ def run_preflight() -> dict:
             **market_info,
         },
         "binance_hourly_archives": {
-            "source": "official Binance Vision Spot monthly 1h klines with checksum-verified daily gap repairs when required",
+            "source": "official Binance Vision Spot monthly 1h klines with checksum-verified daily gap repair attempts when required",
+            "missing_hour_policy": "no fill; incomplete feature/target windows excluded",
             "symbol": "ETHUSDT",
             "interval": "1h UTC",
             "requested_start": SAMPLE_START.isoformat(),
@@ -572,6 +610,7 @@ def run_preflight() -> dict:
             "timestamp_units_observed": timestamp_units,
             "monthly_archives": monthly_manifest,
             "daily_gap_repairs": daily_manifest,
+            "daily_archive_failures": daily_failures,
             **price_coverage,
         },
         "raw_observations_saved": False,
