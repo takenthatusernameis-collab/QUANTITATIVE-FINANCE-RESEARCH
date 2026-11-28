@@ -122,7 +122,7 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
     def test_h8_ci_credit_impulse_backtest_workflow_has_exact_admission_gate(self):
         text = (WORKFLOW_DIR / "h8-ci-credit-impulse-btc-downside.yml").read_text(encoding="utf-8")
         self.assertIn(ADMISSION_IF, text)
-        self.assertIn("ref: \${{ github.sha }}", text)
+        self.assertIn("ref: ${{ github.sha }}", text)
         self.assertIn("h8_ci_credit_impulse_btc_downside.py", text)
         self.assertIn("forecast_rows.csv", text)
         self.assertIn("cancel-in-progress: false", text)

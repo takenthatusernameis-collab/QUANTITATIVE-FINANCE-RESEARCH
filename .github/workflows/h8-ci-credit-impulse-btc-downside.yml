@@ -36,7 +36,7 @@ jobs:
       - name: Checkout exact admitted commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: \${{ github.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: true
           fetch-depth: 0
 
@@ -66,9 +66,9 @@ jobs:
 
       - name: Run the one preregistered point-in-time H.8 / BTC forecast
         env:
-          GITHUB_RUN_ID: \${{ github.run_id }}
-          GITHUB_RUN_ATTEMPT: \${{ github.run_attempt }}
-          GITHUB_SHA: \${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GITHUB_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           PYTHONPATH=research python research/h8_ci_credit_impulse_btc_downside.py
@@ -87,8 +87,8 @@ jobs:
       - name: Persist README, registry, report, manifest and forecast rows to main
         if: always()
         env:
-          GITHUB_RUN_ID: \${{ github.run_id }}
-          GITHUB_RUN_ATTEMPT: \${{ github.run_attempt }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
           set -euo pipefail
           output="reports/generated/h8-ci-credit-impulse-btc-downside/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT"
@@ -132,8 +132,8 @@ jobs:
       - name: Require completed empirical evaluation
         if: always()
         env:
-          GITHUB_RUN_ID: \${{ github.run_id }}
-          GITHUB_RUN_ATTEMPT: \${{ github.run_attempt }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
           set -euo pipefail
           manifest="reports/generated/h8-ci-credit-impulse-btc-downside/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/manifest.json"
