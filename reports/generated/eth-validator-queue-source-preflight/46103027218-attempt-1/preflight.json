@@ -1,0 +1,13 @@
+{
+  "backtest_run": false,
+  "candidate_id": "QFR-2026-11-28-ETH-VALIDATOR-QUEUE-ASYMMETRY-DOWNSIDE-01",
+  "error": "PreflightError: Unexpected catalog asset: 'BTC'",
+  "model_fit_performed": false,
+  "partial_evidence": {},
+  "raw_observations_saved": false,
+  "retrieved_at_utc": "2026-11-28T03:31:25.385439+00:00",
+  "source_commit_sha": "0fbfddb300af0a1534ce73c1a406eaac903d1f76",
+  "status": "FAIL",
+  "workflow_run_attempt": "1",
+  "workflow_run_id": "46103027218"
+}
