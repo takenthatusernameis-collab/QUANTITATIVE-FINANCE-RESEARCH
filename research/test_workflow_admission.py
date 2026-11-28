@@ -887,6 +887,21 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
                 self.assertIn(phrase, text)
 
 
+    def test_ethereum_dex_turnover_preregistration_has_frozen_identity_and_timebox(self):
+        path = ROOT / "research" / "PREREGISTERED-QFR-2026-11-28-ETHEREUM-DEX-TURNOVER-ETH-RV-01.md"
+        text = path.read_text(encoding="utf-8")
+        for phrase in (
+            "- **Hypothesis ID:** `QFR-2026-11-28-ETHEREUM-DEX-TURNOVER-ETH-RV-01`",
+            "- **Registered:** 2026-11-28T01:42:11Z",
+            "- **Timebox start:** 2026-11-28T01:42:11Z",
+            "- **Maximum substantive cycles:** 4",
+            "- **Difficulty:** MEDIUM",
+            "- **Expiry rule:**",
+            "INCONCLUSIVE/INFEASIBLE",
+            "DEX notional turnover relative to Ethereum DeFi total value locked",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
     def test_ethereum_dex_turnover_source_preflight_has_narrow_path_filters(self):
         path = WORKFLOW_DIR / "ethereum-dex-turnover-eth-rv-source-preflight.yml"
         text = path.read_text(encoding="utf-8")
