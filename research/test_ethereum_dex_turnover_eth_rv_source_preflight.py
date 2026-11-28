@@ -18,11 +18,13 @@ def tvl_row(day, tvl=50_000_000_000.0):
     return {"date": unix(day), "tvl": tvl}
 
 
-def hourly_row(stamp, close=2000.0, volume=10.0):
-    open_ms = int(stamp.timestamp() * 1000)
+def hourly_row(stamp, close=2000.0, volume=10.0, unit="milliseconds"):
+    scale = 1_000_000 if unit == "microseconds" else 1_000
+    interval = model.INTERVAL_MS * (1_000 if unit == "microseconds" else 1)
+    open_time = int(stamp.timestamp() * scale)
     return [
-        str(open_ms), str(close), str(close + 2), str(close - 2), str(close + 1),
-        str(volume), str(open_ms + model.INTERVAL_MS - 1), str(volume * close),
+        str(open_time), str(close), str(close + 2), str(close - 2), str(close + 1),
+        str(volume), str(open_time + interval - 1), str(volume * close),
         "100", str(volume / 2), str(volume * close / 2), "0",
     ]
 
@@ -105,6 +107,13 @@ class EthereumDexTurnoverSourcePreflightTests(unittest.TestCase):
         parsed, unit = model.parse_hourly_archive(body)
         self.assertEqual(unit, "milliseconds")
         self.assertEqual(len(parsed), 2)
+        self.assertEqual(parsed[start], 2001.0)
+
+    def test_hourly_parser_accepts_microsecond_timestamp_archives(self):
+        start = dt.datetime(2025, 1, 1, tzinfo=dt.timezone.utc)
+        row = hourly_row(start, unit="microseconds")
+        parsed, unit = model.parse_hourly_archive((",".join(row) + "\n").encode())
+        self.assertEqual(unit, "microseconds")
         self.assertEqual(parsed[start], 2001.0)
 
     def test_hourly_parser_rejects_bad_interval_and_invalid_ohlc(self):
