@@ -35,5 +35,12 @@
 - `research/CLOSED-QFR-2026-11-28-SP500-FRIDAY-SHOCK-BTC-WEEKEND-DOWNSIDE-01.md`: permanent closure record.
 - `reports/sessions/2026-11-28/2026-11-28T101517Z_session-sp500-btc-weekend-source-infeasibility-closure.md`: this report.
 
-## Verification
-Source evidence and run metadata were inspected directly from the repository and GitHub Actions. The first closure commit exposed one additional fail-closed guard requirement; this follow-up addresses it. Require the admission-guard and closure-test workflows to pass before treating the session as fully verified.
+## Final verification — 2026-11-28T10:32:13Z
+
+- The first post-closure CI attempt found that the new inert-workflow assertions had accidentally been applied to the still-active stablecoin preflight test. The stablecoin assertions were restored, and the inert-workflow checks were scoped to the closed S&P preflight.
+- The closed-draft regression workflow [#46135616461](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46135616461) completed successfully.
+- The repository admission-guard workflow [#46135616499](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46135616499) completed successfully. Compilation, workflow admission checks, adaptive hierarchy tests and all configured research regression suites passed.
+- The closed S&P source-preflight workflow is inert (no push trigger; job disabled), and the module's `run_preflight()` and CLI entrypoint fail closed. Its pure parser and closure-guard tests pass.
+- The closure remains source-only: no model fit, no backtest, and no performance inference. The 2026-11-28 daily real-data backtest minimum remains satisfied by MEXC funding dispersion / BTC realized variance [#46085887442](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46085887442).
+
+The repository is ready for the next wake-up to select a materially distinct, source-feasible hypothesis and preregister its timebox. No active admitted research workstream remains.
