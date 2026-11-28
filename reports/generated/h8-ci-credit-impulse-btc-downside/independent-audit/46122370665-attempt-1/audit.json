@@ -1,0 +1,86 @@
+{
+  "audit_path": "reports/generated/h8-ci-credit-impulse-btc-downside/independent-audit/46122370665-attempt-1/audit.json",
+  "audit_run_attempt": 1,
+  "audit_run_id": "46122370665",
+  "audit_status": "PASS",
+  "audit_type": "independent_model_and_forecast_reconstruction",
+  "audited_at_utc": "2026-11-28T07:43:01.290243+00:00",
+  "decision": "INCONCLUSIVE",
+  "disposition": "INCONCLUSIVE \u2014 both validation and test RMSE worsen, but the paired test-loss 95% interval crosses zero; the preregistered rejection rule is not met.",
+  "event_reconstruction": {
+    "accepted_events": 477,
+    "first_signal": "2017-09-10",
+    "last_signal": "2026-11-15",
+    "last_target_end": "2026-11-20"
+  },
+  "forecast_reconstruction": {
+    "all_forecast_rows_match_persisted_within_tolerance": true,
+    "all_training_windows_equal_104": true,
+    "forecast_rows": 373,
+    "maximum_absolute_numeric_differences": {
+      "augmented_prediction": 6.439293542825908e-15,
+      "augmented_squared_error": 1.5987211554602254e-14,
+      "baseline_prediction": 6.217248937900877e-15,
+      "baseline_squared_error": 1.554312234475219e-14,
+      "pre_downside20_log": 0.0,
+      "pre_downside5_log": 0.0,
+      "pre_return20": 0.0,
+      "pre_return5": 0.0,
+      "pre_rv20_log": 0.0,
+      "target_log1p_semivariance": 0.0,
+      "totci_change_4w_pct": 0.0
+    },
+    "test_rows": 255,
+    "validation_rows": 118
+  },
+  "hypothesis_id": "QFR-2026-11-28-H8-CI-CREDIT-IMPULSE-BTC-DOWNSIDE-01",
+  "limitations": [
+    "ALFRED and Binance data were re-fetched and their canonical source/archive hashes revalidated; the original raw observations were not retained as repository files.",
+    "The audit reuses the admitted source transport and archive adapters but independently reconstructs vintage features, events, matured training windows, OLS fits, every forecast, metrics, and bootstrap inference.",
+    "ALFRED vintage dates have day-level rather than intraday first-publication resolution.",
+    "The study is a single-venue BTCUSDT forecast screen, not causal identification, executable P&L, profitability, or strategy promotion.",
+    "The nominal paired bootstrap does not correct repository-wide multiple testing or research-selection bias."
+  ],
+  "original_backtest_manifest_sha256": "c0d14d5323f9e3b5b0d99ae0dde5bf6f84cc39b1d357b9c9b5b03a092881e008",
+  "original_backtest_run_id": 46119814521,
+  "original_source_commit_sha": "85fa08166b24e363f66d7d054b917a821449c0a4",
+  "paired_test_loss_bootstrap": {
+    "block_size_events": 4,
+    "bootstrap_fraction_positive": 0.0925,
+    "ci_95_high": 0.008394558023369355,
+    "ci_95_low": -0.05688765324382703,
+    "mean_baseline_minus_augmented_squared_loss": -0.021600294789409783,
+    "observations": 255,
+    "replications": 2000,
+    "seed": 20261128,
+    "status": "COMPUTED"
+  },
+  "preregistration_sha256": "989393c0a45e9c30532b3cafffd1d4a7f3e335f9d592788ef21dc68e88758c7b",
+  "report_path": "reports/sessions/2026-11-28/2026-11-28T074301Z_session-h8-ci-credit-impulse-independent-audit-46122370665.md",
+  "source_reconstruction": {
+    "alfred_batch_canonical_hashes_match_original": true,
+    "alfred_batches": 41,
+    "alfred_sample_canonical_sha256": "bb50c137a1e1a1d6ce42b79e17899b027476f92b97103522bc3775c2107196c8",
+    "alfred_vintages": 484,
+    "binance_archive_manifest_sha256": "978b00dda884620e6e19cfb32f42bbf93df1f1a19d5d0a906951e23762440bbe",
+    "binance_archives": 136,
+    "binance_rows": 3388,
+    "frozen_file_hashes_match_original": true
+  },
+  "test_metrics": {
+    "augmented_mae": 0.7419831145359528,
+    "augmented_rmse": 0.9223481501203707,
+    "baseline_mae": 0.7424611423986142,
+    "baseline_rmse": 0.910563460304146,
+    "n": 255,
+    "rmse_improvement_pct": -1.2942194948486507
+  },
+  "validation_metrics": {
+    "augmented_mae": 0.8870000809366929,
+    "augmented_rmse": 1.1450473412550193,
+    "baseline_mae": 0.8767802343815532,
+    "baseline_rmse": 1.112084343998653,
+    "n": 118,
+    "rmse_improvement_pct": -2.9640734926492445
+  }
+}
