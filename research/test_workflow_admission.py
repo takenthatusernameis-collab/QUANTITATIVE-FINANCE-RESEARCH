@@ -25,7 +25,6 @@ NON_RESEARCH_WORKFLOWS = {
     "initial-claims-source-preflight.yml",
     "mexc-funding-dispersion-source-preflight.yml",
     "ethereum-dex-turnover-eth-rv-source-preflight.yml",
-    "ethereum-dex-turnover-eth-rv-audit.yml",
     "chatgpt-control-pr-dispatch.yml",
     "dispatch-bridge-probe.yml",
 }
@@ -916,12 +915,14 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
             "- **Timebox start:** 2026-11-28T01:42:11Z",
             "- **Maximum substantive cycles:** 4",
             "- **Difficulty:** MEDIUM",
-            "- **Status:** IMPLEMENTING — source feasibility passed; Cycle 2 implementation in progress",
+            "- **Status:** COMPLETED — INCONCLUSIVE; Cycle 3 empirical backtest and Cycle 4 independent audit completed at 2026-11-28T02:58:40Z",
             "46097000508",
             "1dbf0878593b45b84e9a9e7d9a13ccc3761b10d53510c5852e60da274f62f1c6",
             "- **Expiry rule:**",
             "INCONCLUSIVE/INFEASIBLE",
             "DEX notional turnover relative to Ethereum DeFi total value locked",
+            "Cycle 4 independent audit",
+            "CLOSED — INCONCLUSIVE",
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, text)
