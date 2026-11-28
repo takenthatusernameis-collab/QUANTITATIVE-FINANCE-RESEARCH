@@ -1142,7 +1142,8 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
     def test_h8_final_gate_passes_manifest_path_to_python(self):
         text = (WORKFLOW_DIR / "h8-ci-credit-impulse-btc-downside.yml").read_text(encoding="utf-8")
         block = text.split("name: Require completed empirical evaluation", 1)[1]
-        self.assertRegex(block, r'python -c [^\\n]+ "\\$manifest"')
+        self.assertIn("python -c '", block)
+        self.assertIn("' \"$manifest\"", block)
         self.assertIn('test -s "$manifest"', block)
 
     def test_h8_independent_audit_is_not_a_backtest_dispatch(self):

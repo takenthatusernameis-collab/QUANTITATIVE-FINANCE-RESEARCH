@@ -40,7 +40,7 @@ class H8IndependentAuditTests(unittest.TestCase):
         audit.validate_forecast_rows(rows)
 
     def test_rejects_nonweekly_forecast_origins(self):
-        rows = [self.row("2026-10-04"), self.row("2026-10-12")]
+        rows = [self.row("2026-10-04"), self.row("2026-10-18")]
         with self.assertRaisesRegex(ValueError, "not weekly"):
             audit.validate_forecast_rows(rows)
 
