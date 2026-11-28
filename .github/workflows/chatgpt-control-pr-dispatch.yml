@@ -20,7 +20,8 @@ jobs:
       github.event.comment.user.login == 'takenthatusernameis-collab' &&
       (
         github.event.comment.body == '/qfr-probe-dispatch-bridge' ||
-        github.event.comment.body == '/qfr-run-initial-claims-btc-downside'
+        github.event.comment.body == '/qfr-run-initial-claims-btc-downside' ||
+        github.event.comment.body == '/qfr-delete-obsolete-spot-holdout-release'
       )
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -45,6 +46,9 @@ jobs:
               ;;
             /qfr-run-initial-claims-btc-downside)
               workflow_id="initial-claims-btc-downside.yml"
+              ;;
+            /qfr-delete-obsolete-spot-holdout-release)
+              workflow_id="delete-specific-release.yml"
               ;;
             *)
               echo "Rejected: command is not allowlisted."
