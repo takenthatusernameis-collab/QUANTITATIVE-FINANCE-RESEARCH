@@ -294,6 +294,21 @@ def download_archive(spec: dict) -> tuple[dict[dt.datetime, float], dict]:
     }
 
 
+def merge_hourly_archive_parts(
+    parts: list[tuple[dict[dt.datetime, float], str]],
+) -> tuple[dict[dt.datetime, float], list[str]]:
+    merged: dict[dt.datetime, float] = {}
+    units = set()
+    for rows, unit in parts:
+        overlap = set(merged).intersection(rows)
+        if overlap:
+            raise ValueError(f"Duplicate ETHUSDT hourly timestamps across archives: {sorted(overlap)[:3]}")
+        merged.update(rows)
+        units.add(unit)
+    if not merged:
+        raise ValueError("No ETHUSDT hourly rows were supplied for archive merge")
+    return dict(sorted(merged.items())), sorted(units)
+
 def validate_hourly_coverage(rows: dict[dt.datetime, float]) -> dict:
     start = dt.datetime.combine(SAMPLE_START, dt.time(), tzinfo=dt.timezone.utc)
     end_exclusive = dt.datetime.combine(SAMPLE_END + dt.timedelta(days=1), dt.time(), tzinfo=dt.timezone.utc)
@@ -365,19 +380,13 @@ def run_preflight() -> dict:
             f"archives: {json.dumps(failures, sort_keys=True)}"
         )
 
-    prices: dict[dt.datetime, float] = {}
     archive_manifest = []
-    timestamp_units = set()
+    archive_parts = []
     for index in range(len(specs)):
         part, record = results[index]
         archive_manifest.append(record)
-        timestamp_units.add(record["timestamp_unit"])
-        overlap = set(prices).intersection(part)
-        if overlap:
-            raise ValueError(f"Duplicate ETHUSDT hourly timestamps across archives: {sorted(overlap)[:3]}")
-        prices.update(part)
-    if len(timestamp_units) != 1:
-        raise ValueError(f"Mixed timestamp units across ETHUSDT archives: {sorted(timestamp_units)}")
+        archive_parts.append((part, record["timestamp_unit"]))
+    prices, timestamp_units = merge_hourly_archive_parts(archive_parts)
     price_coverage = validate_hourly_coverage(prices)
 
     dex_canonical = hashlib.sha256(
@@ -422,6 +431,7 @@ def run_preflight() -> dict:
             "requested_start": SAMPLE_START.isoformat(),
             "requested_end": SAMPLE_END.isoformat(),
             "archive_count": len(archive_manifest),
+            "timestamp_units_observed": timestamp_units,
             "archives": archive_manifest,
             **price_coverage,
         },

@@ -163,6 +163,20 @@ class EthereumDexTurnoverSourcePreflightTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "OHLC relationship"):
             model.parse_hourly_archive((",".join(bad) + "\n").encode())
 
+    def test_archive_merge_accepts_millisecond_and_microsecond_months(self):
+        ms_stamp = dt.datetime(2024, 12, 31, 23, tzinfo=dt.timezone.utc)
+        us_stamp = dt.datetime(2025, 1, 1, 0, tzinfo=dt.timezone.utc)
+        ms_rows, ms_unit = model.parse_hourly_archive((
+            ",".join(hourly_row(ms_stamp, unit="milliseconds")) + "\\n"
+        ).encode())
+        us_rows, us_unit = model.parse_hourly_archive((
+            ",".join(hourly_row(us_stamp, unit="microseconds")) + "\\n"
+        ).encode())
+        merged, units = model.merge_hourly_archive_parts([(ms_rows, ms_unit), (us_rows, us_unit)])
+        self.assertEqual(len(merged), 2)
+        self.assertEqual(units, ["microseconds", "milliseconds"])
+        with self.assertRaisesRegex(ValueError, "Duplicate ETHUSDT hourly timestamps"):
+            model.merge_hourly_archive_parts([(ms_rows, ms_unit), (ms_rows, ms_unit)])
     def test_hourly_coverage_requires_every_expected_hour(self):
         start_day = dt.date(2021, 1, 1)
         stamps = [dt.datetime(2021, 1, 1, hour, tzinfo=dt.timezone.utc) for hour in range(24)]
