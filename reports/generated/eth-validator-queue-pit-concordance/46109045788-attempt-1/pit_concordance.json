@@ -1,0 +1,579 @@
+{
+  "archive_reconstruction": {
+    "assessment": "Full-file reconstruction is approximately terabyte-scale. Selective HTTP range reads, canonical state-root verification and replay cost have not been tested; no archive files were downloaded.",
+    "estimated_era_count_to_2026_11_28": 1923,
+    "format_spec": "https://github.com/eth-clients/e2store-format-specs/blob/main/formats/era.md",
+    "observed_era_file_size_bytes_2025": [
+      477210982,
+      768950346,
+      873112623
+    ],
+    "observed_era_file_size_bytes_2026": [
+      660265640,
+      938248815,
+      904607902
+    ],
+    "public_mirror": "https://mainnet.era.nimbus.team/"
+  },
+  "backtest_run": false,
+  "candidate_id": "QFR-2026-11-28-ETH-VALIDATOR-QUEUE-ASYMMETRY-DOWNSIDE-01",
+  "commit_timestamp_proxy_schedule": {
+    "decision": "Git committer timestamps are mutable metadata and do not establish when a snapshot first became public. The schedule counts are an unverified timestamp proxy, not PIT-accepted origins. The candidate remains IDEA/not admitted. A current-vintage alternative requires a separate preregistration and timebox; do not fit a model.",
+    "existing_frozen_schedule": {
+      "commit_timestamp_proxy_available": true,
+      "commit_timestamp_proxy_test_minimum_100_met": true,
+      "commit_timestamp_proxy_test_origins": 107,
+      "commit_timestamp_proxy_validation_minimum_100_met": false,
+      "commit_timestamp_proxy_validation_origins": 37,
+      "known_pectra_bug_feature_origins": 2,
+      "minimum_training_events": 60,
+      "missing_feature_origins": 149,
+      "not_committed_by_origin": 2,
+      "observed_training_count_max": 100,
+      "observed_training_count_min": 60,
+      "origin_step_days": 6,
+      "pit_accepted_test_origins": null,
+      "pit_accepted_validation_origins": null,
+      "public_availability_verified": false,
+      "scheduled_test_origins": 111,
+      "scheduled_validation_origins": 183,
+      "target_horizon_days": 5,
+      "target_windows_non_overlapping": true
+    },
+    "non_overlapping_schedule_grid": [
+      {
+        "commit_timestamp_proxy_available": true,
+        "commit_timestamp_proxy_test_minimum_100_met": true,
+        "commit_timestamp_proxy_test_origins": 107,
+        "commit_timestamp_proxy_validation_minimum_100_met": false,
+        "commit_timestamp_proxy_validation_origins": 37,
+        "known_pectra_bug_feature_origins": 2,
+        "minimum_training_events": 60,
+        "missing_feature_origins": 149,
+        "not_committed_by_origin": 2,
+        "observed_training_count_max": 100,
+        "observed_training_count_min": 60,
+        "origin_step_days": 6,
+        "pit_accepted_test_origins": null,
+        "pit_accepted_validation_origins": null,
+        "public_availability_verified": false,
+        "scheduled_test_origins": 111,
+        "scheduled_validation_origins": 183,
+        "target_horizon_days": 5,
+        "target_windows_non_overlapping": true
+      },
+      {
+        "commit_timestamp_proxy_available": true,
+        "commit_timestamp_proxy_test_minimum_100_met": true,
+        "commit_timestamp_proxy_test_origins": 129,
+        "commit_timestamp_proxy_validation_minimum_100_met": false,
+        "commit_timestamp_proxy_validation_origins": 56,
+        "known_pectra_bug_feature_origins": 3,
+        "minimum_training_events": 60,
+        "missing_feature_origins": 178,
+        "not_committed_by_origin": 1,
+        "observed_training_count_max": 100,
+        "observed_training_count_min": 60,
+        "origin_step_days": 5,
+        "pit_accepted_test_origins": null,
+        "pit_accepted_validation_origins": null,
+        "public_availability_verified": false,
+        "scheduled_test_origins": 133,
+        "scheduled_validation_origins": 220,
+        "target_horizon_days": 5,
+        "target_windows_non_overlapping": true
+      },
+      {
+        "commit_timestamp_proxy_available": true,
+        "commit_timestamp_proxy_test_minimum_100_met": true,
+        "commit_timestamp_proxy_test_origins": 129,
+        "commit_timestamp_proxy_validation_minimum_100_met": false,
+        "commit_timestamp_proxy_validation_origins": 86,
+        "known_pectra_bug_feature_origins": 3,
+        "minimum_training_events": 30,
+        "missing_feature_origins": 178,
+        "not_committed_by_origin": 1,
+        "observed_training_count_max": 100,
+        "observed_training_count_min": 30,
+        "origin_step_days": 5,
+        "pit_accepted_test_origins": null,
+        "pit_accepted_validation_origins": null,
+        "public_availability_verified": false,
+        "scheduled_test_origins": 133,
+        "scheduled_validation_origins": 220,
+        "target_horizon_days": 5,
+        "target_windows_non_overlapping": true
+      },
+      {
+        "commit_timestamp_proxy_available": true,
+        "commit_timestamp_proxy_test_minimum_100_met": true,
+        "commit_timestamp_proxy_test_origins": 129,
+        "commit_timestamp_proxy_validation_minimum_100_met": false,
+        "commit_timestamp_proxy_validation_origins": 96,
+        "known_pectra_bug_feature_origins": 3,
+        "minimum_training_events": 20,
+        "missing_feature_origins": 178,
+        "not_committed_by_origin": 1,
+        "observed_training_count_max": 100,
+        "observed_training_count_min": 20,
+        "origin_step_days": 5,
+        "pit_accepted_test_origins": null,
+        "pit_accepted_validation_origins": null,
+        "public_availability_verified": false,
+        "scheduled_test_origins": 133,
+        "scheduled_validation_origins": 220,
+        "target_horizon_days": 5,
+        "target_windows_non_overlapping": true
+      },
+      {
+        "commit_timestamp_proxy_available": true,
+        "commit_timestamp_proxy_test_minimum_100_met": true,
+        "commit_timestamp_proxy_test_origins": 129,
+        "commit_timestamp_proxy_validation_minimum_100_met": true,
+        "commit_timestamp_proxy_validation_origins": 101,
+        "known_pectra_bug_feature_origins": 3,
+        "minimum_training_events": 15,
+        "missing_feature_origins": 178,
+        "not_committed_by_origin": 1,
+        "observed_training_count_max": 100,
+        "observed_training_count_min": 15,
+        "origin_step_days": 5,
+        "pit_accepted_test_origins": null,
+        "pit_accepted_validation_origins": null,
+        "public_availability_verified": false,
+        "scheduled_test_origins": 133,
+        "scheduled_validation_origins": 220,
+        "target_horizon_days": 5,
+        "target_windows_non_overlapping": true
+      },
+      {
+        "commit_timestamp_proxy_available": true,
+        "commit_timestamp_proxy_test_minimum_100_met": true,
+        "commit_timestamp_proxy_test_origins": 159,
+        "commit_timestamp_proxy_validation_minimum_100_met": false,
+        "commit_timestamp_proxy_validation_origins": 84,
+        "known_pectra_bug_feature_origins": 4,
+        "minimum_training_events": 60,
+        "missing_feature_origins": 225,
+        "not_committed_by_origin": 2,
+        "observed_training_count_max": 100,
+        "observed_training_count_min": 60,
+        "origin_step_days": 4,
+        "pit_accepted_test_origins": null,
+        "pit_accepted_validation_origins": null,
+        "public_availability_verified": false,
+        "scheduled_test_origins": 167,
+        "scheduled_validation_origins": 274,
+        "target_horizon_days": 5,
+        "target_windows_non_overlapping": false
+      },
+      {
+        "commit_timestamp_proxy_available": true,
+        "commit_timestamp_proxy_test_minimum_100_met": true,
+        "commit_timestamp_proxy_test_origins": 159,
+        "commit_timestamp_proxy_validation_minimum_100_met": true,
+        "commit_timestamp_proxy_validation_origins": 114,
+        "known_pectra_bug_feature_origins": 4,
+        "minimum_training_events": 30,
+        "missing_feature_origins": 225,
+        "not_committed_by_origin": 2,
+        "observed_training_count_max": 100,
+        "observed_training_count_min": 30,
+        "origin_step_days": 4,
+        "pit_accepted_test_origins": null,
+        "pit_accepted_validation_origins": null,
+        "public_availability_verified": false,
+        "scheduled_test_origins": 167,
+        "scheduled_validation_origins": 274,
+        "target_horizon_days": 5,
+        "target_windows_non_overlapping": false
+      },
+      {
+        "commit_timestamp_proxy_available": true,
+        "commit_timestamp_proxy_test_minimum_100_met": true,
+        "commit_timestamp_proxy_test_origins": 214,
+        "commit_timestamp_proxy_validation_minimum_100_met": true,
+        "commit_timestamp_proxy_validation_origins": 133,
+        "known_pectra_bug_feature_origins": 5,
+        "minimum_training_events": 60,
+        "missing_feature_origins": 298,
+        "not_committed_by_origin": 3,
+        "observed_training_count_max": 100,
+        "observed_training_count_min": 60,
+        "origin_step_days": 3,
+        "pit_accepted_test_origins": null,
+        "pit_accepted_validation_origins": null,
+        "public_availability_verified": false,
+        "scheduled_test_origins": 223,
+        "scheduled_validation_origins": 366,
+        "target_horizon_days": 5,
+        "target_windows_non_overlapping": false
+      },
+      {
+        "commit_timestamp_proxy_available": true,
+        "commit_timestamp_proxy_test_minimum_100_met": true,
+        "commit_timestamp_proxy_test_origins": 214,
+        "commit_timestamp_proxy_validation_minimum_100_met": true,
+        "commit_timestamp_proxy_validation_origins": 163,
+        "known_pectra_bug_feature_origins": 5,
+        "minimum_training_events": 30,
+        "missing_feature_origins": 298,
+        "not_committed_by_origin": 3,
+        "observed_training_count_max": 100,
+        "observed_training_count_min": 30,
+        "origin_step_days": 3,
+        "pit_accepted_test_origins": null,
+        "pit_accepted_validation_origins": null,
+        "public_availability_verified": false,
+        "scheduled_test_origins": 223,
+        "scheduled_validation_origins": 366,
+        "target_horizon_days": 5,
+        "target_windows_non_overlapping": false
+      }
+    ],
+    "pit_accepted": false,
+    "public_availability_verified": false
+  },
+  "cross_source_concordance": {
+    "clean_common_dates": 1228,
+    "clean_first_date": "2023-05-21",
+    "clean_last_date": "2026-10-25",
+    "common_dates_before_known_bug_exclusion": 1243,
+    "known_pectra_bug_dates_excluded": 15,
+    "regimes": {
+      "all_clean_overlap": {
+        "end": "2026-10-25",
+        "entry_wait_days": {
+          "mae": 0.6408277627820848,
+          "mean_bias_observed_minus_reference": -0.1896171242555374,
+          "median_absolute_error": 0.39903526049999893,
+          "n": 1228,
+          "p95_absolute_error": 2.451333333299999,
+          "pearson_r": 0.998547622311132,
+          "rmse": 1.1557699560827,
+          "spearman_r": 0.9766328850057086
+        },
+        "exit_wait_days": {
+          "mae": 0.47784966839242665,
+          "mean_bias_observed_minus_reference": 0.23527127071799675,
+          "median_absolute_error": 0.03,
+          "n": 1228,
+          "p95_absolute_error": 1.429189264199998,
+          "pearson_r": 0.986460760078708,
+          "rmse": 1.6756290716172453,
+          "spearman_r": 0.5868867758999088
+        },
+        "log1p_entry_minus_exit": {
+          "mae": 0.20153754078570946,
+          "mean_bias_observed_minus_reference": -0.048603916011234045,
+          "median_absolute_error": 0.09725416444739061,
+          "n": 1228,
+          "p95_absolute_error": 0.7281235398753267,
+          "pearson_r": 0.9791464739721915,
+          "rmse": 0.35050395535829,
+          "spearman_r": 0.9602042230104462
+        },
+        "n": 1228,
+        "start": "2023-05-21"
+      },
+      "post_pectra": {
+        "end": "2026-10-25",
+        "entry_wait_days": {
+          "mae": 0.7137400092161479,
+          "mean_bias_observed_minus_reference": -0.07995670353754855,
+          "median_absolute_error": 0.5427038564000002,
+          "n": 514,
+          "p95_absolute_error": 2.6967528314999996,
+          "pearson_r": 0.9983133542655385,
+          "rmse": 1.2472263938063943,
+          "spearman_r": 0.996845094140226
+        },
+        "exit_wait_days": {
+          "mae": 1.0146184119233463,
+          "mean_bias_observed_minus_reference": 0.5615605063883268,
+          "median_absolute_error": 0.39650473215000037,
+          "n": 514,
+          "p95_absolute_error": 5.5264482981,
+          "pearson_r": 0.9839278021553851,
+          "rmse": 2.565906064443411,
+          "spearman_r": 0.8329371566412994
+        },
+        "log1p_entry_minus_exit": {
+          "mae": 0.24302415762014495,
+          "mean_bias_observed_minus_reference": -0.13484388347201878,
+          "median_absolute_error": 0.08202487260427405,
+          "n": 514,
+          "p95_absolute_error": 1.1795672582978387,
+          "pearson_r": 0.9781807748771084,
+          "rmse": 0.44597844223514055,
+          "spearman_r": 0.9505131810700408
+        },
+        "n": 514,
+        "start": "2025-05-22"
+      },
+      "pre_pectra": {
+        "end": "2025-05-05",
+        "entry_wait_days": {
+          "mae": 0.5883391147889355,
+          "mean_bias_observed_minus_reference": -0.26856034029061615,
+          "median_absolute_error": 0.29055555555,
+          "n": 714,
+          "p95_absolute_error": 2.451333333299999,
+          "pearson_r": 0.9985361703552731,
+          "rmse": 1.0851703946746096,
+          "spearman_r": 0.8924869918546221
+        },
+        "exit_wait_days": {
+          "mae": 0.09143631520630252,
+          "mean_bias_observed_minus_reference": 0.00037958005336134314,
+          "median_absolute_error": 0.0075185185,
+          "n": 714,
+          "p95_absolute_error": 0.53,
+          "pearson_r": 0.7131593430136649,
+          "rmse": 0.29888836987918294,
+          "spearman_r": 0.2629565690345189
+        },
+        "log1p_entry_minus_exit": {
+          "mae": 0.17167182502534553,
+          "mean_bias_observed_minus_reference": 0.013479197819078768,
+          "median_absolute_error": 0.10452452661132577,
+          "n": 714,
+          "p95_absolute_error": 0.497818317411468,
+          "pearson_r": 0.9798192518572554,
+          "rmse": 0.2609790112513313,
+          "spearman_r": 0.8927159375087563
+        },
+        "n": 714,
+        "start": "2023-05-21"
+      }
+    }
+  },
+  "cryptokeyhole": {
+    "catalog_sha256": "77500a17b74c04caedb63f7dc61dd278a8958742a3771e76c2aaf97d3edff00e",
+    "license_link": "<https://creativecommons.org/licenses/by/4.0/>; rel=\"license\"",
+    "metric_id": "eth.ValidatorQueueWait",
+    "openapi_sha256": "2a3e84f5f996f6a6fb97719d0ac2600c45ffc60d593be02ef1b385e4b05a5d45",
+    "series_sha256": "d8b7fc331b5ba6e9ddb9d7b5499096e0ba7d16a7f3de23e4fd04e2a858993a5f",
+    "series_state": "delayed",
+    "vintage_limitation": "Free current-vintage daily history; first-published vintages require API & Team. The recorder began 2026-11-08, so historical first-published CryptoKeyhole vintages are unavailable."
+  },
+  "model_fit_performed": false,
+  "point_in_time_accepted": false,
+  "public_availability_verified": false,
+  "raw_observations_saved": false,
+  "retrieved_at_utc": "2026-11-28T04:50:11.159625+00:00",
+  "source_commit_sha": "37ac272d995c79affcf0ddd858b38df889fb3d12",
+  "status": "COMPLETE_COMMIT_HISTORY_AUDIT",
+  "validatorqueue": {
+    "commit_history": {
+      "commit_count": 1237,
+      "commit_history_sha256": "1b8ed17d91e7fd551aec133edf7af5bcceae89bead297d6be096abda7831c486",
+      "first_seen_delay_days_max": 9.68548611111111,
+      "first_seen_delay_hours_max": 232.45166666666665,
+      "first_seen_delay_hours_p95": 4.394722222222223,
+      "mapping_complete": true,
+      "queue_balance_revision_events": 707,
+      "removed_date_count": 0,
+      "row_count": 1243,
+      "same_utc_date_commit_count": 1234,
+      "same_utc_date_commit_fraction": 0.9927594529364441,
+      "snapshot_matches_current": true,
+      "validatorqueue_git_head_sha": "6d90783883b84129db6f17b3d454f702dc1f8f1f",
+      "wait_revision_dates": [
+        "2023-05-21",
+        "2023-05-22",
+        "2023-05-23",
+        "2023-05-24",
+        "2023-05-25",
+        "2023-05-26",
+        "2023-05-27",
+        "2023-05-28",
+        "2023-05-29",
+        "2023-05-30",
+        "2023-05-31",
+        "2023-06-01",
+        "2023-06-02",
+        "2023-06-03",
+        "2025-05-07",
+        "2025-05-22"
+      ],
+      "wait_revision_details": [
+        {
+          "date": "2023-05-21",
+          "new_entry_wait": 31.58,
+          "new_exit_wait": 0.0,
+          "old_entry_wait": 34.76,
+          "old_exit_wait": 0.0,
+          "timestamp": "2023-06-03T23:42:28+00:00"
+        },
+        {
+          "date": "2023-05-22",
+          "new_entry_wait": 32.79,
+          "new_exit_wait": 0.0,
+          "old_entry_wait": 36.24,
+          "old_exit_wait": 0.0,
+          "timestamp": "2023-06-03T23:42:28+00:00"
+        },
+        {
+          "date": "2023-05-23",
+          "new_entry_wait": 33.33,
+          "new_exit_wait": 0.0,
+          "old_entry_wait": 36.95,
+          "old_exit_wait": 0.0,
+          "timestamp": "2023-06-03T23:42:28+00:00"
+        },
+        {
+          "date": "2023-05-24",
+          "new_entry_wait": 35.31,
+          "new_exit_wait": 0.0,
+          "old_entry_wait": 39.27,
+          "old_exit_wait": 0.0,
+          "timestamp": "2023-06-03T23:42:28+00:00"
+        },
+        {
+          "date": "2023-05-25",
+          "new_entry_wait": 35.79,
+          "new_exit_wait": 0.0,
+          "old_entry_wait": 40.0,
+          "old_exit_wait": 0.0,
+          "timestamp": "2023-06-03T23:42:28+00:00"
+        },
+        {
+          "date": "2023-05-26",
+          "new_entry_wait": 35.78,
+          "new_exit_wait": 0.0,
+          "old_entry_wait": 40.21,
+          "old_exit_wait": 0.0,
+          "timestamp": "2023-06-03T23:42:28+00:00"
+        },
+        {
+          "date": "2023-05-27",
+          "new_entry_wait": 36.26,
+          "new_exit_wait": 0.0,
+          "old_entry_wait": 41.04,
+          "old_exit_wait": 0.0,
+          "timestamp": "2023-06-03T23:42:28+00:00"
+        },
+        {
+          "date": "2023-05-28",
+          "new_entry_wait": 37.28,
+          "new_exit_wait": 0.0,
+          "old_entry_wait": 42.55,
+          "old_exit_wait": 0.0,
+          "timestamp": "2023-06-03T23:42:28+00:00"
+        },
+        {
+          "date": "2023-05-29",
+          "new_entry_wait": 37.17,
+          "new_exit_wait": 0.0,
+          "old_entry_wait": 37.8,
+          "old_exit_wait": 0.0,
+          "timestamp": "2023-06-03T23:42:28+00:00"
+        },
+        {
+          "date": "2023-05-30",
+          "new_entry_wait": 36.81,
+          "new_exit_wait": 0.0,
+          "old_entry_wait": 37.47,
+          "old_exit_wait": 0.0,
+          "timestamp": "2023-06-03T23:42:28+00:00"
+        },
+        {
+          "date": "2023-05-31",
+          "new_entry_wait": 36.69,
+          "new_exit_wait": 0.0,
+          "old_entry_wait": 37.41,
+          "old_exit_wait": 0.0,
+          "timestamp": "2023-06-03T23:42:28+00:00"
+        },
+        {
+          "date": "2023-06-01",
+          "new_entry_wait": 37.2,
+          "new_exit_wait": 0.0,
+          "old_entry_wait": 38.07,
+          "old_exit_wait": 0.0,
+          "timestamp": "2023-06-03T23:42:28+00:00"
+        },
+        {
+          "date": "2023-06-02",
+          "new_entry_wait": 37.48,
+          "new_exit_wait": 0.0,
+          "old_entry_wait": 38.46,
+          "old_exit_wait": 0.0,
+          "timestamp": "2023-06-03T23:42:28+00:00"
+        },
+        {
+          "date": "2023-06-03",
+          "new_entry_wait": 42.87,
+          "new_exit_wait": 0.0,
+          "old_entry_wait": 44.52,
+          "old_exit_wait": 0.0,
+          "timestamp": "2023-06-03T23:42:28+00:00"
+        },
+        {
+          "date": "2025-05-07",
+          "new_entry_wait": 0.05,
+          "new_exit_wait": 0.0,
+          "old_entry_wait": 1.61,
+          "old_exit_wait": 0.0,
+          "timestamp": "2025-05-07T09:53:11+00:00"
+        },
+        {
+          "date": "2025-05-22",
+          "new_entry_wait": 1.83,
+          "new_exit_wait": 1.54,
+          "old_entry_wait": 0.04,
+          "old_exit_wait": 0.06,
+          "timestamp": "2025-05-22T17:25:06+00:00"
+        }
+      ],
+      "wait_revision_events": 16
+    },
+    "expected_days": 1254,
+    "first_date": "2023-05-21",
+    "first_read_semantics": "The current file is not strictly append-only. Every historical_data.json Git snapshot is replayed; first appearances and wait-value revisions are retained in memory, and the latest commit-dated version before each origin is selected. Git committer dates are mutable metadata and do not prove when a snapshot became public; this chronology is an unverified timestamp proxy only.",
+    "gap_count": 5,
+    "gaps": [
+      {
+        "after": "2024-01-19",
+        "before": "2024-01-22",
+        "missing_days": 2
+      },
+      {
+        "after": "2025-05-05",
+        "before": "2025-05-07",
+        "missing_days": 1
+      },
+      {
+        "after": "2025-12-11",
+        "before": "2025-12-15",
+        "missing_days": 3
+      },
+      {
+        "after": "2026-02-23",
+        "before": "2026-02-25",
+        "missing_days": 1
+      },
+      {
+        "after": "2026-07-22",
+        "before": "2026-07-27",
+        "missing_days": 4
+      }
+    ],
+    "history_sha256": "7899bece9d37e1a39086ac68622b54a9bd6a39e9beef2d1f7980280e12faeda9",
+    "known_inaccurate_interval": {
+      "end": "2025-05-21",
+      "reason": "Repository README documents post-Pectra queue wait values as validator-based rather than balance-based during this interval.",
+      "start": "2025-05-07"
+    },
+    "last_date": "2026-10-25",
+    "missing_days": 11,
+    "raw_history_url": "https://raw.githubusercontent.com/etheralpha/validatorqueue-com/6d90783883b84129db6f17b3d454f702dc1f8f1f/historical_data.json",
+    "repository": "https://github.com/etheralpha/validatorqueue-com",
+    "row_count": 1243,
+    "source_commit_sha": "6d90783883b84129db6f17b3d454f702dc1f8f1f",
+    "source_commit_sha_verified": true
+  },
+  "workflow_run_attempt": "1",
+  "workflow_run_id": "46109045788"
+}
