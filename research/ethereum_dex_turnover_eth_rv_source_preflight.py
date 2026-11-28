@@ -45,6 +45,7 @@ OUTPUT_DIR = (
     ROOT / "reports" / "generated" / "ethereum-dex-turnover-eth-rv-source-preflight"
     / f"{RUN_ID}-attempt-{ATTEMPT}"
 )
+PARTIAL_EVIDENCE: dict = {}
 
 
 def parse_number(value, field: str) -> float:
@@ -205,6 +206,17 @@ def build_monthly_archive_specs(start: dt.date, end: dt.date) -> list[dict]:
     return specs
 
 
+
+def build_daily_archive_specs(days: list[dt.date]) -> list[dict]:
+    specs = []
+    for day in sorted(set(days)):
+        tag = day.isoformat()
+        filename = f"ETHUSDT-1h-{tag}.zip"
+        url = f"{BINANCE_VISION}/data/spot/daily/klines/ETHUSDT/1h/{filename}"
+        specs.append({"kind": "daily", "tag": tag, "filename": filename, "url": url})
+    return specs
+
+
 def parse_hourly_archive(body: bytes) -> tuple[dict[dt.datetime, float], str]:
     """Parse 12-column Binance Spot hourly klines and validate complete hourly bars."""
     values: dict[dt.datetime, float] = {}
@@ -276,10 +288,21 @@ def download_archive(spec: dict) -> tuple[dict[dt.datetime, float], dict]:
             raise ValueError(f"Expected one CSV in {spec['filename']}; found {len(csv_names)}")
         csv_body = archive.read(csv_names[0])
     rows, timestamp_unit = parse_hourly_archive(csv_body)
-    year, month = map(int, spec["tag"].split("-"))
-    if any(stamp.year != year or stamp.month != month for stamp in rows):
-        raise ValueError(f"Monthly archive {spec['filename']} contains out-of-month rows")
+    kind = spec.get("kind", "monthly")
+    if kind == "monthly":
+        year, month = map(int, spec["tag"].split("-"))
+        invalid_period = any(stamp.year != year or stamp.month != month for stamp in rows)
+        period_error = "out-of-month"
+    elif kind == "daily":
+        expected_day = dt.date.fromisoformat(spec["tag"])
+        invalid_period = any(stamp.date() != expected_day for stamp in rows)
+        period_error = "outside requested UTC day"
+    else:
+        raise ValueError(f"Unsupported Binance archive period type: {kind}")
+    if invalid_period:
+        raise ValueError(f"Binance archive {spec['filename']} contains rows {period_error}")
     return rows, {
+        "period_type": kind,
         "period": spec["tag"],
         "url": spec["url"],
         "checksum_url": spec["url"] + ".CHECKSUM",
@@ -309,21 +332,69 @@ def merge_hourly_archive_parts(
         raise ValueError("No ETHUSDT hourly rows were supplied for archive merge")
     return dict(sorted(merged.items())), sorted(units)
 
-def validate_hourly_coverage(rows: dict[dt.datetime, float]) -> dict:
+
+def expected_hourly_timestamps() -> set[dt.datetime]:
     start = dt.datetime.combine(SAMPLE_START, dt.time(), tzinfo=dt.timezone.utc)
     end_exclusive = dt.datetime.combine(SAMPLE_END + dt.timedelta(days=1), dt.time(), tzinfo=dt.timezone.utc)
-    expected_count = int((end_exclusive - start).total_seconds() // 3600)
-    expected = {
-        start + dt.timedelta(hours=index)
-        for index in range(expected_count)
+    count = int((end_exclusive - start).total_seconds() // 3600)
+    return {start + dt.timedelta(hours=index) for index in range(count)}
+
+
+def missing_hour_timestamps(rows: dict[dt.datetime, float]) -> list[dt.datetime]:
+    return sorted(expected_hourly_timestamps() - set(rows))
+
+
+def reconcile_daily_gap_patch(
+    monthly_prices: dict[dt.datetime, float],
+    daily_prices: dict[dt.datetime, float],
+    day: dt.date,
+) -> tuple[dict[dt.datetime, float], dict]:
+    day_start = dt.datetime.combine(day, dt.time(), tzinfo=dt.timezone.utc)
+    expected_day = {day_start + dt.timedelta(hours=hour) for hour in range(24)}
+    observed_day = set(daily_prices)
+    if observed_day != expected_day:
+        missing = sorted(expected_day - observed_day)
+        outside = sorted(observed_day - expected_day)
+        raise ValueError(
+            f"Daily ETHUSDT archive {day} does not cover exactly 24 UTC hours: "
+            f"missing={[stamp.isoformat() for stamp in missing]}, "
+            f"outside={[stamp.isoformat() for stamp in outside]}"
+        )
+    overlap = set(monthly_prices).intersection(daily_prices)
+    mismatches = [
+        stamp for stamp in sorted(overlap)
+        if not math.isclose(monthly_prices[stamp], daily_prices[stamp], rel_tol=1e-12, abs_tol=1e-12)
+    ]
+    if mismatches:
+        raise ValueError(
+            f"Monthly/daily ETHUSDT close mismatch on {day}: "
+            f"{[stamp.isoformat() for stamp in mismatches[:10]]}"
+        )
+    to_fill = sorted(expected_day - set(monthly_prices))
+    if not to_fill:
+        raise ValueError(f"Daily ETHUSDT archive {day} did not repair any missing monthly hour")
+    merged = dict(monthly_prices)
+    for stamp in to_fill:
+        merged[stamp] = daily_prices[stamp]
+    return dict(sorted(merged.items())), {
+        "period": day.isoformat(),
+        "rows": len(daily_prices),
+        "overlap_match_count": len(overlap),
+        "filled_hour_count": len(to_fill),
+        "filled_hours": [stamp.isoformat() for stamp in to_fill],
     }
+
+
+def validate_hourly_coverage(rows: dict[dt.datetime, float]) -> dict:
+    expected = expected_hourly_timestamps()
+    expected_count = len(expected)
     observed = set(rows)
     missing = sorted(expected - observed)
     outside = sorted(observed - expected)
     if missing or outside or len(rows) != expected_count:
         raise ValueError(
             f"ETHUSDT hourly coverage mismatch: expected={expected_count}, observed={len(rows)}, "
-            f"missing={len(missing)}, first_missing={missing[0].isoformat() if missing else None}, "
+            f"missing={len(missing)}, missing_timestamps={[stamp.isoformat() for stamp in missing]}, "
             f"outside={len(outside)}"
         )
     digest = hashlib.sha256()
@@ -340,7 +411,9 @@ def validate_hourly_coverage(rows: dict[dt.datetime, float]) -> dict:
     }
 
 
+
 def run_preflight() -> dict:
+    PARTIAL_EVIDENCE.clear()
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         dex_future = executor.submit(base.fetch_bytes, DEX_URL, 40)
         tvl_future = executor.submit(base.fetch_bytes, TVL_URL, 40)
@@ -351,9 +424,32 @@ def run_preflight() -> dict:
     tvl = parse_tvl_history(tvl_body)
     dex_coverage = validate_daily_coverage(dex, "Ethereum DEX daily notional volume")
     tvl_coverage = validate_daily_coverage(tvl, "Ethereum DeFi TVL", require_positive=True)
+    dex_canonical = hashlib.sha256(
+        "".join(f"{day.isoformat()},{value:.12g}\n" for day, value in sorted(dex.items())).encode("ascii")
+    ).hexdigest()
+    tvl_canonical = hashlib.sha256(
+        "".join(f"{day.isoformat()},{value:.12g}\n" for day, value in sorted(tvl.items())).encode("ascii")
+    ).hexdigest()
+    PARTIAL_EVIDENCE["dex_source"] = {
+        "endpoint": DEX_URL,
+        "response_sha256": hashlib.sha256(dex_body).hexdigest(),
+        "canonical_daily_sha256": dex_canonical,
+        **dex_coverage,
+    }
+    PARTIAL_EVIDENCE["tvl_source"] = {
+        "endpoint": TVL_URL,
+        "response_sha256": hashlib.sha256(tvl_body).hexdigest(),
+        "canonical_daily_sha256": tvl_canonical,
+        **tvl_coverage,
+    }
 
     exchange_body = base.fetch_bytes(BINANCE_EXCHANGE_INFO_URL, 20)
-    market = validate_exchange_info(exchange_body)
+    market_info = validate_exchange_info(exchange_body)
+    PARTIAL_EVIDENCE["binance_market"] = {
+        "endpoint": BINANCE_EXCHANGE_INFO_URL,
+        "response_sha256": hashlib.sha256(exchange_body).hexdigest(),
+        **market_info,
+    }
 
     specs = build_monthly_archive_specs(SAMPLE_START, SAMPLE_END)
     results: dict[int, tuple[dict[dt.datetime, float], dict]] = {}
@@ -375,26 +471,67 @@ def run_preflight() -> dict:
                 })
     if failures:
         failures.sort(key=lambda row: row["period"])
+        PARTIAL_EVIDENCE["binance_monthly_archive_failures"] = failures
         raise RuntimeError(
-            f"Binance Vision hourly archive ingestion failed for {len(failures)}/{len(specs)} "
-            f"archives: {json.dumps(failures, sort_keys=True)}"
+            f"Binance Vision monthly hourly archive ingestion failed for {len(failures)}/{len(specs)} archives: "
+            f"{json.dumps(failures, sort_keys=True)}"
         )
 
-    archive_manifest = []
+    monthly_manifest = []
     archive_parts = []
     for index in range(len(specs)):
         part, record = results[index]
-        archive_manifest.append(record)
+        monthly_manifest.append(record)
         archive_parts.append((part, record["timestamp_unit"]))
     prices, timestamp_units = merge_hourly_archive_parts(archive_parts)
-    price_coverage = validate_hourly_coverage(prices)
+    PARTIAL_EVIDENCE["binance_monthly_archives"] = {
+        "archive_count": len(monthly_manifest),
+        "timestamp_units_observed": timestamp_units,
+        "observed_hourly_rows": len(prices),
+        "archives": monthly_manifest,
+    }
 
-    dex_canonical = hashlib.sha256(
-        "".join(f"{day.isoformat()},{value:.12g}\n" for day, value in sorted(dex.items())).encode("ascii")
-    ).hexdigest()
-    tvl_canonical = hashlib.sha256(
-        "".join(f"{day.isoformat()},{value:.12g}\n" for day, value in sorted(tvl.items())).encode("ascii")
-    ).hexdigest()
+    missing_before_patch = missing_hour_timestamps(prices)
+    daily_manifest = []
+    if missing_before_patch:
+        missing_days = sorted({stamp.date() for stamp in missing_before_patch})
+        daily_specs = build_daily_archive_specs(missing_days)
+        daily_results: dict[int, tuple[dict[dt.datetime, float], dict]] = {}
+        daily_failures = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(WORKERS, len(daily_specs))) as executor:
+            futures = {
+                executor.submit(download_archive, spec): (index, spec)
+                for index, spec in enumerate(daily_specs)
+            }
+            for future in concurrent.futures.as_completed(futures):
+                index, spec = futures[future]
+                try:
+                    daily_results[index] = future.result()
+                except Exception as exc:
+                    daily_failures.append({
+                        "period": spec["tag"],
+                        "url": spec["url"],
+                        "error": f"{type(exc).__name__}: {exc}",
+                    })
+        if daily_failures:
+            daily_failures.sort(key=lambda row: row["period"])
+            PARTIAL_EVIDENCE["binance_daily_archive_failures"] = daily_failures
+            raise RuntimeError(
+                f"Official Binance daily gap-repair archive ingestion failed for {len(daily_failures)}/{len(daily_specs)} dates: "
+                f"{json.dumps(daily_failures, sort_keys=True)}"
+            )
+        for index, day in enumerate(missing_days):
+            day_rows, record = daily_results[index]
+            prices, patch = reconcile_daily_gap_patch(prices, day_rows, day)
+            daily_manifest.append({**record, **patch})
+    PARTIAL_EVIDENCE["binance_daily_gap_repairs"] = {
+        "archive_count": len(daily_manifest),
+        "archives": daily_manifest,
+        "hours_missing_before_patch": len(missing_before_patch),
+    }
+
+    price_coverage = validate_hourly_coverage(prices)
+    PARTIAL_EVIDENCE["binance_hourly_coverage"] = price_coverage
 
     return {
         "hypothesis_id": HYPOTHESIS_ID,
@@ -422,17 +559,19 @@ def run_preflight() -> dict:
         "binance_market": {
             "endpoint": BINANCE_EXCHANGE_INFO_URL,
             "response_sha256": hashlib.sha256(exchange_body).hexdigest(),
-            **market,
+            **market_info,
         },
         "binance_hourly_archives": {
-            "source": "official Binance Vision Spot monthly 1h klines",
+            "source": "official Binance Vision Spot monthly 1h klines with checksum-verified daily gap repairs when required",
             "symbol": "ETHUSDT",
             "interval": "1h UTC",
             "requested_start": SAMPLE_START.isoformat(),
             "requested_end": SAMPLE_END.isoformat(),
-            "archive_count": len(archive_manifest),
+            "monthly_archive_count": len(monthly_manifest),
+            "daily_gap_repair_archive_count": len(daily_manifest),
             "timestamp_units_observed": timestamp_units,
-            "archives": archive_manifest,
+            "monthly_archives": monthly_manifest,
+            "daily_gap_repairs": daily_manifest,
             **price_coverage,
         },
         "raw_observations_saved": False,
@@ -452,6 +591,7 @@ def main() -> int:
             "status": "FAIL",
             "retrieved_at_utc": NOW.isoformat(),
             "error": f"{type(exc).__name__}: {exc}",
+            "partial_evidence": PARTIAL_EVIDENCE,
             "raw_observations_saved": False,
             "backtest_run": False,
         }

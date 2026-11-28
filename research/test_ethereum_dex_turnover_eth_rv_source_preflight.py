@@ -177,6 +177,43 @@ class EthereumDexTurnoverSourcePreflightTests(unittest.TestCase):
         self.assertEqual(units, ["microseconds", "milliseconds"])
         with self.assertRaisesRegex(ValueError, "Duplicate ETHUSDT hourly timestamps"):
             model.merge_hourly_archive_parts([(ms_rows, ms_unit), (ms_rows, ms_unit)])
+
+    def test_daily_archive_specs_are_official_and_date_scoped(self):
+        day = dt.date(2021, 2, 11)
+        specs = model.build_daily_archive_specs([day, day])
+        self.assertEqual(len(specs), 1)
+        self.assertEqual(specs[0]["kind"], "daily")
+        self.assertEqual(specs[0]["tag"], "2021-02-11")
+        self.assertIn("/data/spot/daily/klines/ETHUSDT/1h/ETHUSDT-1h-2021-02-11.zip", specs[0]["url"])
+
+    def test_daily_archive_gap_repair_fills_only_missing_hours_and_reconciles_overlaps(self):
+        day = dt.date(2021, 2, 11)
+        start = dt.datetime.combine(day, dt.time(), tzinfo=dt.timezone.utc)
+        daily = {start + dt.timedelta(hours=i): 2000.0 + i for i in range(24)}
+        monthly = dict(daily)
+        missing = start + dt.timedelta(hours=4)
+        monthly.pop(missing)
+        merged, record = model.reconcile_daily_gap_patch(monthly, daily, day)
+        self.assertEqual(merged, daily)
+        self.assertEqual(record["filled_hour_count"], 1)
+        self.assertEqual(record["filled_hours"], [missing.isoformat()])
+        self.assertEqual(record["overlap_match_count"], 23)
+
+    def test_daily_archive_gap_repair_rejects_mismatched_overlap_or_incomplete_day(self):
+        day = dt.date(2021, 2, 11)
+        start = dt.datetime.combine(day, dt.time(), tzinfo=dt.timezone.utc)
+        daily = {start + dt.timedelta(hours=i): 2000.0 + i for i in range(24)}
+        monthly = dict(daily)
+        monthly.pop(start + dt.timedelta(hours=4))
+        mismatch = dict(daily)
+        mismatch[start + dt.timedelta(hours=5)] += 0.01
+        with self.assertRaisesRegex(ValueError, "close mismatch"):
+            model.reconcile_daily_gap_patch(monthly, mismatch, day)
+        incomplete = dict(daily)
+        incomplete.pop(start + dt.timedelta(hours=6))
+        with self.assertRaisesRegex(ValueError, "does not cover exactly 24 UTC hours"):
+            model.reconcile_daily_gap_patch(monthly, incomplete, day)
+
     def test_hourly_coverage_requires_every_expected_hour(self):
         start_day = dt.date(2021, 1, 1)
         stamps = [dt.datetime(2021, 1, 1, hour, tzinfo=dt.timezone.utc) for hour in range(24)]
