@@ -53,8 +53,10 @@ class EthereumDexTurnoverSourcePreflightTests(unittest.TestCase):
                 [unix(dt.date(2021, 1, 1)), 1.0],
                 [unix(dt.date(2021, 1, 1)), 2.0],
             ]}).encode())
-        with self.assertRaisesRegex(ValueError, "invalid value"):
-            model.parse_tvl_history(json.dumps([tvl_row(dt.date(2021, 1, 1), 0)]).encode())
+        zero_tvl = model.parse_tvl_history(
+            json.dumps([tvl_row(dt.date(2017, 1, 1), 0)]).encode()
+        )
+        self.assertEqual(zero_tvl[dt.date(2017, 1, 1)], 0.0)
         with self.assertRaisesRegex(ValueError, "must be \\[unix_timestamp, USD_volume\\]"):
             model.parse_dex_history(b'{"totalDataChart":[1]}')
 
@@ -72,6 +74,10 @@ class EthereumDexTurnoverSourcePreflightTests(unittest.TestCase):
             gap.pop(model.SAMPLE_START + dt.timedelta(days=offset))
         with self.assertRaisesRegex(ValueError, "gap"):
             model.validate_daily_coverage(gap, "DEX")
+        zero_tvl = dict(values)
+        zero_tvl[model.SAMPLE_START + dt.timedelta(days=20)] = 0.0
+        with self.assertRaisesRegex(ValueError, "non-positive"):
+            model.validate_daily_coverage(zero_tvl, "TVL", require_positive=True)
 
     def test_daily_coverage_rejects_stale_or_shallow_series(self):
         short = {model.SAMPLE_START + dt.timedelta(days=i): 1.0 for i in range(100)}
