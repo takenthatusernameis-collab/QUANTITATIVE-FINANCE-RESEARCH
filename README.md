@@ -283,3 +283,16 @@ Report RESEARCH OUTPUT; HYPOTHESES/RANKING; DAILY KPI; CHANGED (files and commit
 - Evidence: [closure record](research/CLOSED-QFR-2026-11-27-BTC-DIFFICULTY-CUT-DOWNSIDE-01.md) · [recovery session report](reports/sessions/2026-11-27/2026-11-27T105624Z_session-btc-mining-difficulty-unadmitted-closure.md).
 <!-- QFR:BTC-MINING-DIFFICULTY:END -->
 
+
+
+## Current workstream — Friday S&P 500 shock / Bitcoin weekend downside
+
+Hypothesis QFR-2026-11-28-SP500-FRIDAY-SHOCK-BTC-WEEKEND-DOWNSIDE-01 is newly preregistered and source-feasibility only. No model fitting or backtest is authorized until the source preflight passes.
+
+- Mechanism: a negative Friday S&P 500 close-to-close return may carry information about BTC downside semivariance in the subsequent Saturday 12:00 UTC–Sunday 12:00 UTC window, beyond BTC's own prior 24h/168h downside risk, 168h realized variance and prior 24h absolute return.
+- Signal timestamp: Saturday 12:00 UTC, a 15-hour EST / 16-hour EDT embargo after the Friday 16:00 New York cash close. FRED's daily SP500 series does not expose historical intraday first-publication timestamps; this is a material point-in-time limitation, not a certified trading signal.
+- Market data: FRED SP500 daily closes and checksum-verified Binance Spot BTCUSDT 1h UTC archives. The preflight must validate coverage, missing hours, archive hashes, exact event-window completeness and at least 60 eligible validation and test forecasts after 104 matured weekly training events.
+- Difficulty: HIGH; maximum eight substantive cycles; implementation deadline 2026-11-30T07:46:26Z; final conclusion deadline 2026-12-08T07:46:26Z. No automatic extension.
+- The 2026-11-28 daily real-data backtest minimum was already met by the completed MEXC funding-dispersion/BTC realized-variance experiment [#46085887442](https://github.com/takenthatusernameis-collab/QUANTITATIVE-FINANCE-RESEARCH/actions/runs/46085887442). This source-only preflight does not count as another backtest.
+- Canonical files: [preregistration](research/PREREGISTERED-QFR-2026-11-28-SP500-FRIDAY-SHOCK-BTC-WEEKEND-DOWNSIDE-01.md) · [source preflight](research/sp500_weekend_btc_source_preflight.py) · [deterministic tests](research/test_sp500_weekend_btc_source_preflight.py) · [workflow](.github/workflows/sp500-weekend-btc-source-preflight.yml).
+- Current state: source-preflight workflow pending execution; no empirical result and no trading claim.

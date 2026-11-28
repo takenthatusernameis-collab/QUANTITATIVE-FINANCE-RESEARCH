@@ -1,0 +1,166 @@
+from __future__ import annotations
+
+import csv
+import datetime as dt
+import io
+import unittest
+
+import sp500_weekend_btc_source_preflight as model
+
+
+UTC = dt.timezone.utc
+
+
+def sp500_csv(days: int = 2300, start: dt.date = dt.date(2017, 8, 18)) -> bytes:
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["observation_date", "SP500"])
+    day = start
+    count = 0
+    while count < days:
+        if day.weekday() < 5:
+            writer.writerow([day.isoformat(), 2400.0 + count])
+            count += 1
+        day += dt.timedelta(days=1)
+    return output.getvalue().encode("utf-8")
+
+
+class Sp500WeekendBtcSourcePreflightTests(unittest.TestCase):
+    def test_parse_sp500_csv_sorts_and_preserves_positive_daily_closes(self):
+        body = (
+            b"observation_date,SP500\n"
+            b"2017-08-21,2428.37\n"
+            b"2017-08-18,2425.55\n"
+            b"2017-08-22,.\n"
+        )
+        values = model.parse_sp500_csv(body)
+        self.assertEqual(list(values), [dt.date(2017, 8, 18), dt.date(2017, 8, 21)])
+        self.assertEqual(values[dt.date(2017, 8, 18)], 2425.55)
+
+    def test_parse_sp500_rejects_duplicate_dates_and_nonpositive_values(self):
+        duplicate = (
+            b"observation_date,SP500\n"
+            b"2017-08-18,2425.55\n"
+            b"2017-08-18,2426.00\n"
+        )
+        with self.assertRaisesRegex(ValueError, "Duplicate"):
+            model.parse_sp500_csv(duplicate)
+        nonpositive = b"observation_date,SP500\n2017-08-18,0\n"
+        with self.assertRaisesRegex(ValueError, "positive and finite"):
+            model.parse_sp500_csv(nonpositive)
+
+    def test_sp500_coverage_rejects_stale_and_future_observations(self):
+        values = model.parse_sp500_csv(sp500_csv())
+        now = dt.datetime(2026, 11, 28, 12, tzinfo=UTC)
+        summary = model.validate_sp500_coverage(values, now)
+        self.assertGreaterEqual(summary["rows"], 2200)
+        self.assertEqual(summary["first_date"], "2017-08-18")
+        stale = {day: close for day, close in values.items() if day < dt.date(2026, 11, 20)}
+        with self.assertRaisesRegex(ValueError, "stale"):
+            model.validate_sp500_coverage(stale, now)
+        future = dict(values)
+        future[dt.date(2026, 11, 30)] = 5000.0
+        with self.assertRaisesRegex(ValueError, "future-dated"):
+            model.validate_sp500_coverage(future, now)
+
+    def test_archive_spec_builders_use_official_btcusdt_hourly_paths(self):
+        monthly = model.build_monthly_archive_specs(
+            dt.date(2017, 8, 18), dt.date(2026, 11, 22)
+        )
+        daily = model.build_daily_archive_specs(dt.date(2026, 11, 22))
+        self.assertEqual(monthly[0]["filename"], "BTCUSDT-1h-2017-08.zip")
+        self.assertEqual(monthly[-1]["filename"], "BTCUSDT-1h-2026-10.zip")
+        self.assertEqual(daily[0]["filename"], "BTCUSDT-1h-2026-11-01.zip")
+        self.assertEqual(daily[-1]["filename"], "BTCUSDT-1h-2026-11-22.zip")
+        self.assertTrue(all("/data/spot/" in row["url"] for row in monthly + daily))
+
+    def test_hourly_coverage_rejects_missing_or_out_of_window_hours(self):
+        start = dt.datetime(2026, 1, 1, tzinfo=UTC)
+        end = start + dt.timedelta(hours=2000)
+        rows = {
+            start + dt.timedelta(hours=index): 50_000.0 + index
+            for index in range(2000)
+        }
+        summary = model.validate_hourly_coverage(rows, start, end)
+        self.assertEqual(summary["missing_hours"], 0)
+        missing = dict(rows)
+        missing.pop(start + dt.timedelta(hours=1000))
+        with self.assertRaisesRegex(ValueError, "gaps exceed"):
+            model.validate_hourly_coverage(missing, start, end)
+        outside = dict(rows)
+        outside[start - dt.timedelta(hours=1)] = 1.0
+        with self.assertRaisesRegex(ValueError, "out-of-window"):
+            model.validate_hourly_coverage(outside, start, end)
+
+    def test_weekly_event_feasibility_requires_matured_nonoverlapping_targets(self):
+        first_friday = dt.date(2017, 8, 18)
+        fridays = [first_friday + dt.timedelta(days=7 * index) for index in range(260)]
+        sp500 = {day: 2400.0 + index for index, day in enumerate(fridays)}
+        start = dt.datetime(2017, 8, 11, tzinfo=UTC)
+        end = dt.datetime(2022, 9, 1, tzinfo=UTC)
+        returns = {}
+        cursor = start
+        while cursor < end:
+            returns[int(cursor.timestamp())] = 0.0001
+            cursor += dt.timedelta(hours=1)
+        summary = model.event_feasibility(
+            sp500,
+            returns,
+            latest_friday=fridays[-1],
+            validation_start=fridays[120],
+            test_start=fridays[180],
+            minimum_training_events=104,
+        )
+        self.assertGreater(summary["accepted_weekly_events"], 250)
+        self.assertGreater(summary["eligible_validation_forecasts"], 0)
+        self.assertGreater(summary["eligible_test_forecasts"], 0)
+        self.assertTrue(summary["forecast_windows_are_exactly_24h"])
+        self.assertTrue(summary["target_windows_non_overlapping_by_weekly_schedule"])
+
+    def test_weekly_event_feasibility_excludes_incomplete_hourly_windows(self):
+        friday = dt.date(2020, 1, 3)
+        signal = dt.datetime(2020, 1, 4, 12, tzinfo=UTC)
+        signal_ts = int(signal.timestamp())
+        returns = {
+            signal_ts - 168 * 3600 + index * 3600: 0.001
+            for index in range(168 + 24)
+        }
+        returns.pop(signal_ts + 5 * 3600)
+        summary = model.event_feasibility(
+            {friday: 3000.0},
+            returns,
+            latest_friday=friday,
+            validation_start=dt.date(2019, 1, 1),
+            test_start=dt.date(2022, 1, 1),
+            minimum_training_events=1,
+        )
+        self.assertEqual(summary["accepted_weekly_events"], 0)
+
+    def test_latest_matured_friday_excludes_unfinished_weekend_target(self):
+        values = {
+            dt.date(2026, 11, 20): 6800.0,
+            dt.date(2026, 11, 27): 6900.0,
+        }
+        now = dt.datetime(2026, 11, 28, 7, 46, tzinfo=UTC)
+        day, signal_ts, target_end_ts = model.latest_matured_friday(values, now)
+        self.assertEqual(day, dt.date(2026, 11, 20))
+        self.assertEqual(
+            dt.datetime.fromtimestamp(signal_ts, UTC),
+            dt.datetime(2026, 11, 21, 12, tzinfo=UTC),
+        )
+        self.assertEqual(
+            dt.datetime.fromtimestamp(target_end_ts, UTC),
+            dt.datetime(2026, 11, 22, 12, tzinfo=UTC),
+        )
+
+    def test_preflight_is_explicitly_source_only_and_does_not_fit_a_model(self):
+        values = model.parse_sp500_csv(sp500_csv())
+        coverage = model.validate_sp500_coverage(
+            values, dt.datetime(2026, 11, 28, 12, tzinfo=UTC)
+        )
+        self.assertEqual(coverage["series_id"], "SP500")
+        self.assertFalse(coverage["historical_intraday_publication_timestamps_available"])
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,67 @@
+name: Friday S&P 500 / Bitcoin weekend source feasibility preflight
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "research/PREREGISTERED-QFR-2026-11-28-SP500-FRIDAY-SHOCK-BTC-WEEKEND-DOWNSIDE-01.md"
+      - "research/sp500_weekend_btc_source_preflight.py"
+      - "research/test_sp500_weekend_btc_source_preflight.py"
+      - ".github/workflows/sp500-weekend-btc-source-preflight.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qfr-sp500-weekend-btc-source-preflight-main
+  cancel-in-progress: false
+
+jobs:
+  source-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout immutable triggering commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Install pinned numerical dependency
+        run: python -m pip install --disable-pip-version-check -r research/requirements.txt
+
+      - name: Run deterministic source, timestamp, archive and event-feasibility tests
+        run: |
+          set -euo pipefail
+          python -m py_compile research/sp500_weekend_btc_source_preflight.py research/test_sp500_weekend_btc_source_preflight.py
+          PYTHONPATH=research python -m unittest discover -s research -p "test_sp500_weekend_btc_source_preflight.py" -v
+
+      - name: Fetch FRED and checksum-verify Binance BTCUSDT hourly archives; do not fit a model
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python research/sp500_weekend_btc_source_preflight.py
+          output="reports/generated/sp500-weekend-btc-source-preflight/$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT/preflight.json"
+          test -s "$output"
+          echo "=== SOURCE-ONLY PREFLIGHT ==="
+          cat "$output"
+
+      - name: Upload source-only manifest
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sp500-weekend-btc-source-preflight-${{ github.run_id }}
+          path: reports/generated/sp500-weekend-btc-source-preflight/${{ github.run_id }}-attempt-${{ github.run_attempt }}/preflight.json
+          if-no-files-found: warn
+          retention-days: 30

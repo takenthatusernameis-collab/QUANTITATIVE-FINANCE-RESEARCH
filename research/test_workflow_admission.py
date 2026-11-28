@@ -29,6 +29,7 @@ NON_RESEARCH_WORKFLOWS = {
     "eth-validator-queue-pit-concordance.yml",
     "h8-ci-credit-impulse-source-preflight.yml",
     "h8-ci-credit-impulse-independent-audit.yml",
+    "sp500-weekend-btc-source-preflight.yml",
     "chatgpt-control-pr-dispatch.yml",
     "dispatch-bridge-probe.yml",
 }
@@ -1152,6 +1153,20 @@ class ResearchWorkflowAdmissionTests(unittest.TestCase):
         self.assertIn("ref: ${{ github.sha }}", text)
         self.assertIn("cancel-in-progress: false", text)
         self.assertNotIn("python research/h8_ci_credit_impulse_btc_downside.py", text)
+
+
+    def test_sp500_weekend_btc_source_preflight_is_read_only_and_non_research(self):
+        path = WORKFLOW_DIR / "sp500-weekend-btc-source-preflight.yml"
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", text)
+        self.assertIn("contents: read", text)
+        self.assertNotIn("contents: write", text)
+        self.assertIn("github.sha", text)
+        self.assertIn("sp500_weekend_btc_source_preflight.py", text)
+        self.assertIn("test_sp500_weekend_btc_source_preflight.py", text)
+        self.assertIn("backtest", text.lower())
+        self.assertNotIn('research/test_workflow_admission.py', text)
+        self.assertNotIn('.github/workflows/workflow-admission-tests.yml', text)
 
 
 if __name__ == "__main__":

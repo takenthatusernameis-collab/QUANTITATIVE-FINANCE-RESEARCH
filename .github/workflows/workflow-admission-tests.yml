@@ -82,6 +82,10 @@ on:
       - "research/test_h8_ci_credit_impulse_btc_downside_audit.py"
       - "research/test_h8_ci_credit_impulse_source_preflight.py"
       - "research/PREREGISTERED-QFR-2026-11-28-H8-CI-CREDIT-IMPULSE-BTC-DOWNSIDE-01.md"
+      - "research/PREREGISTERED-QFR-2026-11-28-SP500-FRIDAY-SHOCK-BTC-WEEKEND-DOWNSIDE-01.md"
+      - "research/sp500_weekend_btc_source_preflight.py"
+      - "research/test_sp500_weekend_btc_source_preflight.py"
+      - ".github/workflows/sp500-weekend-btc-source-preflight.yml"
       - ".github/workflows/h8-ci-credit-impulse-source-preflight.yml"
   workflow_dispatch:
 
