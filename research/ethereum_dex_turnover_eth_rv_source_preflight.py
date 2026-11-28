@@ -228,7 +228,7 @@ def parse_hourly_archive(body: bytes) -> tuple[dict[dt.datetime, float], str]:
             raise ValueError(f"Unsupported Binance timestamp magnitude at row {row_number}")
         step = INTERVAL_MS * (1_000 if unit == "microseconds" else 1)
         if open_time % step or close_time != open_time + step - 1:
-            raise ValueError(f"Row {row_number} is not a complete UTC hourly candle")
+            raise ValueError(f"Row {row_number} is not a complete UTC hourly candle: open_time={open_time}, close_time={close_time}, unit={unit}, step={step}, expected_close_time={open_time + step - 1}")
         stamp = dt.datetime.fromtimestamp(open_time / scale, tz=dt.timezone.utc)
         if stamp in values:
             raise ValueError(f"Duplicate ETHUSDT hourly candle: {stamp.isoformat()}")
