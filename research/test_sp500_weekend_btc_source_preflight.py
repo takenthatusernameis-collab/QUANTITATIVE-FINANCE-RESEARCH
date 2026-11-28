@@ -110,6 +110,67 @@ class Sp500WeekendBtcSourcePreflightTests(unittest.TestCase):
         self.assertEqual(daily[-1]["filename"], "BTCUSDT-1h-2026-11-22.zip")
         self.assertTrue(all("/data/spot/" in row["url"] for row in monthly + daily))
 
+    def test_anomaly_hours_are_scoped_to_required_window_and_deduplicated(self):
+        start = dt.datetime(2026, 1, 1, tzinfo=UTC)
+        end = start + dt.timedelta(hours=10)
+        same_hour = start + dt.timedelta(hours=3)
+        archive_results = [
+            ({}, {
+                "anomalies": [
+                    {"timestamp": (same_hour + dt.timedelta(milliseconds=1234)).isoformat()},
+                    {"timestamp": (same_hour + dt.timedelta(milliseconds=5678)).isoformat()},
+                    {"timestamp": (start - dt.timedelta(hours=1)).isoformat()},
+                    {"timestamp": end.isoformat()},
+                ]
+            })
+        ]
+        self.assertEqual(
+            model.anomaly_hour_timestamps(archive_results, start, end),
+            {same_hour},
+        )
+
+    def test_hourly_coverage_unions_anomaly_hours_with_actual_gaps(self):
+        start = dt.datetime(2020, 1, 1, tzinfo=UTC)
+        hours = 100_000
+        end = start + dt.timedelta(hours=hours)
+        rows = {
+            start + dt.timedelta(hours=index): 50_000.0 + index
+            for index in range(hours)
+        }
+        first = start + dt.timedelta(hours=1000)
+        second = start + dt.timedelta(hours=1001)
+        rows.pop(first)
+        summary = model.validate_hourly_coverage(
+            rows, start, end,
+            anomaly_hours={first, second},
+            enforce_limits=False,
+        )
+        self.assertEqual(summary["observed_missing_hours"], 1)
+        self.assertEqual(summary["anomaly_affected_hours"], 2)
+        self.assertEqual(summary["effective_missing_hours"], 2)
+        self.assertEqual(summary["missing_hours"], 2)
+        self.assertTrue(summary["within_limits"])
+
+    def test_hourly_coverage_rejects_more_than_24_distinct_anomaly_hours(self):
+        start = dt.datetime(2020, 1, 1, tzinfo=UTC)
+        hours = 100_000
+        end = start + dt.timedelta(hours=hours)
+        rows = {
+            start + dt.timedelta(hours=index): 50_000.0 + index
+            for index in range(hours)
+        }
+        anomalies = {
+            start + dt.timedelta(hours=1000 + 5 * index)
+            for index in range(25)
+        }
+        diagnostic = model.validate_hourly_coverage(
+            rows, start, end, anomaly_hours=anomalies, enforce_limits=False
+        )
+        self.assertFalse(diagnostic["within_limits"])
+        self.assertIn("missing_hour_count", diagnostic["limit_failures"])
+        with self.assertRaisesRegex(ValueError, "gaps exceed frozen limits"):
+            model.validate_hourly_coverage(rows, start, end, anomaly_hours=anomalies)
+
     def test_hourly_coverage_rejects_missing_or_out_of_window_hours(self):
         start = dt.datetime(2026, 1, 1, tzinfo=UTC)
         end = start + dt.timedelta(hours=2000)

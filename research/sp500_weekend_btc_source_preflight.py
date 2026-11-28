@@ -346,10 +346,39 @@ def merge_archive_results(results: list[tuple[dict, dict]]) -> dict[dt.datetime,
     return dict(sorted(merged.items()))
 
 
+def anomaly_hour_timestamps(
+    archive_results: list[tuple[dict, dict]],
+    start: dt.datetime,
+    end_exclusive: dt.datetime,
+) -> set[dt.datetime]:
+    """Map malformed rows to affected UTC hour buckets for missingness only.
+
+    This never repairs or inserts a candle. It scopes anomaly accounting to the
+    required sample interval and deduplicates multiple malformed rows in one hour.
+    """
+    if start.tzinfo is None or end_exclusive.tzinfo is None:
+        raise ValueError("Anomaly accounting bounds must be timezone-aware")
+    start = start.astimezone(dt.timezone.utc)
+    end_exclusive = end_exclusive.astimezone(dt.timezone.utc)
+    affected = set()
+    for _, record in archive_results:
+        for anomaly in record.get("anomalies", []):
+            stamp = dt.datetime.fromisoformat(str(anomaly["timestamp"]))
+            if stamp.tzinfo is None:
+                raise ValueError("Malformed Binance anomaly timestamp must be timezone-aware")
+            stamp = stamp.astimezone(dt.timezone.utc)
+            hour = stamp.replace(minute=0, second=0, microsecond=0)
+            if start <= hour < end_exclusive:
+                affected.add(hour)
+    return affected
+
+
 def validate_hourly_coverage(
     rows: dict[dt.datetime, float],
     start: dt.datetime,
     end_exclusive: dt.datetime,
+    anomaly_hours: set[dt.datetime] | None = None,
+    enforce_limits: bool = True,
 ) -> dict:
     if start.tzinfo is None or end_exclusive.tzinfo is None:
         raise ValueError("Hourly coverage bounds must be timezone-aware")
@@ -362,47 +391,74 @@ def validate_hourly_coverage(
     expected = {start + dt.timedelta(hours=index) for index in range(expected_count)}
     observed = set(rows)
     outside = sorted(observed - expected)
-    missing = sorted(expected - observed)
     if outside:
         raise ValueError(f"Binance hourly data contains {len(outside)} out-of-window timestamps")
-    missing_fraction = len(missing) / expected_count
+
+    normalized_anomalies = set()
+    for stamp in anomaly_hours or set():
+        if stamp.tzinfo is None:
+            raise ValueError("Anomaly-affected hour must be timezone-aware")
+        hour = stamp.astimezone(dt.timezone.utc)
+        if hour.minute or hour.second or hour.microsecond:
+            raise ValueError("Anomaly-affected timestamps must identify UTC hour buckets")
+        normalized_anomalies.add(hour)
+    anomaly_outside = sorted(normalized_anomalies - expected)
+    if anomaly_outside:
+        raise ValueError(
+            f"Anomaly accounting contains {len(anomaly_outside)} out-of-window UTC hours"
+        )
+
+    observed_missing = expected - observed
+    # Count the union: an anomaly in an already-missing hour is not double-counted.
+    effective_missing = observed_missing | normalized_anomalies
+    missing_fraction = len(effective_missing) / expected_count
     maximum_consecutive = 0
     current_consecutive = 0
     previous = None
-    for stamp in missing:
+    for stamp in sorted(effective_missing):
         if previous is not None and stamp - previous == dt.timedelta(hours=1):
             current_consecutive += 1
         else:
             current_consecutive = 1
         maximum_consecutive = max(maximum_consecutive, current_consecutive)
         previous = stamp
-    if (
-        len(missing) > MAX_MISSING_HOURS
-        or missing_fraction > MAX_MISSING_FRACTION
-        or maximum_consecutive > MAX_CONSECUTIVE_MISSING_HOURS
-    ):
-        raise ValueError(
-            "Binance hourly gaps exceed frozen limits: "
-            f"missing={len(missing)}, fraction={missing_fraction:.8f}, "
-            f"max_consecutive={maximum_consecutive}"
-        )
-    digest = hashlib.sha256()
-    for stamp, close in sorted(rows.items()):
-        digest.update(f"{stamp.isoformat()},{float(close):.12g}\n".encode("ascii"))
-    return {
+
+    limit_failures = []
+    if len(effective_missing) > MAX_MISSING_HOURS:
+        limit_failures.append("missing_hour_count")
+    if missing_fraction > MAX_MISSING_FRACTION:
+        limit_failures.append("missing_fraction")
+    if maximum_consecutive > MAX_CONSECUTIVE_MISSING_HOURS:
+        limit_failures.append("maximum_consecutive_missing_hours")
+
+    summary = {
         "first_timestamp": min(rows).isoformat(),
         "last_timestamp": max(rows).isoformat(),
         "expected_hourly_rows": expected_count,
         "observed_hourly_rows": len(rows),
-        "missing_hours": len(missing),
+        "observed_missing_hours": len(observed_missing),
+        "anomaly_affected_hours": len(normalized_anomalies),
+        "effective_missing_hours": len(effective_missing),
+        "missing_hours": len(effective_missing),
         "missing_fraction": missing_fraction,
         "coverage_ratio": 1.0 - missing_fraction,
         "maximum_consecutive_missing_hours": maximum_consecutive,
         "maximum_allowed_missing_hours": MAX_MISSING_HOURS,
         "maximum_allowed_missing_fraction": MAX_MISSING_FRACTION,
         "maximum_allowed_consecutive_missing_hours": MAX_CONSECUTIVE_MISSING_HOURS,
-        "canonical_close_sha256": digest.hexdigest(),
+        "anomaly_affected_hour_timestamps": [stamp.isoformat() for stamp in sorted(normalized_anomalies)],
+        "effective_missing_hour_timestamps": [stamp.isoformat() for stamp in sorted(effective_missing)],
+        "limit_failures": limit_failures,
+        "within_limits": not limit_failures,
+        "anomalies_counted_as_missingness_only": True,
     }
+    if limit_failures and enforce_limits:
+        raise ValueError(
+            "Binance hourly gaps exceed frozen limits: "
+            f"missing={len(effective_missing)}, fraction={missing_fraction:.8f}, "
+            f"max_consecutive={maximum_consecutive}, failures={limit_failures}"
+        )
+    return summary
 
 
 def hourly_returns(closes: dict[dt.datetime, float]) -> dict[int, float]:
@@ -501,38 +557,63 @@ def run_preflight(
     archive_results = download_archive_group(archive_specs, downloader=archive_downloader)
     all_prices = merge_archive_results(archive_results)
     invalid_archive_rows = sum(record["invalid_row_count"] for _, record in archive_results)
-    if invalid_archive_rows > MAX_MISSING_HOURS:
-        raise ValueError(
-            f"Too many invalid Binance archive rows: {invalid_archive_rows} > {MAX_MISSING_HOURS}"
-        )
-    archive_anomalies = [
-        {
-            "period": record["period"],
-            "filename": record["url"].rsplit("/", 1)[-1],
-            "anomalies": record["anomalies"],
-        }
-        for _, record in archive_results
-        if record["invalid_row_count"]
-    ]
     start = dt.datetime.combine(START_DATE, dt.time(), tzinfo=dt.timezone.utc)
     prices = {
         stamp: close for stamp, close in all_prices.items()
         if start <= stamp < target_end
     }
-    hourly_coverage = validate_hourly_coverage(prices, start, target_end)
+    anomaly_hours = anomaly_hour_timestamps(archive_results, start, target_end)
+    archive_anomalies = []
+    invalid_archive_rows_in_required_window = 0
+    for _, record in archive_results:
+        if not record["invalid_row_count"]:
+            continue
+        detailed_anomalies = []
+        for anomaly in record["anomalies"]:
+            stamp = dt.datetime.fromisoformat(anomaly["timestamp"]).astimezone(dt.timezone.utc)
+            affected_hour = stamp.replace(minute=0, second=0, microsecond=0)
+            in_required_window = start <= affected_hour < target_end
+            if in_required_window:
+                invalid_archive_rows_in_required_window += 1
+            detailed_anomalies.append({
+                **anomaly,
+                "affected_hour_utc": affected_hour.isoformat(),
+                "affects_required_window": in_required_window,
+            })
+        archive_anomalies.append({
+            "period": record["period"],
+            "filename": record["url"].rsplit("/", 1)[-1],
+            "anomalies": detailed_anomalies,
+        })
+
+    # The frozen missingness limits apply to unique affected hours inside the
+    # required sample, not raw malformed rows across whole archive files.
+    hourly_coverage = validate_hourly_coverage(
+        prices, start, target_end, anomaly_hours=anomaly_hours, enforce_limits=False
+    )
     returns = hourly_returns(prices)
     feasibility = event_feasibility(sp500, returns, latest_friday)
+    gate_errors = []
+    if not hourly_coverage["within_limits"]:
+        gate_errors.append(
+            "Binance hourly gaps exceed frozen limits: "
+            f"missing={hourly_coverage['effective_missing_hours']}, "
+            f"fraction={hourly_coverage['missing_fraction']:.8f}, "
+            f"max_consecutive={hourly_coverage['maximum_consecutive_missing_hours']}, "
+            f"failures={hourly_coverage['limit_failures']}"
+        )
     if feasibility["eligible_validation_forecasts"] < MIN_FORECASTS_PER_SPLIT:
-        raise ValueError(
+        gate_errors.append(
             f"Insufficient eligible validation forecasts: {feasibility['eligible_validation_forecasts']}"
         )
     if feasibility["eligible_test_forecasts"] < MIN_FORECASTS_PER_SPLIT:
-        raise ValueError(
+        gate_errors.append(
             f"Insufficient eligible test forecasts: {feasibility['eligible_test_forecasts']}"
         )
     return {
         "hypothesis_id": HYPOTHESIS_ID,
-        "status": "PASS",
+        "status": "PASS" if not gate_errors else "FAIL",
+        "gate_errors": gate_errors,
         "retrieved_at_utc": retrieved_at.isoformat(),
         "source_commit_sha": SOURCE_SHA,
         "workflow_run_id": RUN_ID,
@@ -556,7 +637,10 @@ def run_preflight(
             "daily_archive_count": len(daily_specs),
             "all_archive_checksums_verified": all(record["checksum_verified"] for _, record in archive_results),
             "invalid_archive_row_count": invalid_archive_rows,
+            "invalid_archive_rows_in_required_window": invalid_archive_rows_in_required_window,
+            "unique_anomaly_affected_hour_count": len(anomaly_hours),
             "invalid_archive_rows_excluded_without_rounding_or_interpolation": True,
+            "anomaly_hours_scoped_to_required_window_and_deduplicated": True,
             "end_exclusive_close_time_row_count": sum(
                 record["close_time_equal_to_open_plus_interval_rows"] for _, record in archive_results
             ),
