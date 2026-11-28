@@ -32,7 +32,10 @@ def hourly_row(stamp, close=2000.0, volume=10.0, unit="milliseconds"):
 class EthereumDexTurnoverSourcePreflightTests(unittest.TestCase):
     def test_dex_parser_reads_documented_total_data_chart_field(self):
         day = dt.date(2021, 1, 1)
-        body = json.dumps({"totalDataChart": [dex_row(day), dex_row(day + dt.timedelta(days=1), 2_000_000.0)]}).encode()
+        body = json.dumps({"totalDataChart": [
+            [unix(day), 1_000_000.0],
+            [unix(day + dt.timedelta(days=1)), 2_000_000.0],
+        ]}).encode()
         parsed = model.parse_dex_history(body)
         self.assertEqual(len(parsed), 2)
         self.assertEqual(parsed[day], 1_000_000.0)
@@ -43,10 +46,13 @@ class EthereumDexTurnoverSourcePreflightTests(unittest.TestCase):
         self.assertEqual(parsed[day], 50_000_000_000.0)
 
     def test_parsers_reject_missing_fields_duplicates_and_invalid_values(self):
-        with self.assertRaisesRegex(ValueError, "totalVolume"):
-            model.parse_dex_history(b'{"totalDataChart":[{"date":1609459200,"volume":1}]}')
+        with self.assertRaisesRegex(ValueError, "unix_timestamp"):
+            model.parse_dex_history(b'{"totalDataChart":[[1609459200]]}')
         with self.assertRaisesRegex(ValueError, "Duplicate"):
-            model.parse_dex_history(json.dumps({"totalDataChart": [dex_row(dt.date(2021, 1, 1)), dex_row(dt.date(2021, 1, 1), 2)]}).encode())
+            model.parse_dex_history(json.dumps({"totalDataChart": [
+                [unix(dt.date(2021, 1, 1)), 1.0],
+                [unix(dt.date(2021, 1, 1)), 2.0],
+            ]}).encode())
         with self.assertRaisesRegex(ValueError, "invalid value"):
             model.parse_tvl_history(json.dumps([tvl_row(dt.date(2021, 1, 1), 0)]).encode())
         with self.assertRaisesRegex(ValueError, "row 0 is not an object"):
