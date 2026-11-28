@@ -155,8 +155,8 @@ class EthereumDexTurnoverSourcePreflightTests(unittest.TestCase):
     def test_hourly_parser_rejects_bad_interval_and_invalid_ohlc(self):
         start = dt.datetime(2021, 1, 1, tzinfo=dt.timezone.utc)
         row = hourly_row(start)
-        row[6] = str(int(row[6]) - 1)
-        with self.assertRaisesRegex(ValueError, "complete UTC hourly"):
+        row[0] = str(int(row[0]) + 1)
+        with self.assertRaisesRegex(ValueError, "invalid UTC hourly bounds"):
             model.parse_hourly_archive((",".join(row) + "\n").encode())
         bad = hourly_row(start)
         bad[3] = "3000"
