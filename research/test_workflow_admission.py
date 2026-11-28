@@ -32,10 +32,12 @@ NON_RESEARCH_WORKFLOWS = {
     "sp500-weekend-btc-source-preflight.yml",
     "chatgpt-control-pr-dispatch.yml",
     "dispatch-bridge-probe.yml",
+    "delete-specific-release.yml",
 }
 NON_RESEARCH_NO_CHECKOUT_WORKFLOWS = {
     "chatgpt-control-pr-dispatch.yml",
     "dispatch-bridge-probe.yml",
+    "delete-specific-release.yml",
 }
 
 
